@@ -8,18 +8,21 @@ A code intelligence daemon for AI agents. Pre-computes a semantic index of every
 
 > **The full PRD lives in [`docs/SPEC.md`](docs/SPEC.md). Read it before writing any code.** It is 712 lines, opinionated, and self-contained.
 
-## Where to start
+## Status (2026-04-10)
 
-1. **Read [`README.md`](README.md)** — one page of orientation.
-2. **Read [`docs/SPEC.md`](docs/SPEC.md)** in full. Pay special attention to:
-   - §3 (Goals & Non-Goals — what we're explicitly NOT building)
-   - §7 (Tech stack — decided, don't relitigate)
-   - §11 (Languages supported — TS/JS, Go, PHP/Laravel for v1)
-   - §11.1 (PHP — the wildcard. Read this carefully. PHP is the trickiest of the four languages and has a specific multi-phase strategy.)
-   - §13 (Build phases — start with P0)
-   - §15 (Open questions — these are decisions you should make, document in `docs/DECISIONS.md`, and move on)
-   - §17 (First commit checklist — your day-1 deliverable)
-3. **Start with Phase P0.** TypeScript/JavaScript only, CLI-only (no daemon yet), basic queries against a precomputed SCIP dump.
+- **P0 shipped:** TypeScript indexing, BadgerDB store, `init`/`refs`/`defs`/`status`, CLI-direct (no daemon).
+- **P1 shipped:** daemon mode, Unix socket + JSON-RPC 2.0, auto-spawn, fsnotify watch loop with background reindex, Go support, auto-download for `scip-go`, `callers`/`callees`/`impls`, the call graph and implementations indexes.
+- **P2 next:** PHP (`scip-php` PHAR + Laravel post-processor — see `docs/PHP_CALIBRATION.md` for the day-1 feasibility report and the re-scoped P2 plan), Python, Bash, multi-repo polish, `deps`/`rdeps`, semantic diff, the gstack `/scry` skill wrapper.
+
+The current code, layout, commands, and known limitations are documented in [`README.md`](README.md). Read that first for orientation.
+
+## Where to start (continuing the project)
+
+1. **Read [`README.md`](README.md)** — one page covering current state, commands, and gotchas.
+2. **Read [`docs/DECISIONS.md`](docs/DECISIONS.md)** — every architectural call made so far, with reasoning and what would change our minds. Anything you're tempted to relitigate is probably already in here.
+3. **Read [`docs/PHP_CALIBRATION.md`](docs/PHP_CALIBRATION.md)** before touching PHP. It already validated `scip-php` against a real Laravel app and re-scoped what the P2 post-processor needs to do; the spec's §11.1 is now superseded by this report.
+4. **Read [`docs/SPEC.md`](docs/SPEC.md)** if you need the original PRD context. Treat it as read-only history — decisions made *after* the PRD live in `DECISIONS.md`, not here.
+5. **For new work:** pick from the P2 list above. The §13 build phases in the spec are the canonical roadmap.
 
 ## Hard constraints (don't relitigate)
 
@@ -75,10 +78,13 @@ Examples of bad questions:
 - "Should we support PHP?" (Spec answers this. Yes, P1.)
 - "Where should the daemon log?" (Spec lists this as an open question for you to decide and document, §15 #2.)
 
-## What "done" means for the first session
+## What "done" means for the next session
 
-A successful first session ships either:
-- **Phase P0 in full** (the first commit checklist in §17 of the spec), OR
-- **Enough of P0 to validate the core risk**: `scry init` indexes a real TypeScript repo, `scry refs <symbol>` returns accurate results from the BadgerDB store. Even if the CLI is rough and the test coverage is thin, getting that round-trip working proves the architecture.
+P0 and P1 are already shipped. The next session should pick a phase from the §13 list and own it end-to-end. Suggested next bites in priority order:
 
-Don't try to ship P1/P2/P3 in one session. Phased delivery is in the spec for a reason.
+1. **PHP P2** — start by re-reading `docs/PHP_CALIBRATION.md`, then build the PHAR distribution flow first (the install path is the riskiest part), then the four post-processor items: non-PSR-4 file walker, facade resolver, view template ref, config key ref.
+2. **Vue SFC extraction** — call sites in `.vue` files are invisible today and that's a real productivity gap on Inertia/Vue stacks. Pre-extract `<script>` blocks into virtual TS files before invoking scip-typescript.
+3. **Build-into-temp-dir reindex** — fixes the "queries return 'not indexed yet' for 3-15s during reindex" gap. See the comment in `internal/daemon/watch.go`.
+4. **Python and Bash** — both have SCIP indexers; should be straightforward additions following the pattern in `internal/sources/golang`.
+
+Don't try to ship more than one of these in a single session. The phased delivery cadence is in the spec for a reason.

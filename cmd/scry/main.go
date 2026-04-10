@@ -36,7 +36,12 @@ Read+Grep+Glob loop that eats most of an agent's time and tokens.`,
 	root.AddCommand(initCmd())
 	root.AddCommand(refsCmd())
 	root.AddCommand(defsCmd())
+	root.AddCommand(callersCmd())
+	root.AddCommand(calleesCmd())
+	root.AddCommand(implsCmd())
 	root.AddCommand(statusCmd())
+	root.AddCommand(startCmd())
+	root.AddCommand(stopCmd())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "scry:", err)

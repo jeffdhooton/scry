@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/sources/golang"
 	"github.com/jeffdhooton/scry/internal/sources/scip"
 	"github.com/jeffdhooton/scry/internal/sources/typescript"
 	"github.com/jeffdhooton/scry/internal/store"
@@ -43,8 +44,12 @@ type RepoLayout struct {
 	RepoPath     string // absolute path to the source repo
 	StorageDir   string // ~/.scry/repos/<hash>
 	BadgerDir    string // <StorageDir>/index.db
-	ScipPath     string // <StorageDir>/scip-typescript.bin
 	ManifestPath string // <StorageDir>/manifest.json
+}
+
+// scipPath returns the per-language .scip dump location.
+func (l RepoLayout) scipPath(language string) string {
+	return filepath.Join(l.StorageDir, "scip-"+language+".bin")
 }
 
 // Layout resolves where the index for repoPath should live under scryHome.
@@ -57,7 +62,6 @@ func Layout(scryHome, repoPath string) RepoLayout {
 		RepoPath:     repoPath,
 		StorageDir:   storage,
 		BadgerDir:    filepath.Join(storage, "index.db"),
-		ScipPath:     filepath.Join(storage, "scip-typescript.bin"),
 		ManifestPath: filepath.Join(storage, "manifest.json"),
 	}
 }
@@ -67,9 +71,12 @@ func Layout(scryHome, repoPath string) RepoLayout {
 // Behavior:
 //   - if the storage directory exists with an outdated schema_version, the
 //     BadgerDB is wiped and rebuilt
-//   - languages are detected by file extension; P0 only handles TypeScript
-//   - the .scip dump is kept on disk so future incremental rebuilds don't have
-//     to re-parse the world (P1+)
+//   - languages are detected by file extension; runs every supported indexer
+//     present (TypeScript, Go in P1)
+//   - per-language .scip dumps are kept on disk so future incremental rebuilds
+//     don't have to re-parse the world
+//   - status is "ready" if every detected indexer succeeded, "partial" if at
+//     least one ran but others failed
 func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 	if !filepath.IsAbs(repoPath) {
 		abs, err := filepath.Abs(repoPath)
@@ -89,18 +96,46 @@ func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 		return nil, fmt.Errorf("detect languages: %w", err)
 	}
 	if len(languages) == 0 {
-		return nil, errors.New("no supported languages detected in repo (P0 supports TypeScript/JavaScript only)")
-	}
-	if !contains(languages, "typescript") && !contains(languages, "javascript") {
-		return nil, fmt.Errorf("repo languages %v include none that scry P0 can index (TypeScript/JavaScript only)", languages)
+		return nil, errors.New("no supported languages detected in repo")
 	}
 
-	// scip-typescript writes the .scip into the storage dir directly.
-	if _, err := typescript.Index(ctx, repoPath, layout.ScipPath); err != nil {
-		return nil, fmt.Errorf("scip-typescript: %w", err)
+	// Run every applicable indexer. Each one writes its own scip-<lang>.bin.
+	// We collect (language, scipPath) pairs and parse them sequentially after
+	// all indexers finish — keeps the BadgerDB write batch contiguous.
+	type indexed struct {
+		language string
+		scipPath string
+	}
+	var produced []indexed
+	var indexerErrs []error
+
+	if contains(languages, "typescript") || contains(languages, "javascript") {
+		out := layout.scipPath("typescript")
+		if _, err := typescript.Index(ctx, repoPath, out); err != nil {
+			indexerErrs = append(indexerErrs, fmt.Errorf("scip-typescript: %w", err))
+		} else {
+			produced = append(produced, indexed{"typescript", out})
+		}
+	}
+	if contains(languages, "go") {
+		out := layout.scipPath("go")
+		binDir := filepath.Join(scryHome, "bin")
+		if _, err := golang.Index(ctx, binDir, repoPath, out); err != nil {
+			indexerErrs = append(indexerErrs, fmt.Errorf("scip-go: %w", err))
+		} else {
+			produced = append(produced, indexed{"go", out})
+		}
 	}
 
-	// Open store, wipe if schema is stale, parse the SCIP dump.
+	if len(produced) == 0 {
+		// Every indexer failed. Surface the first error verbatim.
+		if len(indexerErrs) > 0 {
+			return nil, indexerErrs[0]
+		}
+		return nil, fmt.Errorf("no supported indexer ran on repo languages %v", languages)
+	}
+
+	// Open store, wipe stale data, parse each .scip into the same BadgerDB.
 	st, err := store.Open(layout.BadgerDir)
 	if err != nil {
 		return nil, fmt.Errorf("open store: %w", err)
@@ -114,15 +149,11 @@ func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 	if disk != 0 && disk != store.SchemaVersion {
 		// Loud reindex per docs/DECISIONS.md "Schema evolution".
 		fmt.Fprintf(os.Stderr, "scry: schema upgrade %d -> %d, reindexing %s\n", disk, store.SchemaVersion, repoPath)
-		if err := st.Reset(); err != nil {
-			return nil, fmt.Errorf("reset stale schema: %w", err)
-		}
-	} else if disk == store.SchemaVersion {
-		// Same schema, but we still want a fresh build for P0 — clear before
-		// re-ingesting so we don't accumulate stale records.
-		if err := st.Reset(); err != nil {
-			return nil, fmt.Errorf("reset for rebuild: %w", err)
-		}
+	}
+	// Always reset before re-ingesting so we don't accumulate stale records
+	// from a previous build.
+	if err := st.Reset(); err != nil {
+		return nil, fmt.Errorf("reset store: %w", err)
 	}
 
 	if err := st.SetMeta("schema_version", store.SchemaVersion); err != nil {
@@ -132,9 +163,27 @@ func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 		return nil, fmt.Errorf("write repo path: %w", err)
 	}
 
-	stats, err := scip.Parse(ctx, layout.ScipPath, st)
-	if err != nil {
-		return nil, fmt.Errorf("parse scip: %w", err)
+	combined := scip.Stats{}
+	for _, p := range produced {
+		stats, err := scip.Parse(ctx, p.scipPath, st)
+		if err != nil {
+			return nil, fmt.Errorf("parse %s scip: %w", p.language, err)
+		}
+		combined.Documents += stats.Documents
+		combined.Symbols += stats.Symbols
+		combined.Definitions += stats.Definitions
+		combined.References += stats.References
+		combined.CallEdges += stats.CallEdges
+		combined.Implementations += stats.Implementations
+	}
+
+	status := "ready"
+	if len(indexerErrs) > 0 {
+		status = "partial"
+		fmt.Fprintf(os.Stderr, "scry: %d indexer(s) failed; status=partial\n", len(indexerErrs))
+		for _, e := range indexerErrs {
+			fmt.Fprintf(os.Stderr, "scry:   %v\n", e)
+		}
 	}
 
 	manifest := &Manifest{
@@ -142,8 +191,8 @@ func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 		RepoPath:      repoPath,
 		Languages:     languages,
 		IndexedAt:     time.Now().UTC(),
-		Status:        "ready",
-		Stats:         stats,
+		Status:        status,
+		Stats:         combined,
 	}
 	if err := writeManifest(layout.ManifestPath, manifest); err != nil {
 		return nil, fmt.Errorf("write manifest: %w", err)

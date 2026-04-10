@@ -26,12 +26,14 @@ const (
 	// On mismatch the index is wiped and rebuilt from scratch.
 	SchemaVersion = 1
 
-	prefixMeta = "meta:"
-	prefixSym  = "sym:"
-	prefixDef  = "def:"
-	prefixRef  = "ref:"
-	prefixName = "name:"
-	prefixFSym = "fsym:"
+	prefixMeta   = "meta:"
+	prefixSym    = "sym:"
+	prefixDef    = "def:"
+	prefixRef    = "ref:"
+	prefixName   = "name:"
+	prefixFSym   = "fsym:"
+	prefixCallee = "callee:" // callee:<caller_id>:<seq> -> OccurrenceRecord (the callee)
+	prefixImpl   = "impl:"   // impl:<base_id>:<impl_id> -> empty (impl_id implements base_id)
 )
 
 // SymbolRecord is one defined symbol. The Symbol field is the SCIP-formatted
@@ -131,15 +133,17 @@ func (s *Store) SetMeta(key string, value any) error {
 type Writer struct {
 	wb *badger.WriteBatch
 	// monotonic counters for occurrence sequence numbers, keyed by symbol id
-	defSeq map[string]int
-	refSeq map[string]int
+	defSeq    map[string]int
+	refSeq    map[string]int
+	calleeSeq map[string]int
 }
 
 func (s *Store) NewWriter() *Writer {
 	return &Writer{
-		wb:     s.db.NewWriteBatch(),
-		defSeq: map[string]int{},
-		refSeq: map[string]int{},
+		wb:        s.db.NewWriteBatch(),
+		defSeq:    map[string]int{},
+		refSeq:    map[string]int{},
+		calleeSeq: map[string]int{},
 	}
 }
 
@@ -184,6 +188,27 @@ func (w *Writer) PutOccurrence(rec *OccurrenceRecord) error {
 		key = fmt.Sprintf("%s%s:%08d", prefixRef, rec.Symbol, seq)
 	}
 	return w.wb.Set([]byte(key), b)
+}
+
+// PutCalleeEdge records that callerID calls calleeID at one specific
+// occurrence (the OccurrenceRecord). The callee's display name is on the
+// occurrence's Symbol field; resolving its SymbolRecord at query time gives
+// the human-readable name.
+func (w *Writer) PutCalleeEdge(callerID string, occ *OccurrenceRecord) error {
+	b, err := json.Marshal(occ)
+	if err != nil {
+		return err
+	}
+	seq := w.calleeSeq[callerID]
+	w.calleeSeq[callerID] = seq + 1
+	key := fmt.Sprintf("%s%s:%08d", prefixCallee, callerID, seq)
+	return w.wb.Set([]byte(key), b)
+}
+
+// PutImplEdge records that implID implements baseID. Both are SCIP symbol ids.
+func (w *Writer) PutImplEdge(baseID, implID string) error {
+	key := prefixImpl + baseID + ":" + implID
+	return w.wb.Set([]byte(key), nil)
 }
 
 func (w *Writer) Flush() error {
@@ -237,6 +262,31 @@ func (s *Store) IterateRefs(symbolID string, fn func(*OccurrenceRecord) error) e
 // IterateDefs streams every definition occurrence for symbolID through fn.
 func (s *Store) IterateDefs(symbolID string, fn func(*OccurrenceRecord) error) error {
 	return s.iterateOccurrences(prefixDef+symbolID+":", fn)
+}
+
+// IterateCallees streams every callee edge for callerID through fn. Each
+// record's Symbol field is the called symbol id; resolve it via GetSymbol for
+// display.
+func (s *Store) IterateCallees(callerID string, fn func(*OccurrenceRecord) error) error {
+	return s.iterateOccurrences(prefixCallee+callerID+":", fn)
+}
+
+// IterateImpls returns every implementation symbol id for baseID.
+func (s *Store) IterateImpls(baseID string) ([]string, error) {
+	prefix := []byte(prefixImpl + baseID + ":")
+	var ids []string
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			k := it.Item().KeyCopy(nil)
+			ids = append(ids, string(k[len(prefix):]))
+		}
+		return nil
+	})
+	return ids, err
 }
 
 func (s *Store) iterateOccurrences(prefix string, fn func(*OccurrenceRecord) error) error {

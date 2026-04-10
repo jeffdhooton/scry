@@ -9,6 +9,201 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-04-10 — Skip SCIP local symbols entirely
+
+**Decision:** When parsing a `.scip` file, drop every `SymbolInformation`
+and `Occurrence` whose symbol id starts with `local ` (the SCIP local-symbol
+prefix). Don't write them to BadgerDB at all.
+
+**Why:** SCIP local symbols are document-scoped — `local 19` in document A
+and `local 19` in document B represent two different variables. The first
+P1 build stored them under a global keyspace, which caused `scry refs
+concurrency` against trawl to return 83 results from completely unrelated
+local variables across the codebase. The bug was only noticed because the
+returned occurrences were obviously wrong. Filtering locals entirely is
+safer than namespacing them by document because agents almost never ask
+"find every use of a local variable named `i`" — local variable
+introspection is what an LSP is for.
+
+The size effect is significant: trawl's symbol count dropped from
+2487 → 725 (~70% reduction). Most of that mass is method parameters and
+function-local declarations.
+
+**What would change our minds:** an agent surface emerges that legitimately
+needs cross-occurrence queries on locals (e.g. "highlight every use of
+this loop variable in this function for an inline rewrite"). At that point
+we'd namespace locals as `<doc>::local <N>` and re-enable, but only inside
+a per-document query mode — they should never appear in global lookups.
+
+---
+
+## 2026-04-10 — Defer in-memory cache, BadgerDB is fast enough
+
+**Decision:** Reverse the earlier "all-in-memory until manifest tells us
+otherwise" call from the §15 cache-strategy decision. P1 reads BadgerDB
+directly per query through the registry. No `map[string]Symbol` overlay,
+no LRU, no preload. The store registry only caches the open BadgerDB
+*handle*.
+
+**Why:** Measurement after P1 landed shows the daemon serves `scry refs
+handle` against advocates (3791 symbols, 26166 references) at 6-7ms
+wall-clock end-to-end including process startup, RPC, and JSON marshal.
+Single-microsecond BadgerDB lookups dominate the per-query work, not
+deserialization. Building an in-memory mirror would add complexity (cache
+invalidation on reindex, RAM cap, atomic swap) for no measurable win.
+
+The §15 decision was made before measurement; this entry overrides it.
+
+**What would change our minds:** a query type that requires walking
+thousands of records per call (e.g. full call graph traversal at depth 10
+across a 1M-LOC monorepo) where BadgerDB iterator overhead becomes the
+bottleneck. We'd add the cache for *that query path specifically*, not
+globally.
+
+---
+
+## 2026-04-10 — Background full reindex on file change, accept the latency gap
+
+**Decision:** When a file changes in a watched repo, the daemon runs the
+*full* SCIP indexer over the *whole* repo on a background goroutine, then
+atomically swaps the new BadgerDB store into the registry when it's done.
+No single-file incremental, no tree-sitter overlay, no partial updates.
+
+**Why:** The spec target was <200ms for incremental updates. That's
+unreachable with the current SCIP indexers — `scip-typescript` and
+`scip-go` are project-wide, type-resolution-driven, and offer no
+`--single-file` mode. Forcing a single-file path would either be wrong
+(partial type resolution) or require us to build a whole new indexer.
+
+Realistic numbers: ~600ms for a tiny project, ~3s for `trawl`, ~10-15s
+for `~/herd/advocates`. Documented in `internal/daemon/watch.go`.
+
+The right long-term answer is a tree-sitter overlay that handles 95% of
+queries (syntactic precision is enough for "find this name", "find this
+class definition") and falls back to the SCIP store for the few queries
+that need full type resolution. That's a P3+ effort.
+
+**What would change our minds:** a SCIP indexer publishes a usable
+single-file mode, OR a tree-sitter overlay proves cheap enough to ship.
+
+---
+
+## 2026-04-10 — Reindex window may return "not indexed yet"; defer the fix
+
+**Decision:** When the watcher kicks off a background reindex, it evicts
+the repo from the registry first (because BadgerDB takes an exclusive
+directory lock and the builder needs it). Queries against the same repo
+during the ~3-15s reindex window get "repo not indexed yet" until the new
+store is opened and re-registered.
+
+**Why:** The correct fix is build-into-temp-dir + atomic rename so the
+old store stays serving during the rebuild. That's enough complexity
+(BadgerDB doesn't atomically rename a populated directory; we'd need a
+two-store overlay) that I don't want to ship it without measurement
+showing the gap actually bites real users.
+
+The window is rare in practice — file edits are bursty, the cooldown is
+2s, and queries during a save burst would mostly hit the *post-reindex*
+state anyway. If it bites: build into `<storage>/index.db.next/`, then
+close the live store, rename, re-open, put.
+
+**What would change our minds:** any agent session where the user reports
+`scry refs` returning empty during a save burst. At that point the gap
+is real and the temp-dir fix is worth its complexity.
+
+---
+
+## 2026-04-10 — Bump RLIMIT_NOFILE on daemon startup
+
+**Decision:** The daemon raises its NOFILE soft limit to the hard limit
+on startup (`internal/daemon/rlimit.go`). On macOS the soft default is
+256, the hard limit is much larger; we just need to opt in.
+
+**Why:** Found via crash. fsnotify uses one fd per watched directory,
+and `~/herd/advocates` has ~1500 directories. The first P1 daemon panicked
+with `fatal error: pipe failed` because it ran out of fds during the
+recursive `WalkDir` add, then `signal.Notify` couldn't open its self-pipe.
+
+The bump is the right call regardless of the watcher behavior — anything
+the daemon does at scale (multiple concurrent connections, multiple
+indexed repos) is fd-bound. macOS' default is just too low.
+
+**What would change our minds:** nothing reasonable. This is a strict
+improvement.
+
+---
+
+## 2026-04-10 — Watcher: aggressive skip list + 2048-dir hard cap
+
+**Decision:** The fsnotify watcher skips an exact-name list (`node_modules`,
+`vendor`, `storage`, `public`, `cache`, `tmp`, `dist`, `build`, `coverage`,
+`__pycache__`, `venv`, etc.) PLUS every directory name beginning with `.`
+(hidden infrastructure: `.git`, `.next`, `.turbo`, `.idea`, `.gradle`,
+`.pnpm-store`, etc.), AND caps the total at 2048 directories per repo.
+When the cap is hit the watcher logs a warning and continues without
+incremental updates for the unwatched portion.
+
+**Why:** Even with NOFILE bumped, watching every directory in a Laravel
+or Rails-class repo is wasteful — most subtrees are runtime data
+(`storage/wordpress`, `storage/oldpdfs`) that never contain source code.
+Skipping them saves fds, reduces fsnotify event volume, and makes the
+relevant-event filter faster. The 2048 cap is a defense-in-depth: any
+single repo that blows past it is almost certainly indexing something
+generated.
+
+**What would change our minds:** a real source tree (not a runtime tree)
+needs more than 2048 watched directories. At that point we add a
+configurable cap in the daemon config and document it.
+
+---
+
+## 2026-04-10 — Signal handling before watcher bootstrap
+
+**Decision:** `daemon.Run` calls `signal.Notify` *before* calling
+`bootstrapWatchers`. The first P1 build did the opposite, which caused
+a cascading panic when fd exhaustion in the watcher prevented
+`signal.Notify` from opening its self-pipe.
+
+**Why:** Defense-in-depth. Signal handling is process-wide and should be
+set up before any code path that could fail. The cost of moving it
+earlier is zero; the cost of *not* moving it is a cryptic
+"`fatal error: pipe failed`" panic instead of a clean error.
+
+**What would change our minds:** nothing. This is a strict improvement.
+
+---
+
+## 2026-04-10 — Auto-download scip-go yes, scip-typescript no
+
+**Decision:** P1 implements `internal/install` for `scip-go` (pinned to
+`v0.1.26`, SHA256-verified, downloaded into `~/.scry/bin/`). It does
+*not* implement auto-download for `scip-typescript`. Users still install
+that one manually with `npm i -g @sourcegraph/scip-typescript`.
+
+**Why:** scip-go publishes per-platform tarballs as GitHub release assets
+with a checksums file. The download flow is straightforward and matches
+the §15 "auto-download pinned versions on first use" decision exactly.
+
+scip-typescript is an npm package. Its GitHub release page has *no
+binary assets* — only source tarballs. Auto-installing would mean
+either:
+1. Bundling a node + npm install at first use (too invasive for an agent
+   tool)
+2. Shelling out to `npx --yes @sourcegraph/scip-typescript@<pinned>`
+   (delegates the install to npm but requires the user to have node)
+3. Vendoring a pre-built JS bundle inside the scry release (huge,
+   couples our release to scip-typescript's)
+
+None of these are a clear win over "user runs `npm i -g` once". The
+install instruction is in the README and the indexer wrapper returns a
+clear error pointing the user at it.
+
+**What would change our minds:** scip-typescript starts shipping binary
+release assets, OR a maintained pre-built single-file bundle appears, OR
+we end up bundling node anyway for the gstack `/scry` skill wrapper.
+
+---
+
 ## 2026-04-10 — Vendor scip-php as a PHAR built from a pinned main commit
 
 **Decision:** When P1 lands PHP support, scry will ship `scip-php` as a

@@ -9,14 +9,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jeffdhooton/scry/internal/index"
+	"github.com/jeffdhooton/scry/internal/daemon"
 )
 
 func initCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init [path]",
 		Short: "Index a repository",
-		Long:  "Index the repository at [path] (or the current directory) by running the language indexer and writing the result to ~/.scry/repos/<hash>/.",
+		Long:  "Ask the scry daemon to index the repository at [path] (or the current directory). The daemon runs the language indexer, writes the BadgerDB store under ~/.scry/repos/<hash>/, and registers the repo for queries.",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repo, err := resolveRepo(cmd)
@@ -30,28 +30,18 @@ func initCmd() *cobra.Command {
 				}
 				repo = abs
 			}
-			home, err := scryHome()
-			if err != nil {
-				return err
-			}
 
-			start := time.Now()
 			fmt.Fprintf(os.Stderr, "scry: indexing %s\n", repo)
-			manifest, err := index.Build(context.Background(), home, repo)
-			if err != nil {
+			start := time.Now()
+			var result daemon.InitResult
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			if err := callDaemon(ctx, "init", &daemon.InitParams{Repo: repo}, &result); err != nil {
 				return err
 			}
-			elapsed := time.Since(start)
-
 			pretty, _ := cmd.Flags().GetBool("pretty")
-			out := map[string]any{
-				"repo":      manifest.RepoPath,
-				"languages": manifest.Languages,
-				"status":    manifest.Status,
-				"stats":     manifest.Stats,
-				"elapsed_ms": elapsed.Milliseconds(),
-			}
-			return printJSON(out, pretty)
+			fmt.Fprintf(os.Stderr, "scry: indexed in %s\n", time.Since(start).Round(time.Millisecond))
+			return printJSON(result, pretty)
 		},
 	}
 }

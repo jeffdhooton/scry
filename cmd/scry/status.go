@@ -1,37 +1,27 @@
 package main
 
 import (
-	"errors"
-	"fmt"
-	"os"
+	"context"
+	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/jeffdhooton/scry/internal/index"
+	"github.com/jeffdhooton/scry/internal/daemon"
 )
 
 func statusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
-		Short: "Show index status for the current repo",
+		Short: "Show daemon and indexed-repo status",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repo, err := resolveRepo(cmd)
-			if err != nil {
-				return err
-			}
-			home, err := scryHome()
-			if err != nil {
-				return err
-			}
-			layout := index.Layout(home, repo)
-			manifest, err := index.LoadManifest(layout)
-			if errors.Is(err, os.ErrNotExist) {
-				return fmt.Errorf("repo %s is not indexed yet — run `scry init` first", repo)
-			} else if err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			var res daemon.StatusResult
+			if err := callDaemon(ctx, "status", &daemon.StatusParams{}, &res); err != nil {
 				return err
 			}
 			pretty, _ := cmd.Flags().GetBool("pretty")
-			return printJSON(manifest, pretty)
+			return printJSON(res, pretty)
 		},
 	}
 }
