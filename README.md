@@ -22,6 +22,8 @@ Drops the binary at `~/.local/bin/scry`. Customize with `INSTALL_DIR=/usr/local/
 go install github.com/jeffdhooton/scry/cmd/scry@latest
 ```
 
+**Keeping it fresh:** `scry upgrade` downloads the latest release and replaces the running binary in place. `scry upgrade --check` just prints what's available. See [`docs/RELEASING.md`](docs/RELEASING.md) if you're publishing a new version.
+
 **Once installed**, run the post-install setup and verification:
 
 ```bash

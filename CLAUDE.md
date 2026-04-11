@@ -25,7 +25,8 @@ The current code, layout, commands, and known limitations are documented in [`RE
 2. **Read [`docs/DECISIONS.md`](docs/DECISIONS.md)** — every architectural call made so far, with reasoning and what would change our minds. Anything you're tempted to relitigate is probably already in here.
 3. **Read [`docs/PHP_CALIBRATION.md`](docs/PHP_CALIBRATION.md)** before touching PHP. It already validated `scip-php` against a real Laravel app and re-scoped what the P2 post-processor needs to do; the spec's §11.1 is now superseded by this report.
 4. **Read [`docs/SPEC.md`](docs/SPEC.md)** if you need the original PRD context. Treat it as read-only history — decisions made *after* the PRD live in `DECISIONS.md`, not here.
-5. **For new work:** pick from the P2 list above. The §13 build phases in the spec are the canonical roadmap.
+5. **Read [`docs/RELEASING.md`](docs/RELEASING.md)** before cutting a new version. Step-by-step checklist for tagging, watching the GitHub Actions workflow, publishing the draft, and smoke-testing the install script against the real release.
+6. **For new work:** pick from the P2 list above. The §13 build phases in the spec are the canonical roadmap.
 
 ## Hard constraints (don't relitigate)
 
@@ -90,6 +91,10 @@ P0, P1, and the first half of PHP P2 are shipped. The next session should pick a
 3. **Vue SFC extraction** — call sites in `.vue` files are invisible today and that's a real productivity gap on Inertia/Vue stacks. Pre-extract `<script>` blocks into virtual TS files before invoking scip-typescript.
 4. **PHP P3 polish** (lower priority): receiver-aware string-ref matching (only match `view()` at global scope, not when called as a method), custom user facades, Eloquent property/relationship semantics. None of these have hit a real pain point yet.
 5. **MCP polish:** tool responses are currently raw JSON in a text block. Could add structured content (e.g. resources/links back to source files) and first-class cancellation. Only worth doing if it hits a real latency or UX gap.
+
+**Explicitly deferred (do not propose proactively):**
+
+- **Multi-tool MCP registration** (Codex, Cursor, Continue, Zed, etc.) — `scry mcp` already speaks standard MCP stdio and would work with any host. What's missing is per-target registration in `scry setup`. Deferred until the user actively uses a second MCP host daily. See the project memory `project_multi_tool_mcp_deferred.md` for the decision rationale and the design sketch for when it eventually lands.
 
 Don't try to ship more than one of these in a single session. The phased delivery cadence is in the spec for a reason.
 
