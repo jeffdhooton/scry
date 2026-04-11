@@ -9,6 +9,220 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-04-11 — Claude Code integration via `claude mcp add`, not ~/.claude/settings.json
+
+**Decision:** `scry setup` registers the scry MCP server by shelling out
+to `claude mcp add --scope user --transport stdio scry -- <bin> mcp`,
+which is Claude Code's official CLI for managing MCP servers. It does
+**not** hand-edit any config file directly.
+
+**Why:** Claude Code reads MCP server config from `~/.claude.json`
+(~200 KB of session state that Claude Code owns and rewrites
+frequently), NOT from `~/.claude/settings.json` (which handles hooks,
+enabled plugins, and marketplaces). The first iteration of `scry setup`
+wrote to the wrong file. The skill installed correctly, `scry mcp`
+spoke the protocol correctly, and the MCP manager UI even showed scry
+as connected via background polling — but Claude Code never routed
+symbol queries to scry because the current session's tool registry
+was snapshotted at startup without scry in it.
+
+The fix has two parts:
+
+1. **Delegate to `claude mcp add`.** That's the documented path;
+   Claude Code's internal storage format for `~/.claude.json` is not a
+   stable API, and hand-editing a 200 KB state file also risks
+   reformatting unrelated keys.
+2. **Clean up the wrong-file write if it's still present.** On install,
+   `setup.Install` scans `~/.claude/settings.json` for a leftover
+   `mcpServers.scry` entry from the earlier buggy iteration, backs the
+   file up, and strips the stale key. Best-effort; failure isn't fatal.
+
+**Load-bearing constraint for future MCP-related work:** never silently
+edit a config file for a tool the user didn't explicitly target. The
+settings.json bug was discovered only because the user tried a query
+and noticed Claude fell back to Grep — exactly the kind of silent
+failure that burns trust. Any new target (Cursor, Codex, Continue, Zed,
+etc.) should go through that tool's official CLI if one exists, or ask
+for confirmation before touching its config.
+
+**What would change our minds:** `claude mcp add` grows a hard-to-work-
+around limitation (e.g. refuses to register local binary paths in
+user scope). At that point we'd fall back to hand-editing
+`~/.claude.json` with surgical JSON editing (finding the byte range of
+just the `mcpServers` key and replacing its value without re-ordering
+the rest), NOT to a full JSON round-trip.
+
+---
+
+## 2026-04-11 — `scry doctor` is read-only by default; `--fix` for fast remediation only
+
+**Decision:** `scry doctor` runs 13 diagnostic checks across
+Environment, Daemon, Indexers, Claude Code integration, and the current
+repo's index state. Every check is strictly read-only — no subprocess
+side effects, no file writes, no daemon spawning. Results are rendered
+as a categorized ✓/⚠/✗/— checklist with per-check remediation hints,
+and exit 1 if any check fails (warnings are advisory and don't affect
+exit code).
+
+A separate `--fix` flag runs auto-remediation for checks that have a
+registered fixer. Fixers are capped at <1 second each and may only
+perform idempotent, reversible actions. Long operations — running
+`scry init` (10-60s), installing PHP, installing `scip-typescript` via
+`npm i -g` — are **never** run by `--fix` even when technically
+possible. The first rule of `scry doctor --fix` is: no surprising waits.
+
+**Why read-only by default:**
+- Diagnostics you can re-run at any time without side effects are safe
+  to put in hot paths (bug reports, CI checks, shell rc hooks).
+- Side-effectful diagnostics have implicit ordering constraints
+  (if check A modifies state, check B has to run after the modification
+  settles). Keeping doctor pure means the checks are independent.
+- Machine output via `--json` is much easier to reason about when
+  running the command never changes disk state.
+
+**Why cap `--fix` actions at <1 second:**
+- A surprise 50-second `scry init` triggered from a doctor run would
+  feel broken — users run `doctor` to understand state, not to begin
+  a lengthy background operation.
+- Short fixes are also the ones we can safely re-run on retry without
+  cleanup.
+- Anything slow should be an explicit command (`scry init`, `npm i -g
+  @sourcegraph/scip-typescript`) the user runs deliberately.
+
+Current fixer registry (in `internal/doctor/fix.go`):
+- `env.scry_home` — mkdir the directory.
+- `daemon.state` — remove stale `scryd.sock` / `scryd.pid`.
+- `claude.mcp` — delegate to `setup.Install` with `Force=true`
+  (re-registers the MCP server).
+- `claude.skill` — same delegation (rewrites the embedded SKILL.md).
+- `claude.global_md` — write the 15-line routing rule to
+  `~/.claude/CLAUDE.md` **only if the file doesn't already exist**.
+  If it exists but doesn't mention scry, the fixer reports Skip with
+  "edit manually" — we refuse to touch existing content the user
+  already wrote.
+
+After applying fixes, `doctor` re-runs the full check sequence so the
+post-fix Report reflects the new state. Fixes are printed below the
+refreshed checklist, not as a diff — the before/after is already
+visible in "was Warn, now Pass".
+
+**What would change our minds:** a check class appears where the fix
+genuinely takes several seconds but is low-friction to automate (e.g.
+downloading a pre-built language indexer from an auto-download
+recipe). At that point `--fix` gets an `--allow-slow` escape hatch,
+not an unconditional "do everything" mode.
+
+---
+
+## 2026-04-11 — Distribution: GoReleaser + install.sh, no Homebrew/Docker yet
+
+**Decision:** scry ships via GoReleaser to GitHub Releases. The
+pipeline produces 4 archives (darwin/linux × amd64/arm64) plus a
+checksums file on every `v*` tag push. A POSIX shell install script
+at `scripts/install.sh` detects the user's platform, queries the
+GitHub API for the latest published release, downloads + verifies
+SHA256, and drops the binary at `~/.local/bin/scry` (overridable via
+`INSTALL_DIR`). End users paste one `curl -fsSL ... | sh` line and
+have a working scry.
+
+No Homebrew formula, no Docker image, no npm wrapper, no Debian/RPM
+packages. The install story for v1 is "one curl line or go install."
+
+**Why:**
+- Three of the four distribution channels (homebrew, docker, .deb)
+  require maintaining publication infrastructure and version metadata
+  in *addition* to the GitHub release itself. Each one is a place the
+  version can drift from the canonical tag.
+- scry's target user is developers who already have curl and a
+  shell; they don't need brew-level abstractions to install a single
+  static binary.
+- The one-liner path is the highest-leverage adoption mechanism and
+  was the actual blocker for non-Go users pre-v0.1.0.
+
+The GoReleaser config (`.goreleaser.yaml`) uses `CGO_ENABLED=0` and
+`-trimpath` for reproducible static builds, injects `main.Version` via
+ldflags from the tag, and defaults to `draft: true` so a human eyeballs
+the changelog before publishing. The workflow (`.github/workflows/
+release.yml`) reads the Go version from `go.mod` so there's no
+hardcoded drift.
+
+**Why draft releases by default:**
+- First release of anything is where changelog quality matters most.
+  A human eyeballing the auto-generated list catches typos, wrong
+  commit titles, and missed user-facing notes before users see them.
+- Publishing is a 1-click operation (`gh release edit vX.Y.Z
+  --draft=false` or the web UI button). Unpublishing after-the-fact
+  is awkward.
+
+**Why `scry upgrade` instead of letting users curl | sh again:**
+- Upgrade-in-place preserves any shell aliases, PATH customizations,
+  and install paths the user chose originally.
+- `scry upgrade` can print "you're up to date" and short-circuit
+  without re-downloading, which `curl | sh` can't.
+- The rename-dance replace handles concurrent `scry` invocations
+  gracefully via Unix inode semantics; a fresh `curl | sh` run would
+  race with a running daemon.
+
+**What would change our minds:**
+- A real user asks for brew / docker / similar because their install
+  workflow is centralized. At that point add exactly the channel they
+  need, not all of them.
+- GoReleaser's output format changes in a breaking way (unlikely —
+  they're stable enough that the current config will outlast scry's
+  next several major versions).
+
+The full operational checklist — pre-flight, tag, watch workflow,
+publish draft, smoke-test — lives in `docs/RELEASING.md`.
+
+---
+
+## 2026-04-11 — Compound symbols (`DB::table`) parsed in the MCP layer, not scry's name index
+
+**Decision:** scry's BadgerDB name index matches by display name
+(case-insensitive exact match on the short name, e.g. `table` or `DB`).
+When an agent asks `scry_refs("DB::table")`, the MCP server at
+`internal/mcp/server.go` splits the compound on `::` / `->` / `.`,
+queries the tail (`table`), and filters results whose `symbol_id`
+contains the leftmost token (`DB`) as a descriptor segment boundary.
+Empty filter results return an honest empty set, not a fall-back to
+the class-level query.
+
+**Why parse compounds in MCP and not in the daemon:**
+- The CLI already has a precise surface: `scry refs table`. Users who
+  know exactly what they want can get it directly.
+- Agents (via MCP) naturally phrase queries in method-call notation
+  because that's how humans talk about code ("where is DB::table
+  called?"). The parsing belongs at the agent-facing surface.
+- Keeping the daemon contract strict means future tools that dial
+  scry's RPC directly get predictable, exact-match behavior.
+- Container filtering at the MCP layer is cheap — it's a substring
+  check on already-returned symbol IDs, not a new query.
+
+**Why empty filter results return empty, not fall back:**
+- An early iteration fell back to querying the container name
+  (`DB::nonexistent` → query `DB`, return 252 DB class references).
+  That's a false positive: the agent asked for a nonexistent method
+  and got a pile of unrelated class refs it has to sift through.
+- Empty results with the original symbol name preserved are a
+  truthful "I looked this up and found nothing" answer. Agents can
+  decide whether to ask differently or fall back to Grep.
+
+**Container matching:** the filter looks for the container as a
+descriptor segment boundary (`/DB#`, `/DB/`, ` DB#`, or ` DB/`),
+not just a substring. That's what keeps `DB::table` narrow to
+`Illuminate/Support/Facades/DB#table()` and excludes
+`Illuminate/Database/Eloquent/Builder#table()` where `DB` is just a
+substring of `Database`.
+
+**What would change our minds:** agents start asking for nested
+container notation like `Illuminate::Support::DB::table` or
+`Illuminate.Support.DB.table` that our `lastIndex` split can't handle.
+At that point the parser grows from "find the rightmost operator" to
+"tokenize + walk left-to-right," and the container filter becomes a
+full-path check instead of a segment-boundary check.
+
+---
+
 ## 2026-04-10 — PHP P2: ship scip-php as an embedded directory tree, not a PHAR
 
 **Decision:** scry vendors `davidrjenni/scip-php` (pinned to commit
