@@ -38,6 +38,11 @@ func Parse(ctx context.Context, scipPath string, st *store.Store) (Stats, error)
 	w := st.NewWriter()
 	stats := Stats{}
 	var projectRoot string
+	// seenSymbols tracks every symbol id we've already PutSymbol'd for in this
+	// indexing run. We use it to (a) avoid re-writing duplicate SymbolRecords
+	// across documents and (b) decide whether an occurrence-only symbol needs
+	// a synthesized SymbolRecord at the end of processing.
+	seenSymbols := map[string]bool{}
 
 	visitor := &scipbindings.IndexVisitor{
 		VisitMetadata: func(_ context.Context, m *scipbindings.Metadata) error {
@@ -48,7 +53,7 @@ func Parse(ctx context.Context, scipPath string, st *store.Store) (Stats, error)
 			return nil
 		},
 		VisitDocument: func(_ context.Context, d *scipbindings.Document) error {
-			return processDocument(d, projectRoot, w, &stats)
+			return processDocument(d, projectRoot, w, &stats, seenSymbols)
 		},
 	}
 	if err := visitor.ParseStreaming(ctx, f); err != nil {
@@ -102,7 +107,7 @@ func (s scope) area() int {
 	return (s.endLine-s.startLine)*1_000_000 + (s.endCol - s.startCol)
 }
 
-func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writer, stats *Stats) error {
+func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writer, stats *Stats, seenSymbols map[string]bool) error {
 	stats.Documents++
 
 	// Read source file once so we can attach a context line to every occurrence.
@@ -122,19 +127,22 @@ func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writ
 		if isLocalSymbol(si.GetSymbol()) {
 			continue
 		}
-		rec := &store.SymbolRecord{
-			Symbol:        si.GetSymbol(),
-			DisplayName:   displayName(si),
-			Kind:          si.GetKind().String(),
-			Documentation: strings.Join(si.GetDocumentation(), "\n"),
-		}
-		if err := w.PutSymbol(rec); err != nil {
-			return err
+		if !seenSymbols[si.GetSymbol()] {
+			rec := &store.SymbolRecord{
+				Symbol:        si.GetSymbol(),
+				DisplayName:   displayName(si),
+				Kind:          si.GetKind().String(),
+				Documentation: strings.Join(si.GetDocumentation(), "\n"),
+			}
+			if err := w.PutSymbol(rec); err != nil {
+				return err
+			}
+			seenSymbols[si.GetSymbol()] = true
+			stats.Symbols++
 		}
 		if err := w.PutFileSymbol(d.GetRelativePath(), si.GetSymbol()); err != nil {
 			return err
 		}
-		stats.Symbols++
 
 		// Implementation edges. SCIP records "Dog implements Animal" by
 		// putting a Relationship on Dog's SymbolInformation with
@@ -184,6 +192,26 @@ func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writ
 	for _, occ := range d.GetOccurrences() {
 		if isLocalSymbol(occ.GetSymbol()) {
 			continue
+		}
+		// Synthesize a SymbolRecord for any occurrence whose symbol id was not
+		// declared in any document's SymbolInformation list. This happens for
+		// every external reference (Illuminate facades, vendor classes,
+		// stdlib types) — scip-php and scip-go only emit SymbolInformation for
+		// definitions inside the indexed source tree, but the source tree
+		// references thousands of external symbols. Without this synthesis
+		// `scry refs DB` would return zero even though every Laravel app calls
+		// it constantly.
+		if !seenSymbols[occ.GetSymbol()] {
+			rec := &store.SymbolRecord{
+				Symbol:      occ.GetSymbol(),
+				DisplayName: deriveDisplayName(occ.GetSymbol()),
+				Kind:        "External",
+			}
+			if err := w.PutSymbol(rec); err != nil {
+				return err
+			}
+			seenSymbols[occ.GetSymbol()] = true
+			stats.Symbols++
 		}
 		startLine, startCol, endLine, endCol := decodeRange(occ.GetRange())
 		isDef := (occ.GetSymbolRoles() & int32(scipbindings.SymbolRole_Definition)) != 0

@@ -13,7 +13,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 
 	"github.com/jeffdhooton/scry/internal/index"
-	"github.com/jeffdhooton/scry/internal/store"
 )
 
 // debounceWindow is how long we wait after the last filesystem event before
@@ -36,12 +35,12 @@ const reindexCooldown = 2 * time.Second
 // to re-run the indexer over the whole repo. We do that on a goroutine so
 // the watch loop keeps reading events.
 //
-// Known limitation: BadgerDB takes an exclusive directory lock, so during the
-// reindex window (~3s for a 50k-LOC TS repo) queries against the same repo
-// see "not indexed yet" until the new store is opened and Put back into the
-// registry. Acceptable for v1; the long-term fix is build-into-temp-dir +
-// atomic rename, which is enough complexity to justify deferring until we
-// have data showing the gap matters.
+// The reindex uses build-into-temp-dir: index.BuildIntoTemp writes to
+// `<storage>/index.db.next/` while the live store at `<storage>/index.db/`
+// keeps serving queries. Once the build finishes, a tiny critical section
+// (~milliseconds: close + two renames + open) atomically swaps the new
+// directory into place. Total query unavailability collapses from ~3-15s
+// per reindex to a sub-50ms gap.
 type Watcher struct {
 	scryHome string
 	registry *Registry
@@ -319,28 +318,43 @@ func (rw *repoWatcher) maybeReindex(ctx context.Context) {
 	// concurrent runs from stacking up.
 	go func() {
 		fmt.Fprintf(os.Stderr, "scry: reindexing %s (file change detected)\n", rw.repoPath)
-		// BadgerDB takes an exclusive lock per directory. Evict the live store
-		// from the registry so its handle is closed before index.Build opens
-		// its own.
-		rw.registry.Evict(rw.repoPath)
-		manifest, err := index.Build(ctx, rw.scryHome, rw.repoPath)
+
+		// Phase 1 (~3-15s): build the new BadgerDB into a sibling temp dir
+		// while the live store keeps serving queries. This is the bulk of the
+		// time spent and is fully concurrent with reads.
+		manifest, nextLayout, err := index.BuildIntoTemp(ctx, rw.scryHome, rw.repoPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "scry: reindex %s failed: %v\n", rw.repoPath, err)
+			// Leave the temp dir on disk so a developer can inspect it.
+			// The next successful run will RemoveAll on entry.
 			return
 		}
-		// Atomic swap: open the freshly built store and replace the registry
-		// entry. The old store is closed by Registry.Put through Evict.
-		layout := index.Layout(rw.scryHome, rw.repoPath)
-		st, err := store.Open(layout.BadgerDir)
+
+		// Phase 2 (~ms): atomically swap the new directory into place. The
+		// query window during which the registry has no entry is just
+		// (Evict + 2 renames + Open), typically under 50ms even on a slow
+		// disk.
+		swapStart := time.Now()
+		liveLayout := index.Layout(rw.scryHome, rw.repoPath)
+		trash, err := rw.registry.SwapNext(liveLayout, nextLayout)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "scry: reopen store after reindex %s: %v\n", rw.repoPath, err)
+			fmt.Fprintf(os.Stderr, "scry: swap reindex %s failed: %v\n", rw.repoPath, err)
 			return
 		}
-		rw.registry.Evict(rw.repoPath)
-		rw.registry.Put(&Entry{RepoPath: rw.repoPath, Layout: layout, Store: st})
-		fmt.Fprintf(os.Stderr, "scry: reindexed %s in %s (%d docs, %d refs)\n",
+
+		// Phase 3 (background, no observer): drop the trashed old directory.
+		if trash != "" {
+			go func(p string) {
+				if err := os.RemoveAll(p); err != nil {
+					fmt.Fprintf(os.Stderr, "scry: cleanup trash %s: %v\n", p, err)
+				}
+			}(trash)
+		}
+
+		fmt.Fprintf(os.Stderr, "scry: reindexed %s in %s (swap %s, %d docs, %d refs)\n",
 			rw.repoPath,
 			time.Since(rw.lastReindex).Round(time.Millisecond),
+			time.Since(swapStart).Round(time.Millisecond),
 			manifest.Stats.Documents,
 			manifest.Stats.References,
 		)

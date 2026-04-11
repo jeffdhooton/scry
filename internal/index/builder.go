@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/sources/golang"
+	"github.com/jeffdhooton/scry/internal/sources/php"
 	"github.com/jeffdhooton/scry/internal/sources/scip"
 	"github.com/jeffdhooton/scry/internal/sources/typescript"
 	"github.com/jeffdhooton/scry/internal/store"
@@ -52,7 +53,7 @@ func (l RepoLayout) scipPath(language string) string {
 	return filepath.Join(l.StorageDir, "scip-"+language+".bin")
 }
 
-// Layout resolves where the index for repoPath should live under scryHome.
+// Layout resolves where the live index for repoPath should live under scryHome.
 // repoPath must be absolute.
 func Layout(scryHome, repoPath string) RepoLayout {
 	hash := sha256.Sum256([]byte(repoPath))
@@ -63,6 +64,23 @@ func Layout(scryHome, repoPath string) RepoLayout {
 		StorageDir:   storage,
 		BadgerDir:    filepath.Join(storage, "index.db"),
 		ManifestPath: filepath.Join(storage, "manifest.json"),
+	}
+}
+
+// NextLayout returns a sibling layout pointing at temp BadgerDir + manifest
+// paths next to the live ones. Used by BuildIntoTemp so a watcher reindex
+// can write a fresh database without touching the live one — the live store
+// keeps serving queries throughout. After the build finishes, the caller
+// renames the live and next directories to perform an atomic swap.
+//
+// Per-language scip dumps stay at their existing path (one writer at a
+// time, serialized via the watcher's reindexCooldown).
+func NextLayout(layout RepoLayout) RepoLayout {
+	return RepoLayout{
+		RepoPath:     layout.RepoPath,
+		StorageDir:   layout.StorageDir,
+		BadgerDir:    filepath.Join(layout.StorageDir, "index.db.next"),
+		ManifestPath: filepath.Join(layout.StorageDir, "manifest.json.next"),
 	}
 }
 
@@ -78,15 +96,60 @@ func Layout(scryHome, repoPath string) RepoLayout {
 //   - status is "ready" if every detected indexer succeeded, "partial" if at
 //     least one ran but others failed
 func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
-	if !filepath.IsAbs(repoPath) {
-		abs, err := filepath.Abs(repoPath)
-		if err != nil {
-			return nil, fmt.Errorf("resolve repo path: %w", err)
-		}
-		repoPath = abs
+	abs, err := absRepoPath(repoPath)
+	if err != nil {
+		return nil, err
 	}
+	return buildAtLayout(ctx, scryHome, abs, Layout(scryHome, abs))
+}
 
-	layout := Layout(scryHome, repoPath)
+// BuildIntoTemp runs a full index pass against repoPath but writes the
+// resulting BadgerDB and manifest to a temporary side directory next to the
+// live index. The live store is untouched throughout, so concurrent queries
+// against it keep working. The caller is responsible for atomically swapping
+// the temp output into place after this returns successfully — see
+// internal/daemon/watch.go for the pattern.
+//
+// On entry, any leftover temp directory from a previous failed run is
+// removed. On any error the temp directory is left on disk so the next call
+// (or a manual cleanup) can inspect it.
+func BuildIntoTemp(ctx context.Context, scryHome, repoPath string) (*Manifest, RepoLayout, error) {
+	abs, err := absRepoPath(repoPath)
+	if err != nil {
+		return nil, RepoLayout{}, err
+	}
+	live := Layout(scryHome, abs)
+	next := NextLayout(live)
+	// Wipe any leftover temp dir from a prior interrupted run. Otherwise
+	// store.Open would reuse stale data.
+	if err := os.RemoveAll(next.BadgerDir); err != nil {
+		return nil, next, fmt.Errorf("remove stale next badger dir: %w", err)
+	}
+	_ = os.Remove(next.ManifestPath)
+	manifest, err := buildAtLayout(ctx, scryHome, abs, next)
+	if err != nil {
+		return nil, next, err
+	}
+	return manifest, next, nil
+}
+
+// absRepoPath normalizes a repo path to absolute form.
+func absRepoPath(repoPath string) (string, error) {
+	if filepath.IsAbs(repoPath) {
+		return repoPath, nil
+	}
+	abs, err := filepath.Abs(repoPath)
+	if err != nil {
+		return "", fmt.Errorf("resolve repo path: %w", err)
+	}
+	return abs, nil
+}
+
+// buildAtLayout is the shared body of Build and BuildIntoTemp. It runs
+// every applicable indexer, parses the SCIP output into the BadgerDB at
+// layout.BadgerDir, runs PHP post-processors, and writes the manifest to
+// layout.ManifestPath. repoPath must already be absolute.
+func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLayout) (*Manifest, error) {
 	if err := os.MkdirAll(layout.StorageDir, 0o755); err != nil {
 		return nil, fmt.Errorf("create storage dir: %w", err)
 	}
@@ -124,6 +187,15 @@ func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 			indexerErrs = append(indexerErrs, fmt.Errorf("scip-go: %w", err))
 		} else {
 			produced = append(produced, indexed{"go", out})
+		}
+	}
+	if contains(languages, "php") {
+		out := layout.scipPath("php")
+		binDir := filepath.Join(scryHome, "bin")
+		if _, err := php.Index(ctx, binDir, repoPath, out); err != nil {
+			indexerErrs = append(indexerErrs, fmt.Errorf("scip-php: %w", err))
+		} else {
+			produced = append(produced, indexed{"php", out})
 		}
 	}
 
@@ -164,6 +236,7 @@ func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 	}
 
 	combined := scip.Stats{}
+	phpProduced := false
 	for _, p := range produced {
 		stats, err := scip.Parse(ctx, p.scipPath, st)
 		if err != nil {
@@ -175,6 +248,41 @@ func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 		combined.References += stats.References
 		combined.CallEdges += stats.CallEdges
 		combined.Implementations += stats.Implementations
+		if p.language == "php" {
+			phpProduced = true
+		}
+	}
+
+	// Laravel non-PSR-4 walker. scip-php skips routes/, config/,
+	// migrations/, bootstrap/ entirely; for hoopless_crm that means
+	// 522 ::class controller refs in routes/web.php alone are invisible.
+	// The walker reads those files, lexes use statements + ::class refs,
+	// and emits synthetic occurrences joined to scip-php's symbols.
+	if phpProduced {
+		ws, err := php.RunWalker(repoPath, st)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "scry: laravel walker: %v\n", err)
+		} else if ws.FilesScanned > 0 {
+			fmt.Fprintf(os.Stderr, "scry: laravel walker: %d files, %d ::class refs (%d bound)\n",
+				ws.FilesScanned, ws.ClassRefsTotal, ws.ClassRefsBound)
+			combined.References += ws.ClassRefsTotal
+		}
+		fs, err := php.RunFacadeResolver(st)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "scry: facade resolver: %v\n", err)
+		} else if fs.FacadesScanned > 0 {
+			fmt.Fprintf(os.Stderr, "scry: facade resolver: %d facade methods, %d backing edges\n",
+				fs.FacadesScanned, fs.EdgesEmitted)
+			combined.References += fs.EdgesEmitted
+		}
+		ss, err := php.RunStringRefWalker(repoPath, st)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "scry: string-ref walker: %v\n", err)
+		} else if ss.FilesScanned > 0 {
+			fmt.Fprintf(os.Stderr, "scry: string-ref walker: %d files, %d view refs, %d config refs\n",
+				ss.FilesScanned, ss.ViewRefsTotal, ss.ConfigRefsTotal)
+			combined.References += ss.ViewRefsTotal + ss.ConfigRefsTotal
+		}
 	}
 
 	status := "ready"

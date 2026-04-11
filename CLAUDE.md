@@ -12,7 +12,8 @@ A code intelligence daemon for AI agents. Pre-computes a semantic index of every
 
 - **P0 shipped:** TypeScript indexing, BadgerDB store, `init`/`refs`/`defs`/`status`, CLI-direct (no daemon).
 - **P1 shipped:** daemon mode, Unix socket + JSON-RPC 2.0, auto-spawn, fsnotify watch loop with background reindex, Go support, auto-download for `scip-go`, `callers`/`callees`/`impls`, the call graph and implementations indexes.
-- **P2 next:** PHP (`scip-php` PHAR + Laravel post-processor — see `docs/PHP_CALIBRATION.md` for the day-1 feasibility report and the re-scoped P2 plan), Python, Bash, multi-repo polish, `deps`/`rdeps`, semantic diff, the gstack `/scry` skill wrapper.
+- **P2 PHP — all four post-processors landed:** scip-php is vendored as an embedded directory tree (not a PHAR — the calibration's PHAR plan failed on autoloader collisions and PHP 8.4 keyword shims; see `docs/DECISIONS.md`). Extracted on first use into `~/.scry/bin/scip-php-<sha>/`. (1) The Laravel non-PSR-4 walker scans `routes/`, `config/`, `database/migrations/`, `bootstrap/` after scip-php and binds ~98% of `::class` refs (1254/1283 on hoopless_crm). (2) The facade resolver hardcodes 31 Illuminate facade -> backing-class mappings and emits ~5k synthetic ref edges so `scry refs AuthManager::user` finds the `Auth::user()` call sites. (3+4) The string-ref walker walks every project .php file for `view('foo.bar')` and `config('foo.bar')` calls and emits synthetic blade-file and config-file ref edges (7 view + 280 config refs on hoopless_crm). The scip parser now also synthesizes SymbolRecords for occurrence-only symbols (vendor/Illuminate/etc.) so they're queryable by name. **PHP P2 is feature-complete.**
+- **Reindex window fix shipped:** the watcher's reindex path now uses `index.BuildIntoTemp` to write to a sibling temp directory while the live store keeps serving. `Registry.SwapNext` performs a single ~12ms close+rename+open at the end. Measured on hoopless_crm: 1449 successful queries during a 75s reindex window (which spans a 48s rebuild) with zero failures. Replaces the deferred decision in `docs/DECISIONS.md`.
 
 The current code, layout, commands, and known limitations are documented in [`README.md`](README.md). Read that first for orientation.
 
@@ -80,11 +81,14 @@ Examples of bad questions:
 
 ## What "done" means for the next session
 
-P0 and P1 are already shipped. The next session should pick a phase from the §13 list and own it end-to-end. Suggested next bites in priority order:
+P0, P1, and the first half of PHP P2 are shipped. The next session should pick a phase from the §13 list and own it end-to-end. Suggested next bites in priority order:
 
-1. **PHP P2** — start by re-reading `docs/PHP_CALIBRATION.md`, then build the PHAR distribution flow first (the install path is the riskiest part), then the four post-processor items: non-PSR-4 file walker, facade resolver, view template ref, config key ref.
+1. **Claude Code skill + MCP integration** — scry is purely a CLI today and Claude Code doesn't route to it. The natural shape: a skill at `~/.claude/skills/scry/SKILL.md` that prefers `scry refs <symbol>` over Grep for symbol lookups, plus a slash command like `/scry-here` to init cwd. Then an MCP server exposing scry queries as first-class tools so Claude routes automatically. This is the next step per the user-agreed plan stored in memory `scry roadmap order (2026-04)`.
 2. **Vue SFC extraction** — call sites in `.vue` files are invisible today and that's a real productivity gap on Inertia/Vue stacks. Pre-extract `<script>` blocks into virtual TS files before invoking scip-typescript.
-3. **Build-into-temp-dir reindex** — fixes the "queries return 'not indexed yet' for 3-15s during reindex" gap. See the comment in `internal/daemon/watch.go`.
-4. **Python and Bash** — both have SCIP indexers; should be straightforward additions following the pattern in `internal/sources/golang`.
+3. **Python and Ruby** — both have SCIP indexers (`scip-python`, `scip-ruby`); should be straightforward additions following the pattern in `internal/sources/golang`.
+4. **Rust** — `scip-rust` for Cargo monorepos.
+5. **PHP P3 polish** (lower priority): receiver-aware string-ref matching (only match `view()` at global scope, not when called as a method), custom user facades, Eloquent property/relationship semantics. None of these have hit a real pain point yet.
 
 Don't try to ship more than one of these in a single session. The phased delivery cadence is in the spec for a reason.
+
+**PHP toolchain note:** to rebuild the embedded scip-php tarball at `internal/sources/php/scip-php.tar.gz`, clone `davidrjenni/scip-php` at the pinned commit, run `composer install --no-dev`, re-apply the `src/Composer/Composer.php` patch (re-prepend scip-php's bundled autoloader after the project's so its `nikic/php-parser` wins — see `docs/DECISIONS.md`), prune `tests/`, `Tests/`, `.github/`, `*.md`, and `*.dist`, then `tar -czf` the tree. There is no automation script yet; one belongs in `scripts/build-scip-php.sh` when someone needs to bump the pin.

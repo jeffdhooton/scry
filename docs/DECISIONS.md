@@ -9,6 +9,282 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-04-10 — PHP P2: ship scip-php as an embedded directory tree, not a PHAR
+
+**Decision:** scry vendors `davidrjenni/scip-php` (pinned to commit
+`97a2d8d`, with one local patch — see below) as a pruned tarball checked
+into `internal/sources/php/scip-php.tar.gz` and embedded into the scry
+binary via `go:embed`. On first PHP indexing the tarball is extracted
+into `~/.scry/bin/scip-php-<sha>/` and we run `php
+scip-php-<sha>/bin/scip-php` from within the target repo. The user only
+needs `php` (8.3+) on PATH.
+
+The local patch in `src/Composer/Composer.php` re-prepends scip-php's
+bundled `nikic/php-parser` to the SPL autoloader after the target
+project's autoloader is registered, so scip-php's parser version always
+wins. Without the patch, every Laravel project pinning a different
+`nikic/php-parser` version causes scip-php to crash with `Int_::KIND_INT
+undefined` (or similar) at parse time.
+
+**Why not a PHAR:** the calibration doc recommended a PHAR built via
+`humbug/box`, but day-2 implementation found two showstoppers:
+
+1. The PHAR autoloader collision is identical to the directory-tree
+   collision — scip-php's `Composer.php` deliberately loads the target
+   project's `vendor/autoload.php` to resolve user classes, so its own
+   `nikic/php-parser` gets clobbered regardless of whether scip-php is
+   delivered as a PHAR or a directory.
+2. The standard fix (php-scoper namespace prefixing via box's
+   compactor) blew up on PHP 8.4: phpstorm-stubs lists `exit`, `die`,
+   `clone`, etc. as functions, so `expose-global-functions => true`
+   generates `function exit() { ... }` shims that are syntactically
+   invalid because the names are reserved. We tried `exclude-functions`
+   regexes; they didn't suppress the shims because the autoload
+   generator's `recordedFunctions` is populated through a different
+   path. After ~30 minutes spinning on scoper, the directory-tree +
+   patch approach was clearly simpler.
+
+The downside of the directory tree: ~14 MB extracted on disk per scry
+release vs ~1 MB for a PHAR. Compressed in the embedded tarball it's
+2.1 MB, which is fine.
+
+**Why we patch upstream:** the `Composer.php` change is small (~10
+lines), trivially re-applied on a `scip-php` rebase, and avoids forking
+scip-php in any meaningful sense. We keep the patched tree alongside
+the embedded tarball generation script (TODO: write the script).
+
+**What would change our minds:**
+- scip-php upstream merges an `--isolated-autoload` mode that registers
+  its own deps first.
+- A maintained `scip-php` PHAR appears that doesn't collide.
+- We add another PHP-aware indexer (e.g. Phpactor) that has cleaner
+  isolation properties.
+
+---
+
+## 2026-04-10 — Synthesize SymbolRecords for occurrence-only symbols
+
+**Decision:** When the SCIP parser walks a document's occurrences, if it
+encounters a symbol id that has no corresponding `SymbolInformation`
+entry in any indexed document, synthesize a `SymbolRecord` with display
+name derived from the symbol id's last descriptor and `Kind: "External"`.
+
+**Why:** scip-php (and to a lesser extent scip-go) only emit
+`SymbolInformation` for symbols *defined* inside the indexed source
+tree. References to vendor classes — every Illuminate facade, every
+Eloquent model contract, every PHP stdlib type — appear as occurrences
+but produce no symbol record. The result was that `scry refs DB`
+returned zero on hoopless_crm even though the codebase has 252
+`DB::*` call sites, because the name index never knew the symbol
+existed.
+
+The fix is one if-statement in the occurrence loop. On hoopless_crm
+the symbol count rose from 20953 → 22190 (1237 external symbols
+synthesized) and zero queries that previously worked broke.
+
+**Why this is a SCIP-parser-level fix and not a per-language hack:**
+the same gap exists for any indexer that's lazy about emitting
+SymbolInformation. scip-go has the same shape for stdlib refs. Future
+indexers (Python, Bash) almost certainly will too. Synthesizing in the
+parser keeps each indexer wrapper trivial.
+
+**What would change our minds:** an indexer starts emitting full
+SymbolInformation for external refs, and the synthesized records
+duplicate fields the indexer would otherwise populate (Documentation,
+Kind, etc.). At that point we'd switch to "synthesize only if not
+already seen", which is what the current code does anyway via the
+`seenSymbols` set.
+
+---
+
+## 2026-04-10 — PHP P2: view + config string-ref walker
+
+**Decision:** A second walker pass walks every `.php` file in the project
+(skipping `vendor/`, `node_modules/`, `storage/`, `public/`,
+`bootstrap/cache/`, and dot-prefixed dirs), runs the existing scanner
+over each file, and pulls out any `view('key')` and `config('key')`
+calls whose first argument is a string literal. For each match, the
+walker synthesizes a SymbolRecord and a ref occurrence, joining the
+call site to a stable per-key symbol id.
+
+Symbol shapes:
+
+| Call | Descriptor | Display name |
+|---|---|---|
+| `view('users.show')` | `resources/views/users/show.blade.php#` | `users.show` |
+| `config('mail.from.address')` | `config/mail.php#from.address` | `mail.from.address` |
+
+Real-world numbers on hoopless_crm:
+
+| Metric | Value |
+|---|---|
+| Files scanned | 1589 |
+| `view()` refs | 7 (matches calibration) |
+| `config()` refs | 280 (close to calibration's 300) |
+| `scry refs pdf.matrix-compare` | 1 (the controller call site) |
+| `scry refs services.dataforseo.login` | 6 across services and controllers |
+
+**Why one walker for both:** view and config are the same shape (named
+function call with string literal first arg). Doing them in separate
+walker passes would walk every file twice. The scanner extension
+returns all string-arg call sites in one pass; the walker filters by
+recognized function name.
+
+**Why we don't try to verify the file exists on disk:** Laravel's
+runtime resolver looks up views/configs through a registered loader,
+not by direct path. The walker emits a synthetic symbol whose
+descriptor encodes the conventional path, but doesn't check the
+filesystem. False positives (string keys that look like view/config
+keys but are something else) are bounded by the spec list of
+recognized function names.
+
+**Why config splits on the FIRST dot only:** Laravel's `config()`
+helper reads `config/<head>.php` for the head segment and treats
+the rest as a nested array path inside that file. Splitting on the
+first dot mirrors that runtime behavior, giving us a per-file
+descriptor (`config/services.php#dataforseo.login`) that can later
+join to a config-file walker if we add one.
+
+**Bug fixed during shipping:** the scanner had an infinite loop on
+files containing UTF-8 characters past byte 127 inside an
+interpolated double-quoted string. The dispatch was
+`case isIdentStart(rune(c)):` which widens a `byte` to a `rune` in
+the Latin-1 range — `\xE2` → `â` → `IsLetter` returns true. The
+identifier reader then called `utf8.DecodeRune` which returned
+`RuneError` for the multibyte sequence, produced an empty
+identifier, and returned without advancing s.pos. The main loop
+would then dispatch on the same byte forever. Fix: a new
+`isIdentStartByte` helper that decodes the UTF-8 sequence properly
+before deciding, plus a defensive force-advance in the main loop
+if the identifier scanner returns without consuming any bytes.
+A regression test in `scanner_test.go` covers both the
+interpolated-arrow case and a truncated UTF-8 sequence.
+
+**What would change our minds:**
+- A real codebase has many false-positive ref hits because some
+  user function happens to be named `view` or `config` but takes a
+  string literal that isn't a view/config key. At that point we'd
+  add receiver-aware matching (only match `view()` at the global
+  scope, only match `Config::get()` on the facade). The scanner is
+  receiver-blind today.
+- The view ref count stays low (7 in hoopless_crm) and the cost of
+  walking 1589 files just for view extraction outpaces the value.
+  Most Laravel apps with non-API surfaces should have many more.
+
+---
+
+## 2026-04-10 — PHP P2: facade -> backing-class resolver via static map
+
+**Decision:** Hardcode a Go-side map of ~30 Illuminate framework facades
+to their backing manager and contract classes (`Auth ->
+{AuthManager, Factory, Guard, StatefulGuard}`, `DB -> {DatabaseManager,
+Connection}`, etc.). After the non-PSR-4 walker runs, the resolver
+walks every `SymbolRecord`, identifies facade method symbols
+(`Illuminate/Support/Facades/<X>#method()`), looks up the matching
+backing-class methods in the same store, and emits synthetic ref
+occurrences from each facade ref site to every backing candidate.
+
+If the backing method does not exist in the store (because nothing in
+the user code references it directly), we synthesize a `SymbolRecord`
+for it on the fly using the same package + version as the facade —
+this keeps `scry refs AuthManager::user` working even when scip-php
+never indexed `AuthManager`.
+
+Real-world numbers on hoopless_crm:
+
+| Metric | Value |
+|---|---|
+| Facade methods scanned | 89 |
+| Synthetic backing edges emitted | 5129 |
+| `scry refs user` (filtered to AuthManager) | 75 (was 0) |
+| `scry refs user` (filtered to Guard contract) | 150 (was 0) |
+| `scry refs table` (filtered to DatabaseManager) | 92 (was 0) |
+| `scry refs table` (filtered to Connection) | 92 (was 0) |
+
+**Why a static map and not dynamic resolution from
+`getFacadeAccessor()`:** the calibration explicitly recommended
+"cover the top ~30 facades and call it done." Dynamic resolution would
+require parsing every framework facade's source, walking the service
+container map, and handling the cases where `getFacadeAccessor()`
+returns dynamically — many days of work for marginal gain on the
+top 30. The map covers Auth, Cache, Config, Cookie, Crypt, DB, Date,
+Event, File, Gate, Hash, Http, Lang, Log, Mail, Notification, Password,
+Queue, Redirect, Redis, Request, Response, Route, Schema, Session,
+Storage, URL, Validator, View, Bus, Broadcast, Artisan — every facade
+shipped with vanilla Laravel.
+
+**Edge multiplication is fine.** Each facade method ref produces N
+edges, one per backing candidate. `Auth::user()` therefore creates 4
+records (AuthManager, Factory, Guard, StatefulGuard). This is
+intentional: an agent might query any of those four names and should
+get the call sites either way. Storage cost is trivial (5k entries on
+a 22k-symbol store).
+
+**What would change our minds:**
+- A real codebase appears that uses a custom facade scry's map
+  doesn't cover, AND missing it causes a noticeable agent failure.
+  At that point we add a project-level facade resolver that parses
+  the user's `AppServiceProvider::register()` for `bind`/`singleton`
+  calls.
+- The duplication causes false-positive churn in some downstream
+  query type (e.g. `scry callers <method>` returning N copies of the
+  same site). At that point we deduplicate at query time, not by
+  collapsing the resolver.
+
+---
+
+## 2026-04-10 — PHP P2: walk Laravel non-PSR-4 dirs and bind refs to scip-php symbols
+
+**Decision:** After scip-php finishes indexing a PHP repo, scry walks
+`routes/`, `database/migrations/`, `config/`, and `bootstrap/` with a
+small Go-side PHP scanner (no real parser, just a token-aware walker
+that handles strings/comments/heredocs). For each `::class` reference
+it finds, it resolves the name against the file's `use` statements,
+constructs the corresponding SCIP descriptor (`App/Http/Controllers/
+UserController#`), looks up the matching SymbolRecord by the leaf name,
+and emits a synthetic ref occurrence joined to scip-php's existing
+symbol id. If no matching symbol exists in the store, the walker
+synthesizes one tagged with the project's composer package name + lock
+content-hash so the ref is still queryable.
+
+Real-world numbers on `~/herd/hoopless_crm` (Laravel 12, ~1199 PHP
+files in `app/`):
+
+| Metric | Value |
+|---|---|
+| Files scanned | 390 |
+| `::class` refs found | 1283 |
+| Refs bound to existing scip-php symbols | 1254 (98%) |
+| Refs synthesized (class not in store) | 29 |
+| `scry refs UserSettingsController` before walker | 0 occurrences |
+| `scry refs UserSettingsController` after walker | route handler bindings from `routes/settings.php` |
+
+**Why a Go-side scanner instead of running scip-php a second time
+with non-PSR-4 paths:** scip-php resolves classes via Composer's
+PSR-4 map, not by walking directories. There's no flag to "also index
+this loose .php file." The walker is post-processor by design and we
+only need `use` statements + `::class` literals — a real PHP parser
+would buy us nothing for that target. The Go scanner is ~350 lines
+plus a 100-line walker, with unit tests covering string/comment
+escape, group use, and absolute names.
+
+**Why not extract more (facades, view, config refs):** SPEC §11.1 and
+the calibration doc list four post-processor items; this decision lands
+the first one (the file walker, which had the highest measured
+leverage — 1168 routes/web.php refs alone in the calibration). The
+other three (facade resolver, view template, config key) ride on the
+same scaffolding and land in subsequent commits.
+
+**What would change our minds:**
+- scip-php upstream learns to index non-PSR-4 files. (Unlikely; the
+  whole point of scip-php is that it follows the autoload graph.)
+- A class of false matches appears that the simple scanner can't
+  distinguish from real refs (e.g. `Foo::class` inside a PHP attribute
+  in a way that breaks the index). At that point we upgrade to nikic's
+  Go-side `php-tokenizer` port or accept the noise.
+
+---
+
 ## 2026-04-10 — Skip SCIP local symbols entirely
 
 **Decision:** When parsing a `.scip` file, drop every `SymbolInformation`
@@ -88,28 +364,48 @@ single-file mode, OR a tree-sitter overlay proves cheap enough to ship.
 
 ---
 
-## 2026-04-10 — Reindex window may return "not indexed yet"; defer the fix
+## 2026-04-10 — Reindex via build-into-temp-dir + atomic swap (overrides earlier defer)
 
-**Decision:** When the watcher kicks off a background reindex, it evicts
-the repo from the registry first (because BadgerDB takes an exclusive
-directory lock and the builder needs it). Queries against the same repo
-during the ~3-15s reindex window get "repo not indexed yet" until the new
-store is opened and re-registered.
+**Decision:** The watcher's reindex path uses `index.BuildIntoTemp` to
+write the new BadgerDB into `<storage>/index.db.next/` while the live
+store at `<storage>/index.db/` keeps serving queries. After the build
+finishes, `Registry.SwapNext` performs a tiny critical section: close
+live store → archive live dir → rename next → live → open new store
+→ replace registry entry. The trash dir is removed in the background.
 
-**Why:** The correct fix is build-into-temp-dir + atomic rename so the
-old store stays serving during the rebuild. That's enough complexity
-(BadgerDB doesn't atomically rename a populated directory; we'd need a
-two-store overlay) that I don't want to ship it without measurement
-showing the gap actually bites real users.
+This overrides the earlier "defer the fix" decision. The deferred
+hypothesis ("the window is rare in practice") survived right up until
+PHP P2 landed and reindexes started routinely taking 45-50s on real
+Laravel apps. At that point any save during an ongoing reindex would
+guarantee a several-second blackout — cheap to fix, expensive to leave
+broken.
 
-The window is rare in practice — file edits are bursty, the cooldown is
-2s, and queries during a save burst would mostly hit the *post-reindex*
-state anyway. If it bites: build into `<storage>/index.db.next/`, then
-close the live store, rename, re-open, put.
+Measured on hoopless_crm (1409 docs / 22k symbols / 64k refs):
 
-**What would change our minds:** any agent session where the user reports
-`scry refs` returning empty during a save burst. At that point the gap
-is real and the temp-dir fix is worth its complexity.
+| Metric | Pre-fix | Post-fix |
+|---|---|---|
+| Total reindex wall-clock | ~48s | ~48s |
+| Query unavailability window | full reindex (~48s) | 12ms (single swap) |
+| Queries served during a 75s reindex test | 0 | 1449 |
+| Slowest single query during swap | ∞ (errors) | 84ms |
+
+**Why a registry-level swap helper instead of a one-shot rename in the
+watcher:** the registry holds the live store handle and the BadgerDB
+directory lock. Only the registry can sequence "close live → rename →
+open new" inside its mutex without exposing a moment where the
+registry has a stale entry pointing at a renamed directory. Putting
+the swap inside `Registry.SwapNext` keeps every visible registry
+state coherent.
+
+**Why we still archive instead of immediate-delete the old dir:** if
+the rename of next → live fails partway through, we want to roll back
+to the original state. The archive lets us `os.Rename(trash, live)`
+to recover. Background cleanup of the trash dir is best-effort.
+
+**What would change our minds:** if the swap becomes long enough to
+matter (e.g. cross-filesystem renames force a copy), we'd need a
+stronger atomicity story — maybe a per-repo serial and an in-memory
+overlay. None of that is worth doing today.
 
 ---
 

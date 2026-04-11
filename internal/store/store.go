@@ -271,6 +271,33 @@ func (s *Store) IterateCallees(callerID string, fn func(*OccurrenceRecord) error
 	return s.iterateOccurrences(prefixCallee+callerID+":", fn)
 }
 
+// IterateAllSymbols streams every SymbolRecord in the store. Used by
+// post-processors that need to scan the symbol space to find patterns
+// (e.g. the facade resolver looking for `Illuminate/Support/Facades/*`
+// methods). Stops early if fn returns a non-nil error.
+func (s *Store) IterateAllSymbols(fn func(*SymbolRecord) error) error {
+	prefix := []byte(prefixSym)
+	return s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 256
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			err := it.Item().Value(func(val []byte) error {
+				rec := &SymbolRecord{}
+				if err := json.Unmarshal(val, rec); err != nil {
+					return err
+				}
+				return fn(rec)
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // IterateImpls returns every implementation symbol id for baseID.
 func (s *Store) IterateImpls(baseID string) ([]string, error) {
 	prefix := []byte(prefixImpl + baseID + ":")
