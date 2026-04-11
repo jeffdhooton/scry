@@ -9,6 +9,138 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-04-11 — Python: require manual `npm i -g @sourcegraph/scip-python`, shim Python version at runtime
+
+**Decision:** Python indexing ships via `scip-python` (Sourcegraph's
+Pyright fork) as a shell-out from `internal/sources/python/indexer.go`.
+The wrapper:
+
+1. Requires the user to `npm i -g @sourcegraph/scip-python` manually —
+   matching the scip-typescript precedent, no auto-download.
+2. Builds a PATH shim (`~/.scry/bin/python-shim-<sha>/`) that maps
+   `python` and `python3` to a compatible interpreter (searches
+   `python3.13` → `python3.12` → `python3.11` → `python3.10`), then
+   prepends that shim to PATH when running scip-python.
+3. Passes `NODE_OPTIONS=--max-old-space-size=8192` to avoid OOM on
+   larger projects.
+4. Passes `--project-name` derived from `pyproject.toml` →
+   `setup.cfg` → `setup.py` → repo dir basename.
+5. Passes `--project-version 0.0.0` on non-git repos (scip-python's
+   default version detection crashes with a TypeError inside
+   `ScipSymbol.normalizeNameOrVersion` when there's no git rev).
+6. Respects `$VIRTUAL_ENV`, `.venv/`, `venv/`, `env/` for dependency
+   resolution but never fails if no venv is present — the indexer
+   degrades gracefully to "project symbols work, external imports
+   don't resolve to source" which is still useful.
+
+**Why require manual install:** same reasons as scip-typescript.
+scip-python is an npm package with no GitHub binary releases. Auto-
+download would require bundling Node + the entire npm tree (thousands
+of files, deep dep graph), which is the PHAR rabbit hole with a bigger
+radius. `scry doctor` now checks for scip-python on PATH and prints
+the exact `npm i -g` line on Warn, keeping the install story surfaced
+instead of hidden.
+
+**Why the PATH shim:** scip-python 0.6.6's bundled Pyright only
+recognizes Python 3.10-3.13. On a machine with 3.14+ as the system
+`python3` (Homebrew's current default), Pyright prints "Python version
+3.14 from interpreter is unsupported" and silently emits a 0-document
+SCIP index — "successfully wrote SCIP index to index.scip" followed
+by 66 bytes of empty metadata. The failure mode is indistinguishable
+from success at the CLI level. Three options considered:
+
+1. **Document the limitation + fail loudly** — user has to install an
+   older Python and `PATH=...python3.12... scry init`. Works but adds
+   ceremony.
+2. **Write a `pyrightconfig.json` to the repo** — pollutes the user's
+   working tree, overrides any existing config, and has subtle
+   conflicts when the project already has `[tool.pyright]` in
+   pyproject.toml (the existing sections get ignored).
+3. **PATH shim** — a per-target cached symlink dir that makes `python`
+   and `python3` point at a compatible interpreter for the duration of
+   the scip-python run. Transparent to the user, no repo pollution,
+   respects existing pyright configs.
+
+Option 3 won. The shim dir is cached under `~/.scry/bin/python-shim-
+<sha256[:12]>/` keyed by the resolved target binary path, so repeated
+runs against the same Python reuse the same dir. Cheap to (re)create,
+invisible in normal operation, easy to garbage collect.
+
+**Why `--project-version 0.0.0` on non-git repos:** discovered
+empirically. On a non-git directory, scip-python crashes with:
+
+```
+TypeError: Cannot read properties of undefined (reading 'indexOf')
+  at normalizeNameOrVersion (ScipSymbol.ts:23:11)
+  at makePackage (symbols.ts:21:23)
+```
+
+because its default version detection reads from `git rev-parse`,
+which returns undefined outside a git repo, and the downstream code
+doesn't guard against that. Passing any non-empty version string
+sidesteps the crash. We check for `.git/` at the repo root and only
+override when it's absent, so git repos keep their rev-based versions.
+
+**Real numbers on pydantic** (validation target, git clone of
+`pydantic/pydantic` at commit `b1bf19445`):
+
+| Metric | Value |
+|---|---|
+| Cold index | 11.0s wall (scip-python 10.2s + parse ~800ms) |
+| Documents | 107 |
+| Symbols | 8,087 |
+| Definitions | 7,532 |
+| References | 35,986 |
+| Call edges | 29,375 |
+| Implementations | 314 |
+
+Sample queries on the indexed pydantic:
+
+- `scry refs BaseModel` → 137 occurrences across 2 classes
+  (`pydantic.main.BaseModel` + the v1 compat shim at
+  `pydantic.v1.main.BaseModel`), warm query <10ms.
+- `scry defs BaseModel` → both definition sites with accurate
+  file:line:context (`pydantic/main.py:119` and `pydantic/v1/main.py:333`).
+- `scry callers model_validator` → 4 call edges.
+- `scry impls ConfigDict` → 2 matches (v2 + v1 variants).
+
+Symbol shape: `scip-python python pydantic <git-rev> <descriptor>`.
+Same five-token pattern as every other SCIP indexer scry ingests, so
+the parser, walker pipeline, and MCP tool handlers work unchanged.
+Python needed zero changes in `internal/sources/scip/parse.go` or
+downstream — the generality of the external-symbol synthesis and the
+MCP compound-symbol parser both paid off.
+
+**What we did NOT build:**
+
+- **Framework-aware post-processors.** Python has no single dominant
+  framework analogous to Laravel. Django, Flask, FastAPI, Pydantic,
+  pytest — each would benefit from different pattern extraction, and
+  none are universal enough to justify the P2-level work we did for
+  PHP. Defer until a specific pain point appears.
+- **Auto-generating a `pyrightconfig.json`.** Considered and rejected:
+  see "Why the PATH shim" above. We don't write anything into the
+  user's repo.
+- **Auto-installing scip-python via `npx --yes`.** Considered for a
+  zero-click path but dropped — silent npm installs from inside
+  another command feel janky, and the user already needs to know they
+  have Python available for indexing to make sense.
+
+**What would change our minds:**
+
+- scip-python's bundled Pyright gets bumped to support Python 3.14+,
+  making the PATH shim unnecessary for newer-Python machines. We'd
+  keep the shim code for <3.13 fallback but short-circuit when the
+  system python is already compatible.
+- A real Python repo reveals a persistent symbol-resolution gap that
+  mirrors Laravel's non-PSR-4 gap (routes defined in a string key,
+  dynamic imports, etc.). At that point we'd add a Python
+  post-processor in the same shape as `internal/sources/php/`.
+- Sourcegraph publishes a native binary of scip-python (no Node
+  required). Would let us auto-download like scip-go.
+
+---
+
 ## 2026-04-11 — Claude Code integration via `claude mcp add`, not ~/.claude/settings.json
 
 **Decision:** `scry setup` registers the scry MCP server by shelling out

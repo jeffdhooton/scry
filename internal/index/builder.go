@@ -24,6 +24,7 @@ import (
 
 	"github.com/jeffdhooton/scry/internal/sources/golang"
 	"github.com/jeffdhooton/scry/internal/sources/php"
+	"github.com/jeffdhooton/scry/internal/sources/python"
 	"github.com/jeffdhooton/scry/internal/sources/scip"
 	"github.com/jeffdhooton/scry/internal/sources/typescript"
 	"github.com/jeffdhooton/scry/internal/store"
@@ -198,6 +199,15 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 			produced = append(produced, indexed{"php", out})
 		}
 	}
+	if contains(languages, "python") {
+		out := layout.scipPath("python")
+		binDir := filepath.Join(scryHome, "bin")
+		if _, err := python.Index(ctx, binDir, repoPath, out); err != nil {
+			indexerErrs = append(indexerErrs, fmt.Errorf("scip-python: %w", err))
+		} else {
+			produced = append(produced, indexed{"python", out})
+		}
+	}
 
 	if len(produced) == 0 {
 		// Every indexer failed. Surface the first error verbatim.
@@ -347,6 +357,18 @@ func detectLanguages(repoPath string) ([]string, error) {
 		".next":        true,
 		".turbo":       true,
 		"coverage":     true,
+		// Python runtime / venv / cache directories. Counting their
+		// .py files as project code would skew language detection and
+		// cause unnecessary indexer invocations on dependency-only
+		// trees.
+		".venv":         true,
+		"venv":          true,
+		"env":           true,
+		"__pycache__":   true,
+		".mypy_cache":   true,
+		".pytest_cache": true,
+		".ruff_cache":   true,
+		".tox":          true,
 	}
 	err := filepath.WalkDir(repoPath, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -368,6 +390,9 @@ func detectLanguages(repoPath string) ([]string, error) {
 			total++
 		case ".php":
 			counts["php"]++
+			total++
+		case ".py":
+			counts["python"]++
 			total++
 		}
 		return nil

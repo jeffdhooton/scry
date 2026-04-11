@@ -126,6 +126,8 @@ func Run(opts Options) (*Report, error) {
 	r.add(checkScipTypescript())
 	r.add(checkScipGo(opts.ScryHome))
 	r.add(checkScipPhpEmbed())
+	r.add(checkPythonInterpreter(opts.Timeout))
+	r.add(checkScipPython(opts.Timeout))
 	r.add(checkClaudeCLI(opts.Timeout))
 	r.add(checkMCPRegistration(opts.Timeout))
 	r.add(checkSkillInstalled())
@@ -373,6 +375,127 @@ func parsePHPVersion(versionLine string) (major, minor int, ok bool) {
 		return 0, 0, false
 	}
 	return maj, min, true
+}
+
+// checkPythonInterpreter runs `python3 -V` and parses the version. scip-python's
+// bundled Pyright only recognizes Python 3.10 through 3.13; newer versions
+// cause a silent "0 documents indexed" failure. We surface a Warn at 3.14+ so
+// the user knows to install an older Python or let scry's built-in shim
+// (internal/sources/python) find python3.13/3.12/3.11/3.10 on PATH automatically.
+//
+// The check is per-indexer advisory, not fatal to doctor itself. If no
+// python3 is on PATH at all, we Warn and tell the user they'll need one for
+// Python repo indexing.
+func checkPythonInterpreter(timeout time.Duration) Check {
+	bin, err := exec.LookPath("python3")
+	if err != nil {
+		return Check{
+			ID:       "indexers.python",
+			Category: CategoryIndexers,
+			Name:     "python3 interpreter",
+			Status:   StatusWarn,
+			Detail:   "not on PATH (required only for indexing Python repos)",
+			Remedy:   "install Python 3.10-3.13: brew install python@3.12 (or via pyenv/uv/asdf)",
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, bin, "-V").CombinedOutput()
+	if err != nil {
+		return Check{
+			ID:       "indexers.python",
+			Category: CategoryIndexers,
+			Name:     "python3 interpreter",
+			Status:   StatusWarn,
+			Detail:   bin + " failed: " + err.Error(),
+		}
+	}
+	version := firstLine(string(out))
+	major, minor, ok := parsePythonVersion(version)
+	switch {
+	case !ok:
+		return Check{
+			ID:       "indexers.python",
+			Category: CategoryIndexers,
+			Name:     "python3 interpreter",
+			Status:   StatusPass,
+			Detail:   fmt.Sprintf("%s — %s (version unrecognized; may or may not work with scip-python)", bin, version),
+		}
+	case major < 3 || (major == 3 && minor < 10):
+		return Check{
+			ID:       "indexers.python",
+			Category: CategoryIndexers,
+			Name:     "python3 interpreter",
+			Status:   StatusFail,
+			Detail:   fmt.Sprintf("%s — %d.%d (too old; scip-python needs 3.10+)", bin, major, minor),
+			Remedy:   "install Python 3.10 or newer: brew install python@3.12",
+		}
+	case major == 3 && minor >= 14:
+		return Check{
+			ID:       "indexers.python",
+			Category: CategoryIndexers,
+			Name:     "python3 interpreter",
+			Status:   StatusWarn,
+			Detail:   fmt.Sprintf("%s — %d.%d (scip-python 0.6.6's bundled Pyright only supports 3.10-3.13)", bin, major, minor),
+			Remedy:   "install Python 3.13 or earlier alongside; scry will shim scip-python to find it automatically",
+		}
+	}
+	return Check{
+		ID:       "indexers.python",
+		Category: CategoryIndexers,
+		Name:     "python3 interpreter",
+		Status:   StatusPass,
+		Detail:   fmt.Sprintf("%s — %s", bin, version),
+	}
+}
+
+// parsePythonVersion extracts the major/minor from "Python 3.12.7" style
+// strings. Returns (0, 0, false) if the line doesn't match.
+func parsePythonVersion(versionLine string) (major, minor int, ok bool) {
+	fields := strings.Fields(versionLine)
+	if len(fields) < 2 || fields[0] != "Python" {
+		return 0, 0, false
+	}
+	parts := strings.Split(fields[1], ".")
+	if len(parts) < 2 {
+		return 0, 0, false
+	}
+	maj, err1 := strconv.Atoi(parts[0])
+	min, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
+		return 0, 0, false
+	}
+	return maj, min, true
+}
+
+func checkScipPython(timeout time.Duration) Check {
+	bin, err := exec.LookPath("scip-python")
+	if err != nil {
+		return Check{
+			ID:       "indexers.scip_python",
+			Category: CategoryIndexers,
+			Name:     "scip-python",
+			Status:   StatusWarn,
+			Detail:   "not on PATH (required only for indexing Python repos)",
+			Remedy:   "npm i -g @sourcegraph/scip-python",
+		}
+	}
+	// Best-effort version parse. If --version fails or parses weird,
+	// still report the binary as Pass — the important thing is it exists.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, bin, "--version").CombinedOutput()
+	version := "(unknown version)"
+	if err == nil {
+		version = firstLine(string(out))
+	}
+	return Check{
+		ID:       "indexers.scip_python",
+		Category: CategoryIndexers,
+		Name:     "scip-python",
+		Status:   StatusPass,
+		Detail:   fmt.Sprintf("%s — v%s", bin, version),
+	}
 }
 
 func checkScipTypescript() Check {

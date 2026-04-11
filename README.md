@@ -33,13 +33,16 @@ scry doctor       # checks every prereq and prints a green/yellow/red checklist
 
 `scry doctor` tells you exactly what's missing (PHP for PHP repos, `scip-typescript` for TS repos, `claude` CLI, etc.) and how to fix each one. Re-run it any time the setup feels off.
 
-`scip-typescript` is the one indexer that isn't auto-bundled — install separately:
+`scip-typescript` and `scip-python` are the two indexers that aren't auto-bundled — install separately if you need them:
 
 ```bash
-npm i -g @sourcegraph/scip-typescript
+npm i -g @sourcegraph/scip-typescript   # for TypeScript / JavaScript repos
+npm i -g @sourcegraph/scip-python        # for Python repos (requires Node ≥16)
 ```
 
 `scip-go` auto-downloads into `~/.scry/bin/` on first use against a Go repo (pinned, SHA256-verified). `scip-php` is embedded in the scry binary and extracted on first PHP repo.
+
+**Python gotcha**: `scip-python` 0.6.6's bundled Pyright only recognizes Python 3.10–3.13. If your default `python3` is 3.14+ (common on bleeding-edge Homebrew), scry automatically shims `scip-python` to use the first compatible interpreter it finds on PATH (`python3.13`, `python3.12`, `python3.11`, then `python3.10`). If none are installed, `scry doctor` flags it with install instructions. Activate a venv before `scry init` if you want external imports (third-party packages) resolved — scry honors `$VIRTUAL_ENV`, `.venv/`, `venv/`, and `env/` automatically.
 
 ## Quick start
 
@@ -77,7 +80,7 @@ Output is JSON by default — this tool's primary user is an AI agent. Pass `--p
 
 | Feature | Status |
 |---|---|
-| **Languages** | TypeScript, JavaScript, Go, PHP (Laravel-aware) |
+| **Languages** | TypeScript, JavaScript, Go, PHP (Laravel-aware), Python |
 | **Daemon** | Auto-spawned on first CLI call, Unix socket at `~/.scry/scryd.sock` |
 | **JSON-RPC 2.0** | Newline-delimited over Unix socket; methods mirror CLI subcommands |
 | **Queries** | `init`, `refs`, `defs`, `callers`, `callees`, `impls`, `status`, `start`, `stop` |
@@ -180,7 +183,8 @@ scry/
 │   │   ├── scip/              # SCIP protobuf parser (streaming)
 │   │   ├── typescript/        # scip-typescript shellout
 │   │   ├── golang/            # scip-go shellout (with auto-download)
-│   │   └── php/               # embedded scip-php tree + Laravel non-PSR-4 walker
+│   │   ├── php/               # embedded scip-php tree + Laravel non-PSR-4 walker
+│   │   └── python/            # scip-python shellout + PATH shim for Pyright version pinning
 │   ├── index/                 # build pipeline: detect → run → parse → store
 │   ├── query/                 # refs, defs, callers, callees, impls
 │   └── install/               # pinned indexer auto-download with SHA256
