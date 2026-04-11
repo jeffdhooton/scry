@@ -1,0 +1,102 @@
+# GoReleaser config for scry.
+#
+# Triggered by GitHub Actions on tag push (v*). Builds a single static
+# binary per platform, archives it as .tar.gz alongside the README and
+# LICENSE if present, and uploads to the GitHub release.
+#
+# Hard constraints (inherited from docs/DECISIONS.md):
+#   - CGO_ENABLED=0. scry ships as a single static binary; no libc
+#     dependencies. This forces modernc.org/sqlite if SQLite is ever
+#     needed (though BadgerDB is the storage default).
+#   - darwin + linux, amd64 + arm64. No Windows support yet — scry uses
+#     Unix sockets for the daemon RPC, which would need a named-pipe
+#     alternative on Windows.
+#   - The Version string is injected via -ldflags. `scry version` reports
+#     whatever the tag was at build time. `go install` from source keeps
+#     the default "dev".
+#
+# To cut a release locally without GitHub Actions: install goreleaser,
+# then run `goreleaser release --clean` after tagging a commit.
+
+version: 2
+
+project_name: scry
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: scry
+    main: ./cmd/scry
+    binary: scry
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{ .Version }}
+    flags:
+      - -trimpath
+
+archives:
+  - id: scry
+    ids:
+      - scry
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format: tar.gz
+    files:
+      - README.md
+      - docs/SPEC.md
+      - docs/DECISIONS.md
+      - docs/PHP_CALIBRATION.md
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+changelog:
+  # GoReleaser generates a changelog from git commits between the previous
+  # tag and the current one. We filter out noise.
+  sort: asc
+  use: git
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^test:"
+      - "^ci:"
+      - "^wip:"
+      - "typo"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  # GoReleaser creates the release on GitHub and uploads the artifacts.
+  # We let it draft releases so a human can eyeball the changelog before
+  # publishing. Change to `draft: false` once you're confident.
+  draft: true
+  prerelease: auto
+  # Body prepended to the auto-generated changelog.
+  header: |
+    ## scry {{ .Tag }}
+
+    Install via the one-liner:
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/jeffdhooton/scry/main/scripts/install.sh | sh
+    ```
+
+    Or grab a binary below and drop it on your PATH.
+
+    After install, run `scry setup` to register the Claude Code MCP
+    integration, then `scry doctor` to verify everything is wired up.

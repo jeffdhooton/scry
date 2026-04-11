@@ -6,18 +6,42 @@
 
 ---
 
+## Install
+
+**One-liner** (darwin / linux, amd64 / arm64):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jeffdhooton/scry/main/scripts/install.sh | sh
+```
+
+Drops the binary at `~/.local/bin/scry`. Customize with `INSTALL_DIR=/usr/local/bin` or pin a version with `SCRY_VERSION=v0.1.0`.
+
+**From source** (requires Go 1.23+):
+
+```bash
+go install github.com/jeffdhooton/scry/cmd/scry@latest
+```
+
+**Once installed**, run the post-install setup and verification:
+
+```bash
+scry setup        # installs the Claude Code skill + MCP server registration
+scry doctor       # checks every prereq and prints a green/yellow/red checklist
+```
+
+`scry doctor` tells you exactly what's missing (PHP for PHP repos, `scip-typescript` for TS repos, `claude` CLI, etc.) and how to fix each one. Re-run it any time the setup feels off.
+
+`scip-typescript` is the one indexer that isn't auto-bundled — install separately:
+
+```bash
+npm i -g @sourcegraph/scip-typescript
+```
+
+`scip-go` auto-downloads into `~/.scry/bin/` on first use against a Go repo (pinned, SHA256-verified). `scip-php` is embedded in the scry binary and extracted on first PHP repo.
+
 ## Quick start
 
 ```bash
-# Build (no CGO; single static binary)
-go build -o scry ./cmd/scry
-
-# Install scip-typescript (npm package, no GitHub release assets)
-npm i -g @sourcegraph/scip-typescript
-
-# scip-go is auto-downloaded into ~/.scry/bin/ on first use against a Go repo
-# (pinned to v0.1.26, SHA256-verified)
-
 # Index a repo. The daemon auto-spawns on first call and stays warm
 # until `scry stop` or logout.
 cd ~/path/to/some/typescript/repo
@@ -39,6 +63,10 @@ scry impls Repository            # everything that implements an interface
 scry status                      # what repos are indexed?
 scry start                       # explicit start (auto-spawned otherwise)
 scry stop                        # graceful shutdown, 5s grace, then SIGKILL
+
+# Claude Code integration
+scry setup                       # install skill + MCP server (one-shot, idempotent)
+scry mcp                         # stdio MCP server (launched by Claude Code, not humans)
 ```
 
 Output is JSON by default — this tool's primary user is an AI agent. Pass `--pretty` for human reading. All file paths are absolute, all line/column numbers are 1-indexed.
@@ -59,6 +87,7 @@ Output is JSON by default — this tool's primary user is an AI agent. Pass `--p
 | **Laravel non-PSR-4 walker** | After `scip-php` runs, scry walks `routes/`, `config/`, `database/migrations/`, `bootstrap/` for `::class` refs and joins them to scip-php's symbol IDs. ~98% bind rate on real codebases. |
 | **Laravel facade resolver** | Hardcoded map of 31 Illuminate facades to their backing manager/contract classes. After scip-php and the walker, every facade method ref (`Auth::user()`, `DB::table()`, ...) gets synthetic edges to the backing class methods (`AuthManager#user`, `Guard#user`, `DatabaseManager#table`, `Connection#table`). 5129 edges synthesized on hoopless_crm. |
 | **Laravel view + config string-ref walker** | Walks every project `.php` file for `view('foo.bar')` and `config('foo.bar')` calls and emits synthetic ref edges to `resources/views/foo/bar.blade.php` and `config/foo.php#bar` symbols. `scry refs services.dataforseo.login` returns every config-call site with file:line and context. 7 view + 280 config refs on hoopless_crm. |
+| **Claude Code integration** | `scry setup` installs a skill at `~/.claude/skills/scry/SKILL.md` (routing instructions for Claude) plus registers scry as a User-scope MCP server by shelling out to `claude mcp add --scope user --transport stdio scry -- <scry-bin> mcp`. Six tools exposed: `scry_refs`, `scry_defs`, `scry_callers`, `scry_callees`, `scry_impls`, `scry_status`. Claude routes symbol queries through scry and falls back to Grep for string/pattern searches. Idempotent; re-runs after a scry upgrade refresh the registered binary path automatically. |
 | **External symbol synthesis** | The SCIP parser synthesizes `SymbolRecord`s for any occurrence whose symbol id wasn't declared as `SymbolInformation` in any document. Closes a general gap where vendor / framework / stdlib references were unqueryable by name (`scry refs DB` previously returned 0; now returns the facade symbol with all its occurrences). |
 
 Real-world numbers (measured against `~/herd/advocates`, 400 TS files / 55k LOC):

@@ -46,6 +46,16 @@ func scipPhpVersion() string {
 	return hex.EncodeToString(sum[:])[:12]
 }
 
+// EmbeddedTarballSize returns the byte size of the embedded scip-php tarball.
+// Used by `scry doctor` to sanity-check that the embed is present in the
+// current binary.
+func EmbeddedTarballSize() int { return len(scipPhpTarball) }
+
+// EmbeddedVersion returns the 12-char SHA256 prefix used as the extraction
+// directory name under ~/.scry/bin/scip-php-<version>/. Exported so
+// `scry doctor` can tell the user where the extracted tree would live.
+func EmbeddedVersion() string { return scipPhpVersion() }
+
 // Index runs scip-php against repoRoot and writes the SCIP output to
 // outputPath. Returns the absolute outputPath on success.
 //
