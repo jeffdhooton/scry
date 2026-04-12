@@ -44,6 +44,39 @@ npm i -g @sourcegraph/scip-python        # for Python repos (requires Node ≥16
 
 **Python gotcha**: `scip-python` 0.6.6's bundled Pyright only recognizes Python 3.10–3.13. If your default `python3` is 3.14+ (common on bleeding-edge Homebrew), scry automatically shims `scip-python` to use the first compatible interpreter it finds on PATH (`python3.13`, `python3.12`, `python3.11`, then `python3.10`). If none are installed, `scry doctor` flags it with install instructions. Activate a venv before `scry init` if you want external imports (third-party packages) resolved — scry honors `$VIRTUAL_ENV`, `.venv/`, `venv/`, and `env/` automatically.
 
+### Install the full agent tool suite
+
+scry is part of a suite of local-first dev tools for AI agents. Install and register everything in one shot:
+
+```bash
+# Install all four tools
+go install github.com/jeffdhooton/scry/cmd/scry@latest
+go install github.com/jeffdhooton/flume/cmd/flume@latest
+go install github.com/jeffdhooton/tome/cmd/tome@latest
+go install github.com/jeffdhooton/lore/cmd/lore@latest
+
+# Register each with Claude Code (one-time, idempotent)
+scry setup
+flume setup
+tome setup
+lore setup
+
+# Verify everything is wired up
+scry doctor
+flume doctor
+tome doctor
+lore doctor
+```
+
+Each tool auto-spawns its daemon on first use. After setup, Claude Code routes queries automatically — symbol lookups go to scry, schema questions go to tome, git history goes to lore, and runtime debugging goes to flume. No manual intervention needed.
+
+| Tool | What it gives your agent |
+|------|------------------------|
+| **scry** | "Where is this function used?" — in 3ms instead of 30s of grepping |
+| **flume** | "What happened on the last request?" — instead of adding print statements |
+| **tome** | "What columns does users have?" — in 1 call instead of 3-6 file reads |
+| **lore** | "Who changed this and why?" — in 1 call instead of 5 git commands |
+
 ## Quick start
 
 ```bash
