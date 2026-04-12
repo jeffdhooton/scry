@@ -26,6 +26,7 @@ func (d *Daemon) registerMethods() {
 	d.server.Register("callers", d.handleQuery(query.Callers))
 	d.server.Register("callees", d.handleQuery(query.Callees))
 	d.server.Register("impls", d.handleQuery(query.Impls))
+	d.server.Register("tests", d.handleQuery(query.Tests))
 	d.server.Register("init", d.handleInit)
 	d.server.Register("status", d.handleStatus)
 	d.server.Register("shutdown", d.handleShutdown)

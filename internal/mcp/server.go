@@ -39,6 +39,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // protocolVersion is the MCP protocol version this server reports. We echo
@@ -298,6 +299,18 @@ var toolDefinitions = []tool{
 		}),
 	},
 	{
+		Name:        "scry_tests",
+		Description: "Check which functions are covered by tests. Returns coverage status for a symbol — whether any test exercises it, and with what hit count. Use before deciding whether to write new tests or to identify which existing tests to run after a code change. Requires a coverage file (cover.out, coverage-final.json, clover.xml, or coverage.json) to be present in the repo root — generate it with your test runner (e.g. `go test -coverprofile=cover.out ./...`) then re-run `scry init`.",
+		InputSchema: mustMarshal(map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"symbol": map[string]any{"type": "string", "description": "The function or method name to check coverage for."},
+				"repo":   map[string]any{"type": "string", "description": "Absolute path to the repo root. Defaults to cwd."},
+			},
+			"required": []string{"symbol"},
+		}),
+	},
+	{
 		Name:        "scry_status",
 		Description: "List every repo scry has indexed, with document counts, ref counts, and last-indexed timestamps. Use this to check whether a repo is indexed before running a symbol query, or to see which repos are searchable.",
 		InputSchema: mustMarshal(map[string]any{
@@ -343,6 +356,8 @@ func (s *Server) handleToolsCall(ctx context.Context, req request) {
 		s.callSymbolQuery(ctx, req.ID, "callees", p.Arguments)
 	case "scry_impls":
 		s.callSymbolQuery(ctx, req.ID, "impls", p.Arguments)
+	case "scry_tests":
+		s.callSymbolQuery(ctx, req.ID, "tests", p.Arguments)
 	case "scry_status":
 		s.callStatus(ctx, req.ID)
 	default:
@@ -368,6 +383,8 @@ func (s *Server) handleToolsCall(ctx context.Context, req request) {
 //  5. If everything is empty, return the raw result for the original input
 //     so the host sees an honest "no matches" rather than a false error.
 func (s *Server) callSymbolQuery(ctx context.Context, id json.RawMessage, method string, rawArgs json.RawMessage) {
+	start := nowUTC()
+
 	var args symbolArgs
 	if err := json.Unmarshal(rawArgs, &args); err != nil {
 		s.writeToolError(id, "invalid arguments: "+err.Error())
@@ -385,6 +402,7 @@ func (s *Server) callSymbolQuery(ctx context.Context, id json.RawMessage, method
 
 	client, err := s.dial()
 	if err != nil {
+		logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: "scry_" + method, Symbol: args.Symbol, Repo: repo, Results: 0, LatencyMs: time.Since(start).Milliseconds(), Error: "dial failed"})
 		s.writeToolError(id, "dial scry daemon: "+err.Error())
 		return
 	}
@@ -400,6 +418,7 @@ func (s *Server) callSymbolQuery(ctx context.Context, id json.RawMessage, method
 	}
 	raw, err := rawSymbolCall(ctx, client, method, repo, first)
 	if err != nil {
+		logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: "scry_" + method, Symbol: args.Symbol, Repo: repo, Results: 0, LatencyMs: time.Since(start).Milliseconds(), Error: err.Error()})
 		s.writeToolError(id, "scry "+method+": "+err.Error())
 		return
 	}
@@ -418,6 +437,7 @@ func (s *Server) callSymbolQuery(ctx context.Context, id json.RawMessage, method
 		}
 	}
 
+	logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: "scry_" + method, Symbol: args.Symbol, Repo: repo, Results: extractResultCount(raw), LatencyMs: time.Since(start).Milliseconds()})
 	s.writeToolResult(id, prettyJSON(raw), false)
 }
 
@@ -590,8 +610,11 @@ func containsAny(s string, needles ...string) bool {
 
 // callStatus returns the daemon's status RPC verbatim.
 func (s *Server) callStatus(ctx context.Context, id json.RawMessage) {
+	start := nowUTC()
+
 	client, err := s.dial()
 	if err != nil {
+		logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: "scry_status", LatencyMs: time.Since(start).Milliseconds(), Error: "dial failed"})
 		s.writeToolError(id, "dial scry daemon: "+err.Error())
 		return
 	}
@@ -599,6 +622,7 @@ func (s *Server) callStatus(ctx context.Context, id json.RawMessage) {
 
 	var raw json.RawMessage
 	if err := client.Call(ctx, "status", struct{}{}, &raw); err != nil {
+		logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: "scry_status", LatencyMs: time.Since(start).Milliseconds(), Error: err.Error()})
 		s.writeToolError(id, "scry status: "+err.Error())
 		return
 	}
@@ -608,6 +632,7 @@ func (s *Server) callStatus(ctx context.Context, id json.RawMessage) {
 	if err != nil {
 		pretty = []byte(raw)
 	}
+	logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: "scry_status", LatencyMs: time.Since(start).Milliseconds()})
 	s.writeToolResult(id, string(pretty), false)
 }
 

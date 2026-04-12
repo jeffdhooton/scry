@@ -9,6 +9,56 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-04-12 — Test coverage: aggregate-only, user-generated, four format parsers
+
+**Decision:** Test coverage indexing ships as a post-processor in the build
+pipeline (`internal/sources/coverage/`). Key design calls:
+
+1. **Aggregate coverage only (Phase 1).** Per-test coverage (which *specific*
+   test covers which function) would require running each test individually
+   or language-specific tooling that isn't mature. Aggregate coverage ("is
+   this function hit by *any* test?") is universally available and answers
+   the 80% use case.
+
+2. **scry does not run tests.** The user generates coverage files with their
+   normal test tooling (`go test -coverprofile`, vitest --coverage, etc.).
+   `scry init` detects and consumes the artifacts. Matches the existing
+   pattern: scry doesn't run `scip-typescript`, it consumes its output.
+
+3. **Four format parsers:** Go coverprofile (`cover.out`), Istanbul JSON
+   (`coverage-final.json` — vitest/jest), Clover XML (`coverage.xml` —
+   PHPUnit), Python coverage.json (`coverage.py json`). Auto-detected by
+   well-known paths in the repo root.
+
+4. **Single-line def span expansion for scip-go.** scip-go emits definition
+   occurrences where EndLine == Line (just the function signature). The
+   coverage join extends each such span to the next definition in the same
+   file so function body lines match correctly.
+
+5. **Schema version bumped to 2.** New `cov:` key prefix. Forces a clean
+   rebuild on existing indexes.
+
+**What would change our minds:** if per-test coverage becomes trivially
+available (Go 1.25 test coverage contexts, vitest native per-test output),
+add a Phase 2 that writes `cov:<symbol_id>:<test_id>` edges.
+
+---
+
+## 2026-04-12 — MCP call logging to ~/.scry/logs/mcp-calls.jsonl
+
+**Decision:** Every MCP tool call writes a JSONL line to
+`~/.scry/logs/mcp-calls.jsonl` with timestamp, tool name, symbol, repo,
+result count, latency, and error (if any). Append-only, no rotation.
+
+**Why:** Dogfooding visibility. Lets us see how Claude Code actually uses
+scry — which tools get called, how often, what latency looks like in
+practice. Zero overhead (one file append per call).
+
+**What would change our minds:** if the log file grows unbounded on heavy
+users. Add rotation or size cap when it becomes a real problem.
+
+---
+
 ## 2026-04-11 — Python: require manual `npm i -g @sourcegraph/scip-python`, shim Python version at runtime
 
 **Decision:** Python indexing ships via `scip-python` (Sourcegraph's

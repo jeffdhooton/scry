@@ -39,6 +39,7 @@ Read+Grep+Glob loop that eats most of an agent's time and tokens.`,
 	root.AddCommand(callersCmd())
 	root.AddCommand(calleesCmd())
 	root.AddCommand(implsCmd())
+	root.AddCommand(testsCmd())
 	root.AddCommand(statusCmd())
 	root.AddCommand(startCmd())
 	root.AddCommand(stopCmd())

@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/sources/coverage"
 	"github.com/jeffdhooton/scry/internal/sources/golang"
 	"github.com/jeffdhooton/scry/internal/sources/php"
 	"github.com/jeffdhooton/scry/internal/sources/python"
@@ -36,9 +37,10 @@ type Manifest struct {
 	RepoPath      string    `json:"repo_path"`
 	Languages     []string  `json:"languages"`
 	IndexedAt     time.Time `json:"indexed_at"`
-	Status        string    `json:"status"` // "ready" | "partial" | "broken"
-	FailedFiles   int       `json:"failed_files,omitempty"`
-	Stats         scip.Stats `json:"stats"`
+	Status        string          `json:"status"` // "ready" | "partial" | "broken"
+	FailedFiles   int             `json:"failed_files,omitempty"`
+	Stats         scip.Stats      `json:"stats"`
+	CoverageStats *coverage.Stats `json:"coverage_stats,omitempty"`
 }
 
 // RepoLayout is the resolved on-disk layout for one repo.
@@ -295,6 +297,20 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		}
 	}
 
+	// Coverage indexer: detect and parse coverage files (cover.out,
+	// coverage-final.json, clover.xml, coverage.json), join against the
+	// definition spans we just indexed, and write per-symbol coverage records.
+	// This is a no-op if no coverage files are present.
+	var covStats *coverage.Stats
+	cs, err := coverage.Index(repoPath, st)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "scry: coverage indexer: %v\n", err)
+	} else if cs.SymbolsCovered > 0 {
+		fmt.Fprintf(os.Stderr, "scry: coverage: %d files, %d ranges, %d symbols covered (%s)\n",
+			cs.FilesFound, cs.RangesParsed, cs.SymbolsCovered, cs.Format)
+		covStats = cs
+	}
+
 	status := "ready"
 	if len(indexerErrs) > 0 {
 		status = "partial"
@@ -311,6 +327,7 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		IndexedAt:     time.Now().UTC(),
 		Status:        status,
 		Stats:         combined,
+		CoverageStats: covStats,
 	}
 	if err := writeManifest(layout.ManifestPath, manifest); err != nil {
 		return nil, fmt.Errorf("write manifest: %w", err)

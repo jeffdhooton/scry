@@ -63,6 +63,7 @@ scry defs processOrder
 scry callers processOrder        # refs with the containing function exposed
 scry callees processOrder        # what does processOrder call?
 scry impls Repository            # everything that implements an interface
+scry tests processOrder          # is this function covered by tests?
 
 # Daemon control
 scry status                      # what repos are indexed?
@@ -83,7 +84,7 @@ Output is JSON by default — this tool's primary user is an AI agent. Pass `--p
 | **Languages** | TypeScript, JavaScript, Go, PHP (Laravel-aware), Python |
 | **Daemon** | Auto-spawned on first CLI call, Unix socket at `~/.scry/scryd.sock` |
 | **JSON-RPC 2.0** | Newline-delimited over Unix socket; methods mirror CLI subcommands |
-| **Queries** | `init`, `refs`, `defs`, `callers`, `callees`, `impls`, `status`, `start`, `stop` |
+| **Queries** | `init`, `refs`, `defs`, `callers`, `callees`, `impls`, `tests`, `status`, `start`, `stop` |
 | **Index store** | BadgerDB per repo at `~/.scry/repos/<sha256[:16]>/`, schema-versioned, reset-on-bump |
 | **Watch loop** | fsnotify watcher per indexed repo, 300ms debounce, background full reindex with atomic registry swap |
 | **Auto-download** | `scip-go` (pinned, SHA256-verified). `scip-php` is embedded into the scry binary as a vendored directory tree and extracted on first use. `scip-typescript` is still manual (no GitHub release assets — install via `npm i -g @sourcegraph/scip-typescript`) |
@@ -92,7 +93,8 @@ Output is JSON by default — this tool's primary user is an AI agent. Pass `--p
 | **Laravel non-PSR-4 walker** | After `scip-php` runs, scry walks `routes/`, `config/`, `database/migrations/`, `bootstrap/` for `::class` refs and joins them to scip-php's symbol IDs. ~98% bind rate on real codebases. |
 | **Laravel facade resolver** | Hardcoded map of 31 Illuminate facades to their backing manager/contract classes. After scip-php and the walker, every facade method ref (`Auth::user()`, `DB::table()`, ...) gets synthetic edges to the backing class methods (`AuthManager#user`, `Guard#user`, `DatabaseManager#table`, `Connection#table`). 5129 edges synthesized on hoopless_crm. |
 | **Laravel view + config string-ref walker** | Walks every project `.php` file for `view('foo.bar')` and `config('foo.bar')` calls and emits synthetic ref edges to `resources/views/foo/bar.blade.php` and `config/foo.php#bar` symbols. `scry refs services.dataforseo.login` returns every config-call site with file:line and context. 7 view + 280 config refs on hoopless_crm. |
-| **Claude Code integration** | `scry setup` installs a skill at `~/.claude/skills/scry/SKILL.md` (routing instructions for Claude) plus registers scry as a User-scope MCP server by shelling out to `claude mcp add --scope user --transport stdio scry -- <scry-bin> mcp`. Six tools exposed: `scry_refs`, `scry_defs`, `scry_callers`, `scry_callees`, `scry_impls`, `scry_status`. Claude routes symbol queries through scry and falls back to Grep for string/pattern searches. Idempotent; re-runs after a scry upgrade refresh the registered binary path automatically. |
+| **Claude Code integration** | `scry setup` installs a skill at `~/.claude/skills/scry/SKILL.md` (routing instructions for Claude) plus registers scry as a User-scope MCP server by shelling out to `claude mcp add --scope user --transport stdio scry -- <scry-bin> mcp`. Seven tools exposed: `scry_refs`, `scry_defs`, `scry_callers`, `scry_callees`, `scry_impls`, `scry_tests`, `scry_status`. Claude routes symbol queries through scry and falls back to Grep for string/pattern searches. Idempotent; re-runs after a scry upgrade refresh the registered binary path automatically. MCP call logging to `~/.scry/logs/mcp-calls.jsonl` (tool, symbol, latency, result count per call). |
+| **Test coverage index** | Auto-detects coverage files (`cover.out`, `coverage-final.json`, `clover.xml`, `coverage.json`) during `scry init`, parses them, and joins covered lines against symbol definitions. `scry tests <symbol>` returns whether a function is covered by tests and with what hit count. Supports Go coverprofile, Istanbul/c8 JSON (vitest/jest), Clover XML (PHPUnit), and Python coverage.json. No coverage files = silent no-op. |
 | **External symbol synthesis** | The SCIP parser synthesizes `SymbolRecord`s for any occurrence whose symbol id wasn't declared as `SymbolInformation` in any document. Closes a general gap where vendor / framework / stdlib references were unqueryable by name (`scry refs DB` previously returned 0; now returns the facade symbol with all its occurrences). |
 
 Real-world numbers (measured against `~/herd/advocates`, 400 TS files / 55k LOC):
@@ -168,6 +170,7 @@ scry/
 │   ├── init.go                # `scry init` — runs through daemon
 │   ├── refs.go                # `scry refs` / `scry defs`
 │   ├── graph.go               # `scry callers` / `callees` / `impls`
+│   ├── tests.go               # `scry tests` (coverage query)
 │   └── status.go              # `scry status`
 ├── internal/
 │   ├── rpc/                   # JSON-RPC 2.0 over Unix socket (server + client)
@@ -184,9 +187,10 @@ scry/
 │   │   ├── typescript/        # scip-typescript shellout
 │   │   ├── golang/            # scip-go shellout (with auto-download)
 │   │   ├── php/               # embedded scip-php tree + Laravel non-PSR-4 walker
-│   │   └── python/            # scip-python shellout + PATH shim for Pyright version pinning
+│   │   ├── python/            # scip-python shellout + PATH shim for Pyright version pinning
+│   │   └── coverage/          # coverage file parsers (Go, Istanbul, Clover, Python) + join
 │   ├── index/                 # build pipeline: detect → run → parse → store
-│   ├── query/                 # refs, defs, callers, callees, impls
+│   ├── query/                 # refs, defs, callers, callees, impls, tests (coverage)
 │   └── install/               # pinned indexer auto-download with SHA256
 └── docs/
     ├── SPEC.md                # original PRD (don't edit; this is the source of truth)

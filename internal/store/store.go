@@ -8,8 +8,9 @@
 //	ref:<symbol_id>:<seq>       OccurrenceRecord with role=ref
 //	name:<lower_name>:<sym_id>  empty value, secondary index for symbol-by-name lookup
 //	fsym:<rel_path>:<sym_id>    empty value, secondary index for symbols-in-file
+//	cov:<symbol_id>             CoverageRecord (aggregate test coverage for a symbol)
 //
-// All values are JSON. Schema version 1.
+// All values are JSON. Schema version 2.
 package store
 
 import (
@@ -24,7 +25,7 @@ import (
 const (
 	// SchemaVersion is bumped whenever the on-disk layout changes.
 	// On mismatch the index is wiped and rebuilt from scratch.
-	SchemaVersion = 1
+	SchemaVersion = 2
 
 	prefixMeta   = "meta:"
 	prefixSym    = "sym:"
@@ -34,6 +35,7 @@ const (
 	prefixFSym   = "fsym:"
 	prefixCallee = "callee:" // callee:<caller_id>:<seq> -> OccurrenceRecord (the callee)
 	prefixImpl   = "impl:"   // impl:<base_id>:<impl_id> -> empty (impl_id implements base_id)
+	prefixCov    = "cov:"    // cov:<symbol_id> -> CoverageRecord (aggregate test coverage)
 )
 
 // SymbolRecord is one defined symbol. The Symbol field is the SCIP-formatted
@@ -57,6 +59,18 @@ type OccurrenceRecord struct {
 	Context          string `json:"context,omitempty"`
 	ContainingSymbol string `json:"containing_symbol,omitempty"`
 	IsDefinition     bool   `json:"is_definition,omitempty"`
+}
+
+// CoverageRecord stores aggregate test coverage for one symbol definition.
+// HitCount is the total number of times lines within the symbol's definition
+// span were executed by the test suite.
+type CoverageRecord struct {
+	Symbol      string `json:"symbol"`
+	DisplayName string `json:"display_name"`
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	EndLine     int    `json:"end_line"`
+	HitCount    int    `json:"hit_count"`
 }
 
 // Store is an open BadgerDB-backed index for one repo.
@@ -337,4 +351,67 @@ func (s *Store) iterateOccurrences(prefix string, fn func(*OccurrenceRecord) err
 		}
 		return nil
 	})
+}
+
+// PutCoverage writes a coverage record for a symbol. Unlike refs/defs which
+// can have many occurrences per symbol, coverage is one record per symbol
+// (aggregate hit count across all test-covered lines in the definition span).
+func (w *Writer) PutCoverage(rec *CoverageRecord) error {
+	b, err := json.Marshal(rec)
+	if err != nil {
+		return err
+	}
+	key := prefixCov + rec.Symbol
+	return w.wb.Set([]byte(key), b)
+}
+
+// GetCoverage returns the CoverageRecord for one symbol id, or nil if the
+// symbol has no coverage data.
+func (s *Store) GetCoverage(symbolID string) (*CoverageRecord, error) {
+	var rec *CoverageRecord
+	err := s.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(prefixCov + symbolID))
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		return item.Value(func(val []byte) error {
+			rec = &CoverageRecord{}
+			return json.Unmarshal(val, rec)
+		})
+	})
+	return rec, err
+}
+
+// IterateAllCoverage streams every CoverageRecord in the store. Used by the
+// coverage query to find all covered symbols matching a name.
+func (s *Store) IterateAllCoverage(fn func(*CoverageRecord) error) error {
+	prefix := []byte(prefixCov)
+	return s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 64
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			err := it.Item().Value(func(val []byte) error {
+				rec := &CoverageRecord{}
+				if err := json.Unmarshal(val, rec); err != nil {
+					return err
+				}
+				return fn(rec)
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// IterateAllDefs streams every definition OccurrenceRecord in the store.
+// Used by the coverage join to build a file→symbol span index.
+func (s *Store) IterateAllDefs(fn func(*OccurrenceRecord) error) error {
+	return s.iterateOccurrences(prefixDef, fn)
 }
