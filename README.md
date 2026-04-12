@@ -206,6 +206,13 @@ Pre-computation is the entire game. A typical 100k-LOC TypeScript repo has thous
 
 Same answers as `~/workspace/trawl`: single static binary, fast cold start, mature ecosystem for daemon patterns (signal handling, fsnotify, Unix sockets), and the file-watching + indexing workload is concurrency-bound rather than CPU-bound. Reuses trawl's tech-stack decisions wholesale (BadgerDB, cobra, zerolog) so the operational story matches.
 
-## Sibling project
+## Part of the agent tool suite
 
-[trawl](file:///Users/jhoot/workspace/trawl) — agent-first web scraping, same architectural philosophy. scry borrows trawl's tech-stack decisions wholesale.
+A collection of local-first, single-binary dev tools built for AI coding agents. All share the same architecture: Go, no CGO, BadgerDB, daemon over Unix socket, MCP stdio, millisecond-latency queries. Free, local-only, no cloud.
+
+| Tool | What it does | Status |
+|------|-------------|--------|
+| **[scry](https://github.com/jeffdhooton/scry)** | Code intelligence — symbols, refs, call graphs, impls, test coverage | Shipped |
+| **[flume](https://github.com/jeffdhooton/flume)** | Runtime visibility — HTTP requests, SQL queries, exceptions from dev servers | In progress |
+| **[tome](https://github.com/jeffdhooton/tome)** | Schema awareness — DB schemas, API shapes, ORM models, enums | In progress |
+| **[lore](https://github.com/jeffdhooton/lore)** | Git intelligence — blame, history, co-change patterns, hotspots | In progress |
