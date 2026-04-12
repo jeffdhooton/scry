@@ -246,6 +246,6 @@ A collection of local-first, single-binary dev tools built for AI coding agents.
 | Tool | What it does | Status |
 |------|-------------|--------|
 | **[scry](https://github.com/jeffdhooton/scry)** | Code intelligence — symbols, refs, call graphs, impls, test coverage | Shipped |
-| **[flume](https://github.com/jeffdhooton/flume)** | Runtime visibility — HTTP requests, SQL queries, exceptions from dev servers | In progress |
-| **[tome](https://github.com/jeffdhooton/tome)** | Schema awareness — DB schemas, API shapes, ORM models, enums | In progress |
-| **[lore](https://github.com/jeffdhooton/lore)** | Git intelligence — blame, history, co-change patterns, hotspots | In progress |
+| **[flume](https://github.com/jeffdhooton/flume)** | Runtime visibility — HTTP requests, SQL queries, exceptions from dev servers | P0 shipped |
+| **[tome](https://github.com/jeffdhooton/tome)** | Schema awareness — DB schemas, API shapes, ORM models, enums | P0 shipped |
+| **[lore](https://github.com/jeffdhooton/lore)** | Git intelligence — blame, history, co-change patterns, hotspots | P0 shipped |
