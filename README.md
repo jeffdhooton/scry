@@ -249,3 +249,7 @@ A collection of local-first, single-binary dev tools built for AI coding agents.
 | **[flume](https://github.com/jeffdhooton/flume)** | Runtime visibility — HTTP requests, SQL queries, exceptions from dev servers | P0 shipped |
 | **[tome](https://github.com/jeffdhooton/tome)** | Schema awareness — DB schemas, API shapes, ORM models, enums | P0 shipped |
 | **[lore](https://github.com/jeffdhooton/lore)** | Git intelligence — blame, history, co-change patterns, hotspots | P0 shipped |
+
+## Author
+
+Built by [Jeff Hooton](https://hooton.codes) · [GitHub](https://github.com/jeffdhooton)
