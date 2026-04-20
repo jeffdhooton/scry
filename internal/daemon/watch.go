@@ -26,6 +26,10 @@ const debounceWindow = 300 * time.Millisecond
 // the second build re-reads everything anyway.
 const reindexCooldown = 2 * time.Second
 
+// PostReindexFunc is called after a successful code reindex with the repo path.
+// The daemon uses this to trigger a background graph rebuild.
+type PostReindexFunc func(repoPath string)
+
 // Watcher manages one fsnotify watcher per indexed repo and triggers a
 // background reindex on relevant filesystem changes.
 //
@@ -42,8 +46,9 @@ const reindexCooldown = 2 * time.Second
 // directory into place. Total query unavailability collapses from ~3-15s
 // per reindex to a sub-50ms gap.
 type Watcher struct {
-	scryHome string
-	registry *Registry
+	scryHome     string
+	registry     *Registry
+	postReindex  PostReindexFunc
 
 	mu       sync.Mutex
 	watchers map[string]*repoWatcher
@@ -51,10 +56,15 @@ type Watcher struct {
 
 func NewWatcher(scryHome string, registry *Registry) *Watcher {
 	return &Watcher{
-		scryHome: scryHome,
-		registry: registry,
-		watchers: map[string]*repoWatcher{},
+		scryHome:    scryHome,
+		registry:    registry,
+		watchers:    map[string]*repoWatcher{},
 	}
+}
+
+// SetPostReindex sets the callback invoked after each successful reindex.
+func (w *Watcher) SetPostReindex(fn PostReindexFunc) {
+	w.postReindex = fn
 }
 
 // Watch starts watching repoPath. If a watcher already exists for this repo,
@@ -65,7 +75,7 @@ func (w *Watcher) Watch(ctx context.Context, repoPath string) error {
 	if _, ok := w.watchers[repoPath]; ok {
 		return nil
 	}
-	rw, err := newRepoWatcher(ctx, w.scryHome, repoPath, w.registry)
+	rw, err := newRepoWatcher(ctx, w.scryHome, repoPath, w.registry, w.postReindex)
 	if err != nil {
 		return err
 	}
@@ -96,9 +106,10 @@ func (w *Watcher) Close() {
 // repoWatcher is one fsnotify watcher tied to one repo, plus the goroutine
 // that debounces events and triggers reindex.
 type repoWatcher struct {
-	repoPath string
-	scryHome string
-	registry *Registry
+	repoPath    string
+	scryHome    string
+	registry    *Registry
+	postReindex PostReindexFunc
 
 	fsw    *fsnotify.Watcher
 	cancel context.CancelFunc
@@ -107,7 +118,7 @@ type repoWatcher struct {
 	lastReindex time.Time
 }
 
-func newRepoWatcher(parent context.Context, scryHome, repoPath string, reg *Registry) (*repoWatcher, error) {
+func newRepoWatcher(parent context.Context, scryHome, repoPath string, reg *Registry, postReindex PostReindexFunc) (*repoWatcher, error) {
 	fsw, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("fsnotify new: %w", err)
@@ -118,12 +129,13 @@ func newRepoWatcher(parent context.Context, scryHome, repoPath string, reg *Regi
 	}
 	ctx, cancel := context.WithCancel(parent)
 	rw := &repoWatcher{
-		repoPath: repoPath,
-		scryHome: scryHome,
-		registry: reg,
-		fsw:      fsw,
-		cancel:   cancel,
-		done:     make(chan struct{}),
+		repoPath:    repoPath,
+		scryHome:    scryHome,
+		registry:    reg,
+		postReindex: postReindex,
+		fsw:         fsw,
+		cancel:      cancel,
+		done:        make(chan struct{}),
 	}
 	go rw.run(ctx)
 	return rw, nil
@@ -358,6 +370,10 @@ func (rw *repoWatcher) maybeReindex(ctx context.Context) {
 			manifest.Stats.Documents,
 			manifest.Stats.References,
 		)
+
+		if rw.postReindex != nil {
+			rw.postReindex(rw.repoPath)
+		}
 	}()
 }
 

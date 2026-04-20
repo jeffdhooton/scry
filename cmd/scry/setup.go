@@ -64,6 +64,12 @@ func printSetupResult(res *setup.Result, dryRun bool) error {
 	if res.StaleSettings != "" {
 		fmt.Fprintf(os.Stderr, "%s  cleaned up:  stale mcpServers.scry in %s\n", prefix, res.StaleSettings)
 	}
+	for _, name := range res.RemovedMCPs {
+		fmt.Fprintf(os.Stderr, "%s  removed old: %s MCP server (now part of scry)\n", prefix, name)
+	}
+	if res.HookAction != "" {
+		fmt.Fprintf(os.Stderr, "%sscry hook:     PreToolUse on Grep|Glob (%s)\n", prefix, res.HookAction)
+	}
 
 	if res.MCPAction == "manual" {
 		fmt.Fprintln(os.Stderr, "")

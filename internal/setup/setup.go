@@ -55,13 +55,15 @@ type Options struct {
 
 // Result summarizes what Install did, for human-readable output.
 type Result struct {
-	SkillPath      string // absolute path to the installed SKILL.md
-	SkillAction    string // "written" | "unchanged" | "dry-run"
-	MCPAction      string // "registered" | "replaced" | "unchanged" | "dry-run" | "manual"
-	MCPCommand     string // the `claude mcp add ...` command we ran (or will run)
-	MCPBinary      string // absolute path to the scry binary that got registered
-	ClaudeCLIFound bool   // true if `claude` is on PATH
-	StaleSettings  string // if non-empty: path to settings.json from which we removed a stale entry
+	SkillPath      string   // absolute path to the installed SKILL.md
+	SkillAction    string   // "written" | "unchanged" | "dry-run"
+	MCPAction      string   // "registered" | "replaced" | "unchanged" | "dry-run" | "manual"
+	MCPCommand     string   // the `claude mcp add ...` command we ran (or will run)
+	MCPBinary      string   // absolute path to the scry binary that got registered
+	ClaudeCLIFound bool     // true if `claude` is on PATH
+	StaleSettings  string   // if non-empty: path to settings.json from which we removed a stale entry
+	RemovedMCPs    []string // old MCP servers that were unregistered (tome, flume, lore)
+	HookAction     string   // "installed" | "unchanged" | "dry-run" | ""
 }
 
 // Install performs the full Claude Code integration: SKILL.md + MCP server.
@@ -83,8 +85,12 @@ func Install(opts Options) (*Result, error) {
 		// Non-fatal: a cleanup failure shouldn't block the real install.
 		fmt.Fprintf(os.Stderr, "scry setup: cleanup stale settings.json: %v\n", err)
 	}
+	cleanupOldMCPServers(opts, res)
 	if err := installMCPServer(opts, res); err != nil {
 		return res, fmt.Errorf("install mcp server: %w", err)
+	}
+	if err := installPreToolUseHook(claudeHome, opts, res); err != nil {
+		fmt.Fprintf(os.Stderr, "scry setup: install hook: %v\n", err)
 	}
 	return res, nil
 }
@@ -230,6 +236,178 @@ func runClaudeMCP(claudeBin string, args ...string) (string, error) {
 	cmd := exec.Command(claudeBin, append([]string{"mcp"}, args...)...)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
+}
+
+// ---------------- PreToolUse hook ----------------
+
+// installPreToolUseHook adds a PreToolUse hook for Grep and Glob to
+// ~/.claude/settings.json. The hook runs `scry hook pre-search` which checks
+// if the current repo is indexed and injects a context nudge telling Claude
+// to use scry_refs/scry_defs instead of grep for symbol lookups.
+func installPreToolUseHook(claudeHome string, opts Options, res *Result) error {
+	bin := res.MCPBinary
+	if bin == "" {
+		exe, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		bin = exe
+	}
+
+	settingsPath := filepath.Join(claudeHome, "settings.json")
+	raw, err := os.ReadFile(settingsPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if raw == nil {
+		raw = []byte("{}")
+	}
+
+	var root map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &root); err != nil {
+		return fmt.Errorf("parse settings.json: %w", err)
+	}
+
+	// Parse existing hooks
+	type hookEntry struct {
+		Type          string `json:"type"`
+		Command       string `json:"command"`
+		StatusMessage string `json:"statusMessage"`
+	}
+	type hookMatcher struct {
+		Matcher string      `json:"matcher"`
+		Hooks   []hookEntry `json:"hooks"`
+	}
+	type hooksMap struct {
+		PreToolUse  []hookMatcher `json:"PreToolUse,omitempty"`
+		PostToolUse []hookMatcher `json:"PostToolUse,omitempty"`
+	}
+
+	var hooks hooksMap
+	if hooksRaw, ok := root["hooks"]; ok {
+		if err := json.Unmarshal(hooksRaw, &hooks); err != nil {
+			return fmt.Errorf("parse hooks: %w", err)
+		}
+	}
+
+	hookCommand := bin + " hook pre-search"
+
+	// Check if our hook already exists
+	for _, m := range hooks.PreToolUse {
+		if m.Matcher == "Grep|Glob" {
+			for _, h := range m.Hooks {
+				if strings.Contains(h.Command, "hook pre-search") {
+					if h.Command == hookCommand {
+						res.HookAction = "unchanged"
+						return nil
+					}
+				}
+			}
+		}
+	}
+
+	if opts.DryRun {
+		res.HookAction = "dry-run"
+		return nil
+	}
+
+	// Remove any existing scry hook entries (stale binary path)
+	var filtered []hookMatcher
+	for _, m := range hooks.PreToolUse {
+		if m.Matcher == "Grep|Glob" {
+			var kept []hookEntry
+			for _, h := range m.Hooks {
+				if !strings.Contains(h.Command, "hook pre-search") {
+					kept = append(kept, h)
+				}
+			}
+			if len(kept) > 0 {
+				m.Hooks = kept
+				filtered = append(filtered, m)
+			}
+		} else {
+			filtered = append(filtered, m)
+		}
+	}
+
+	// Add the new hook
+	filtered = append(filtered, hookMatcher{
+		Matcher: "Grep|Glob",
+		Hooks: []hookEntry{{
+			Type:          "command",
+			Command:       hookCommand,
+			StatusMessage: "Checking scry index...",
+		}},
+	})
+	hooks.PreToolUse = filtered
+
+	// Re-serialize hooks into settings
+	hooksJSON, err := json.Marshal(hooks)
+	if err != nil {
+		return err
+	}
+	root["hooks"] = hooksJSON
+
+	// Atomic write
+	backup := settingsPath + ".bak." + time.Now().Format("20060102-150405")
+	if err := os.WriteFile(backup, raw, 0o600); err != nil {
+		return fmt.Errorf("backup settings.json: %w", err)
+	}
+	out, err := marshalIndentOrdered(root)
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(claudeHome, "settings.json.*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	if _, err := tmp.Write(out); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return err
+	}
+	if err := os.Rename(tmpPath, settingsPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return err
+	}
+	res.HookAction = "installed"
+	return nil
+}
+
+// ---------------- cleanup old MCP servers ----------------
+
+// oldMCPServers lists the standalone tools that have been absorbed into scry.
+// `scry setup` removes these registrations so Claude Code doesn't see duplicates.
+var oldMCPServers = []string{"tome", "flume", "lore"}
+
+// cleanupOldMCPServers removes MCP registrations for tools that have been
+// unified into scry (tome, flume, lore). Best-effort: if `claude` isn't on
+// PATH or a removal fails, we just skip it.
+func cleanupOldMCPServers(opts Options, res *Result) {
+	claudeBin, err := exec.LookPath("claude")
+	if err != nil {
+		return
+	}
+	for _, name := range oldMCPServers {
+		out, err := runClaudeMCP(claudeBin, "get", name)
+		if err != nil || len(out) == 0 {
+			continue
+		}
+		if opts.DryRun {
+			res.RemovedMCPs = append(res.RemovedMCPs, name+" (dry-run)")
+			continue
+		}
+		if _, err := runClaudeMCP(claudeBin, "remove", name); err != nil {
+			fmt.Fprintf(os.Stderr, "scry setup: remove old MCP %q: %v\n", name, err)
+			continue
+		}
+		res.RemovedMCPs = append(res.RemovedMCPs, name)
+	}
 }
 
 // ---------------- cleanupStaleSettings ----------------

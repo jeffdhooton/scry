@@ -17,6 +17,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/git"
+	scryhttp "github.com/jeffdhooton/scry/internal/http"
+	httpstore "github.com/jeffdhooton/scry/internal/http/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
 
@@ -44,25 +47,40 @@ func LayoutFor(home string) Layout {
 
 // Daemon is one running scryd process.
 type Daemon struct {
-	layout   Layout
-	registry *Registry
-	server   *rpc.Server
-	watcher  *Watcher
+	layout         Layout
+	registry       *Registry
+	gitRegistry    *git.Registry
+	schemaRegistry *SchemaRegistry
+	graphRegistry  *GraphRegistry
+	server         *rpc.Server
+	watcher        *Watcher
 
 	mu       sync.Mutex
 	listener net.Listener
+
+	proxyMu   sync.Mutex
+	proxy     *scryhttp.Proxy
+	httpStore *httpstore.Store
 }
 
 // New constructs a Daemon for the given layout. It does NOT start anything;
 // call Run to begin serving.
 func New(layout Layout) *Daemon {
 	d := &Daemon{
-		layout:   layout,
-		registry: NewRegistry(),
-		server:   rpc.NewServer(),
+		layout:         layout,
+		registry:       NewRegistry(),
+		gitRegistry:    git.NewRegistry(),
+		schemaRegistry: NewSchemaRegistry(),
+		graphRegistry:  NewGraphRegistry(),
+		server:         rpc.NewServer(),
 	}
 	d.watcher = NewWatcher(layout.Home, d.registry)
+	d.watcher.SetPostReindex(d.rebuildGraphAsync)
 	d.registerMethods()
+	d.registerGitMethods()
+	d.registerSchemaMethods()
+	d.registerHTTPMethods()
+	d.registerGraphMethods()
 	return d
 }
 
@@ -113,6 +131,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 	defer os.Remove(d.layout.PIDPath)
 	defer os.Remove(d.layout.SocketPath)
 	defer d.registry.CloseAll()
+	defer d.gitRegistry.CloseAll()
+	defer d.schemaRegistry.CloseAll()
+	defer d.graphRegistry.CloseAll()
+	defer d.closeHTTP()
 	defer d.watcher.Close()
 
 	runCtx, cancel := context.WithCancel(ctx)

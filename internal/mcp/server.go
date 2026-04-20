@@ -321,7 +321,13 @@ var toolDefinitions = []tool{
 }
 
 func (s *Server) handleToolsList(req request) {
-	s.writeResult(req.ID, map[string]any{"tools": toolDefinitions})
+	all := make([]tool, 0, len(toolDefinitions)+len(gitToolDefinitions)+len(schemaToolDefinitions)+len(httpToolDefinitions)+len(graphToolDefinitions))
+	all = append(all, toolDefinitions...)
+	all = append(all, gitToolDefinitions...)
+	all = append(all, schemaToolDefinitions...)
+	all = append(all, httpToolDefinitions...)
+	all = append(all, graphToolDefinitions...)
+	s.writeResult(req.ID, map[string]any{"tools": all})
 }
 
 // ---------------- tools/call ----------------
@@ -360,6 +366,38 @@ func (s *Server) handleToolsCall(ctx context.Context, req request) {
 		s.callSymbolQuery(ctx, req.ID, "tests", p.Arguments)
 	case "scry_status":
 		s.callStatus(ctx, req.ID)
+	case "scry_blame":
+		s.callGitQuery(ctx, req.ID, "scry_blame", "git.blame", p.Arguments)
+	case "scry_history":
+		s.callGitQuery(ctx, req.ID, "scry_history", "git.history", p.Arguments)
+	case "scry_cochange":
+		s.callGitQuery(ctx, req.ID, "scry_cochange", "git.cochange", p.Arguments)
+	case "scry_hotspots":
+		s.callGitQuery(ctx, req.ID, "scry_hotspots", "git.hotspots", p.Arguments)
+	case "scry_contributors":
+		s.callGitQuery(ctx, req.ID, "scry_contributors", "git.contributors", p.Arguments)
+	case "scry_intent":
+		s.callGitQuery(ctx, req.ID, "scry_intent", "git.intent", p.Arguments)
+	case "scry_describe":
+		s.callSchemaQuery(ctx, req.ID, "scry_describe", "schema.describe", p.Arguments)
+	case "scry_relations":
+		s.callSchemaQuery(ctx, req.ID, "scry_relations", "schema.relations", p.Arguments)
+	case "scry_schema_search":
+		s.callSchemaQuery(ctx, req.ID, "scry_schema_search", "schema.search", p.Arguments)
+	case "scry_enums":
+		s.callSchemaQuery(ctx, req.ID, "scry_enums", "schema.enums", p.Arguments)
+	case "scry_requests":
+		s.callHTTPQuery(ctx, req.ID, "scry_requests", "http.requests", p.Arguments)
+	case "scry_request":
+		s.callHTTPQuery(ctx, req.ID, "scry_request", "http.request", p.Arguments)
+	case "scry_http_status":
+		s.callHTTPQuery(ctx, req.ID, "scry_http_status", "http.status", p.Arguments)
+	case "scry_graph_query":
+		s.callGraphQuery(ctx, req.ID, "scry_graph_query", "graph.query", p.Arguments)
+	case "scry_graph_path":
+		s.callGraphQuery(ctx, req.ID, "scry_graph_path", "graph.path", p.Arguments)
+	case "scry_graph_report":
+		s.callGraphQuery(ctx, req.ID, "scry_graph_report", "graph.report", p.Arguments)
 	default:
 		s.writeToolError(req.ID, fmt.Sprintf("unknown tool %q", p.Name))
 	}

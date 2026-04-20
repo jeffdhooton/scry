@@ -132,6 +132,10 @@ type StatusResult struct {
 	PID     int                `json:"pid"`
 	Uptime  string             `json:"uptime,omitempty"`
 	Repos   []*RepoStatusEntry `json:"repos"`
+	Git     []map[string]any   `json:"git,omitempty"`
+	Schema  []map[string]any   `json:"schema,omitempty"`
+	HTTP    map[string]any     `json:"http,omitempty"`
+	Graph   []map[string]any   `json:"graph,omitempty"`
 	Version string             `json:"version,omitempty"`
 }
 
@@ -186,6 +190,11 @@ func (d *Daemon) handleStatus(_ context.Context, raw json.RawMessage) (any, erro
 			IndexedAt: m.IndexedAt,
 		})
 	}
+	res.Git = d.gitStatusEntries()
+	res.Schema = d.schemaStatusEntries()
+	res.HTTP = d.httpStatusEntry()
+	res.Graph = d.graphStatusEntries()
+
 	return res, nil
 }
 

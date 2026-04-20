@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/daemon"
+	"github.com/jeffdhooton/scry/internal/graph"
 	"github.com/jeffdhooton/scry/internal/index"
 	"github.com/jeffdhooton/scry/internal/install"
 	"github.com/jeffdhooton/scry/internal/sources/php"
@@ -130,9 +131,12 @@ func Run(opts Options) (*Report, error) {
 	r.add(checkScipPython(opts.Timeout))
 	r.add(checkClaudeCLI(opts.Timeout))
 	r.add(checkMCPRegistration(opts.Timeout))
+	r.add(checkStaleMCPServers(opts.Timeout))
 	r.add(checkSkillInstalled())
+	r.add(checkPreToolUseHook())
 	r.add(checkGlobalCLAUDEmd())
 	r.add(checkCurrentRepo(opts.ScryHome, opts.Cwd))
+	r.add(checkCurrentRepoGraph(opts.ScryHome, opts.Cwd))
 	return r, nil
 }
 
@@ -668,6 +672,45 @@ func checkMCPRegistration(timeout time.Duration) Check {
 	}
 }
 
+func checkStaleMCPServers(timeout time.Duration) Check {
+	claudeBin, err := exec.LookPath("claude")
+	if err != nil {
+		return Check{
+			ID:       "claude.stale_mcps",
+			Category: CategoryClaude,
+			Name:     "old MCP servers (tome/flume/lore)",
+			Status:   StatusSkip,
+			Detail:   "claude CLI not found — skipping",
+		}
+	}
+	var stale []string
+	for _, name := range []string{"tome", "flume", "lore"} {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		out, err := exec.CommandContext(ctx, claudeBin, "mcp", "get", name).CombinedOutput()
+		cancel()
+		if err == nil && len(out) > 0 {
+			stale = append(stale, name)
+		}
+	}
+	if len(stale) > 0 {
+		return Check{
+			ID:       "claude.stale_mcps",
+			Category: CategoryClaude,
+			Name:     "old MCP servers (tome/flume/lore)",
+			Status:   StatusWarn,
+			Detail:   fmt.Sprintf("still registered: %s — these are now part of scry", strings.Join(stale, ", ")),
+			Remedy:   "run `scry setup` to remove old registrations automatically",
+		}
+	}
+	return Check{
+		ID:       "claude.stale_mcps",
+		Category: CategoryClaude,
+		Name:     "old MCP servers (tome/flume/lore)",
+		Status:   StatusPass,
+		Detail:   "none found (correctly unified into scry)",
+	}
+}
+
 func checkSkillInstalled() Check {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -757,6 +800,57 @@ func checkGlobalCLAUDEmd() Check {
 	}
 }
 
+func checkPreToolUseHook() Check {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return Check{
+			ID:       "claude.hook",
+			Category: CategoryClaude,
+			Name:     "PreToolUse hook",
+			Status:   StatusWarn,
+			Detail:   "couldn't resolve home: " + err.Error(),
+		}
+	}
+	settingsPath := filepath.Join(home, ".claude", "settings.json")
+	data, err := os.ReadFile(settingsPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return Check{
+			ID:       "claude.hook",
+			Category: CategoryClaude,
+			Name:     "PreToolUse hook",
+			Status:   StatusWarn,
+			Detail:   "settings.json not found",
+			Remedy:   "run `scry setup` to install the Grep/Glob routing hook",
+		}
+	}
+	if err != nil {
+		return Check{
+			ID:       "claude.hook",
+			Category: CategoryClaude,
+			Name:     "PreToolUse hook",
+			Status:   StatusWarn,
+			Detail:   "read settings.json: " + err.Error(),
+		}
+	}
+	if strings.Contains(string(data), "hook pre-search") {
+		return Check{
+			ID:       "claude.hook",
+			Category: CategoryClaude,
+			Name:     "PreToolUse hook",
+			Status:   StatusPass,
+			Detail:   "Grep|Glob routed through scry hook pre-search",
+		}
+	}
+	return Check{
+		ID:       "claude.hook",
+		Category: CategoryClaude,
+		Name:     "PreToolUse hook",
+		Status:   StatusWarn,
+		Detail:   "not installed — Claude won't get scry nudges on Grep/Glob calls",
+		Remedy:   "run `scry setup` to install the routing hook",
+	}
+}
+
 // ---------------- current repo ----------------
 
 func checkCurrentRepo(scryHome, cwd string) Check {
@@ -833,6 +927,81 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 		Name:     abs,
 		Status:   status,
 		Detail:   detail,
+	}
+}
+
+func checkCurrentRepoGraph(scryHome, cwd string) Check {
+	if cwd == "" {
+		return Check{
+			ID:       "repo.graph",
+			Category: CategoryRepo,
+			Name:     "graph index",
+			Status:   StatusSkip,
+			Detail:   "no cwd provided",
+		}
+	}
+	abs, err := filepath.Abs(cwd)
+	if err != nil {
+		return Check{
+			ID:       "repo.graph",
+			Category: CategoryRepo,
+			Name:     "graph index",
+			Status:   StatusSkip,
+			Detail:   "can't resolve cwd: " + err.Error(),
+		}
+	}
+
+	// Only check graph if code index exists
+	codeLayout := index.Layout(scryHome, abs)
+	if _, err := os.Stat(codeLayout.ManifestPath); errors.Is(err, os.ErrNotExist) {
+		return Check{
+			ID:       "repo.graph",
+			Category: CategoryRepo,
+			Name:     "graph index",
+			Status:   StatusSkip,
+			Detail:   "repo not indexed — graph requires at least one domain",
+		}
+	}
+
+	graphLayout := graph.Layout(scryHome, abs)
+	manifestBytes, err := os.ReadFile(graphLayout.ManifestPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return Check{
+			ID:       "repo.graph",
+			Category: CategoryRepo,
+			Name:     "graph index",
+			Status:   StatusWarn,
+			Detail:   "not built — cross-domain queries unavailable",
+			Remedy:   "run `scry graph build` or `scry init --all` to build the unified graph",
+		}
+	}
+	if err != nil {
+		return Check{
+			ID:       "repo.graph",
+			Category: CategoryRepo,
+			Name:     "graph index",
+			Status:   StatusFail,
+			Detail:   "read manifest: " + err.Error(),
+		}
+	}
+	var m graph.Manifest
+	if err := json.Unmarshal(manifestBytes, &m); err != nil {
+		return Check{
+			ID:       "repo.graph",
+			Category: CategoryRepo,
+			Name:     "graph index",
+			Status:   StatusFail,
+			Detail:   "parse manifest: " + err.Error(),
+			Remedy:   "run `scry graph build` to rebuild",
+		}
+	}
+	age := time.Since(m.IndexedAt).Round(time.Minute)
+	return Check{
+		ID:       "repo.graph",
+		Category: CategoryRepo,
+		Name:     "graph index",
+		Status:   StatusPass,
+		Detail:   fmt.Sprintf("%d nodes, %d edges, %d communities, built %s ago", m.NodeCount, m.EdgeCount, m.Communities, age),
 	}
 }
 

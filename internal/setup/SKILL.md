@@ -1,21 +1,25 @@
 ---
 name: scry
 description: |
-  Route symbol lookups through scry (a local code-intelligence daemon) instead of Grep.
-  scry answers "where is <symbol> defined / used / called / implemented" in <10ms for
-  indexed repos by pre-computing a semantic index (SCIP) at `scry init` time. Use this
-  skill whenever you need to find a function, class, method, interface, or any named
-  symbol in a codebase — it's dramatically faster and more precise than Grep for symbol
-  queries, because it understands scope, types, and references.
+  Route symbol lookups, git intelligence, schema queries, HTTP inspection, and
+  cross-domain graph traversal through scry (a local code-intelligence daemon)
+  instead of Grep, git commands, manual DB inspection, and log reading. scry is
+  a unified tool that answers code, schema, git, HTTP, and architectural
+  questions in <10ms via a single daemon and MCP server.
 
-  TRIGGER when: user asks "where is X called/used/defined/implemented", "who calls X",
-  "what does X call", "find every reference to X", "jump to X"; or when you would
-  otherwise reach for Grep to find a function/class/method name; or when searching for
-  how a specific identifier is wired through a codebase.
+  TRIGGER when: user asks "where is X called/used/defined/implemented", "who
+  calls X", "what does X call", "find every reference to X", "jump to X", "who
+  wrote this line", "what changed in this file recently", "which files change
+  together", "what are the hotspots", "who are the main contributors", "what
+  columns does this table have", "what are the foreign keys", "what enums
+  exist", "what was the last HTTP request", "show me the graph report", "what
+  connects X to Y"; or when you would otherwise reach for Grep to find a
+  function/class/method name, git blame/log for history context, or DB clients
+  for schema info.
 
-  DO NOT use for: string searches inside comments/docstrings, TODO hunting, error
-  message lookups, regex over content, file path patterns, or any non-symbol query —
-  use Grep/Glob/Read for those. scry is narrow by design.
+  DO NOT use for: string searches inside comments/docstrings, TODO hunting,
+  error message lookups, regex over content, file path patterns, or any
+  non-symbol query -- use Grep/Glob/Read for those. scry is narrow by design.
 allowed-tools:
   - Bash
   - Read
@@ -23,17 +27,17 @@ allowed-tools:
   - Glob
 ---
 
-# /scry — Symbol lookups through a local semantic index
+# /scry -- Unified code intelligence through a local semantic index
 
-scry is a single static Go binary that maintains a per-repo BadgerDB index of
-every symbol, reference, definition, call edge, and implementation relationship.
-It's backed by SCIP (SourceGraph Code Intelligence Protocol) and indexes
-TypeScript, JavaScript, Go, and PHP/Laravel. Queries are served by a background
-daemon over a Unix socket at `~/.scry/scryd.sock`; auto-spawn on first call.
+scry is a single static Go binary that maintains per-repo indexes across five
+domains: code (SCIP symbols), git (blame/history/cochange), schema (database
+tables/FKs/enums), HTTP (captured request/response pairs), and a unified graph
+that connects all domains. Queries are served by a background daemon over a
+Unix socket at `~/.scry/scryd.sock`; auto-spawn on first call.
 
 **Read the repo state first, then route.** Before answering any symbol-like
 question, decide which tool is actually best for this query. scry is a narrow
-precision instrument — use it where it fits and fall back to Grep where it
+precision instrument -- use it where it fits and fall back to Grep where it
 doesn't.
 
 ## Routing table
@@ -46,11 +50,25 @@ doesn't.
 | "What does `processOrder` call internally?" | **scry callees** | Needs the pre-computed call graph |
 | "Who calls `processOrder`?" | **scry callers** | Callers = refs with containing function attached |
 | "What implements interface `Repository`?" | **scry impls** | Uses SCIP relationship edges |
+| "Is this function tested?" | **scry tests** | Coverage index joined against symbol defs |
+| "Who wrote this line?" | **scry blame** | Pre-indexed blame, faster than `git blame` |
+| "What changed recently in this file?" | **scry history** | Structured commit data with diff stats |
+| "What files change with this one?" | **scry cochange** | Co-change coupling analysis |
+| "What are the most churned files?" | **scry hotspots** | Ranked by commit frequency |
+| "Who knows this code best?" | **scry contributors** | Per-file or repo-wide |
+| "Why was this line written?" | **scry intent** | Blame + full commit context |
+| "What columns does users have?" | **scry describe** | Database schema from live introspection |
+| "What are the foreign keys on orders?" | **scry relations** | FK relationships with direction |
+| "Find a table or column named email" | **scry schema-search** | Substring search across tables and columns |
+| "What enums exist in the database?" | **scry enums** | Enum types and their values |
+| "What was the last API request?" | **scry requests** | Captured HTTP traffic via reverse proxy |
+| "Show details of request X" | **scry request** | Full req/res with headers and body |
+| "What connects User to /api/auth?" | **scry graph path** | Cross-domain shortest path |
+| "What are the god nodes?" | **scry graph report** | Pre-computed architectural summary |
 | "Find every TODO in the codebase" | **Grep** | scry doesn't index comments or strings |
 | "Find the error message 'permission denied'" | **Grep** | String match, not symbol |
 | "Find all `.yaml` files" | **Glob** | File path patterns |
 | "Read `config/app.php`" | **Read** | Opening a file |
-| "Find where dotenv is configured" | **Grep first, then scry** | If "dotenv" turns out to be a class/function name, pivot to scry |
 
 ## Golden path
 
@@ -62,144 +80,150 @@ doesn't.
 
 2. **Run the query**:
    ```bash
+   # Code intelligence
    scry refs <symbol>     # every reference
    scry defs <symbol>     # every definition
    scry callers <symbol>  # every call site with containing function
    scry callees <symbol>  # every outgoing call from this function
-   scry impls <symbol>    # every implementor of this interface/base
+   scry impls <symbol>    # every implementor of this interface
+   scry tests <symbol>    # test coverage status
+
+   # Git intelligence
+   scry blame <file>            # structured blame
+   scry history [<file>]        # recent commits
+   scry cochange <file>         # co-changed files
+   scry hotspots                # most churned files
+   scry contributors [<file>]   # main authors
+   scry intent <file> --line N  # why was this line written?
+
+   # Schema
+   scry describe <table>        # table structure with columns/types/keys
+   scry relations <table>       # foreign key relationships
+   scry schema-search <term>    # find tables/columns by name
+   scry enums [table.column]    # enum types and values
+
+   # HTTP capture
+   scry requests [--path /api]  # list captured requests
+   scry request <id>            # full request/response detail
+
+   # Graph
+   scry graph report            # architectural summary (read first!)
+   scry graph query <term>      # search graph nodes
+   scry graph path --from X --to Y  # shortest path between nodes
    ```
    All commands output JSON by default. Add `--pretty` for human-readable.
-   Results include absolute file paths, 1-indexed line + column, and a
-   trimmed context line from the source.
 
 3. **Interpret results**:
-   - Empty result set with a known-good symbol name → probably a name collision
-     (scry matches by display name case-insensitively). Try the fully qualified
-     form or pivot to Grep to disambiguate.
-   - `"not indexed yet"` RPC error → the watcher is mid-reindex. This window is
-     now ~12ms after the 2026-04-10 fix; retry once, then fall back to Grep
-     if it persists.
-   - Results tagged `"kind": "External"` are symbols referenced but not defined
-     inside the project (vendor classes, framework, stdlib). See "Vendor caveat".
+   - Empty result set with a known-good symbol name -> probably a name collision
+     or a vendor/external symbol. Try the fully qualified form or pivot to Grep.
+   - `"not indexed yet"` RPC error -> the watcher is mid-reindex. Retry once.
+   - Results tagged `"kind": "External"` are vendor/framework/stdlib symbols.
 
 ## First-index behavior (refuse + suggest)
 
 If `scry status` shows the current repo is NOT indexed, **do not auto-run**
-`scry init`. Indexing a real project takes 10-60 seconds and would feel broken
-if kicked off silently from inside another query. Instead:
+`scry init`. Instead:
 
-1. Print a one-line notice: `scry: repo not indexed — run 'scry init .' to enable symbol lookups`.
+1. Print a one-line notice: `scry: repo not indexed -- run 'scry init .' to enable symbol lookups`.
 2. Fall back to Grep for the current query.
 3. If the user explicitly asks "index this repo" or "scry init", then run it.
 
-The user can always opt in with `scry init .` before starting work in a new repo.
-Once indexed, the daemon's fsnotify watcher keeps the index fresh on every save
-(atomic reindex swap, ~12ms query unavailability window during rebuilds).
-
-## Vendor / framework caveat
-
-scry's parser synthesizes SymbolRecords for any referenced symbol that scip-php,
-scip-go, or scip-typescript didn't emit a SymbolInformation block for — which
-covers every vendor/framework/stdlib class. Concretely:
-
-- **`scry refs Illuminate\\Support\\Facades\\DB` works** — returns all 252
-  call sites in a typical Laravel app, because the project files reference it
-  even though vendor/ isn't walked as source.
-- **`scry defs Illuminate\\Support\\Facades\\DB` returns empty** — because the
-  definition lives in `vendor/laravel/framework/.../DB.php` which scry never
-  indexed as source.
-
-When the user asks "where is X defined" and scry returns empty for a name that
-obviously exists, it's almost always a vendor class. Fall back to:
-- `Grep` with the class name inside `vendor/` (or `node_modules/`)
-- Or `Read` a known file path if you can infer one from the SCIP symbol ID
-  (the `Illuminate/Support/Facades/DB#` shape maps to the file path directly)
-
-## Facade resolution (Laravel specific)
-
-scry ships a facade resolver that mirrors every `Auth::user()` ref onto the
-backing class's `user()` method. So all three of these queries return the same
-75 call sites on a real Laravel app:
+## Indexing all domains
 
 ```bash
-scry refs "Illuminate/Support/Facades/Auth#user"            # the facade method
-scry refs "Illuminate/Auth/AuthManager#user"                # the manager
-scry refs "Illuminate/Contracts/Auth/Guard#user"            # the contract
+scry init .                  # code only (TypeScript, Go, PHP, Python)
+scry init --git .            # git history only
+scry init --schema --dsn "..." . # database schema
+scry init --all .            # code + git + schema (auto-detects DSN from .env)
 ```
 
-Useful when the user knows the contract/manager name but not the facade name.
-Same pattern for DB, Cache, Log, Mail, Queue, etc. — see `docs/DECISIONS.md`
-in the scry repo for the full facade map.
-
-## Reference output shape
-
-Every query returns JSON with this general shape:
-
-```json
-{
-  "symbol": "processOrder",
-  "matches": [
-    {
-      "symbol_id": "scip-typescript npm . . src/orders/service.ts/processOrder().",
-      "display_name": "processOrder",
-      "kind": "Method",
-      "occurrences": [
-        {
-          "symbol": "...",
-          "file": "src/orders/service.ts",
-          "line": 42,
-          "column": 14,
-          "end_line": 42,
-          "end_column": 26,
-          "context": "  return processOrder(order, user);",
-          "is_definition": false
-        }
-      ]
-    }
-  ],
-  "total": 1,
-  "elapsed_ms": 6
-}
+After indexing multiple domains, build the unified graph:
+```bash
+scry graph build .           # connects code, git, schema, HTTP data
+scry graph report            # read the architectural summary
 ```
 
-When summarizing results for the user, lead with the top 5-10 occurrences
-as `file:line — context` bullets, not with the raw JSON. If the list is long,
-group by file.
+## HTTP capture
+
+The HTTP proxy captures request/response pairs from your dev server:
+```bash
+scry proxy start --port 8089 --target localhost:8000
+# Point your app/browser at localhost:8089 instead of :8000
+scry requests                # see captured traffic
+scry proxy stop              # tear down when done
+```
 
 ## Command reference
 
 ```bash
-scry init [<repo>]           # Index a repo (default: cwd). 10-60s depending on size.
-scry status                  # List all indexed repos and their state.
+# Code intelligence
+scry init [<repo>]           # Index code. 10-60s depending on size.
+scry init --git [<repo>]     # Index git history.
+scry init --schema [<repo>]  # Index database schema (--dsn or auto-detect .env).
+scry init --all [<repo>]     # Index everything detected.
+scry status                  # List all indexed repos and domain states.
 scry refs <symbol>           # Every reference.
 scry defs <symbol>           # Every definition.
 scry callers <symbol>        # Every caller with containing function.
 scry callees <symbol>        # Every callee of this function.
 scry impls <symbol>          # Every implementor of this interface.
-scry start [--foreground]    # Explicit daemon start (auto-spawns otherwise).
+scry tests <symbol>          # Test coverage status for a symbol.
+
+# Git intelligence
+scry blame <file>            # Structured blame (--start-line, --end-line).
+scry history [<file>]        # Recent commits (--limit N).
+scry cochange <file>         # Files that change alongside target (--limit N).
+scry hotspots                # Most-churned files (--limit N).
+scry contributors [<file>]   # Main authors, ranked by commit count.
+scry intent <file> --line N  # Why was this line written?
+
+# Schema
+scry describe <table>        # Table structure with columns, types, keys.
+scry relations <table>       # Foreign key relationships.
+scry schema-search <term>    # Search tables and columns by name.
+scry enums [table.column]    # Enum types and their allowed values.
+
+# HTTP capture
+scry proxy start [--port 8089 --target localhost:8000]
+scry proxy stop
+scry requests [--path X --method Y --limit N]
+scry request <id>
+
+# Graph
+scry graph build [path]      # Build unified cross-domain graph.
+scry graph query <term>      # Search graph nodes by name.
+scry graph path --from X --to Y  # Shortest path between nodes.
+scry graph report            # Pre-computed architectural summary.
+
+# Infrastructure
+scry start [--foreground]    # Explicit daemon start.
 scry stop                    # Graceful daemon shutdown.
+scry setup                   # Install skill + MCP server.
+scry doctor                  # Health check.
+scry upgrade                 # Update to latest release.
 ```
 
 Global flags:
-- `--repo <path>` — target repo (defaults to cwd)
-- `--pretty` — human-readable JSON output
-- `-h, --help` — per-command help
-
-## When scry returns nothing
-
-Decision tree:
-
-1. **Name is right, 0 results** → might be an external/vendor symbol. Fall back to Grep.
-2. **Name is a substring or pattern** → scry only exact-matches display names. Use Grep.
-3. **Name is in a language scry doesn't index yet** (Python, Ruby, Rust, Bash) → Grep.
-4. **Repo not indexed** → print the refuse+suggest notice above and use Grep.
-5. **Daemon crashed** → `scry status` returns an error. Run `scry start` to restart.
+- `--repo <path>` -- target repo (defaults to cwd)
+- `--pretty` -- human-readable JSON output
+- `-h, --help` -- per-command help
 
 ## MCP server mode
 
-scry also ships an MCP server (`scry mcp`) that exposes the same queries as
-first-class Claude Code tools — `scry_refs`, `scry_defs`, `scry_callers`,
-`scry_callees`, `scry_impls`, `scry_status`. When the MCP server is registered
-in Claude Code settings, these tools appear alongside Grep/Glob/Read and you
-can route to them directly without reading this skill. The skill is the
-fallback path for when MCP isn't configured yet.
+scry ships an MCP server (`scry mcp`) that exposes all queries as
+first-class Claude Code tools:
+
+**Code:** `scry_refs`, `scry_defs`, `scry_callers`, `scry_callees`, `scry_impls`,
+`scry_tests`, `scry_status`
+
+**Git:** `scry_blame`, `scry_history`, `scry_cochange`, `scry_hotspots`,
+`scry_contributors`, `scry_intent`
+
+**Schema:** `scry_describe`, `scry_relations`, `scry_schema_search`, `scry_enums`
+
+**HTTP:** `scry_requests`, `scry_request`, `scry_http_status`
+
+**Graph:** `scry_graph_query`, `scry_graph_path`, `scry_graph_report`
+
+When the MCP server is registered, these 23 tools appear alongside Grep/Glob/Read
+and you can route to them directly without reading this skill.
