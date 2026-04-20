@@ -87,25 +87,27 @@ func (d *Daemon) handleInit(ctx context.Context, raw json.RawMessage) (any, erro
 		return nil, err
 	}
 
-	// If the registry already has this repo open, close it before reindexing
-	// so the build can wipe and rewrite BadgerDB without lock contention.
-	d.registry.Evict(abs)
-
 	start := time.Now()
-	manifest, err := index.Build(ctx, d.scryHome(), abs)
+
+	// Build into a temp directory so the live store (if any) keeps serving
+	// queries throughout the rebuild. This avoids the BadgerDB directory lock
+	// contention that happened when Evict+Build raced with in-flight queries.
+	manifest, nextLayout, err := index.BuildIntoTemp(ctx, d.scryHome(), abs)
 	if err != nil {
 		return nil, fmt.Errorf("index build: %w", err)
 	}
-	elapsed := time.Since(start)
 
-	// Re-open the freshly built store and put it into the registry so the next
-	// query against this repo doesn't pay the open cost.
-	layout := index.Layout(d.scryHome(), abs)
-	st, err := store.Open(layout.BadgerDir)
+	// Atomically swap the new store into the live position.
+	liveLayout := index.Layout(d.scryHome(), abs)
+	trash, err := d.registry.SwapNext(liveLayout, nextLayout)
 	if err != nil {
-		return nil, fmt.Errorf("reopen store after init: %w", err)
+		return nil, fmt.Errorf("swap after init: %w", err)
 	}
-	d.registry.Put(&Entry{RepoPath: abs, Layout: layout, Store: st})
+	if trash != "" {
+		go func(p string) { _ = os.RemoveAll(p) }(trash)
+	}
+
+	elapsed := time.Since(start)
 
 	// Start watching this repo so future edits trigger background reindex.
 	if err := d.watcher.Watch(ctx, abs); err != nil {

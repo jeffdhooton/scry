@@ -1,8 +1,8 @@
 # scry
 
-**Code intelligence daemon for AI agents.** Pre-computes a semantic index of every repo you work in (symbols, references, definitions, call graphs, implementations) and exposes it as a millisecond-latency local API. Replaces the Read+Grep+Glob cycle that eats 30-50% of every Claude Code session.
+**Unified code intelligence daemon for AI agents.** Pre-computes semantic indexes across five domains — code symbols, git history, database schemas, HTTP traffic, and a cross-domain graph — and exposes them as millisecond-latency local queries. One binary, one daemon, one MCP server. Replaces scry + tome + flume + lore.
 
-> **Status:** P0 + P1 shipped, P2 PHP underway. Single static Go binary. TypeScript/JavaScript, Go, and PHP/Laravel indexing, daemon mode with auto-spawn, JSON-RPC over Unix socket, fsnotify watch loop with background reindex, callers/callees/impls, auto-download for `scip-go`, embedded `scip-php` directory tree (no separate install) plus a Laravel-aware non-PSR-4 file walker that recovers ~1300 `::class` refs in `routes/`, `config/`, `migrations/`, and `bootstrap/` per real Laravel codebase. See [`docs/SPEC.md`](docs/SPEC.md) for the full PRD and [`docs/DECISIONS.md`](docs/DECISIONS.md) for the architectural decisions made along the way.
+> **Status:** Unified binary shipped. TypeScript/JavaScript, Go, PHP/Laravel, Python indexing. Git intelligence (blame, history, cochange, hotspots, contributors). Database schema introspection (MySQL, PostgreSQL). HTTP reverse proxy capture. Unified cross-domain graph with community detection. 23 MCP tools across 5 domains. See [`docs/SPEC.md`](docs/SPEC.md) for the original PRD and [`docs/DECISIONS.md`](docs/DECISIONS.md) for architectural decisions.
 
 ---
 
@@ -27,228 +27,349 @@ go install github.com/jeffdhooton/scry/cmd/scry@latest
 **Once installed**, run the post-install setup and verification:
 
 ```bash
-scry setup        # installs the Claude Code skill + MCP server registration
+scry setup        # installs skill + MCP server, removes old tome/flume/lore registrations
 scry doctor       # checks every prereq and prints a green/yellow/red checklist
 ```
 
-`scry doctor` tells you exactly what's missing (PHP for PHP repos, `scip-typescript` for TS repos, `claude` CLI, etc.) and how to fix each one. Re-run it any time the setup feels off.
+`scry doctor` tells you exactly what's missing (PHP for PHP repos, `scip-typescript` for TS repos, `claude` CLI, stale old MCP servers, etc.) and how to fix each one.
 
 `scip-typescript` and `scip-python` are the two indexers that aren't auto-bundled — install separately if you need them:
 
 ```bash
 npm i -g @sourcegraph/scip-typescript   # for TypeScript / JavaScript repos
-npm i -g @sourcegraph/scip-python        # for Python repos (requires Node ≥16)
+npm i -g @sourcegraph/scip-python        # for Python repos (requires Node >=16)
 ```
 
 `scip-go` auto-downloads into `~/.scry/bin/` on first use against a Go repo (pinned, SHA256-verified). `scip-php` is embedded in the scry binary and extracted on first PHP repo.
 
-**Python gotcha**: `scip-python` 0.6.6's bundled Pyright only recognizes Python 3.10–3.13. If your default `python3` is 3.14+ (common on bleeding-edge Homebrew), scry automatically shims `scip-python` to use the first compatible interpreter it finds on PATH (`python3.13`, `python3.12`, `python3.11`, then `python3.10`). If none are installed, `scry doctor` flags it with install instructions. Activate a venv before `scry init` if you want external imports (third-party packages) resolved — scry honors `$VIRTUAL_ENV`, `.venv/`, `venv/`, and `env/` automatically.
+**Python gotcha**: `scip-python` 0.6.6's bundled Pyright only recognizes Python 3.10-3.13. If your default `python3` is 3.14+ (common on bleeding-edge Homebrew), scry automatically shims `scip-python` to use the first compatible interpreter it finds on PATH (`python3.13`, `python3.12`, `python3.11`, then `python3.10`).
 
-### Install the full agent tool suite
+### Migrating from separate tools
 
-scry is part of a suite of local-first dev tools for AI agents. Install and register everything in one shot:
+If you previously used tome, flume, and lore as separate binaries, `scry setup` automatically removes their MCP registrations. You can also do it manually:
 
 ```bash
-# Install all four tools
-go install github.com/jeffdhooton/scry/cmd/scry@latest
-go install github.com/jeffdhooton/flume/cmd/flume@latest
-go install github.com/jeffdhooton/tome/cmd/tome@latest
-go install github.com/jeffdhooton/lore/cmd/lore@latest
-
-# Register each with Claude Code (one-time, idempotent)
-scry setup
-flume setup
-tome setup
-lore setup
-
-# Verify everything is wired up
-scry doctor
-flume doctor
-tome doctor
-lore doctor
+claude mcp remove tome
+claude mcp remove flume
+claude mcp remove lore
+scry setup        # re-registers the unified scry MCP server
 ```
 
-Each tool auto-spawns its daemon on first use. After setup, Claude Code routes queries automatically — symbol lookups go to scry, schema questions go to tome, git history goes to lore, and runtime debugging goes to flume. No manual intervention needed.
-
-| Tool | What it gives your agent |
-|------|------------------------|
-| **scry** | "Where is this function used?" — in 3ms instead of 30s of grepping |
-| **flume** | "What happened on the last request?" — instead of adding print statements |
-| **tome** | "What columns does users have?" — in 1 call instead of 3-6 file reads |
-| **lore** | "Who changed this and why?" — in 1 call instead of 5 git commands |
+The old binaries can be deleted — all functionality is now in `scry`.
 
 ## Quick start
 
 ```bash
-# Index a repo. The daemon auto-spawns on first call and stays warm
-# until `scry stop` or logout.
-cd ~/path/to/some/typescript/repo
-scry init
+# Index a repo. The daemon auto-spawns on first call.
+cd ~/path/to/your/repo
+scry init                    # code symbols (TS, Go, PHP, Python)
+scry init --git              # git history (blame, cochange, hotspots)
+scry init --all              # everything: code + git + schema (auto-detects DSN)
 
-# Find every reference to a symbol
-scry refs processOrder
+# Code intelligence
+scry refs processOrder       # every reference
+scry defs processOrder       # every definition
+scry callers processOrder    # call sites with containing function
+scry callees processOrder    # outgoing calls
+scry impls Repository        # implementors of an interface
+scry tests processOrder      # test coverage status
 
-# The same query, pretty-printed for human reading
-scry refs processOrder --pretty
+# Git intelligence
+scry blame src/handler.go    # structured blame
+scry history src/handler.go  # recent commits
+scry cochange src/handler.go # co-changed files
+scry hotspots                # most churned files
+scry contributors            # main authors
+scry intent src/handler.go --line 42  # why was this line written?
 
-# Other queries
-scry defs processOrder
-scry callers processOrder        # refs with the containing function exposed
-scry callees processOrder        # what does processOrder call?
-scry impls Repository            # everything that implements an interface
-scry tests processOrder          # is this function covered by tests?
+# Schema (requires --schema or --all during init)
+scry describe users          # table structure
+scry relations orders        # foreign keys
+scry schema-search email     # find tables/columns
+scry enums                   # enum types and values
 
-# Daemon control
-scry status                      # what repos are indexed?
-scry start                       # explicit start (auto-spawned otherwise)
-scry stop                        # graceful shutdown, 5s grace, then SIGKILL
+# HTTP capture
+scry proxy start --port 8089 --target localhost:8000
+# Point your app at localhost:8089 instead of :8000
+scry requests --path /api    # list captured traffic
+scry request <id>            # full request/response
+scry proxy stop
 
-# Claude Code integration
-scry setup                       # install skill + MCP server (one-shot, idempotent)
-scry mcp                         # stdio MCP server (launched by Claude Code, not humans)
+# Cross-domain graph
+scry graph build             # build from all indexed domains
+scry graph report            # architectural summary: god nodes, communities
+scry graph query UserService # find nodes by name
+scry graph path --from UserService --to "users table"  # shortest path
+
+# Infrastructure
+scry status                  # what repos and domains are indexed?
+scry start                   # explicit start (auto-spawned otherwise)
+scry stop                    # graceful shutdown
+scry setup                   # install skill + MCP server
+scry doctor                  # health check
 ```
 
-Output is JSON by default — this tool's primary user is an AI agent. Pass `--pretty` for human reading. All file paths are absolute, all line/column numbers are 1-indexed.
+Output is JSON by default — this tool's primary user is an AI agent. Pass `--pretty` for human reading.
 
 ## What works today
 
 | Feature | Status |
 |---|---|
-| **Languages** | TypeScript, JavaScript, Go, PHP (Laravel-aware), Python |
-| **Daemon** | Auto-spawned on first CLI call, Unix socket at `~/.scry/scryd.sock` |
-| **JSON-RPC 2.0** | Newline-delimited over Unix socket; methods mirror CLI subcommands |
-| **Queries** | `init`, `refs`, `defs`, `callers`, `callees`, `impls`, `tests`, `status`, `start`, `stop` |
-| **Index store** | BadgerDB per repo at `~/.scry/repos/<sha256[:16]>/`, schema-versioned, reset-on-bump |
-| **Watch loop** | fsnotify watcher per indexed repo, 300ms debounce, background full reindex with atomic registry swap |
-| **Auto-download** | `scip-go` (pinned, SHA256-verified). `scip-php` is embedded into the scry binary as a vendored directory tree and extracted on first use. `scip-typescript` is still manual (no GitHub release assets — install via `npm i -g @sourcegraph/scip-typescript`) |
-| **Call graph** | Built at index time from SCIP `enclosing_range`. Full coverage on TypeScript, partial on Go |
+| **Code languages** | TypeScript, JavaScript, Go, PHP (Laravel-aware), Python |
+| **Git intelligence** | Blame, history, cochange, hotspots, contributors, intent |
+| **Schema** | MySQL and PostgreSQL introspection (tables, columns, FKs, enums) |
+| **HTTP capture** | Reverse proxy with request/response recording (30-min TTL) |
+| **Unified graph** | Cross-domain nodes and edges, Louvain community detection, BFS path finding |
+| **Daemon** | Auto-spawned, Unix socket at `~/.scry/scryd.sock` |
+| **JSON-RPC 2.0** | Newline-delimited over Unix socket; methods across 5 domains |
+| **MCP server** | 23 tools: 7 code + 6 git + 4 schema + 3 HTTP + 3 graph |
+| **Watch loop** | fsnotify per indexed repo, 300ms debounce, atomic reindex swap |
+| **Index store** | BadgerDB per domain per repo at `~/.scry/repos/<hash>/` |
+| **Auto-download** | `scip-go` (pinned, SHA256-verified). `scip-php` embedded in binary. |
+| **Call graph** | Built at index time from SCIP `enclosing_range`. Full on TS, partial on Go. |
 | **Implementations** | Built at index time from SCIP `Relationships.is_implementation` |
-| **Laravel non-PSR-4 walker** | After `scip-php` runs, scry walks `routes/`, `config/`, `database/migrations/`, `bootstrap/` for `::class` refs and joins them to scip-php's symbol IDs. ~98% bind rate on real codebases. |
-| **Laravel facade resolver** | Hardcoded map of 31 Illuminate facades to their backing manager/contract classes. After scip-php and the walker, every facade method ref (`Auth::user()`, `DB::table()`, ...) gets synthetic edges to the backing class methods (`AuthManager#user`, `Guard#user`, `DatabaseManager#table`, `Connection#table`). 5129 edges synthesized on hoopless_crm. |
-| **Laravel view + config string-ref walker** | Walks every project `.php` file for `view('foo.bar')` and `config('foo.bar')` calls and emits synthetic ref edges to `resources/views/foo/bar.blade.php` and `config/foo.php#bar` symbols. `scry refs services.dataforseo.login` returns every config-call site with file:line and context. 7 view + 280 config refs on hoopless_crm. |
-| **Claude Code integration** | `scry setup` installs a skill at `~/.claude/skills/scry/SKILL.md` (routing instructions for Claude) plus registers scry as a User-scope MCP server by shelling out to `claude mcp add --scope user --transport stdio scry -- <scry-bin> mcp`. Seven tools exposed: `scry_refs`, `scry_defs`, `scry_callers`, `scry_callees`, `scry_impls`, `scry_tests`, `scry_status`. Claude routes symbol queries through scry and falls back to Grep for string/pattern searches. Idempotent; re-runs after a scry upgrade refresh the registered binary path automatically. MCP call logging to `~/.scry/logs/mcp-calls.jsonl` (tool, symbol, latency, result count per call). |
-| **Test coverage index** | Auto-detects coverage files (`cover.out`, `coverage-final.json`, `clover.xml`, `coverage.json`) during `scry init`, parses them, and joins covered lines against symbol definitions. `scry tests <symbol>` returns whether a function is covered by tests and with what hit count. Supports Go coverprofile, Istanbul/c8 JSON (vitest/jest), Clover XML (PHPUnit), and Python coverage.json. No coverage files = silent no-op. |
-| **External symbol synthesis** | The SCIP parser synthesizes `SymbolRecord`s for any occurrence whose symbol id wasn't declared as `SymbolInformation` in any document. Closes a general gap where vendor / framework / stdlib references were unqueryable by name (`scry refs DB` previously returned 0; now returns the facade symbol with all its occurrences). |
+| **Laravel support** | Non-PSR-4 walker, facade resolver (31 facades), view + config string-refs |
+| **Test coverage** | Auto-detects `cover.out`, Istanbul JSON, Clover XML, Python `coverage.json` |
+| **Claude Code integration** | Skill routing + 23 MCP tools. `scry setup` handles everything. |
 
 Real-world numbers (measured against `~/herd/advocates`, 400 TS files / 55k LOC):
 
 | Metric | Target | Actual |
 |---|---|---|
-| Daemon cold spawn (CLI exits, daemon listening) | <500ms | ~17ms |
-| `scry refs <symbol>` wall-clock end-to-end (warm) | <10ms p50 | 6-7ms |
+| Daemon cold spawn | <500ms | ~17ms |
+| `scry refs <symbol>` end-to-end (warm) | <10ms p50 | 6-7ms |
 | Cold index build, 100k-LOC TS repo | <60s | 9.9s |
-| File-edit → query reflects new state | <200ms (spec) | ~600ms small repo / ~10s on advocates (see [§Known limitations](#known-limitations)) |
-| Query unavailability during a watcher reindex | (was ~3-15s) | 12ms swap; queries throughout the rebuild succeed |
+| Query unavailability during reindex | (was ~3-15s) | 12ms swap |
+
+## MCP tools reference
+
+All tools use the `scry_` prefix. Registered as a single MCP server via `scry setup`.
+
+| Domain | Tools |
+|--------|-------|
+| **Code** | `scry_refs`, `scry_defs`, `scry_callers`, `scry_callees`, `scry_impls`, `scry_tests`, `scry_status` |
+| **Git** | `scry_blame`, `scry_history`, `scry_cochange`, `scry_hotspots`, `scry_contributors`, `scry_intent` |
+| **Schema** | `scry_describe`, `scry_relations`, `scry_schema_search`, `scry_enums` |
+| **HTTP** | `scry_requests`, `scry_request`, `scry_http_status` |
+| **Graph** | `scry_graph_query`, `scry_graph_path`, `scry_graph_report` |
+
+## Claude Code integration
+
+scry integrates with Claude Code at three levels: MCP tools, a routing skill, and PreToolUse hooks. `scry setup` handles the first two automatically. The hooks are optional but strongly recommended — they're what makes Claude *prefer* scry over raw Grep/git without you having to ask.
+
+### What `scry setup` does
+
+```bash
+scry setup
+```
+
+1. **Registers the MCP server** — runs `claude mcp add --scope user --transport stdio scry -- <binary> mcp`, making all 23 `scry_*` tools available in every Claude Code session.
+2. **Installs the routing skill** — writes `~/.claude/skills/scry/SKILL.md`, a detailed routing table that teaches Claude when to reach for scry vs Grep vs Read. Covers all five domains with example queries.
+3. **Cleans up legacy tools** — removes old `tome`, `flume`, `lore` MCP registrations if present.
+
+Verify with:
+
+```bash
+claude mcp get scry              # should show Status: ✓ Connected
+scry doctor                      # full health check
+```
+
+### PreToolUse hooks (recommended)
+
+The MCP tools and skill give Claude the *ability* to use scry, but Claude will still sometimes reach for Grep or `git log` out of habit. PreToolUse hooks intercept those calls and nudge Claude toward scry equivalents — or tell you when a repo isn't indexed yet.
+
+Add these to your `~/.claude/settings.json` under the `hooks.PreToolUse` array:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "/path/to/scry hook pre-search",
+            "statusMessage": "Checking scry index...",
+            "type": "command"
+          }
+        ],
+        "matcher": "Grep|Glob"
+      },
+      {
+        "hooks": [
+          {
+            "command": "/path/to/scry hook pre-git",
+            "statusMessage": "Checking scry index...",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
+}
+```
+
+Replace `/path/to/scry` with the actual binary path (e.g. `$HOME/.local/bin/scry` or the output of `which scry`).
+
+**What each hook does:**
+
+| Hook | Fires on | Behavior |
+|------|----------|----------|
+| `pre-search` | Every `Grep` or `Glob` call | If the pattern looks like a symbol name (not a regex/glob) and the repo is indexed, nudges Claude to use `scry_refs`/`scry_defs` instead. If a graph is available, also mentions `scry_graph_report`, `scry_graph_query`, and `scry_graph_path`. |
+| `pre-git` | Every `Bash` call | If the command is `git blame`, `git log`, `git shortlog`, or `git diff --stat` and git history is indexed, nudges Claude toward `scry_blame`, `scry_history`, `scry_contributors`, `scry_hotspots`, or `scry_cochange`. |
+
+**Unindexed repo behavior:** Both hooks detect when the current repo has no scry index and return a message suggesting `scry init --all`. Claude sees this in its context and will relay the suggestion to you. No silent failures.
+
+### Monitoring usage
+
+MCP call logging writes to `~/.scry/logs/mcp-calls.jsonl`. Every scry MCP tool invocation is recorded with timestamp, tool name, repo, result count, and latency:
+
+```bash
+# See what tools Claude is actually calling
+cat ~/.scry/logs/mcp-calls.jsonl | jq .
+
+# Count tool usage by name
+cat ~/.scry/logs/mcp-calls.jsonl | jq -r .tool | sort | uniq -c | sort -rn
+
+# Check if graph tools are being used
+grep graph ~/.scry/logs/mcp-calls.jsonl | jq .
+```
+
+If you see zero graph entries after working in an indexed repo, Claude may not be reaching for the graph tools. The `pre-search` hook's graph nudge should help, but you can also explicitly ask Claude to "show me the graph report" or "what connects X to Y" to prime the behavior.
+
+### Global CLAUDE.md guidance
+
+For maximum effect, add a line to your `~/.claude/CLAUDE.md` (or project-level `CLAUDE.md`) that reinforces the preference:
+
+```markdown
+Prefer MCP tools over raw alternatives. Use scry for symbol lookups (scry_refs, scry_defs,
+scry_callers, scry_callees, scry_impls), git history (scry_blame, scry_history, scry_cochange,
+scry_hotspots, scry_contributors, scry_intent), database schemas (scry_describe, scry_relations,
+scry_schema_search, scry_enums), HTTP traffic (scry_requests, scry_request), and cross-domain
+graph queries (scry_graph_query, scry_graph_path, scry_graph_report).
+```
+
+### Full integration checklist
+
+```bash
+scry setup                       # MCP server + skill
+scry doctor                      # verify prereqs
+scry init --all                  # index current repo
+# Add hooks to ~/.claude/settings.json (see above)
+# Add guidance to ~/.claude/CLAUDE.md (see above)
+# Verify: work in Claude Code, check ~/.scry/logs/mcp-calls.jsonl
+```
 
 ## Known limitations
 
-- **`scip-typescript` requires manual install.** It's an npm package; the GitHub releases page has no asset binaries to auto-download. Workaround: `npm i -g @sourcegraph/scip-typescript`. We'll revisit if/when an alternative distribution appears.
-- **Vue Single File Components are not indexed.** scip-typescript only walks `.ts`/`.tsx` files. For Inertia/Vue stacks like `~/herd/advocates`, this means refs from Vue templates (`<script>` blocks calling composables) don't show up. Fix would require pre-extracting `<script>` content into virtual TS files before invoking scip-typescript.
-- **Symbol kind always reports `UnspecifiedKind`.** scip-typescript v0.4.0 doesn't populate `SymbolInformation.Kind`. We surface what's there.
-- ~~**Reindex window blocks queries.**~~ **Fixed.** Watcher reindexes now use `index.BuildIntoTemp` to write into `<storage>/index.db.next/` while the live store keeps serving. `Registry.SwapNext` performs a single ~12ms close+rename+open dance at the end. Measured on hoopless_crm: 1449 successful queries during a full 48s reindex with zero failures (slowest single query 84ms).
-- **`<200ms` incremental update is unreachable.** The spec target assumed single-file SCIP indexing exists. It doesn't — `scip-typescript` and `scip-go` are project-wide, type-resolution-driven, and offer no `--single-file` mode. Realistic numbers: ~600ms for a tiny project, ~3s for `trawl`-class, ~10-15s for advocates-class. The long-term answer is a tree-sitter overlay for the 95% of queries where syntactic precision is good enough.
-- **`scip-go` `enclosing_range` coverage is partial.** Means `containing_symbol` and `callees` are best-effort on Go (we got 197 call edges on trawl, not zero, but coverage is incomplete). TypeScript is full coverage.
-- **PHP P2 is feature-complete:** all four post-processors from the calibration are shipped — non-PSR-4 file walker, facade resolver, view template ref, config key ref. See [`docs/PHP_CALIBRATION.md`](docs/PHP_CALIBRATION.md) for the original gap analysis and [`docs/DECISIONS.md`](docs/DECISIONS.md) for why scry ships scip-php as an embedded directory tree (not a PHAR — php-scoper choked on PHP 8.4 keyword shims).
+- **`scip-typescript` requires manual install.** It's an npm package; no auto-download available. Workaround: `npm i -g @sourcegraph/scip-typescript`.
+- **Vue Single File Components are not indexed.** scip-typescript only walks `.ts`/`.tsx` files.
+- **Symbol kind always reports `UnspecifiedKind`.** scip-typescript v0.4.0 doesn't populate `SymbolInformation.Kind`.
+- **`<200ms` incremental update is unreachable.** SCIP indexers are project-wide. Realistic: ~600ms small, ~10s large.
+- **`scip-go` `enclosing_range` is partial.** Call graph coverage on Go is best-effort.
+- **Graph `queries` edge** (function -> table) is not yet implemented. Currently the graph connects code, git, schema, and HTTP domains via structural edges (calls, implements, changed_with, fk).
+- **Schema requires explicit init.** `scry init --schema` or `scry init --all` with a DSN or `.env` file.
+- **HTTP proxy is explicit.** `scry proxy start` must be run manually; the daemon doesn't auto-start the proxy.
 
-## Architecture in one diagram
+## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                        scry CLI                              │
-│  scry refs | defs | callers | callees | impls | status ...  │
-└────────────────────────┬─────────────────────────────────────┘
-                         │ JSON-RPC 2.0 (newline-delimited JSON)
-                         │ ~/.scry/scryd.sock
-                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    scry start --foreground                   │
-│   ┌────────────────────────────────────────────────────┐    │
-│   │            JSON-RPC dispatcher (rpc.Server)        │    │
-│   └─────────────────────┬──────────────────────────────┘    │
-│                         │                                    │
-│   ┌─────────────────────▼──────────────────────────────┐    │
-│   │              Query Engine (internal/query)          │    │
-│   │   refs | defs | callers | callees | impls          │    │
-│   └─────────┬───────────────────────────┬──────────────┘    │
-│             │                           │                    │
-│   ┌─────────▼─────────┐    ┌───────────▼───────────┐        │
-│   │   Store Registry  │    │   File Watcher        │        │
-│   │   (one BadgerDB   │◀───│   (fsnotify, 300ms    │        │
-│   │    per repo)      │    │    debounce, full     │        │
-│   └─────────▲─────────┘    │    reindex on change) │        │
-│             │              └───────────────────────┘        │
-│   ┌─────────┴─────────────────────────────────────┐         │
-│   │           Index Builder                       │         │
-│   │   ┌─────────────┐ ┌─────────┐ ┌─────────┐    │         │
-│   │   │ scip-ts     │ │ scip-go │ │ scip-php │   │         │
-│   │   │ (npm)       │ │ (auto)  │ │ (P2)     │   │         │
-│   │   └─────────────┘ └─────────┘ └─────────┘    │         │
-│   │   ┌─────────────────────────────────────┐    │         │
-│   │   │   SCIP parser (scip-code/scip       │    │         │
-│   │   │   bindings) → BadgerDB writer       │    │         │
-│   │   └─────────────────────────────────────┘    │         │
-│   └─────────────────────────────────────────────────┘         │
-└──────────────────────────────────────────────────────────────┘
+~/.scry/
+  scryd.sock                  # one socket, one daemon
+  scryd.pid
+  repos/<hash>/
+    code/index.db             # SCIP symbols, refs, call graph
+    git/index.db              # blame, commits, cochange, hotspots
+    schema/index.db           # database tables, FKs, enums
+    http/                     # captured request/response pairs
+    graph/index.db            # unified cross-domain graph
+    manifest.json             # per-repo metadata across all domains
+```
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                         scry CLI                               │
+│  refs | defs | blame | describe | requests | graph query ...  │
+└───────────────────────────┬────────────────────────────────────┘
+                            │ JSON-RPC 2.0 / Unix socket
+                            ▼
+┌────────────────────────────────────────────────────────────────┐
+│                      scry daemon                               │
+│   ┌──────────────────────────────────────────────────────┐    │
+│   │            JSON-RPC dispatcher (rpc.Server)          │    │
+│   │  code.*  git.*  schema.*  http.*  graph.*  ping      │    │
+│   └──────────────────────────────────────────────────────┘    │
+│                                                                │
+│   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│   │  Code    │ │   Git    │ │  Schema  │ │   HTTP   │        │
+│   │ Registry │ │ Registry │ │ Registry │ │  Proxy   │        │
+│   └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
+│                       ┌──────────┐                             │
+│                       │  Graph   │                             │
+│                       │ Registry │                             │
+│                       └──────────┘                             │
+│   ┌──────────────────────────────────────────────────────┐    │
+│   │ Index Builders: scip-ts, scip-go, scip-php, scip-py │    │
+│   │ Git indexer, Schema introspector, Graph builder      │    │
+│   └──────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ## Layout
 
 ```
 scry/
-├── cmd/scry/                  # cobra CLI; one binary, daemon and client
-│   ├── main.go                # root command, version, subcommand wiring
-│   ├── daemon.go              # client-side auto-spawn helpers
-│   ├── start.go               # `scry start [--foreground]`
-│   ├── stop.go                # `scry stop` (RPC + SIGTERM + SIGKILL grace)
-│   ├── init.go                # `scry init` — runs through daemon
-│   ├── refs.go                # `scry refs` / `scry defs`
-│   ├── graph.go               # `scry callers` / `callees` / `impls`
-│   ├── tests.go               # `scry tests` (coverage query)
-│   └── status.go              # `scry status`
+├── cmd/scry/                  # cobra CLI; one binary
+│   ├── main.go                # root command, subcommand wiring
+│   ├── init.go                # scry init (code, --git, --schema, --all)
+│   ├── refs.go                # refs / defs
+│   ├── graph.go               # callers / callees / impls
+│   ├── tests.go               # test coverage query
+│   ├── blame.go               # git blame/history/cochange/hotspots/contributors/intent
+│   ├── schema.go              # describe/relations/schema-search/enums
+│   ├── proxy.go               # proxy start/stop, requests, request
+│   ├── graphcmd.go            # graph build/query/path/report
+│   ├── status.go              # daemon status
+│   └── ...                    # start, stop, setup, doctor, upgrade, mcp
 ├── internal/
-│   ├── rpc/                   # JSON-RPC 2.0 over Unix socket (server + client)
-│   ├── daemon/                # daemon lifecycle, registry, watcher, methods
+│   ├── rpc/                   # JSON-RPC 2.0 server + client
+│   ├── daemon/                # daemon lifecycle, registries, methods
 │   │   ├── daemon.go          # Run, signals, PID file, socket
-│   │   ├── registry.go        # per-repo BadgerDB cache
-│   │   ├── methods.go         # RPC handlers wired to internal/query
-│   │   ├── watch.go           # fsnotify per-repo, debounced reindex
-│   │   ├── bootstrap.go       # bootstrap watchers from ~/.scry/repos
-│   │   └── rlimit.go          # bump RLIMIT_NOFILE on macOS
-│   ├── store/                 # BadgerDB-backed index store + tests
-│   ├── sources/
-│   │   ├── scip/              # SCIP protobuf parser (streaming)
-│   │   ├── typescript/        # scip-typescript shellout
-│   │   ├── golang/            # scip-go shellout (with auto-download)
-│   │   ├── php/               # embedded scip-php tree + Laravel non-PSR-4 walker
-│   │   ├── python/            # scip-python shellout + PATH shim for Pyright version pinning
-│   │   └── coverage/          # coverage file parsers (Go, Istanbul, Clover, Python) + join
-│   ├── index/                 # build pipeline: detect → run → parse → store
-│   ├── query/                 # refs, defs, callers, callees, impls, tests (coverage)
-│   └── install/               # pinned indexer auto-download with SHA256
+│   │   ├── registry.go        # code store registry
+│   │   ├── git_registry.go    # git store registry
+│   │   ├── schema_registry.go # schema store registry
+│   │   ├── graph_methods.go   # graph registry + RPC handlers
+│   │   ├── methods.go         # code RPC handlers
+│   │   ├── git_methods.go     # git RPC handlers
+│   │   ├── schema_methods.go  # schema RPC handlers
+│   │   ├── http_methods.go    # HTTP proxy RPC handlers
+│   │   └── watch.go           # fsnotify watcher
+│   ├── store/                 # code BadgerDB store
+│   ├── git/                   # git indexer + store
+│   ├── schema/                # schema introspector + store
+│   ├── http/                  # HTTP proxy + request store
+│   ├── graph/                 # graph builder + query + store
+│   ├── mcp/                   # MCP stdio server (23 tools)
+│   ├── sources/               # language indexers
+│   │   ├── scip/              # SCIP protobuf parser
+│   │   ├── typescript/        # scip-typescript
+│   │   ├── golang/            # scip-go
+│   │   ├── php/               # embedded scip-php + Laravel post-processors
+│   │   ├── python/            # scip-python
+│   │   └── coverage/          # coverage file parsers
+│   ├── index/                 # code build pipeline
+│   ├── query/                 # code query engine
+│   └── install/               # indexer auto-download
 └── docs/
-    ├── SPEC.md                # original PRD (don't edit; this is the source of truth)
-    ├── DECISIONS.md           # architectural choices made along the way
-    └── PHP_CALIBRATION.md     # day-1 PHP/Laravel feasibility report
+    ├── SPEC.md                # original PRD
+    ├── DECISIONS.md           # architectural decisions
+    ├── UNIFICATION_SPEC.md    # unification design doc
+    └── PHP_CALIBRATION.md     # PHP/Laravel feasibility report
 ```
 
-## Why a daemon
+## Why a single binary
 
-Pre-computation is the entire game. A typical 100k-LOC TypeScript repo has thousands of symbols and tens of thousands of references. Computing those on every query (LSP-style) is impossibly slow — 5 to 30 seconds. Computing them once at index time, storing them in an embedded KV, and querying via index lookup is single-digit milliseconds. The daemon model is required because the cost of building the index has to be amortized across thousands of queries, but only if the index *stays warm* between calls.
-
-## Why Go
-
-Same answers as `~/workspace/trawl`: single static binary, fast cold start, mature ecosystem for daemon patterns (signal handling, fsnotify, Unix sockets), and the file-watching + indexing workload is concurrency-bound rather than CPU-bound. Reuses trawl's tech-stack decisions wholesale (BadgerDB, cobra, zerolog) so the operational story matches.
-
-## Part of the agent tool suite
-
-A collection of local-first, single-binary dev tools built for AI coding agents. All share the same architecture: Go, no CGO, BadgerDB, daemon over Unix socket, MCP stdio, millisecond-latency queries. Free, local-only, no cloud.
-
-| Tool | What it does | Status |
-|------|-------------|--------|
-| **[scry](https://github.com/jeffdhooton/scry)** | Code intelligence — symbols, refs, call graphs, impls, test coverage | Shipped |
-| **[flume](https://github.com/jeffdhooton/flume)** | Runtime visibility — HTTP requests, SQL queries, exceptions from dev servers | P0 shipped |
-| **[tome](https://github.com/jeffdhooton/tome)** | Schema awareness — DB schemas, API shapes, ORM models, enums | P0 shipped |
-| **[lore](https://github.com/jeffdhooton/lore)** | Git intelligence — blame, history, co-change patterns, hotspots | P0 shipped |
+Four separate tools (scry, tome, flume, lore) shared 90% of their infrastructure: cobra CLI, BadgerDB storage, JSON-RPC 2.0, MCP stdio server, daemon lifecycle. Running four daemons, four sockets, and four MCP servers for one project was wasteful. The unified binary eliminates routing decisions for Claude Code — one MCP server, one tool namespace.
 
 ## Author
 
