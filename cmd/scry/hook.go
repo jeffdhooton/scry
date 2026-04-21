@@ -199,7 +199,7 @@ func extractSearchPattern(toolName string, rawInput json.RawMessage) string {
 		return ""
 	}
 	switch toolName {
-	case "Grep":
+	case "Grep", "Search":
 		if p, ok := input["pattern"].(string); ok {
 			return p
 		}
