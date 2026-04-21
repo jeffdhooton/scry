@@ -182,7 +182,9 @@ scry init --all
 
 **What you get:** All 23 MCP tools across the five domains — code intelligence, git history, schema introspection, HTTP traffic, and graph queries. Claude Desktop doesn't support PreToolUse hooks or skills, so you'll need to explicitly ask Claude to use scry tools (e.g. "use scry_refs to find where processOrder is called"). Once Claude sees the tool results, it quickly learns to prefer them.
 
-**Limitations vs Claude Code:** No PreToolUse hooks (Claude Desktop doesn't support hooks), no routing skill, no automatic nudging. The tools themselves work identically.
+**Limitations vs Claude Code:** No PreToolUse hooks (Claude Desktop doesn't support hooks), no routing skill, no automatic nudging, and no `~/.claude/CLAUDE.md` auto-loading. The tools themselves work identically.
+
+**Pro tip:** To get Claude Desktop to prefer scry tools without being asked each time, paste the routing table from the [Global CLAUDE.md guidance](#global-claudemd-guidance-recommended) section into your first message or use it as a project prompt. This teaches Claude when to reach for `scry_graph_report` vs `scry_refs` vs Grep — the same routing that Claude Code gets automatically from `~/.claude/CLAUDE.md`.
 
 ## Claude Code integration
 
