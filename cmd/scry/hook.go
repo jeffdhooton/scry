@@ -59,7 +59,11 @@ func hookPreSearchCmd() *cobra.Command {
 			}
 
 			pattern := extractSearchPattern(input.ToolName, input.ToolInput)
-			if pattern == "" || !looksLikeSymbol(pattern) {
+			if pattern == "" {
+				return writeHookAllow("")
+			}
+			symbols := extractSymbols(pattern)
+			if len(symbols) == 0 {
 				return writeHookAllow("")
 			}
 
@@ -82,10 +86,15 @@ func hookPreSearchCmd() *cobra.Command {
 				return writeHookAllow("scry: this repo is not indexed yet. Run `scry init --all` to enable fast symbol lookups, git intelligence, and architectural graph analysis. Falling back to Grep for now.")
 			}
 
+			symbolList := strings.Join(symbols, ", ")
+			var suggestions []string
+			for _, s := range symbols {
+				suggestions = append(suggestions, fmt.Sprintf("scry_refs(\"%s\")", s))
+			}
 			var context strings.Builder
 			context.WriteString(fmt.Sprintf(
-				"scry has a pre-computed semantic index for this repo. Before continuing with Grep, try scry_refs(\"%s\") or scry_defs(\"%s\") — they resolve symbols to exact file:line locations with context in <10ms, including cross-file references that Grep misses (facades, interfaces, dynamic dispatch). If scry returns nothing, then fall back to Grep.",
-				pattern, pattern,
+				"scry has a pre-computed semantic index for this repo. Before continuing with Grep, try %s — scry resolves symbols to exact file:line locations with context in <10ms, including cross-file references that Grep misses (facades, interfaces, dynamic dispatch). Symbols detected in your query: %s. If scry returns nothing, then fall back to Grep.",
+				strings.Join(suggestions, " or "), symbolList,
 			))
 
 			graphLayout := graph.Layout(scryHome, cwd)
@@ -211,28 +220,80 @@ func extractSearchPattern(toolName string, rawInput json.RawMessage) string {
 	return ""
 }
 
-// looksLikeSymbol returns true if the pattern looks like an identifier lookup
-// rather than a regex, string search, or file glob.
-func looksLikeSymbol(pattern string) bool {
-	if strings.ContainsAny(pattern, "*?[]{}|+\\^$") {
-		return false
+// extractSymbols pulls identifier-like tokens out of a search pattern.
+// Handles regex patterns like "Mail::|use.*Mail" → ["Mail"], compound
+// patterns like "extends Mailable" → ["Mailable"], and bare symbols.
+// Returns only tokens that look like class/function names (PascalCase,
+// camelCase, UPPER_CASE, or snake_case with ≥3 chars).
+func extractSymbols(pattern string) []string {
+	// Split on anything that isn't an identifier character
+	tokens := splitOnNonIdent(pattern)
+	seen := map[string]bool{}
+	var symbols []string
+	for _, tok := range tokens {
+		if len(tok) < 3 {
+			continue
+		}
+		// Skip common regex/query noise words
+		if isNoiseWord(tok) {
+			continue
+		}
+		// Must start with a letter or underscore
+		c := tok[0]
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
+			continue
+		}
+		// Prefer PascalCase or has underscore — stronger signal it's a real symbol
+		if !hasUpperCase(tok) && !strings.Contains(tok, "_") {
+			continue
+		}
+		if !seen[tok] {
+			seen[tok] = true
+			symbols = append(symbols, tok)
+		}
 	}
-	if strings.Contains(pattern, " ") {
-		return false
+	return symbols
+}
+
+func splitOnNonIdent(s string) []string {
+	var tokens []string
+	var cur strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
+			cur.WriteRune(r)
+		} else {
+			if cur.Len() > 0 {
+				tokens = append(tokens, cur.String())
+				cur.Reset()
+			}
+		}
 	}
-	// Must start with a letter or underscore (identifier-like)
-	if len(pattern) == 0 {
-		return false
+	if cur.Len() > 0 {
+		tokens = append(tokens, cur.String())
 	}
-	c := pattern[0]
-	if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
-		return false
+	return tokens
+}
+
+func hasUpperCase(s string) bool {
+	for _, r := range s {
+		if r >= 'A' && r <= 'Z' {
+			return true
+		}
 	}
-	// At least 3 chars to avoid triggering on short patterns
-	if len(pattern) < 3 {
-		return false
+	return false
+}
+
+func isNoiseWord(s string) bool {
+	switch strings.ToLower(s) {
+	case "use", "class", "function", "extends", "implements", "interface",
+		"return", "import", "from", "require", "const", "var", "let",
+		"new", "this", "self", "static", "public", "private", "protected",
+		"async", "await", "func", "type", "struct", "package", "def",
+		"todo", "fixme", "hack", "note", "xxx", "app", "src", "lib",
+		"test", "tests", "spec", "vendor", "node_modules", "internal":
+		return true
 	}
-	return true
+	return false
 }
 
 func writeHookAllow(additionalContext string) error {
