@@ -24,10 +24,10 @@ go install github.com/jeffdhooton/scry/cmd/scry@latest
 
 **Keeping it fresh:** `scry upgrade` downloads the latest release and replaces the running binary in place. `scry upgrade --check` just prints what's available. See [`docs/RELEASING.md`](docs/RELEASING.md) if you're publishing a new version.
 
-**Once installed**, run the post-install setup and verification:
+**Once installed**, run the post-install setup and verification (for Claude Code — see [Claude Desktop setup](#claude-desktop-setup) if using the chat app):
 
 ```bash
-scry setup        # installs skill + MCP server, removes old tome/flume/lore registrations
+scry setup        # installs skill + MCP server for Claude Code
 scry doctor       # checks every prereq and prints a green/yellow/red checklist
 ```
 
@@ -153,9 +153,40 @@ All tools use the `scry_` prefix. Registered as a single MCP server via `scry se
 | **HTTP** | `scry_requests`, `scry_request`, `scry_http_status` |
 | **Graph** | `scry_graph_query`, `scry_graph_path`, `scry_graph_report` |
 
+## Claude Desktop setup
+
+scry works with Claude Desktop (the chat app) as a standard MCP server. Add it to your Claude Desktop config:
+
+**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "scry": {
+      "command": "/path/to/scry",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Replace `/path/to/scry` with the actual binary path — typically `~/.local/bin/scry` (install script) or the output of `which scry` (Go install). On macOS you must use the full expanded path, not `~`.
+
+After saving, restart Claude Desktop. You'll see the 23 `scry_*` tools available in the toolbox icon. Before using them, index your repo from a terminal:
+
+```bash
+cd ~/path/to/your/repo
+scry init --all
+```
+
+**What you get:** All 23 MCP tools across the five domains — code intelligence, git history, schema introspection, HTTP traffic, and graph queries. Claude Desktop doesn't support PreToolUse hooks or skills, so you'll need to explicitly ask Claude to use scry tools (e.g. "use scry_refs to find where processOrder is called"). Once Claude sees the tool results, it quickly learns to prefer them.
+
+**Limitations vs Claude Code:** No PreToolUse hooks (Claude Desktop doesn't support hooks), no routing skill, no automatic nudging. The tools themselves work identically.
+
 ## Claude Code integration
 
-scry integrates with Claude Code at three levels: MCP tools, a routing skill, and PreToolUse hooks. `scry setup` handles the first two automatically. The hooks are optional but strongly recommended — they're what makes Claude *prefer* scry over raw Grep/git without you having to ask.
+scry integrates with Claude Code (CLI, desktop app, VS Code, and JetBrains extensions) at three levels: MCP tools, a routing skill, and PreToolUse hooks. `scry setup` handles the first two automatically. The hooks are optional but strongly recommended — they're what makes Claude *prefer* scry over raw Grep/git without you having to ask.
 
 ### What `scry setup` does
 
