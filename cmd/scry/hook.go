@@ -84,13 +84,13 @@ func hookPreSearchCmd() *cobra.Command {
 
 			var context strings.Builder
 			context.WriteString(fmt.Sprintf(
-				"scry has a pre-computed index for this repo. Use scry_refs/scry_defs instead of Grep for symbol \"%s\" — it's faster and more precise.",
-				pattern,
+				"scry has a pre-computed semantic index for this repo. Before continuing with Grep, try scry_refs(\"%s\") or scry_defs(\"%s\") — they resolve symbols to exact file:line locations with context in <10ms, including cross-file references that Grep misses (facades, interfaces, dynamic dispatch). If scry returns nothing, then fall back to Grep.",
+				pattern, pattern,
 			))
 
 			graphLayout := graph.Layout(scryHome, cwd)
 			if _, err := os.Stat(graphLayout.ManifestPath); err == nil {
-				context.WriteString(" A unified graph is available — use scry_graph_report for architectural overview, scry_graph_query to search nodes, scry_graph_path to trace connections between components.")
+				context.WriteString(" This repo also has a unified graph — scry_graph_report shows architectural overview, scry_graph_query searches nodes, scry_graph_path traces connections between components.")
 			}
 
 			return writeHookAllow(context.String())
@@ -168,17 +168,17 @@ func matchGitCommand(command string) string {
 
 	switch parts[1] {
 	case "blame":
-		return "scry has pre-indexed blame data for this repo. Use scry_blame instead — it returns structured JSON with author, date, and commit context in <10ms. For understanding WHY a line was written, use scry_intent."
+		return "scry has pre-indexed blame data for this repo. Try scry_blame first — it returns structured JSON with author, date, and commit context in <10ms, and scry_intent explains WHY a line was written. Fall back to git blame if scry doesn't cover the file."
 	case "log":
 		if containsFlag(parts, "--follow") || containsFlag(parts, "--oneline") || containsFlag(parts, "--stat") {
-			return "scry has pre-indexed git history for this repo. Use scry_history instead — it returns structured commit data with diff stats. For finding files that change together, use scry_cochange. For most-churned files, use scry_hotspots."
+			return "scry has pre-indexed git history for this repo. Try scry_history first — it returns structured commit data with diff stats in <10ms. Also available: scry_cochange (files that change together), scry_hotspots (most churned files). Fall back to git log if you need raw output."
 		}
-		return "scry has pre-indexed git history for this repo. Use scry_history instead of git log — it returns structured JSON with diff stats in <10ms. Also available: scry_cochange (files that change together), scry_hotspots (most churned files), scry_contributors (main authors)."
+		return "scry has pre-indexed git history for this repo. Try scry_history first — it returns structured JSON with diff stats in <10ms. Also available: scry_cochange (files that change together), scry_hotspots (most churned files), scry_contributors (main authors). Fall back to git log if you need raw output."
 	case "shortlog":
-		return "scry has pre-indexed contributor data for this repo. Use scry_contributors instead — it returns ranked authors by commit count for any file or the whole repo."
+		return "scry has pre-indexed contributor data for this repo. Try scry_contributors first — it returns ranked authors by commit count for any file or the whole repo."
 	case "diff":
 		if containsFlag(parts, "--stat") || containsFlag(parts, "--numstat") {
-			return "For understanding which files change the most, use scry_hotspots. For files that change together, use scry_cochange."
+			return "scry has pre-indexed churn data for this repo. Try scry_hotspots (most changed files) or scry_cochange (files that change together) first — they return structured results in <10ms."
 		}
 	}
 	return ""
@@ -245,3 +245,4 @@ func writeHookAllow(additionalContext string) error {
 	}
 	return json.NewEncoder(os.Stdout).Encode(out)
 }
+
