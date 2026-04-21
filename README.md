@@ -268,17 +268,51 @@ grep graph ~/.scry/logs/mcp-calls.jsonl | jq .
 
 If you see zero graph entries after working in an indexed repo, Claude may not be reaching for the graph tools. The `pre-search` hook's graph nudge should help, but you can also explicitly ask Claude to "show me the graph report" or "what connects X to Y" to prime the behavior.
 
-### Global CLAUDE.md guidance
+### Global CLAUDE.md guidance (recommended)
 
-For maximum effect, add a line to your `~/.claude/CLAUDE.md` (or project-level `CLAUDE.md`) that reinforces the preference:
+The hooks intercept Grep and git calls, but Claude also needs to know *when* to reach for scry proactively — especially for graph and architecture questions where it would otherwise just read files. Add this to your `~/.claude/CLAUDE.md`:
 
 ```markdown
-Prefer MCP tools over raw alternatives. Use scry for symbol lookups (scry_refs, scry_defs,
-scry_callers, scry_callees, scry_impls), git history (scry_blame, scry_history, scry_cochange,
-scry_hotspots, scry_contributors, scry_intent), database schemas (scry_describe, scry_relations,
-scry_schema_search, scry_enums), HTTP traffic (scry_requests, scry_request), and cross-domain
-graph queries (scry_graph_query, scry_graph_path, scry_graph_report).
+## scry — use FIRST for code intelligence
+
+scry is a local code intelligence daemon with pre-computed indexes. It answers in <10ms what
+Grep/git/file reading takes 30+ seconds to assemble. Always check scry before reaching for
+Grep, git commands, or reading files to understand code structure.
+
+### When to use which scry tool
+
+**Starting work in a repo or answering "what is this codebase?":**
+→ scry_graph_report — shows architecture: god nodes (highest coupling), communities (feature
+clusters), cross-domain connections. Start here for any orientation or onboarding question.
+Do NOT read docs or ls directories first.
+
+**"Where is X used/called/defined?":**
+→ scry_refs or scry_defs — every reference or definition with file:line:col. Use instead of
+Grep for any symbol/identifier lookup.
+
+**"What calls X?" / "What does X call?":**
+→ scry_callers / scry_callees
+
+**"Who wrote this?" / "What changed recently?" / "Why was this written?":**
+→ scry_blame, scry_history, scry_intent — use instead of git blame/git log.
+
+**"What files change together?" / "What are the hotspots?":**
+→ scry_cochange, scry_hotspots, scry_contributors
+
+**"How does X connect to Y?":**
+→ scry_graph_path — shortest path between any two nodes across code, git, schema domains.
+
+**"What tables/columns/FKs exist?":**
+→ scry_describe, scry_relations, scry_schema_search, scry_enums — use instead of DB clients.
+
+### When to fall back to Grep/Read
+- String searches in comments, error messages, TODOs
+- Regex pattern matching over file content
+- The repo is not indexed (scry_status to check)
+- scry returned empty results for a known symbol
 ```
+
+This routing table is what makes Claude reach for `scry_graph_report` when you ask "what's the architecture?" instead of `ls`-ing directories.
 
 ### Full integration checklist
 

@@ -53,6 +53,20 @@ func hookPreSearchCmd() *cobra.Command {
 			if err != nil {
 				return nil
 			}
+
+			// Debug: log raw hook input so we can see what Claude Code actually sends
+			debugHome, _ := os.UserHomeDir()
+			if debugHome != "" {
+				logDir := filepath.Join(debugHome, ".scry", "logs")
+				_ = os.MkdirAll(logDir, 0o755)
+				f, err := os.OpenFile(filepath.Join(logDir, "hook-debug.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+				if err == nil {
+					_, _ = f.Write(raw)
+					_, _ = f.WriteString("\n")
+					_ = f.Close()
+				}
+			}
+
 			var input hookInput
 			if err := json.Unmarshal(raw, &input); err != nil {
 				return nil
