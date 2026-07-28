@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jeffdhooton/scry/internal/daemon"
+	"github.com/jeffdhooton/scry/internal/memory/distill"
 	"github.com/jeffdhooton/scry/internal/memory/extract"
 	"github.com/jeffdhooton/scry/internal/memory/ingest"
 	"github.com/jeffdhooton/scry/internal/memory/resolve"
@@ -169,18 +169,297 @@ func memorySweepCmd() *cobra.Command {
 }
 
 func memoryBackfillCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "backfill",
-		Short: "Backfill a source's full history (not yet implemented)",
+		Short: "Backfill every episode across default roots via the Batch API (50% discount), or serially with --no-batch",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if memoryDormant() {
 				fmt.Println(dormantNotice)
 				return nil
 			}
-			return errors.New("memory backfill: implemented in a later task")
+
+			sinceStr, _ := cmd.Flags().GetString("since")
+			var since time.Time
+			if sinceStr != "" {
+				t, err := time.Parse("2006-01-02", sinceStr)
+				if err != nil {
+					return fmt.Errorf("--since: invalid date %q, want YYYY-MM-DD: %w", sinceStr, err)
+				}
+				since = t
+			}
+			noBatch, _ := cmd.Flags().GetBool("no-batch")
+
+			apiKey := os.Getenv("SCRY_MEMORY_API_KEY")
+			if apiKey == "" {
+				apiKey = os.Getenv("ANTHROPIC_API_KEY")
+			}
+			model := os.Getenv("SCRY_MEMORY_MODEL")
+
+			// No overall timeout — this is a long-running, potentially
+			// hours-spanning job (batches can take up to 24h to end). ctx is
+			// still cancellable (Ctrl-C), which both the batch poll loop and
+			// the serial fallback respect.
+			ctx := context.Background()
+
+			summary, err := runBackfill(ctx, backfillConfig{
+				Since:   since,
+				NoBatch: noBatch,
+				Daemon:  daemonClient{},
+				Haiku:   extract.NewHaiku(apiKey, model),
+				Batch:   extract.NewBatchRunner(apiKey, model),
+			})
+			if err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(summary, pretty)
 		},
 	}
+	cmd.Flags().String("since", "", "only backfill episodes that occurred on/after this date (YYYY-MM-DD); default: everything")
+	cmd.Flags().Bool("no-batch", false, "use serial Haiku.Extract calls (200ms between requests) instead of the Batch API")
+	return cmd
+}
+
+// backfillConfig bundles what runBackfill needs beyond ctx/flags.
+type backfillConfig struct {
+	Since   time.Time // zero means "everything"
+	NoBatch bool
+	Daemon  ingest.Daemon
+	Haiku   *extract.Haiku
+	Batch   *extract.BatchRunner
+}
+
+// backfillGlossaryLimit mirrors ingest.glossaryLimit / the daemon's own
+// default (see defaultGlossaryLimit in internal/daemon/memory_methods.go).
+const backfillGlossaryLimit = 200
+
+// backfillSummary is what `memory backfill` prints on success.
+type backfillSummary struct {
+	FilesScanned      int      `json:"files_scanned"`
+	EpisodesFound     int      `json:"episodes_found"`
+	EpisodesCommitted int      `json:"episodes_committed"`
+	EpisodesSkipped   int      `json:"episodes_skipped"`
+	FilesAdvanced     int      `json:"files_advanced"`
+	Errors            []string `json:"errors,omitempty"`
+}
+
+// backfillGroup is every episode distilled from one source path/dir, kept
+// together so that path's cursor is only advanced once every one of its
+// episodes has a definitive outcome (committed or recorded as an error) —
+// mirroring ingest.File's "commit failures don't advance the cursor" safety
+// property, but at file granularity across a batch that spans many files.
+type backfillGroup struct {
+	source    string // "claude" | "codex" | "loom"
+	path      string
+	episodes  []distill.RawEpisode
+	newOffset int64 // full-file byte length for claude/codex; unused for loom
+	size      int64
+	modTime   time.Time
+}
+
+// runBackfill discovers every episode across the default roots (ignoring
+// cursors entirely — commit-side idempotency dedupes anything already
+// ingested), filters by cfg.Since, extracts each episode (via the Batch API
+// unless cfg.NoBatch), commits every successfully-extracted episode, and —
+// per source file/dir whose every episode resolved — advances that path's
+// cursor to reflect it's now fully processed.
+func runBackfill(ctx context.Context, cfg backfillConfig) (backfillSummary, error) {
+	var summary backfillSummary
+
+	claudeFiles, codexFiles, loomDirs, discoverErrs := sweep.Candidates(sweep.Roots{}, sweep.DefaultActiveWindow)
+	summary.Errors = append(summary.Errors, discoverErrs...)
+	summary.FilesScanned = len(claudeFiles) + len(codexFiles) + len(loomDirs)
+
+	var groups []backfillGroup
+	for _, path := range claudeFiles {
+		g, err := backfillClaudeOrCodex(path, "claude", distill.ClaudeSession, cfg.Since)
+		if err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("%s: %v", path, err))
+			continue
+		}
+		groups = append(groups, g)
+	}
+	for _, path := range codexFiles {
+		g, err := backfillClaudeOrCodex(path, "codex", distill.CodexRollout, cfg.Since)
+		if err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("%s: %v", path, err))
+			continue
+		}
+		groups = append(groups, g)
+	}
+	for _, dir := range loomDirs {
+		episodes, err := distill.LoomRun(dir)
+		if err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("%s: %v", dir, err))
+			continue
+		}
+		episodes = filterSince(episodes, cfg.Since)
+		info, err := os.Stat(dir)
+		if err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("%s: stat: %v", dir, err))
+			continue
+		}
+		groups = append(groups, backfillGroup{source: "loom", path: dir, episodes: episodes, modTime: info.ModTime()})
+	}
+
+	var allEpisodes []distill.RawEpisode
+	for _, g := range groups {
+		allEpisodes = append(allEpisodes, g.episodes...)
+	}
+	summary.EpisodesFound = len(allEpisodes)
+
+	if len(allEpisodes) == 0 {
+		fmt.Println("nothing to backfill")
+		return summary, nil
+	}
+
+	glossary, err := cfg.Daemon.Glossary(ctx, backfillGlossaryLimit)
+	if err != nil {
+		return summary, fmt.Errorf("memory backfill: glossary: %w", err)
+	}
+
+	var results map[string]extract.Result
+	var extractErrs map[string]error
+	if cfg.NoBatch {
+		results, extractErrs = backfillSerial(ctx, cfg.Haiku, allEpisodes, glossary)
+	} else {
+		totalBatches := (len(allEpisodes) + extract.MaxBatchSize - 1) / extract.MaxBatchSize
+		progress := func(done, total int) {
+			batchNum := (done + extract.MaxBatchSize - 1) / extract.MaxBatchSize
+			if batchNum < 1 {
+				batchNum = 1
+			}
+			if batchNum > totalBatches {
+				batchNum = totalBatches
+			}
+			fmt.Printf("batch %d/%d: %d/%d done\n", batchNum, totalBatches, done, total)
+		}
+		var fatalErr error
+		results, extractErrs, fatalErr = cfg.Batch.Run(ctx, allEpisodes, glossary, progress)
+		if fatalErr != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("batch run: %v", fatalErr))
+		}
+	}
+
+	for _, g := range groups {
+		resolved := true
+		for _, ep := range g.episodes {
+			res, ok := results[ep.ID]
+			if ok {
+				if _, err := cfg.Daemon.Commit(ctx, memstore.Episode{
+					ID:         ep.ID,
+					Source:     ep.Source,
+					SourceRef:  ep.SourceRef,
+					Summary:    res.EpisodeSummary,
+					OccurredAt: ep.OccurredAt,
+					IngestedAt: time.Now(),
+				}, ep.Cwd, res); err != nil {
+					summary.Errors = append(summary.Errors, fmt.Sprintf("commit %s: %v", ep.ID, err))
+					resolved = false
+					continue
+				}
+				summary.EpisodesCommitted++
+				continue
+			}
+			if extractErr, ok := extractErrs[ep.ID]; ok {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("extract %s: %v", ep.ID, extractErr))
+				summary.EpisodesSkipped++
+				continue
+			}
+			// Neither map has this episode ID: its batch never resolved
+			// (Run returned a fatal error before this chunk completed). Leave
+			// the file's cursor untouched so a re-run retries it.
+			resolved = false
+		}
+
+		if !resolved {
+			continue
+		}
+
+		cursor := memstore.Cursor{Path: g.path, ModTime: g.modTime}
+		if g.source != "loom" {
+			cursor.Size = g.size
+			cursor.ProcessedBytes = g.newOffset
+		}
+		if err := cfg.Daemon.PutCursor(ctx, cursor); err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("put cursor %s: %v", g.path, err))
+			continue
+		}
+		summary.FilesAdvanced++
+	}
+
+	return summary, nil
+}
+
+// backfillClaudeOrCodex distills the full contents of an episodic
+// (byte-offset-resume) source from offset 0 — deliberately ignoring
+// whatever cursor might exist, since backfill wants every episode on disk —
+// and filters by since.
+func backfillClaudeOrCodex(path, source string, distillFn func(path string, offset int64) ([]distill.RawEpisode, int64, error), since time.Time) (backfillGroup, error) {
+	episodes, newOffset, err := distillFn(path, 0)
+	if err != nil {
+		return backfillGroup{}, fmt.Errorf("distill: %w", err)
+	}
+	episodes = filterSince(episodes, since)
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return backfillGroup{}, fmt.Errorf("stat: %w", err)
+	}
+
+	return backfillGroup{
+		source:    source,
+		path:      path,
+		episodes:  episodes,
+		newOffset: newOffset,
+		size:      info.Size(),
+		modTime:   info.ModTime(),
+	}, nil
+}
+
+// filterSince returns only the episodes that occurred at or after since. A
+// zero since (the --since flag was omitted) keeps everything.
+func filterSince(episodes []distill.RawEpisode, since time.Time) []distill.RawEpisode {
+	if since.IsZero() {
+		return episodes
+	}
+	var out []distill.RawEpisode
+	for _, ep := range episodes {
+		if !ep.OccurredAt.Before(since) {
+			out = append(out, ep)
+		}
+	}
+	return out
+}
+
+// backfillSerial extracts every episode one at a time via Haiku.Extract,
+// sleeping 200ms between calls (the --no-batch fallback: no batch discount,
+// but no wait for a batch to end either). A per-episode extraction error is
+// recorded in the error map and does not stop the run.
+func backfillSerial(ctx context.Context, h *extract.Haiku, episodes []distill.RawEpisode, glossary []string) (map[string]extract.Result, map[string]error) {
+	results := make(map[string]extract.Result, len(episodes))
+	errs := make(map[string]error)
+
+	for i, ep := range episodes {
+		res, err := h.Extract(ctx, ep, glossary)
+		if err != nil {
+			errs[ep.ID] = err
+		} else {
+			results[ep.ID] = res
+		}
+		fmt.Printf("serial: %d/%d done\n", i+1, len(episodes))
+
+		if i < len(episodes)-1 {
+			select {
+			case <-ctx.Done():
+				return results, errs
+			case <-time.After(200 * time.Millisecond):
+			}
+		}
+	}
+
+	return results, errs
 }
 
 // --- query verbs: thin callDaemon wrappers ---

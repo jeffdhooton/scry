@@ -147,6 +147,68 @@ func Run(ctx context.Context, roots Roots, o ingest.Options, activeWindow time.D
 	return result, nil
 }
 
+// Candidates lists every claude, codex, and loom candidate across roots that
+// isn't currently active (mtime within activeWindow of now), with NO
+// cursor-based filtering — unlike Run, every matching file/dir is returned
+// regardless of what's already been ingested. This is what backfill wants:
+// collect everything on disk and let the daemon's commit-side HasEpisode
+// idempotency dedupe whatever was already ingested, rather than trusting
+// cursors (which only track "how far a normal sweep/ingest got," not "has
+// this been backfilled").
+//
+// Each returned slice is sorted, matching Run's per-root ordering. Per-root
+// listing errors (a malformed glob pattern, an unreadable LoomRuns
+// directory) and per-candidate stat errors are appended to errs and do not
+// prevent the rest of the candidates from being listed.
+func Candidates(roots Roots, activeWindow time.Duration) (claudeFiles, codexFiles, loomDirs []string, errs []string) {
+	roots = roots.withDefaults()
+	now := time.Now()
+
+	claude, err := filepath.Glob(roots.ClaudeGlob)
+	if err != nil {
+		errs = append(errs, fmt.Sprintf("%s: %v", roots.ClaudeGlob, err))
+		claude = nil
+	}
+	sort.Strings(claude)
+	claudeFiles = filterActive(claude, now, activeWindow, &errs)
+
+	codex, err := filepath.Glob(roots.CodexGlob)
+	if err != nil {
+		errs = append(errs, fmt.Sprintf("%s: %v", roots.CodexGlob, err))
+		codex = nil
+	}
+	sort.Strings(codex)
+	codexFiles = filterActive(codex, now, activeWindow, &errs)
+
+	loom, err := listLoomRunDirs(roots.LoomRuns)
+	if err != nil {
+		errs = append(errs, fmt.Sprintf("%s: %v", roots.LoomRuns, err))
+		loom = nil
+	}
+	loomDirs = filterActive(loom, now, activeWindow, &errs)
+
+	return claudeFiles, codexFiles, loomDirs, errs
+}
+
+// filterActive returns the subset of paths whose mtime is at least
+// activeWindow before now, appending a stat error for any path to *errs
+// rather than aborting. Order is preserved.
+func filterActive(paths []string, now time.Time, activeWindow time.Duration, errs *[]string) []string {
+	var out []string
+	for _, p := range paths {
+		info, err := os.Stat(p)
+		if err != nil {
+			*errs = append(*errs, fmt.Sprintf("%s: %v", p, err))
+			continue
+		}
+		if now.Sub(info.ModTime()) < activeWindow {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
 // listLoomRunDirs returns the sorted, full-path immediate subdirectories of
 // root. A missing root is not an error (no runs yet) — it simply yields no
 // entries.

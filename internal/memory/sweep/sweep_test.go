@@ -668,6 +668,64 @@ func TestRun_DryRunMakesNoExtractorCallsOrCursorWrites(t *testing.T) {
 	}
 }
 
+func TestCandidates_ListsEveryFileIgnoringCursors(t *testing.T) {
+	tr := newTestRoots(t)
+	daemon := newFakeDaemon()
+
+	// Simulate "already fully ingested" cursors — Candidates must ignore
+	// them entirely (that's the whole point: backfill wants everything on
+	// disk, not just deltas).
+	info, err := os.Stat(tr.claudePath)
+	if err != nil {
+		t.Fatalf("stat claude fixture: %v", err)
+	}
+	if err := daemon.PutCursor(context.Background(), store.Cursor{
+		Path: tr.claudePath, Size: info.Size(), ModTime: info.ModTime(), ProcessedBytes: info.Size(),
+	}); err != nil {
+		t.Fatalf("PutCursor: %v", err)
+	}
+
+	claudeFiles, codexFiles, loomDirs, errs := Candidates(tr.roots, time.Minute)
+
+	if len(errs) != 0 {
+		t.Errorf("errs = %v, want none", errs)
+	}
+	if len(claudeFiles) != 1 || claudeFiles[0] != tr.claudePath {
+		t.Errorf("claudeFiles = %v, want [%s] (cursor must not filter it out)", claudeFiles, tr.claudePath)
+	}
+	if len(codexFiles) != 1 || codexFiles[0] != tr.codexPath {
+		t.Errorf("codexFiles = %v, want [%s]", codexFiles, tr.codexPath)
+	}
+	if len(loomDirs) != 1 || loomDirs[0] != tr.loomPath {
+		t.Errorf("loomDirs = %v, want [%s]", loomDirs, tr.loomPath)
+	}
+}
+
+func TestCandidates_SkipsActiveFiles(t *testing.T) {
+	tr := newTestRoots(t)
+
+	// Touch the claude fixture so it looks like it was just written.
+	now := time.Now()
+	if err := os.Chtimes(tr.claudePath, now, now); err != nil {
+		t.Fatalf("chtimes: %v", err)
+	}
+
+	claudeFiles, codexFiles, loomDirs, errs := Candidates(tr.roots, 5*time.Minute)
+
+	if len(errs) != 0 {
+		t.Errorf("errs = %v, want none", errs)
+	}
+	if len(claudeFiles) != 0 {
+		t.Errorf("claudeFiles = %v, want none (fixture is within the active window)", claudeFiles)
+	}
+	if len(codexFiles) != 1 {
+		t.Errorf("codexFiles = %v, want 1 (untouched, outside the active window)", codexFiles)
+	}
+	if len(loomDirs) != 1 {
+		t.Errorf("loomDirs = %v, want 1", loomDirs)
+	}
+}
+
 func TestDefaultRoots(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
