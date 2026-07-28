@@ -34,8 +34,12 @@ func NewRegistry() *Registry {
 	return &Registry{entries: map[string]*Entry{}}
 }
 
-// Get returns the entry for repoPath, opening the store if necessary. Returns
-// an error if the repo is not yet indexed (caller should run init).
+// Get returns the entry for repoPath, opening the store if necessary. The
+// requested path need not be the exact path the repo was indexed under: Get
+// resolves symlinks and on-disk casing, and walks up parent directories to
+// the nearest indexed ancestor, so queries work from subdirectories and
+// through symlinked checkouts (e.g. monorepo/apps/foo -> ~/Herd/Foo).
+// Returns an error if no candidate is indexed (caller should run init).
 func (r *Registry) Get(scryHome, repoPath string) (*Entry, error) {
 	abs, err := filepath.Abs(repoPath)
 	if err != nil {
@@ -53,9 +57,48 @@ func (r *Registry) Get(scryHome, repoPath string) (*Entry, error) {
 	if e = r.entries[abs]; e != nil {
 		return e, nil
 	}
-	layout := index.Layout(scryHome, abs)
+	for _, candidate := range resolveCandidates(abs) {
+		e, err := r.openLocked(scryHome, candidate)
+		if err != nil {
+			return nil, err
+		}
+		if e == nil {
+			continue
+		}
+		// Cache the requested path as an alias so the next lookup is a
+		// single map hit instead of a candidate walk.
+		r.entries[abs] = e
+		return e, nil
+	}
+	return nil, fmt.Errorf("repo %s is not indexed yet — run `scry init` first", abs)
+}
+
+// resolveCandidates lists the repo paths that could serve a query for abs, in
+// priority order: the literal path (back-compat with indexes keyed under
+// symlinked or oddly-cased paths), its canonical form, then each canonical
+// ancestor from nearest to farthest.
+func resolveCandidates(abs string) []string {
+	out := []string{abs}
+	canon := canonicalPath(abs)
+	if canon != abs {
+		out = append(out, canon)
+	}
+	for dir := filepath.Dir(canon); dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
+		out = append(out, dir)
+	}
+	return out
+}
+
+// openLocked returns the entry for the exact repo path, opening its store if
+// an index exists on disk. Returns (nil, nil) if the path is not indexed.
+// Caller must hold r.mu.
+func (r *Registry) openLocked(scryHome, repoPath string) (*Entry, error) {
+	if e := r.entries[repoPath]; e != nil {
+		return e, nil
+	}
+	layout := index.Layout(scryHome, repoPath)
 	if _, err := os.Stat(layout.BadgerDir); errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("repo %s is not indexed yet — run `scry init` first", abs)
+		return nil, nil
 	} else if err != nil {
 		return nil, err
 	}
@@ -63,8 +106,8 @@ func (r *Registry) Get(scryHome, repoPath string) (*Entry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open store: %w", err)
 	}
-	e = &Entry{RepoPath: abs, Layout: layout, Store: st}
-	r.entries[abs] = e
+	e := &Entry{RepoPath: repoPath, Layout: layout, Store: st}
+	r.entries[repoPath] = e
 	return e, nil
 }
 
@@ -81,9 +124,22 @@ func (r *Registry) Put(e *Entry) {
 func (r *Registry) Evict(repoPath string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if e, ok := r.entries[repoPath]; ok {
-		_ = e.Store.Close()
-		delete(r.entries, repoPath)
+	r.evictLocked(repoPath)
+}
+
+// evictLocked closes and removes the entry for repoPath plus any alias keys
+// (symlinked or subdirectory paths cached by Get) that point to the same
+// repo. Caller must hold r.mu.
+func (r *Registry) evictLocked(repoPath string) {
+	e, ok := r.entries[repoPath]
+	if !ok {
+		return
+	}
+	_ = e.Store.Close()
+	for k, v := range r.entries {
+		if v == e {
+			delete(r.entries, k)
+		}
 	}
 }
 
@@ -114,13 +170,11 @@ func (r *Registry) SwapNext(liveLayout, nextLayout index.RepoLayout) (string, er
 
 	repo := liveLayout.RepoPath
 
-	// Step 1: close the live store if any. The directory lock is released
-	// when Close returns. Without this the rename in step 2 would fail on
-	// platforms that hold a lock as a real fd (Linux/macOS via fcntl).
-	if e, ok := r.entries[repo]; ok {
-		_ = e.Store.Close()
-		delete(r.entries, repo)
-	}
+	// Step 1: close the live store if any (including alias keys cached by
+	// Get). The directory lock is released when Close returns. Without this
+	// the rename in step 2 would fail on platforms that hold a lock as a
+	// real fd (Linux/macOS via fcntl).
+	r.evictLocked(repo)
 
 	// Step 2: archive the live directory. This may not exist if the watcher
 	// fired before any init ran — that's fine, we just skip the archive.
@@ -187,12 +241,19 @@ func (r *Registry) CloseAll() {
 	r.entries = map[string]*Entry{}
 }
 
-// Snapshot returns a copy of the current entries for status reporting.
+// Snapshot returns a copy of the current entries for status reporting. Alias
+// keys cached by Get point at the same *Entry as the repo root, so entries
+// are deduped by identity.
 func (r *Registry) Snapshot() []*Entry {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	seen := make(map[*Entry]bool, len(r.entries))
 	out := make([]*Entry, 0, len(r.entries))
 	for _, e := range r.entries {
+		if seen[e] {
+			continue
+		}
+		seen[e] = true
 		out = append(out, e)
 	}
 	return out

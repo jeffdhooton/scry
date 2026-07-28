@@ -1159,3 +1159,31 @@ pushed to GitHub. No leaked organization name to rename later.
 **What would change our minds:** the project moves under an
 organization on GitHub. At that point a one-time `go mod edit -module`
 plus an import rewrite handles it.
+
+---
+
+## 2026-07-28 — Repo resolution: canonical paths + walk-up to nearest indexed ancestor
+
+**Decision:** `Registry.Get` no longer requires the query path to be the
+exact string the repo was indexed under. Resolution order: literal
+absolute path (back-compat), canonical form (symlinks resolved via
+`EvalSymlinks`, each component rewritten to its on-disk casing), then
+each canonical ancestor from nearest to farthest. Resolved paths are
+cached as alias keys pointing at the same `*Entry`; `Evict`/`SwapNext`
+purge aliases by entry identity and `Snapshot` dedupes them.
+`handleInit` canonicalizes before building so new indexes always key on
+the canonical path.
+
+**Why:** Three real failure modes on the scribe monorepo:
+(1) `~/workspace/scribe/apps/childscribe-laravel` is a symlink to
+`~/Herd/childscribe` — the indexed repo was unreachable through the
+symlink; (2) the symlink target is written lowercase while the index
+key was `ChildScribe` — macOS is case-insensitive so both name the same
+directory but hash to different `~/.scry/repos/<sha>` layouts; (3) any
+query from a subdirectory of an indexed repo failed with "not indexed
+yet". The daemon-side fix covers CLI, MCP, and watcher paths at once.
+
+**What would change our minds:** nested indexed repos where walk-up
+picks a surprising ancestor (nearest wins today — if a user wants a
+subdirectory served by an outer repo's index while the subdirectory has
+its own, that's already ambiguous and needs an explicit `--repo`).

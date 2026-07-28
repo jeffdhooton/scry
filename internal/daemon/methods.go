@@ -82,10 +82,9 @@ func (d *Daemon) handleInit(ctx context.Context, raw json.RawMessage) (any, erro
 	if p.Repo == "" {
 		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: "repo is required"}
 	}
-	abs, err := filepath.Abs(p.Repo)
-	if err != nil {
-		return nil, err
-	}
+	// Canonicalize (symlinks, on-disk casing) so a repo indexed via a
+	// symlinked or differently-cased path keys to one index, not several.
+	abs := canonicalPath(p.Repo)
 
 	start := time.Now()
 
