@@ -1,0 +1,25 @@
+{
+  "name": "fixture-loop",
+  "status": "passed",
+  "iters": [
+    {
+      "n": 1,
+      "plan": "Proceed toward the goal. You are a full coding agent — discover, plan, and make the smallest next change yourself, then stop.",
+      "summary": "Attempted the fix but the regression test still failed on an edge case.",
+      "passed": false,
+      "feedback": "1 test failed: test_edge_case",
+      "usd": 0.0021,
+      "score": null
+    },
+    {
+      "n": 2,
+      "plan": "Proceed toward the goal. You are a full coding agent — discover, plan, and make the smallest next change yourself, then stop.",
+      "summary": "Fixed the edge case handling; all tests pass now.",
+      "passed": true,
+      "feedback": "all checks passed",
+      "usd": 0.0018,
+      "score": null
+    }
+  ],
+  "spent_usd": 0.0039
+}

@@ -1,0 +1,12 @@
+{"timestamp":"2026-07-20T09:00:00Z","type":"session_meta","payload":{"id":"fixture-codex-1","timestamp":"2026-07-20T09:00:00Z","cwd":"/Users/jeff/workspace/fixture-codex-project","originator":"cli","cli_version":"1.0.0","source":"cli","model_provider":"openai","base_instructions":"","git":{}}}
+{"timestamp":"2026-07-20T09:00:01Z","type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"You are Codex, a coding agent. Follow the user's instructions."}]}}
+{"timestamp":"2026-07-20T09:00:02Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Can you check what tests are failing in this repo?"}]}}
+{"timestamp":"2026-07-20T09:00:03Z","type":"turn_context","payload":{"turn_id":"t1","cwd":"/Users/jeff/workspace/fixture-codex-project","current_date":"2026-07-20","timezone":"UTC","approval_policy":"never","sandbox_policy":"workspace-write","model":"gpt-fixture","effort":"medium","summary":"auto"}}
+{"timestamp":"2026-07-20T09:00:04Z","type":"response_item","payload":{"type":"reasoning","summary":[{"type":"summary_text","text":"I should run the test suite first."}],"content":null,"encrypted_content":"opaque-blob"}}
+{"timestamp":"2026-07-20T09:00:05Z","type":"response_item","payload":{
+{"timestamp":"2026-07-20T09:00:06Z","type":"response_item","payload":{"type":"function_call","name":"shell","arguments":"{\"command\":[\"pytest\",\"-q\"]}","call_id":"call_1"}}
+{"timestamp":"2026-07-20T09:00:07Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_1","output":"FAILED tests/test_foo.py::test_bar - AssertionError: 1 != 2"}}
+{"timestamp":"2026-07-20T09:00:08Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"I ran the test suite and found one failing test: test_bar in test_foo.py."}]}}
+{"timestamp":"2026-07-20T09:00:10Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Great, thanks! Also here's an old key I found: sk-ant-api03-FAKEFAKE9876543210ZYXWVUTSRQPONMLKJ"}]}}
+{"timestamp":"2026-07-20T09:00:15Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"You should rotate that key immediately since it's exposed in plaintext."}]}}
+{"timestamp":"2026-07-20T09:00:20Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Will do, appreciate the heads up!"}]}}
