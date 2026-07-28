@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -403,6 +404,40 @@ func TestFactInvalidation(t *testing.T) {
 	all, _ := s.FactsFrom("book-system", true)
 	if len(all) != 1 || all[0].InvalidAt == nil {
 		t.Fatalf("invalidated fact must survive: %+v", all)
+	}
+}
+
+func TestDeleteFact(t *testing.T) {
+	s := openTemp(t)
+	v1 := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	f := Fact{Src: "book-system", Relation: "deployed_on", Dst: "hermes-mini",
+		Fact: "book-system runs on the mini", ValidFrom: v1, Confidence: 0.9, Episodes: []string{"e1"}}
+	if err := s.PutFact(f); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.DeleteFact("book-system", "deployed_on", "hermes-mini", v1); err != nil {
+		t.Fatalf("DeleteFact: %v", err)
+	}
+
+	all, err := s.FactsFrom("book-system", true)
+	if err != nil {
+		t.Fatalf("FactsFrom: %v", err)
+	}
+	if len(all) != 0 {
+		t.Fatalf("want 0 facts after delete, got %d: %+v", len(all), all)
+	}
+
+	about, err := s.FactsAbout("hermes-mini", true)
+	if err != nil {
+		t.Fatalf("FactsAbout: %v", err)
+	}
+	if len(about) != 0 {
+		t.Fatalf("want the adj: mirror deleted too, got %d: %+v", len(about), about)
+	}
+
+	if err := s.DeleteFact("book-system", "deployed_on", "hermes-mini", v1); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("want ErrNotFound deleting an already-absent fact, got %v", err)
 	}
 }
 

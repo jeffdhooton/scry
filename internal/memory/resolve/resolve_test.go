@@ -276,6 +276,57 @@ func TestApply_MergeRule(t *testing.T) {
 	}
 }
 
+// Rule 4 (earlier ValidFrom): a merge whose incoming ValidFrom genuinely
+// predates the stored fact's (e.g. a backfilled episode) relocates the
+// record to the earlier ValidFrom instead of discarding it, and the result
+// is still exactly one fact — never a duplicate under the old key.
+func TestApply_MergeRule_EarlierValidFromRelocates(t *testing.T) {
+	st := openTemp(t)
+	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	t3 := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+
+	ep1 := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: t3, IngestedAt: t3}
+	res1 := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "loom", Relation: "uses", Dst: "deepseek-v4", Fact: "loom uses deepseek-v4", ValidFrom: "2026-03-01", Confidence: 0.6},
+		},
+	}
+	if _, err := Apply(st, ep1, "", res1, DefaultExclusive); err != nil {
+		t.Fatalf("Apply 1: %v", err)
+	}
+
+	// Backfill: a later-processed episode restating the same fact but with
+	// an earlier real-world valid_from.
+	ep2 := store.Episode{ID: "ep-2", Source: "manual", SourceRef: "y", OccurredAt: t3, IngestedAt: t3}
+	res2 := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "loom", Relation: "uses", Dst: "deepseek-v4", Fact: "loom uses deepseek-v4 (backfilled)", ValidFrom: "2026-01-01", Confidence: 0.8},
+		},
+	}
+	stats2, err := Apply(st, ep2, "", res2, DefaultExclusive)
+	if err != nil {
+		t.Fatalf("Apply 2: %v", err)
+	}
+	if stats2.FactsMerged != 1 || stats2.FactsAdded != 0 {
+		t.Fatalf("expected a merge (relocated), not a fresh add: %+v", stats2)
+	}
+
+	facts := mustFacts(t, st, "loom")
+	if len(facts) != 1 {
+		t.Fatalf("expected exactly one fact (relocated, not duplicated), got %d: %+v", len(facts), facts)
+	}
+	f := facts[0]
+	if !f.ValidFrom.Equal(t1) {
+		t.Fatalf("expected ValidFrom relocated to the earlier date, got %v", f.ValidFrom)
+	}
+	if f.Confidence != 0.8 {
+		t.Fatalf("expected max confidence 0.8, got %v", f.Confidence)
+	}
+	if len(f.Episodes) != 2 || !containsString(f.Episodes, "ep-1") || !containsString(f.Episodes, "ep-2") {
+		t.Fatalf("expected merged provenance from both episodes, got %+v", f.Episodes)
+	}
+}
+
 // Rule 5: supersedes hint invalidates a matching current fact.
 func TestApply_Supersedes(t *testing.T) {
 	st := openTemp(t)
@@ -372,6 +423,129 @@ func TestApply_ExclusiveFlip(t *testing.T) {
 	}
 	if cur == nil || cur.InvalidAt != nil {
 		t.Fatalf("expected new fact current: %+v", cur)
+	}
+}
+
+// Rule 6 (order independence): when one episode contains both a
+// restatement of the existing current fact and a flip to a new dst, the
+// final state must not depend on which comes first in the slice — the
+// restatement always merges (Phase A) before the flip's invalidation
+// (Phase B) runs, so the old fact is invalidated carrying merged
+// provenance rather than being invalidated-then-recreated from scratch.
+func TestApply_ExclusiveFlip_OrderIndependent(t *testing.T) {
+	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+
+	restatement := extract.Fct{Src: "hermes-mini", Relation: "deployed_on", Dst: "digitalocean", Fact: "still on DO", Confidence: 0.85}
+	flip := extract.Fct{Src: "hermes-mini", Relation: "deployed_on", Dst: "jclaws-mac-mini", Fact: "moved to the mini", Confidence: 0.95}
+
+	orderings := map[string][]extract.Fct{
+		"restatement_then_flip": {restatement, flip},
+		"flip_then_restatement": {flip, restatement},
+	}
+
+	for name, facts := range orderings {
+		t.Run(name, func(t *testing.T) {
+			st := openTemp(t)
+			ep0 := store.Episode{ID: "ep-0", Source: "manual", SourceRef: "seed", OccurredAt: t1, IngestedAt: t1}
+			res0 := extract.Result{
+				Facts: []extract.Fct{
+					{Src: "hermes-mini", Relation: "deployed_on", Dst: "digitalocean", Fact: "deployed on DO", Confidence: 0.9},
+				},
+			}
+			if _, err := Apply(st, ep0, "", res0, DefaultExclusive); err != nil {
+				t.Fatalf("Apply seed: %v", err)
+			}
+
+			epX := store.Episode{ID: "ep-x", Source: "manual", SourceRef: "z", OccurredAt: t2, IngestedAt: t2}
+			resX := extract.Result{Facts: facts}
+			stats, err := Apply(st, epX, "", resX, DefaultExclusive)
+			if err != nil {
+				t.Fatalf("Apply: %v", err)
+			}
+			if stats.FactsMerged != 1 || stats.FactsInvalidated != 1 || stats.FactsAdded != 1 {
+				t.Fatalf("expected 1 merged + 1 invalidated + 1 added regardless of order, got %+v", stats)
+			}
+
+			all := mustFacts(t, st, "hermes-mini")
+			if len(all) != 2 {
+				t.Fatalf("expected exactly two fa: records total, got %d: %+v", len(all), all)
+			}
+
+			var old, cur *store.Fact
+			for i := range all {
+				switch all[i].Dst {
+				case "digitalocean":
+					old = &all[i]
+				case "jclaws-mac-mini":
+					cur = &all[i]
+				}
+			}
+			if old == nil || old.InvalidAt == nil {
+				t.Fatalf("expected digitalocean fact invalidated: %+v", old)
+			}
+			if !old.InvalidAt.Equal(t2) {
+				t.Fatalf("expected InvalidAt == epX.OccurredAt, got %v", old.InvalidAt)
+			}
+			if len(old.Episodes) != 2 || !containsString(old.Episodes, "ep-0") || !containsString(old.Episodes, "ep-x") {
+				t.Fatalf("expected digitalocean fact to carry merged provenance from both episodes, got %+v", old.Episodes)
+			}
+			if old.Confidence != 0.9 {
+				t.Fatalf("expected max confidence 0.9 preserved on the invalidated fact, got %v", old.Confidence)
+			}
+			if cur == nil || cur.InvalidAt != nil {
+				t.Fatalf("expected jclaws-mac-mini fact current: %+v", cur)
+			}
+			if len(cur.Episodes) != 1 || cur.Episodes[0] != "ep-x" {
+				t.Fatalf("expected new fact's provenance to be just this episode, got %+v", cur.Episodes)
+			}
+		})
+	}
+}
+
+// Guard: Rules 5/6 must never invalidate a fact before its own ValidFrom —
+// if ep.OccurredAt predates it (e.g. a backfilled episode processed after a
+// later-dated fact already exists), InvalidAt is clamped to the fact's
+// ValidFrom instead.
+func TestApply_InvalidAtClampedToValidFrom(t *testing.T) {
+	st := openTemp(t)
+	validFrom := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	backfillOccurred := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	ep1 := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: validFrom, IngestedAt: validFrom}
+	res1 := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "hermes-mini", Relation: "deployed_on", Dst: "digitalocean", Fact: "deployed on DO", ValidFrom: "2026-05-01", Confidence: 0.9},
+		},
+	}
+	if _, err := Apply(st, ep1, "", res1, DefaultExclusive); err != nil {
+		t.Fatalf("Apply 1: %v", err)
+	}
+
+	// A backfilled episode, with an OccurredAt earlier than the existing
+	// fact's ValidFrom, triggers an exclusive flip.
+	ep2 := store.Episode{ID: "ep-2", Source: "manual", SourceRef: "y", OccurredAt: backfillOccurred, IngestedAt: backfillOccurred}
+	res2 := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "hermes-mini", Relation: "deployed_on", Dst: "jclaws-mac-mini", Fact: "deployed on the mini", ValidFrom: "2026-01-01", Confidence: 0.95},
+		},
+	}
+	if _, err := Apply(st, ep2, "", res2, DefaultExclusive); err != nil {
+		t.Fatalf("Apply 2: %v", err)
+	}
+
+	facts := mustFacts(t, st, "hermes-mini")
+	var old *store.Fact
+	for i := range facts {
+		if facts[i].Dst == "digitalocean" {
+			old = &facts[i]
+		}
+	}
+	if old == nil || old.InvalidAt == nil {
+		t.Fatalf("expected digitalocean fact invalidated: %+v", old)
+	}
+	if !old.InvalidAt.Equal(validFrom) {
+		t.Fatalf("expected InvalidAt clamped to the fact's own ValidFrom (%v), got %v", validFrom, old.InvalidAt)
 	}
 }
 

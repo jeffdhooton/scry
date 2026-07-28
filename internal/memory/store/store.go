@@ -530,6 +530,29 @@ func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Tim
 	})
 }
 
+// DeleteFact removes the exact fact identified by (src, relation, dst,
+// validFrom) — both its fa: record and its adj: reverse-index mirror.
+// Unlike InvalidateFact (which preserves history by marking a fact
+// invalid), DeleteFact erases it outright; callers that need to relocate a
+// fact to a different ValidFrom (a different fa:/adj: key) should read the
+// value first, DeleteFact the old key, then PutFact the new one. Returns
+// ErrNotFound if no such fact exists.
+func (s *Store) DeleteFact(src, relation, dst string, validFrom time.Time) error {
+	key := factKey(src, relation, dst, validFrom)
+	return s.db.Update(func(txn *badger.Txn) error {
+		if _, err := txn.Get(key); err != nil {
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if err := txn.Delete(key); err != nil {
+			return err
+		}
+		return txn.Delete(adjKey(dst, src, relation, validFrom))
+	})
+}
+
 // --- Cursors ---
 
 func cursorKey(path string) []byte {

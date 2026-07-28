@@ -7,13 +7,15 @@
 //  2. Resolve/merge each extracted entity (alias-aware).
 //  3. Resolve each fact's src/dst to entity slugs (creating concept stubs
 //     for names never seen before) and parse its ValidFrom.
-//  4. Merge onto a current fact with the same (src, relation, dst) triple
-//     rather than adding a duplicate.
-//  5. Apply the fact's "supersedes" hint, invalidating a matching current
-//     fact.
-//  6. For exclusive relations (e.g. deployed_on), invalidate any current
-//     fact with the same (src, relation) but a different dst before adding
-//     the new one.
+//  4. Phase A: merge every fact whose (src, relation, dst) exact-matches a
+//     CURRENT stored fact, evaluated across the whole episode before any
+//     invalidation runs, so the outcome does not depend on the order facts
+//     appear in within the episode.
+//  5. Phase B, in slice order, for facts NOT merged in Phase A: apply the
+//     fact's "supersedes" hint, invalidating a matching current fact.
+//  6. Phase B, continued: for exclusive relations (e.g. deployed_on),
+//     invalidate any current fact with the same (src, relation) but a
+//     different dst before adding the new one.
 //  7. Record the episode.
 package resolve
 
@@ -72,10 +74,8 @@ func Apply(st *store.Store, ep store.Episode, cwd string, res extract.Result, ex
 	}
 
 	// Rules 3-6: facts.
-	for _, fct := range res.Facts {
-		if err := resolveFact(st, ep, fct, exclusive, &stats); err != nil {
-			return stats, err
-		}
+	if err := resolveFacts(st, ep, res.Facts, exclusive, &stats); err != nil {
+		return stats, err
 	}
 
 	// Rule 7: record the episode last, so a failure above never marks a
@@ -144,87 +144,160 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	return nil
 }
 
-// resolveFact implements Rules 3-6 for a single extracted fact.
-func resolveFact(st *store.Store, ep store.Episode, fct extract.Fct, exclusive map[string]bool, stats *Stats) error {
-	// Rule 3: resolve endpoints (creating concept stubs as needed) and parse
-	// ValidFrom.
-	srcSlug, err := ensureEntitySlug(st, ep, fct.Src, stats)
-	if err != nil {
-		return err
-	}
-	dstSlug, err := ensureEntitySlug(st, ep, fct.Dst, stats)
-	if err != nil {
-		return err
-	}
-	validFrom := parseValidFrom(fct.ValidFrom, ep.OccurredAt)
+// resolvedFact is one extract.Fct after Rule 3's endpoint/ValidFrom
+// resolution, carried between resolveFacts' phases.
+type resolvedFact struct {
+	fct       extract.Fct
+	src, dst  string
+	validFrom time.Time
+	merged    bool
+}
 
-	merged := false
-	if srcSlug != "" && dstSlug != "" {
-		// Rule 4: merge onto a current fact with the same triple.
-		current, err := currentFact(st, srcSlug, fct.Relation, dstSlug)
+// resolveFacts implements Rules 3-6 for a whole episode's facts, in two
+// phases so the outcome never depends on the order facts appear in within
+// the episode:
+//
+//   - Phase A (Rule 4): every fact whose (src, relation, dst) exact-matches
+//     a fact that is current in the store *before* this episode's
+//     invalidations run gets merged onto it, regardless of where in the
+//     slice it appears.
+//   - Phase B (Rules 5-6), in slice order: every fact NOT merged in Phase A
+//     applies its supersedes hint, then — for exclusive relations —
+//     invalidates any conflicting current fact before adding itself.
+//
+// Without this split, a fact that flips an exclusive relation (e.g. a new
+// deployed_on target) processed before a same-episode restatement of the
+// old target would invalidate-then-recreate the old fact from scratch
+// instead of merging onto it, losing its provenance and confidence history.
+func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclusive map[string]bool, stats *Stats) error {
+	// Rule 3: resolve every fact's endpoints (creating concept stubs as
+	// needed) and ValidFrom up front.
+	resolved := make([]resolvedFact, len(facts))
+	for i, fct := range facts {
+		srcSlug, err := ensureEntitySlug(st, ep, fct.Src, stats)
 		if err != nil {
 			return err
 		}
-		if current != nil {
-			if !containsString(current.Episodes, ep.ID) {
-				current.Episodes = append(current.Episodes, ep.ID)
-			}
-			if fct.Confidence > current.Confidence {
-				current.Confidence = fct.Confidence
-			}
-			// ValidFrom (and thus the fact's storage key) is deliberately
-			// left untouched: the existing fact was recorded first, so its
-			// ValidFrom is the one to keep ("keep the earlier ValidFrom").
-			if err := st.PutFact(*current); err != nil {
+		dstSlug, err := ensureEntitySlug(st, ep, fct.Dst, stats)
+		if err != nil {
+			return err
+		}
+		resolved[i] = resolvedFact{
+			fct:       fct,
+			src:       srcSlug,
+			dst:       dstSlug,
+			validFrom: parseValidFrom(fct.ValidFrom, ep.OccurredAt),
+		}
+	}
+
+	// Phase A — Rule 4: merge onto any pre-existing current fact with the
+	// same triple, for every fact in the episode, before Phase B's
+	// invalidations run.
+	for i := range resolved {
+		rf := &resolved[i]
+		if rf.src == "" || rf.dst == "" {
+			continue
+		}
+		current, err := currentFact(st, rf.src, rf.fct.Relation, rf.dst)
+		if err != nil {
+			return err
+		}
+		if current == nil {
+			continue
+		}
+		if err := mergeFact(st, ep, *current, rf.validFrom, rf.fct.Confidence, stats); err != nil {
+			return err
+		}
+		rf.merged = true
+	}
+
+	// Phase B — Rules 5 & 6, in slice order, for facts not already merged.
+	for i := range resolved {
+		rf := &resolved[i]
+		if rf.merged {
+			continue
+		}
+
+		// Rule 5: supersedes hint.
+		if rf.fct.Supersedes != nil {
+			if err := applySupersedes(st, ep, *rf.fct.Supersedes, stats); err != nil {
 				return err
 			}
-			stats.FactsMerged++
-			merged = true
 		}
-	}
 
-	// Rule 5: supersedes hint — independent of what happens to this fact's
-	// own triple below.
-	if fct.Supersedes != nil {
-		if err := applySupersedes(st, ep, *fct.Supersedes, stats); err != nil {
-			return err
+		if rf.src == "" || rf.dst == "" {
+			continue
 		}
-	}
 
-	if merged || srcSlug == "" || dstSlug == "" {
-		return nil
-	}
-
-	// Rule 6: exclusive relations invalidate any current fact with the same
-	// (src, relation) but a different dst before the new one is added.
-	if exclusive[fct.Relation] {
-		currents, err := st.FactsFrom(srcSlug, false)
-		if err != nil {
-			return err
-		}
-		for _, f := range currents {
-			if f.Relation == fct.Relation && f.Dst != dstSlug {
-				if err := st.InvalidateFact(f.Src, f.Relation, f.Dst, f.ValidFrom, ep.OccurredAt); err != nil {
-					return err
+		// Rule 6: exclusive relations invalidate any current fact with the
+		// same (src, relation) but a different dst before the new one is
+		// added.
+		if exclusive[rf.fct.Relation] {
+			currents, err := st.FactsFrom(rf.src, false)
+			if err != nil {
+				return err
+			}
+			for _, f := range currents {
+				if f.Relation == rf.fct.Relation && f.Dst != rf.dst {
+					at := clampInvalidAt(ep.OccurredAt, f.ValidFrom)
+					if err := st.InvalidateFact(f.Src, f.Relation, f.Dst, f.ValidFrom, at); err != nil {
+						return err
+					}
+					stats.FactsInvalidated++
 				}
-				stats.FactsInvalidated++
 			}
 		}
+
+		newFact := store.Fact{
+			Src:        rf.src,
+			Relation:   rf.fct.Relation,
+			Dst:        rf.dst,
+			Fact:       rf.fct.Fact,
+			ValidFrom:  rf.validFrom,
+			Confidence: rf.fct.Confidence,
+			Episodes:   []string{ep.ID},
+		}
+		if err := st.PutFact(newFact); err != nil {
+			return err
+		}
+		stats.FactsAdded++
 	}
 
-	newFact := store.Fact{
-		Src:        srcSlug,
-		Relation:   fct.Relation,
-		Dst:        dstSlug,
-		Fact:       fct.Fact,
-		ValidFrom:  validFrom,
-		Confidence: fct.Confidence,
-		Episodes:   []string{ep.ID},
+	return nil
+}
+
+// mergeFact implements Rule 4's write for one match: current is the fact
+// already stored under (src, relation, dst); incomingValidFrom and
+// incomingConfidence come from the new episode's restatement of it.
+//
+// Episodes gets ep.ID appended (deduped) and Confidence takes the max of
+// the two. ValidFrom is the earlier of the two: if the incoming ValidFrom
+// is genuinely before the stored one (e.g. a backfilled episode), the
+// record is relocated — since store.Fact's key embeds ValidFrom, that means
+// deleting the old (src, relation, dst, oldValidFrom) key and re-putting
+// the merged fact under the earlier one, so as-of queries between the two
+// dates still see it. If the incoming ValidFrom is the same or later, the
+// existing ValidFrom (and its key) is left untouched.
+func mergeFact(st *store.Store, ep store.Episode, current store.Fact, incomingValidFrom time.Time, incomingConfidence float64, stats *Stats) error {
+	if !containsString(current.Episodes, ep.ID) {
+		current.Episodes = append(current.Episodes, ep.ID)
 	}
-	if err := st.PutFact(newFact); err != nil {
+	if incomingConfidence > current.Confidence {
+		current.Confidence = incomingConfidence
+	}
+
+	if incomingValidFrom.Before(current.ValidFrom) {
+		oldValidFrom := current.ValidFrom
+		current.ValidFrom = incomingValidFrom
+		if err := st.DeleteFact(current.Src, current.Relation, current.Dst, oldValidFrom); err != nil {
+			return err
+		}
+	}
+
+	if err := st.PutFact(current); err != nil {
 		return err
 	}
-	stats.FactsAdded++
+	stats.FactsMerged++
 	return nil
 }
 
@@ -252,7 +325,8 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stat
 	if current == nil {
 		return nil
 	}
-	if err := st.InvalidateFact(srcSlug, ref.Relation, dstSlug, current.ValidFrom, ep.OccurredAt); err != nil {
+	at := clampInvalidAt(ep.OccurredAt, current.ValidFrom)
+	if err := st.InvalidateFact(srcSlug, ref.Relation, dstSlug, current.ValidFrom, at); err != nil {
 		return err
 	}
 	stats.FactsInvalidated++
@@ -335,6 +409,16 @@ func parseValidFrom(s string, occurredAt time.Time) time.Time {
 		return t
 	}
 	return occurredAt
+}
+
+// clampInvalidAt returns at, unless at falls before validFrom — in which
+// case it returns validFrom instead, so a fact is never invalidated before
+// it became valid (zero-width validity beats a negative one).
+func clampInvalidAt(at, validFrom time.Time) time.Time {
+	if at.Before(validFrom) {
+		return validFrom
+	}
+	return at
 }
 
 // isWorkspacePath reports whether cwd looks like a user workspace path
