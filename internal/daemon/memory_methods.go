@@ -40,6 +40,7 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.remember", d.handleMemoryRemember)
 	d.server.Register("memory.cursor.get", d.handleMemoryCursorGet)
 	d.server.Register("memory.cursor.put", d.handleMemoryCursorPut)
+	d.server.Register("memory.hasEpisodes", d.handleMemoryHasEpisodes)
 	d.server.Register("memory.status", d.handleMemoryStatus)
 }
 
@@ -217,6 +218,24 @@ func (d *Daemon) handleMemoryPath(_ context.Context, raw json.RawMessage) (any, 
 	return facts, nil
 }
 
+// resolveMemorySlug resolves a user-supplied entity name or slug to its
+// canonical slug: alias index first, falling back to Slugify when there is
+// no alias match — mirroring recall.Path's resolveEndpoint semantics
+// exactly, so any RPC accepting an entity identifier honors the same
+// name-or-slug contract the MCP tool descriptions (scry_episodes,
+// scry_recall's underlying facts lookups) promise callers, not just an
+// exact slug.
+func resolveMemorySlug(st *memstore.Store, name string) (string, error) {
+	slug, ok, err := st.ResolveAlias(name)
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return slug, nil
+	}
+	return memstore.Slugify(name), nil
+}
+
 // --- memory.episodes ---
 
 // MemoryEpisodesParams asks for the most-recent episodes referenced by an
@@ -243,10 +262,14 @@ func (d *Daemon) handleMemoryEpisodes(_ context.Context, raw json.RawMessage) (a
 	if err != nil {
 		return nil, err
 	}
-	if _, err := st.GetEntity(p.Entity); err != nil {
+	slug, err := resolveMemorySlug(st, p.Entity)
+	if err != nil {
 		return nil, err
 	}
-	eps, err := recall.Episodes(st, p.Entity, limit)
+	if _, err := st.GetEntity(slug); err != nil {
+		return nil, err
+	}
+	eps, err := recall.Episodes(st, slug, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -312,10 +335,14 @@ func (d *Daemon) handleMemoryFacts(_ context.Context, raw json.RawMessage) (any,
 	if err != nil {
 		return nil, err
 	}
-	if _, err := st.GetEntity(p.Slug); err != nil {
+	slug, err := resolveMemorySlug(st, p.Slug)
+	if err != nil {
 		return nil, err
 	}
-	facts, err := st.FactsAbout(p.Slug, p.IncludeInvalid)
+	if _, err := st.GetEntity(slug); err != nil {
+		return nil, err
+	}
+	facts, err := st.FactsAbout(slug, p.IncludeInvalid)
 	if err != nil {
 		return nil, err
 	}
@@ -400,6 +427,20 @@ type MemoryRememberParams struct {
 	Entities []string `json:"entities,omitempty"`
 }
 
+// MemoryRememberResult is memory.remember's result. Dormant is true when no
+// extractor is configured: in that case the episode is still stored (so
+// it's ingestable later) but never resolved into facts, and Stats is
+// necessarily its zero value — indistinguishable, if Dormant weren't
+// reported, from a call that genuinely extracted zero entities/facts from a
+// fact with no durable content. The MCP dispatch (callMemoryQuery) forwards
+// this raw over JSON without unmarshaling it into a typed struct, so it
+// needs no changes; there is no `scry memory remember` CLI verb to update
+// either.
+type MemoryRememberResult struct {
+	Stats   resolve.Stats `json:"stats"`
+	Dormant bool          `json:"dormant"`
+}
+
 func (d *Daemon) handleMemoryRemember(ctx context.Context, raw json.RawMessage) (any, error) {
 	var p MemoryRememberParams
 	if err := json.Unmarshal(raw, &p); err != nil {
@@ -413,13 +454,19 @@ func (d *Daemon) handleMemoryRemember(ctx context.Context, raw json.RawMessage) 
 		return nil, err
 	}
 
+	// p.Fact is caller-supplied free text handed straight to the extraction
+	// API (and stored verbatim as the episode summary); redact it first, same
+	// as every other text that reaches distill/extract, so a fact pasted with
+	// a live credential in it doesn't leave this process un-redacted.
+	redactedFact := distill.Redact(p.Fact)
+
 	now := time.Now()
 	sum := sha256.Sum256([]byte(p.Fact + now.Format(time.RFC3339)))
 	ep := memstore.Episode{
 		ID:         hex.EncodeToString(sum[:]),
 		Source:     "manual",
 		SourceRef:  "manual",
-		Summary:    p.Fact,
+		Summary:    redactedFact,
 		OccurredAt: now,
 		IngestedAt: now,
 	}
@@ -430,14 +477,14 @@ func (d *Daemon) handleMemoryRemember(ctx context.Context, raw json.RawMessage) 
 		if err := st.PutEpisode(ep); err != nil {
 			return nil, err
 		}
-		return resolve.Stats{}, nil
+		return &MemoryRememberResult{Dormant: true}, nil
 	}
 
 	rawEp := distill.RawEpisode{
 		ID:         ep.ID,
 		Source:     ep.Source,
 		SourceRef:  ep.SourceRef,
-		Text:       p.Fact,
+		Text:       redactedFact,
 		OccurredAt: now,
 	}
 	result, err := d.memExtractor.Extract(ctx, rawEp, p.Entities)
@@ -448,7 +495,7 @@ func (d *Daemon) handleMemoryRemember(ctx context.Context, raw json.RawMessage) 
 	if err != nil {
 		return nil, err
 	}
-	return stats, nil
+	return &MemoryRememberResult{Stats: stats}, nil
 }
 
 // --- memory.cursor.get / memory.cursor.put ---
@@ -500,6 +547,47 @@ func (d *Daemon) handleMemoryCursorPut(_ context.Context, raw json.RawMessage) (
 		return nil, err
 	}
 	return map[string]any{"ok": true}, nil
+}
+
+// --- memory.hasEpisodes ---
+
+// MemoryHasEpisodesParams asks which of a candidate set of episode IDs are
+// already committed to the store.
+type MemoryHasEpisodesParams struct {
+	IDs []string `json:"ids"`
+}
+
+// MemoryHasEpisodesResult reports the subset of the requested IDs that are
+// NOT yet in the store — i.e. still Missing, and so still worth paying to
+// extract. Backfill uses this to skip re-extracting (and re-paying for)
+// episodes a previous ingest/sweep/backfill run already committed;
+// resolve.Apply's own HasEpisode idempotency check would no-op them anyway,
+// so without this filter the only thing extracting them again buys is a
+// wasted API call.
+type MemoryHasEpisodesResult struct {
+	Missing []string `json:"missing"`
+}
+
+func (d *Daemon) handleMemoryHasEpisodes(_ context.Context, raw json.RawMessage) (any, error) {
+	var p MemoryHasEpisodesParams
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: err.Error()}
+	}
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	missing := make([]string, 0, len(p.IDs))
+	for _, id := range p.IDs {
+		has, err := st.HasEpisode(id)
+		if err != nil {
+			return nil, err
+		}
+		if !has {
+			missing = append(missing, id)
+		}
+	}
+	return &MemoryHasEpisodesResult{Missing: missing}, nil
 }
 
 // --- memory.status ---

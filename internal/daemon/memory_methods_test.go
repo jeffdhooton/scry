@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,13 +41,17 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 }
 
 // fakeExtractor is a canned Extractor for exercising memory.remember's
-// non-dormant path without hitting the real Anthropic API.
+// non-dormant path without hitting the real Anthropic API. calls records
+// every RawEpisode passed in, so tests can assert on what memory.remember
+// actually sent to extraction (e.g. that it was redacted first).
 type fakeExtractor struct {
 	result extract.Result
 	err    error
+	calls  []distill.RawEpisode
 }
 
-func (f *fakeExtractor) Extract(_ context.Context, _ distill.RawEpisode, _ []string) (extract.Result, error) {
+func (f *fakeExtractor) Extract(_ context.Context, ep distill.RawEpisode, _ []string) (extract.Result, error) {
+	f.calls = append(f.calls, ep)
 	return f.result, f.err
 }
 
@@ -329,12 +334,15 @@ func TestMemoryRememberDormantStoresEpisodeWithoutError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("handleMemoryRemember (dormant): %v", err)
 	}
-	stats, ok := res.(resolve.Stats)
+	result, ok := res.(*MemoryRememberResult)
 	if !ok {
-		t.Fatalf("handleMemoryRemember result type = %T, want resolve.Stats", res)
+		t.Fatalf("handleMemoryRemember result type = %T, want *MemoryRememberResult", res)
 	}
-	if stats != (resolve.Stats{}) {
-		t.Errorf("stats = %+v, want zero value in dormant mode", stats)
+	if !result.Dormant {
+		t.Errorf("Dormant = false, want true — a dormant call must be distinguishable from one that genuinely resolved zero stats")
+	}
+	if result.Stats != (resolve.Stats{}) {
+		t.Errorf("stats = %+v, want zero value in dormant mode", result.Stats)
 	}
 
 	// Status should show one episode ingested, zero entities/facts (dormant
@@ -375,15 +383,64 @@ func TestMemoryRememberWithExtractorResolvesFacts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("handleMemoryRemember (with extractor): %v", err)
 	}
-	stats, ok := res.(resolve.Stats)
+	result, ok := res.(*MemoryRememberResult)
 	if !ok {
-		t.Fatalf("handleMemoryRemember result type = %T, want resolve.Stats", res)
+		t.Fatalf("handleMemoryRemember result type = %T, want *MemoryRememberResult", res)
 	}
-	if stats.EntitiesCreated != 2 {
-		t.Errorf("EntitiesCreated = %d, want 2", stats.EntitiesCreated)
+	if result.Dormant {
+		t.Errorf("Dormant = true, want false — an extractor is configured")
 	}
-	if stats.FactsAdded != 1 {
-		t.Errorf("FactsAdded = %d, want 1", stats.FactsAdded)
+	if result.Stats.EntitiesCreated != 2 {
+		t.Errorf("EntitiesCreated = %d, want 2", result.Stats.EntitiesCreated)
+	}
+	if result.Stats.FactsAdded != 1 {
+		t.Errorf("FactsAdded = %d, want 1", result.Stats.FactsAdded)
+	}
+}
+
+// TestMemoryRememberRedactsFact covers F3: memory.remember must redact
+// secret-shaped text out of p.Fact before any of it reaches the extraction
+// API or gets stored — both the RawEpisode.Text sent to Extract and the
+// episode's stored Summary.
+func TestMemoryRememberRedactsFact(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	fake := &fakeExtractor{
+		result: extract.Result{EpisodeSummary: "noted a token"},
+	}
+	d.memExtractor = fake
+	ctx := context.Background()
+
+	secretFact := "the deploy key is sk-abcdefghijklmnopqrstuvwxyz123456"
+	if _, err := d.handleMemoryRemember(ctx, mustJSON(t, MemoryRememberParams{Fact: secretFact})); err != nil {
+		t.Fatalf("handleMemoryRemember: %v", err)
+	}
+
+	if len(fake.calls) != 1 {
+		t.Fatalf("extractor calls = %d, want 1", len(fake.calls))
+	}
+	if strings.Contains(fake.calls[0].Text, "sk-abcdefghijklmnopqrstuvwxyz123456") {
+		t.Errorf("un-redacted secret sent to the extractor: %q", fake.calls[0].Text)
+	}
+	if !strings.Contains(fake.calls[0].Text, "[REDACTED]") {
+		t.Errorf("expected the extractor's input to contain the redaction marker; got: %q", fake.calls[0].Text)
+	}
+
+	// The stored episode's Summary must be redacted too — reach past the RPC
+	// layer directly into the store (same package) since no RPC exposes a
+	// bare episode lookup by ID.
+	st, err := d.memoryStore()
+	if err != nil {
+		t.Fatalf("memoryStore: %v", err)
+	}
+	ep, err := st.GetEpisode(fake.calls[0].ID)
+	if err != nil {
+		t.Fatalf("GetEpisode(%s): %v", fake.calls[0].ID, err)
+	}
+	if strings.Contains(ep.Summary, "sk-abcdefghijklmnopqrstuvwxyz123456") {
+		t.Errorf("un-redacted secret stored in episode Summary: %q", ep.Summary)
+	}
+	if !strings.Contains(ep.Summary, "[REDACTED]") {
+		t.Errorf("expected the stored Summary to contain the redaction marker; got: %q", ep.Summary)
 	}
 }
 
@@ -402,6 +459,93 @@ func TestMemoryEpisodesUnknownEntityReturnsError(t *testing.T) {
 
 	if _, err := d.handleMemoryEpisodes(ctx, mustJSON(t, MemoryEpisodesParams{Entity: "does-not-exist"})); err == nil {
 		t.Fatal("handleMemoryEpisodes: expected error for unknown entity, got nil")
+	}
+}
+
+// TestMemoryFactsAndEpisodesResolveAlias covers F6: memory.facts and
+// memory.episodes must accept an alias, not just an exact slug, since their
+// MCP tool descriptions (scry_recall et al.) promise name-or-slug input.
+func TestMemoryFactsAndEpisodesResolveAlias(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	now := time.Now()
+
+	commitParams := MemoryCommitParams{
+		Episode: memstore.Episode{ID: "ep-alias", Source: "manual", SourceRef: "manual", OccurredAt: now, IngestedAt: now},
+		Result: extract.Result{
+			EpisodeSummary: "book-system deployed to hermes-mini",
+			Entities: []extract.Ent{
+				{Name: "book-system", Type: "service", Aliases: []string{"bs"}},
+				{Name: "hermes-mini", Type: "machine"},
+			},
+			Facts: []extract.Fct{
+				{Src: "book-system", Relation: "deployed_on", Dst: "hermes-mini", Fact: "runs there", Confidence: 0.8},
+			},
+		},
+	}
+	if _, err := d.handleMemoryCommit(ctx, mustJSON(t, commitParams)); err != nil {
+		t.Fatalf("handleMemoryCommit: %v", err)
+	}
+
+	factsRes, err := d.handleMemoryFacts(ctx, mustJSON(t, MemoryFactsParams{Slug: "bs"}))
+	if err != nil {
+		t.Fatalf("handleMemoryFacts(alias %q): %v", "bs", err)
+	}
+	facts := factsRes.([]memstore.Fact)
+	if len(facts) != 1 {
+		t.Fatalf("facts via alias = %d, want 1", len(facts))
+	}
+
+	episodesRes, err := d.handleMemoryEpisodes(ctx, mustJSON(t, MemoryEpisodesParams{Entity: "bs"}))
+	if err != nil {
+		t.Fatalf("handleMemoryEpisodes(alias %q): %v", "bs", err)
+	}
+	eps := episodesRes.([]memstore.Episode)
+	if len(eps) != 1 {
+		t.Fatalf("episodes via alias = %d, want 1", len(eps))
+	}
+	if eps[0].ID != "ep-alias" {
+		t.Errorf("episode ID = %q, want %q", eps[0].ID, "ep-alias")
+	}
+}
+
+// TestMemoryHasEpisodes covers F5's RPC: it must report exactly the
+// requested IDs that are NOT yet committed, leaving already-known ones out
+// of Missing.
+func TestMemoryHasEpisodes(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	now := time.Now()
+
+	commitParams := MemoryCommitParams{
+		Episode: memstore.Episode{ID: "known-ep", Source: "manual", SourceRef: "manual", OccurredAt: now, IngestedAt: now},
+		Result:  extract.Result{EpisodeSummary: "seed"},
+	}
+	if _, err := d.handleMemoryCommit(ctx, mustJSON(t, commitParams)); err != nil {
+		t.Fatalf("handleMemoryCommit: %v", err)
+	}
+
+	res, err := d.handleMemoryHasEpisodes(ctx, mustJSON(t, MemoryHasEpisodesParams{
+		IDs: []string{"known-ep", "unknown-ep-1", "unknown-ep-2"},
+	}))
+	if err != nil {
+		t.Fatalf("handleMemoryHasEpisodes: %v", err)
+	}
+	result, ok := res.(*MemoryHasEpisodesResult)
+	if !ok {
+		t.Fatalf("handleMemoryHasEpisodes result type = %T, want *MemoryHasEpisodesResult", res)
+	}
+	want := map[string]bool{"unknown-ep-1": true, "unknown-ep-2": true}
+	if len(result.Missing) != len(want) {
+		t.Fatalf("Missing = %v, want exactly %v", result.Missing, want)
+	}
+	for _, id := range result.Missing {
+		if !want[id] {
+			t.Errorf("Missing contains unexpected id %q", id)
+		}
+		if id == "known-ep" {
+			t.Errorf("Missing contains %q, which was already committed", id)
+		}
 	}
 }
 
