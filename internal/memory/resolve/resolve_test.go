@@ -71,6 +71,26 @@ func TestApply_Idempotent(t *testing.T) {
 	}
 }
 
+func TestNormalizeRelation(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"deployed_on", "deployed_on"},
+		{"Deployed: On!", "deployed_on"},
+		{"  DEPLOYED   ON  ", "deployed_on"},
+		{"deployed_: on", "deployed_on"},
+		{":::", ""},
+		{"   ", ""},
+		{"", ""},
+	}
+	for _, c := range cases {
+		if got := normalizeRelation(c.in); got != c.want {
+			t.Errorf("normalizeRelation(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
 // Rule 2: alias-based resolution.
 func TestApply_AliasResolution(t *testing.T) {
 	st := openTemp(t)
@@ -722,5 +742,80 @@ func TestApply_EmptySlugSkipped(t *testing.T) {
 	}
 	if facts != 0 {
 		t.Fatalf("expected no facts written, got facts=%d", facts)
+	}
+}
+
+// TestApply_RelationNormalized covers F7: an unvalidated LLM relation string
+// containing punctuation must be normalized before it ever reaches the
+// store (which colon-joins src/relation/dst into its on-disk key), and the
+// normalized form must be exactly what later exact-match lookups (Rule 4
+// merge, DefaultExclusive) expect — proven here by merging a normalized
+// "Deployed: On!" onto an existing plain "deployed_on" fact instead of
+// creating a second, duplicate one.
+func TestApply_RelationNormalized(t *testing.T) {
+	st := openTemp(t)
+	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	ep1 := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: t1, IngestedAt: t1}
+	res1 := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "book-system", Relation: "deployed_on", Dst: "hermes-mini", Fact: "runs there", Confidence: 0.7},
+		},
+	}
+	if _, err := Apply(st, ep1, "", res1, DefaultExclusive); err != nil {
+		t.Fatalf("Apply 1: %v", err)
+	}
+
+	ep2 := store.Episode{ID: "ep-2", Source: "manual", SourceRef: "y", OccurredAt: t2, IngestedAt: t2}
+	res2 := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "book-system", Relation: "Deployed: On!", Dst: "hermes-mini", Fact: "still runs there", Confidence: 0.9},
+		},
+	}
+	stats2, err := Apply(st, ep2, "", res2, DefaultExclusive)
+	if err != nil {
+		t.Fatalf("Apply 2: %v", err)
+	}
+	if stats2.FactsMerged != 1 || stats2.FactsAdded != 0 {
+		t.Fatalf("expected the normalized relation to merge onto the existing deployed_on fact, got %+v", stats2)
+	}
+
+	facts := mustFacts(t, st, "book-system")
+	if len(facts) != 1 {
+		t.Fatalf("expected exactly one fact (merged, not duplicated), got %d: %+v", len(facts), facts)
+	}
+	if facts[0].Relation != "deployed_on" {
+		t.Fatalf("Relation = %q, want normalized %q", facts[0].Relation, "deployed_on")
+	}
+}
+
+// TestApply_RelationNormalizesToEmptySkipsFact covers F7's other half: a
+// relation that is pure punctuation (nothing left after normalization) must
+// be dropped outright — no fact written, and no concept stub created for
+// either endpoint, since the fact never gets far enough to touch them.
+func TestApply_RelationNormalizesToEmptySkipsFact(t *testing.T) {
+	st := openTemp(t)
+	occurred := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: occurred, IngestedAt: occurred}
+	res := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "book-system", Relation: ":::", Dst: "hermes-mini", Fact: "junk relation", Confidence: 0.5},
+		},
+	}
+
+	stats, err := Apply(st, ep, "", res, DefaultExclusive)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if stats.FactsAdded != 0 || stats.EntitiesCreated != 0 {
+		t.Fatalf("expected the fact to be skipped with nothing counted, got %+v", stats)
+	}
+	_, entities, facts, err := st.Counts()
+	if err != nil {
+		t.Fatalf("Counts: %v", err)
+	}
+	if entities != 0 || facts != 0 {
+		t.Fatalf("expected nothing written, got entities=%d facts=%d", entities, facts)
 	}
 }

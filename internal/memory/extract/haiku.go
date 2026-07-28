@@ -99,7 +99,7 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 	raw2 := concatText(resp2)
 	result2, parseErr2 := ParseResult(raw2)
 	if parseErr2 != nil {
-		return Result{}, fmt.Errorf("extract: invalid JSON after retry: %w", parseErr2)
+		return Result{}, fmt.Errorf("extract: invalid JSON after retry: %w: %w", ErrParse, parseErr2)
 	}
 	return result2, nil
 }

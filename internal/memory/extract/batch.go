@@ -224,7 +224,12 @@ func routeResult(item batchItem) (Result, error) {
 	case resultSucceeded:
 		res, err := ParseResult(item.Text)
 		if err != nil {
-			return Result{}, fmt.Errorf("extract: batch result %s: %w", item.CustomID, err)
+			// A batch item that "succeeded" at the API level but whose text
+			// didn't parse is a content-level failure, same as
+			// Haiku.Extract's post-retry ParseResult error — wrap ErrParse
+			// so callers can skip just this episode instead of treating the
+			// whole backfill run as aborted.
+			return Result{}, fmt.Errorf("extract: batch result %s: %w: %w", item.CustomID, ErrParse, err)
 		}
 		return res, nil
 	case resultErrored:

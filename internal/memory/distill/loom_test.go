@@ -99,3 +99,44 @@ func TestLoomRunMissingStateErrors(t *testing.T) {
 		t.Errorf("expected error for a run dir with no state.json, got nil")
 	}
 }
+
+// TestLoomRunIDChangesWithContent covers F2: the episode ID must be
+// content-sensitive (derived from the newest file mtime in the run dir), not
+// just the dir path, so a run dir whose content changes between two
+// distills (e.g. a resumed run appending an iteration) produces a distinct
+// episode instead of being extracted again at LLM cost and then silently
+// dropped by HasEpisode as a duplicate of the stale content.
+func TestLoomRunIDChangesWithContent(t *testing.T) {
+	dir := t.TempDir()
+	state := `{"name":"touch-run","status":"running","iters":[{"n":1,"plan":"p","summary":"first","passed":false,"feedback":"","usd":0,"score":null}],"spent_usd":0}`
+	statePath := filepath.Join(dir, "state.json")
+	if err := os.WriteFile(statePath, []byte(state), 0o644); err != nil {
+		t.Fatalf("write state.json: %v", err)
+	}
+	t1 := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+	if err := os.Chtimes(statePath, t1, t1); err != nil {
+		t.Fatalf("chtimes: %v", err)
+	}
+
+	first, err := LoomRun(dir)
+	if err != nil {
+		t.Fatalf("LoomRun (first): %v", err)
+	}
+
+	// Touch the file forward in time without changing its logical
+	// "iteration" content — mtime alone is what the ID keys off of, mirroring
+	// how a resumed run appending to state.json would look from outside.
+	t2 := t1.Add(5 * time.Minute)
+	if err := os.Chtimes(statePath, t2, t2); err != nil {
+		t.Fatalf("chtimes (touch): %v", err)
+	}
+
+	second, err := LoomRun(dir)
+	if err != nil {
+		t.Fatalf("LoomRun (second): %v", err)
+	}
+
+	if first[0].ID == second[0].ID {
+		t.Errorf("ID unchanged across a content/mtime change: %q", first[0].ID)
+	}
+}

@@ -1,6 +1,7 @@
 package extract
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -141,7 +142,7 @@ func TestRouteResult(t *testing.T) {
 		}
 	})
 
-	t.Run("succeeded with malformed JSON returns an error", func(t *testing.T) {
+	t.Run("succeeded with malformed JSON returns an ErrParse-wrapping error", func(t *testing.T) {
 		item := batchItem{
 			CustomID: "ep1",
 			Kind:     resultSucceeded,
@@ -151,9 +152,12 @@ func TestRouteResult(t *testing.T) {
 		if err == nil {
 			t.Fatal("routeResult() error = nil, want error for malformed JSON")
 		}
+		if !errors.Is(err, ErrParse) {
+			t.Errorf("routeResult() error = %v, want it to wrap ErrParse (content-level failure, skippable)", err)
+		}
 	})
 
-	t.Run("errored returns an error mentioning the API message", func(t *testing.T) {
+	t.Run("errored returns an error mentioning the API message, not wrapping ErrParse", func(t *testing.T) {
 		item := batchItem{
 			CustomID: "ep1",
 			Kind:     resultErrored,
@@ -166,21 +170,30 @@ func TestRouteResult(t *testing.T) {
 		if got := err.Error(); !contains(got, "rate limited") {
 			t.Errorf("error = %q, want it to mention %q", got, "rate limited")
 		}
+		if errors.Is(err, ErrParse) {
+			t.Error("routeResult() error wraps ErrParse, want a non-content (transport-ish) error")
+		}
 	})
 
-	t.Run("canceled returns an error", func(t *testing.T) {
+	t.Run("canceled returns an error, not wrapping ErrParse", func(t *testing.T) {
 		item := batchItem{CustomID: "ep1", Kind: resultCanceled}
 		_, err := routeResult(item)
 		if err == nil {
 			t.Fatal("routeResult() error = nil, want error")
 		}
+		if errors.Is(err, ErrParse) {
+			t.Error("routeResult() error wraps ErrParse, want a non-content (transport-ish) error")
+		}
 	})
 
-	t.Run("expired returns an error", func(t *testing.T) {
+	t.Run("expired returns an error, not wrapping ErrParse", func(t *testing.T) {
 		item := batchItem{CustomID: "ep1", Kind: resultExpired}
 		_, err := routeResult(item)
 		if err == nil {
 			t.Fatal("routeResult() error = nil, want error")
+		}
+		if errors.Is(err, ErrParse) {
+			t.Error("routeResult() error wraps ErrParse, want a non-content (transport-ish) error")
 		}
 	})
 }

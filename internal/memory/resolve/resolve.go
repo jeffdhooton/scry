@@ -23,6 +23,7 @@ package resolve
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 
@@ -177,9 +178,18 @@ type resolvedFact struct {
 // confidence history.
 func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclusive map[string]bool, stats *Stats) error {
 	// Rule 3: resolve every fact's endpoints (creating concept stubs as
-	// needed) and ValidFrom up front.
-	resolved := make([]resolvedFact, len(facts))
-	for i, fct := range facts {
+	// needed) and ValidFrom up front. Relation is normalized (see
+	// normalizeRelation) before anything else touches it: facts whose
+	// relation normalizes to empty are dropped here, before any entity stub
+	// is created for their src/dst, so a garbage relation costs nothing.
+	resolved := make([]resolvedFact, 0, len(facts))
+	for _, fct := range facts {
+		relation := normalizeRelation(fct.Relation)
+		if relation == "" {
+			continue
+		}
+		fct.Relation = relation
+
 		srcSlug, err := ensureEntitySlug(st, ep, fct.Src, stats)
 		if err != nil {
 			return err
@@ -188,12 +198,12 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		if err != nil {
 			return err
 		}
-		resolved[i] = resolvedFact{
+		resolved = append(resolved, resolvedFact{
 			fct:       fct,
 			src:       srcSlug,
 			dst:       dstSlug,
 			validFrom: parseValidFrom(fct.ValidFrom, ep.OccurredAt),
-		}
+		})
 	}
 
 	// Phase A — Rule 4: merge onto any pre-existing current fact with the
@@ -405,6 +415,34 @@ func currentFact(st *store.Store, src, relation, dst string) (*store.Fact, error
 		}
 	}
 	return nil, nil
+}
+
+// relationIllegalRE matches runs of characters outside [a-z0-9_];
+// relationRepeatRE collapses any resulting run of underscores (e.g. a
+// legitimate "_" abutting a replaced illegal run) down to one.
+var (
+	relationIllegalRE = regexp.MustCompile(`[^a-z0-9_]+`)
+	relationRepeatRE  = regexp.MustCompile(`_+`)
+)
+
+// normalizeRelation sanitizes an LLM-produced relation string at the one
+// point it crosses from extract.Fct into the store: lowercased, trimmed,
+// every run of characters outside [a-z0-9_] collapsed to a single '_', any
+// resulting run of underscores collapsed again, and leading/trailing '_'
+// trimmed. extract.Fct.Relation is unvalidated free text from the model —
+// store.Fact's on-disk keys (factKey/adjKey in internal/memory/store) join
+// (src, relation, dst, validFrom) with literal ':' separators, so a relation
+// containing ':' would embed extra separators into the key and silently
+// corrupt the adj: reverse index (FactsAbout's SplitN(rest, ":", 3)
+// misparses it, so the fact quietly vanishes from that side of queries).
+// A relation that normalizes to the empty string (e.g. pure punctuation like
+// ":::") has nothing usable left; the caller skips the fact entirely rather
+// than writing one with no relation.
+func normalizeRelation(rel string) string {
+	rel = strings.ToLower(strings.TrimSpace(rel))
+	rel = relationIllegalRE.ReplaceAllString(rel, "_")
+	rel = relationRepeatRE.ReplaceAllString(rel, "_")
+	return strings.Trim(rel, "_")
 }
 
 // parseValidFrom parses s as RFC3339, then as a bare date ("2006-01-02"),

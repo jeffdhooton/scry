@@ -3,7 +3,9 @@ package ingest
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
@@ -20,20 +22,32 @@ const (
 
 // fakeExtractor is a minimal in-memory Extractor for these tests, following
 // the pattern in internal/memory/extract's own tests. errForID lets a
-// specific episode fail extraction without failing every episode.
+// specific episode fail extraction (with an extract.ErrParse-wrapping error,
+// the one classification File must skip-and-continue past) without failing
+// every episode. errAtCall/errAtCallErr lets the Nth call (1-indexed,
+// regardless of episode ID) fail with an arbitrary error, for exercising
+// non-parse (e.g. context) failures mid-file.
 type fakeExtractor struct {
 	err      error
 	errForID map[string]bool
-	calls    []distill.RawEpisode
+
+	errAtCall    int // 1-indexed call number; 0 = never
+	errAtCallErr error
+
+	calls []distill.RawEpisode
 }
 
 func (f *fakeExtractor) Extract(ctx context.Context, ep distill.RawEpisode, glossary []string) (extract.Result, error) {
 	f.calls = append(f.calls, ep)
+	callNum := len(f.calls)
+	if f.errAtCall != 0 && callNum == f.errAtCall {
+		return extract.Result{}, f.errAtCallErr
+	}
 	if f.err != nil {
 		return extract.Result{}, f.err
 	}
 	if f.errForID != nil && f.errForID[ep.ID] {
-		return extract.Result{}, errors.New("fake extraction error")
+		return extract.Result{}, fmt.Errorf("fake parse error: %w", extract.ErrParse)
 	}
 	return extract.Result{EpisodeSummary: "summary for " + ep.ID}, nil
 }
@@ -270,6 +284,10 @@ func TestFile_SeedSource(t *testing.T) {
 	}
 }
 
+// TestFile_ExtractionErrorSkipsEpisodeButContinues covers the one
+// skip-and-continue classification: a content-level parse failure
+// (extract.ErrParse) on a single episode. Everything else must abort (see
+// TestIngestOffset_NonParseExtractionErrorAbortsWithoutAdvancingCursor).
 func TestFile_ExtractionErrorSkipsEpisodeButContinues(t *testing.T) {
 	wantEpisodes, _, err := distill.ClaudeSession(claudeFixture, 0)
 	if err != nil {
@@ -333,5 +351,54 @@ func TestFile_CommitErrorAbortsWithoutAdvancingCursor(t *testing.T) {
 	}
 	if _, found := daemon.cursors[claudeFixture]; found {
 		t.Error("cursor was stored despite a commit error; must not advance on failure")
+	}
+}
+
+// TestIngestOffset_NonParseExtractionErrorAbortsWithoutAdvancingCursor covers
+// F1: a transient/non-content extraction failure (context.DeadlineExceeded
+// here, standing in for any transport-ish failure) on episode 2 of 3 must
+// abort the whole call — mirroring the commit-error abort path — instead of
+// being counted as skippable, which would advance the cursor past the two
+// unprocessed episodes and permanently hide them from future sweeps.
+func TestIngestOffset_NonParseExtractionErrorAbortsWithoutAdvancingCursor(t *testing.T) {
+	episodes := []distill.RawEpisode{
+		{ID: "ep-1", Text: "one"},
+		{ID: "ep-2", Text: "two"},
+		{ID: "ep-3", Text: "three"},
+	}
+	distillFn := func(path string, offset int64) ([]distill.RawEpisode, int64, error) {
+		return episodes, 999, nil
+	}
+
+	tmp := filepath.Join(t.TempDir(), "fake.jsonl")
+	if err := os.WriteFile(tmp, []byte("x"), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	daemon := newFakeDaemon()
+	extractor := &fakeExtractor{errAtCall: 2, errAtCallErr: context.DeadlineExceeded}
+
+	sum, err := ingestOffset(context.Background(), Options{
+		Path:      tmp,
+		Extractor: extractor,
+		Daemon:    daemon,
+	}, distillFn)
+	if err == nil {
+		t.Fatal("ingestOffset() error = nil, want error from the non-parse extraction failure on episode 2")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("ingestOffset() error = %v, want it to wrap context.DeadlineExceeded", err)
+	}
+	if _, found := daemon.cursors[tmp]; found {
+		t.Error("cursor was stored despite the abort; must not advance past unprocessed episodes")
+	}
+	if len(daemon.commits) != 1 {
+		t.Errorf("commits = %d, want 1 (only episode 1, committed before the abort)", len(daemon.commits))
+	}
+	if sum.EpisodesIngested != 1 {
+		t.Errorf("EpisodesIngested = %d, want 1", sum.EpisodesIngested)
+	}
+	if sum.EpisodesSkipped != 0 {
+		t.Errorf("EpisodesSkipped = %d, want 0 (a non-parse error aborts, it doesn't skip)", sum.EpisodesSkipped)
 	}
 }

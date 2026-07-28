@@ -3,6 +3,7 @@ package distill
 import (
 	"os"
 	"strings"
+	"time"
 )
 
 // seedSource is the Source value stamped on episodes produced by
@@ -20,6 +21,13 @@ const seedSource = "seed"
 // Parsing is tolerant, matching the rest of this package: a file with no
 // frontmatter block at all is not an error, its entire content is simply
 // treated as the body with no description.
+//
+// The episode ID is content-sensitive: it is derived from path PLUS the
+// file's mtime (see LoomRun's ID comment for why — a seed file, like a loom
+// run dir, is always re-read and re-distilled in full rather than
+// offset-resumed, so a content-independent ID would mean an edited file
+// gets re-extracted at LLM cost only for HasEpisode to then silently drop
+// the result as a duplicate of the stale content).
 func SeedMarkdown(path string) (RawEpisode, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -39,12 +47,13 @@ func SeedMarkdown(path string) (RawEpisode, error) {
 	}
 	b.WriteString(body)
 
+	mtime := info.ModTime()
 	return RawEpisode{
-		ID:         makeID(path),
+		ID:         makeID(path + "#" + mtime.UTC().Format(time.RFC3339Nano)),
 		Source:     seedSource,
 		SourceRef:  path,
 		Text:       Redact(strings.TrimSpace(b.String())),
-		OccurredAt: info.ModTime(),
+		OccurredAt: mtime,
 	}, nil
 }
 

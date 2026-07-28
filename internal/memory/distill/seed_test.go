@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 const seedFixturePath = "testdata/seed_memory.md"
@@ -76,5 +77,44 @@ func TestSeedMarkdownNoFrontmatterUsesWholeFileAsBody(t *testing.T) {
 	}
 	if !strings.Contains(ep.Text, "Just a plain note") {
 		t.Errorf("expected whole-file fallback body; got: %s", ep.Text)
+	}
+}
+
+// TestSeedMarkdownIDChangesWithContent covers F2: the episode ID must be
+// content-sensitive (derived from the file's mtime), not just the path, so
+// an edited seed file produces a distinct episode on re-distill instead of
+// being extracted again at LLM cost and then silently dropped by HasEpisode
+// as a duplicate of the stale content.
+func TestSeedMarkdownIDChangesWithContent(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "seed.md")
+	if err := os.WriteFile(path, []byte("# v1\n\nfirst version\n"), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	t1 := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+	if err := os.Chtimes(path, t1, t1); err != nil {
+		t.Fatalf("chtimes: %v", err)
+	}
+
+	first, err := SeedMarkdown(path)
+	if err != nil {
+		t.Fatalf("SeedMarkdown (first): %v", err)
+	}
+
+	if err := os.WriteFile(path, []byte("# v2\n\nsecond version\n"), 0o644); err != nil {
+		t.Fatalf("rewrite fixture: %v", err)
+	}
+	t2 := t1.Add(5 * time.Minute)
+	if err := os.Chtimes(path, t2, t2); err != nil {
+		t.Fatalf("chtimes (touch): %v", err)
+	}
+
+	second, err := SeedMarkdown(path)
+	if err != nil {
+		t.Fatalf("SeedMarkdown (second): %v", err)
+	}
+
+	if first.ID == second.ID {
+		t.Errorf("ID unchanged across a content/mtime change: %q", first.ID)
 	}
 }

@@ -7,11 +7,23 @@ package extract
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 )
+
+// ErrParse is wrapped into whatever Extract (or a BatchRunner result) returns
+// when the model's output could not be turned into a valid Result — after
+// Haiku.Extract's one corrective retry, or for a batch item that "succeeded"
+// at the API level but whose text didn't parse. Callers (the ingest
+// pipeline, backfill) use errors.Is(err, ErrParse) to distinguish this
+// content-level failure — safe to skip just the one episode and move on —
+// from context/transport failures (a canceled context, a request that never
+// got a response), which must abort the whole run instead of silently
+// treating unprocessed episodes as done.
+var ErrParse = errors.New("extract: parse failed")
 
 // Result is the knowledge graph extracted from a single episode.
 type Result struct {

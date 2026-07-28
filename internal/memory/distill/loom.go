@@ -40,6 +40,11 @@ type loomState struct {
 // or Codex transcript, a run directory is small, finished (or abandoned)
 // state, not an append-only log, so it is always read and distilled in
 // full.
+//
+// The episode ID is content-sensitive (see the mtime comment below): it
+// must change whenever the run directory's content changes, so a re-run
+// after a content change produces an additive new episode instead of being
+// silently dropped as a duplicate of stale content.
 func LoomRun(dir string) ([]RawEpisode, error) {
 	statePath := filepath.Join(dir, "state.json")
 	data, err := os.ReadFile(statePath)
@@ -67,12 +72,24 @@ func LoomRun(dir string) ([]RawEpisode, error) {
 	}
 	fmt.Fprintf(&b, "Final status: %s\n", state.Status)
 
+	// The ID is derived from dir PLUS the newest mtime among its files, not
+	// dir alone: a run directory is re-read in full on every distill call
+	// (there is no offset/resume concept here), so a content-independent ID
+	// would mean a run whose files changed since the last distill (e.g. a
+	// resumed/extended run, or a corrected report.md) gets re-extracted —
+	// paying for the LLM call again — only for resolve.Apply's HasEpisode
+	// idempotency check to then silently drop the whole result, since the ID
+	// looks identical to the already-ingested episode. Mixing the mtime into
+	// the ID makes a content change produce a genuinely new episode instead:
+	// resolve.Apply merges its facts onto the existing ones by (src,
+	// relation, dst) triple, so re-ingesting is additive, not duplicative.
+	mtime := newestMtime(dir)
 	ep := RawEpisode{
-		ID:         makeID(dir),
+		ID:         makeID(dir + "#" + mtime.UTC().Format(time.RFC3339Nano)),
 		Source:     loomSource,
 		SourceRef:  dir,
 		Text:       Redact(b.String()),
-		OccurredAt: newestMtime(dir),
+		OccurredAt: mtime,
 	}
 	return []RawEpisode{ep}, nil
 }

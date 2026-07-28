@@ -13,6 +13,7 @@ package ingest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -70,11 +71,16 @@ type offsetDistillFunc func(path string, offset int64) ([]distill.RawEpisode, in
 // sources: claude, codex) or wholesale (loom, seed). It returns per-file
 // stats and advances the cursor on success.
 //
-// Extraction errors on a single episode are non-fatal: that episode is
-// skipped (counted in Summary.EpisodesSkipped) and ingestion continues with
-// the next one. A commit error, in contrast, aborts the whole call
-// immediately — the error is returned and the cursor is NOT advanced, so a
-// retry picks back up from the last successfully-committed episode.
+// Extraction errors are classified: a content-level parse failure (the
+// model's output never became valid JSON even after Extract's own retry,
+// wrapped in extract.ErrParse) is non-fatal — that one episode is skipped
+// (counted in Summary.EpisodesSkipped) and ingestion continues with the
+// next one. Every other extraction error — a canceled/deadline-exceeded
+// context, a request that never got a response, or anything else not
+// wrapping extract.ErrParse — aborts the whole call immediately, exactly
+// like a commit error: the error is returned and the cursor is NOT
+// advanced, so a retry picks back up from the last successfully-committed
+// episode instead of silently treating the unprocessed remainder as done.
 func File(ctx context.Context, o Options) (Summary, error) {
 	switch o.Source {
 	case "claude":
@@ -170,9 +176,11 @@ func ingestWholesale(ctx context.Context, o Options, distillFn func() ([]distill
 }
 
 // commitEpisodes fetches the glossary once, then extracts and commits each
-// episode in order. An extraction failure skips just that episode; a commit
-// failure aborts immediately, returning the stats accumulated so far
-// alongside the error.
+// episode in order. A content-level parse failure (extract.ErrParse) skips
+// just that episode; every other extraction failure — context errors and
+// transport-ish failures alike — aborts immediately, same as a commit
+// failure, returning the stats accumulated so far alongside the error so the
+// caller does NOT advance the cursor past unprocessed episodes.
 func commitEpisodes(ctx context.Context, o Options, episodes []distill.RawEpisode) (Summary, error) {
 	var sum Summary
 
@@ -184,8 +192,16 @@ func commitEpisodes(ctx context.Context, o Options, episodes []distill.RawEpisod
 	for _, ep := range episodes {
 		res, err := o.Extractor.Extract(ctx, ep, glossary)
 		if err != nil {
-			sum.EpisodesSkipped++
-			continue
+			if errors.Is(err, extract.ErrParse) {
+				sum.EpisodesSkipped++
+				continue
+			}
+			// Context errors (ctx.Err() non-nil, including
+			// context.DeadlineExceeded/Canceled) and any other
+			// transport-ish or unclassified failure: stop processing this
+			// file's remaining episodes entirely rather than skipping past
+			// them, so they aren't permanently hidden from the next sweep.
+			return sum, fmt.Errorf("ingest: extract episode %s: %w", ep.ID, err)
 		}
 
 		storeEp := store.Episode{
