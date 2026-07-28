@@ -100,29 +100,39 @@ type Result struct {
 // Files/dirs are processed in sorted path order within each root (claude,
 // then codex, then loom) for determinism. A per-file error is appended to
 // Result.Errors and does not abort the sweep — every other candidate is
-// still processed.
+// still processed. Likewise, a failure listing one root (a malformed glob
+// pattern, or an unreadable LoomRuns directory) is recorded in
+// Result.Errors and does not prevent the other roots from being swept —
+// this runs unattended from cron, so one bad root must degrade, not abort
+// the whole pass. Run itself returns a non-nil error only for something
+// that invalidates the entire call (currently: none: root-listing failures
+// are always recoverable per-root).
 func Run(ctx context.Context, roots Roots, o ingest.Options, activeWindow time.Duration, dryRun bool) (Result, error) {
 	roots = roots.withDefaults()
 
+	var result Result
+
 	claudeFiles, err := filepath.Glob(roots.ClaudeGlob)
 	if err != nil {
-		return Result{}, fmt.Errorf("sweep: glob claude root %q: %w", roots.ClaudeGlob, err)
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", roots.ClaudeGlob, err))
+		claudeFiles = nil
 	}
 	sort.Strings(claudeFiles)
 
 	codexFiles, err := filepath.Glob(roots.CodexGlob)
 	if err != nil {
-		return Result{}, fmt.Errorf("sweep: glob codex root %q: %w", roots.CodexGlob, err)
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", roots.CodexGlob, err))
+		codexFiles = nil
 	}
 	sort.Strings(codexFiles)
 
 	loomDirs, err := listLoomRunDirs(roots.LoomRuns)
 	if err != nil {
-		return Result{}, fmt.Errorf("sweep: list loom runs %q: %w", roots.LoomRuns, err)
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", roots.LoomRuns, err))
+		loomDirs = nil
 	}
 
 	now := time.Now()
-	var result Result
 
 	for _, path := range claudeFiles {
 		sweepFile(ctx, &result, o, "claude", path, now, activeWindow, dryRun)

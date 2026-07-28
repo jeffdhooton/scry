@@ -567,6 +567,56 @@ func TestRun_UnreadableFileErrorsButContinues(t *testing.T) {
 	}
 }
 
+func TestRun_UnreadableLoomRootErrorsButOtherRootsStillSweep(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("running as root ignores directory permissions")
+	}
+
+	tmp := t.TempDir()
+	claudePath := filepath.Join(tmp, "claude", "projects", "proj1", "session.jsonl")
+	copyFile(t, claudeFixture, claudePath)
+	old := time.Now().Add(-1 * time.Hour)
+	backdate(t, claudePath, old)
+
+	loomRoot := filepath.Join(tmp, "loom", "runs")
+	if err := os.MkdirAll(loomRoot, 0o755); err != nil {
+		t.Fatalf("mkdir loom root: %v", err)
+	}
+	if err := os.Chmod(loomRoot, 0o000); err != nil {
+		t.Fatalf("chmod loom root: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(loomRoot, 0o755) }) // let TempDir cleanup remove it
+
+	roots := Roots{
+		ClaudeGlob: filepath.Join(tmp, "claude", "projects", "*", "*.jsonl"),
+		CodexGlob:  filepath.Join(tmp, "empty-codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
+		LoomRuns:   loomRoot,
+	}
+
+	daemon := newFakeDaemon()
+	extractor := &fakeExtractor{}
+
+	result, err := Run(context.Background(), roots, ingest.Options{
+		Extractor: extractor, Daemon: daemon,
+	}, time.Minute, false)
+	if err != nil {
+		t.Fatalf("Run() error = %v, want nil (a root-listing failure must not abort the sweep)", err)
+	}
+
+	if result.FilesIngested != 1 {
+		t.Errorf("FilesIngested = %d, want 1 (claude root still swept despite the loom root failing)", result.FilesIngested)
+	}
+	if _, ok := daemon.cursors[claudePath]; !ok {
+		t.Error("cursor not stored for the claude file; the claude root must still be swept")
+	}
+	if len(result.Errors) != 1 {
+		t.Fatalf("Errors = %v, want exactly 1 (the loom root listing failure)", result.Errors)
+	}
+	if got := result.Errors[0]; !strings.Contains(got, loomRoot) {
+		t.Errorf("Errors[0] = %q, want it to reference the loom root %s", got, loomRoot)
+	}
+}
+
 func TestRun_DryRunMakesNoExtractorCallsOrCursorWrites(t *testing.T) {
 	tr := newTestRoots(t)
 	claudeN, codexN := fixtureEpisodeCounts(t)
