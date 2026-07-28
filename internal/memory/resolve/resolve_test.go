@@ -372,6 +372,73 @@ func TestApply_Supersedes(t *testing.T) {
 	}
 }
 
+// Rule 5 (regression guard): a fact that merges onto an existing current
+// triple in Phase A must still apply its own supersedes hint in Phase B —
+// the hint targets a different triple and must not be silently dropped
+// just because this fact's own triple already merged.
+func TestApply_Supersedes_OnMergedFact(t *testing.T) {
+	st := openTemp(t)
+	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+
+	ep0 := store.Episode{ID: "ep-0", Source: "manual", SourceRef: "seed", OccurredAt: t1, IngestedAt: t1}
+	res0 := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "a", Relation: "uses", Dst: "b", Fact: "a uses b", Confidence: 0.7},
+			{Src: "a", Relation: "uses", Dst: "c", Fact: "a uses c", Confidence: 0.6},
+		},
+	}
+	if _, err := Apply(st, ep0, "", res0, DefaultExclusive); err != nil {
+		t.Fatalf("Apply seed: %v", err)
+	}
+
+	epX := store.Episode{ID: "ep-x", Source: "manual", SourceRef: "z", OccurredAt: t2, IngestedAt: t2}
+	resX := extract.Result{
+		Facts: []extract.Fct{
+			{
+				Src: "a", Relation: "uses", Dst: "b", Fact: "a still uses b", Confidence: 0.9,
+				Supersedes: &extract.SupRef{Src: "a", Relation: "uses", Dst: "c"},
+			},
+		},
+	}
+	stats, err := Apply(st, epX, "", resX, DefaultExclusive)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if stats.FactsMerged != 1 || stats.FactsInvalidated != 1 || stats.FactsAdded != 0 {
+		t.Fatalf("expected merge + supersedes-invalidation, no add: %+v", stats)
+	}
+
+	facts := mustFacts(t, st, "a")
+	if len(facts) != 2 {
+		t.Fatalf("expected exactly two fa: records, got %d: %+v", len(facts), facts)
+	}
+	var b, c *store.Fact
+	for i := range facts {
+		switch facts[i].Dst {
+		case "b":
+			b = &facts[i]
+		case "c":
+			c = &facts[i]
+		}
+	}
+	if b == nil || b.InvalidAt != nil {
+		t.Fatalf("expected (a,uses,b) current (merged, not invalidated): %+v", b)
+	}
+	if len(b.Episodes) != 2 || !containsString(b.Episodes, "ep-0") || !containsString(b.Episodes, "ep-x") {
+		t.Fatalf("expected (a,uses,b) merged provenance from both episodes, got %+v", b.Episodes)
+	}
+	if b.Confidence != 0.9 {
+		t.Fatalf("expected (a,uses,b) confidence maxed to 0.9, got %v", b.Confidence)
+	}
+	if c == nil || c.InvalidAt == nil {
+		t.Fatalf("expected (a,uses,c) invalidated via the merged fact's supersedes hint: %+v", c)
+	}
+	if !c.InvalidAt.Equal(t2) {
+		t.Fatalf("expected (a,uses,c) InvalidAt == epX.OccurredAt, got %v", c.InvalidAt)
+	}
+}
+
 // Rule 6: exclusive relation flip.
 func TestApply_ExclusiveFlip(t *testing.T) {
 	st := openTemp(t)

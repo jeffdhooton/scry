@@ -11,11 +11,13 @@
 //     CURRENT stored fact, evaluated across the whole episode before any
 //     invalidation runs, so the outcome does not depend on the order facts
 //     appear in within the episode.
-//  5. Phase B, in slice order, for facts NOT merged in Phase A: apply the
-//     fact's "supersedes" hint, invalidating a matching current fact.
-//  6. Phase B, continued: for exclusive relations (e.g. deployed_on),
-//     invalidate any current fact with the same (src, relation) but a
-//     different dst before adding the new one.
+//  5. Phase B, in slice order, for every fact (merged in Phase A or not):
+//     apply the fact's "supersedes" hint, invalidating a matching current
+//     fact — independent of what happened to the fact's own triple, since
+//     the hint targets an explicit (usually different) triple.
+//  6. Phase B, continued, for facts NOT merged in Phase A: for exclusive
+//     relations (e.g. deployed_on), invalidate any current fact with the
+//     same (src, relation) but a different dst before adding the new one.
 //  7. Record the episode.
 package resolve
 
@@ -161,14 +163,18 @@ type resolvedFact struct {
 //     a fact that is current in the store *before* this episode's
 //     invalidations run gets merged onto it, regardless of where in the
 //     slice it appears.
-//   - Phase B (Rules 5-6), in slice order: every fact NOT merged in Phase A
-//     applies its supersedes hint, then — for exclusive relations —
-//     invalidates any conflicting current fact before adding itself.
+//   - Phase B (Rules 5-6), in slice order: EVERY fact, merged in Phase A or
+//     not, applies its supersedes hint (Rule 5) first — it targets an
+//     explicit, usually different, triple, so it must not be skipped just
+//     because this fact's own triple already merged. Then, only for facts
+//     NOT merged in Phase A and exclusive relations, it invalidates any
+//     conflicting current fact before adding itself (Rule 6).
 //
-// Without this split, a fact that flips an exclusive relation (e.g. a new
-// deployed_on target) processed before a same-episode restatement of the
-// old target would invalidate-then-recreate the old fact from scratch
-// instead of merging onto it, losing its provenance and confidence history.
+// Without the Phase A/B split, a fact that flips an exclusive relation
+// (e.g. a new deployed_on target) processed before a same-episode
+// restatement of the old target would invalidate-then-recreate the old
+// fact from scratch instead of merging onto it, losing its provenance and
+// confidence history.
 func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclusive map[string]bool, stats *Stats) error {
 	// Rule 3: resolve every fact's endpoints (creating concept stubs as
 	// needed) and ValidFrom up front.
@@ -211,20 +217,25 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		rf.merged = true
 	}
 
-	// Phase B — Rules 5 & 6, in slice order, for facts not already merged.
+	// Phase B — Rules 5 & 6, in slice order.
 	for i := range resolved {
 		rf := &resolved[i]
-		if rf.merged {
-			continue
-		}
 
-		// Rule 5: supersedes hint.
+		// Rule 5: supersedes hint. Runs for every fact, merged or not — it
+		// targets its own (usually different) triple via an explicit ref,
+		// independent of what happened to rf's own triple in Phase A.
 		if rf.fct.Supersedes != nil {
 			if err := applySupersedes(st, ep, *rf.fct.Supersedes, stats); err != nil {
 				return err
 			}
 		}
 
+		if rf.merged {
+			continue
+		}
+
+		// Rule 6 (exclusive invalidation + add) only applies to facts not
+		// already merged in Phase A.
 		if rf.src == "" || rf.dst == "" {
 			continue
 		}
