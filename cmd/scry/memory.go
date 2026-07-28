@@ -321,8 +321,12 @@ func runBackfill(ctx context.Context, cfg backfillConfig) (backfillSummary, erro
 
 	var results map[string]extract.Result
 	var extractErrs map[string]error
+	var fatalErr error
 	if cfg.NoBatch {
-		results, extractErrs = backfillSerial(ctx, cfg.Haiku, allEpisodes, glossary)
+		results, extractErrs, fatalErr = backfillSerial(ctx, cfg.Haiku, allEpisodes, glossary)
+		if fatalErr != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("backfill canceled: %v", fatalErr))
+		}
 	} else {
 		totalBatches := (len(allEpisodes) + extract.MaxBatchSize - 1) / extract.MaxBatchSize
 		progress := func(done, total int) {
@@ -335,7 +339,6 @@ func runBackfill(ctx context.Context, cfg backfillConfig) (backfillSummary, erro
 			}
 			fmt.Printf("batch %d/%d: %d/%d done\n", batchNum, totalBatches, done, total)
 		}
-		var fatalErr error
 		results, extractErrs, fatalErr = cfg.Batch.Run(ctx, allEpisodes, glossary, progress)
 		if fatalErr != nil {
 			summary.Errors = append(summary.Errors, fmt.Sprintf("batch run: %v", fatalErr))
@@ -437,11 +440,20 @@ func filterSince(episodes []distill.RawEpisode, since time.Time) []distill.RawEp
 // sleeping 200ms between calls (the --no-batch fallback: no batch discount,
 // but no wait for a batch to end either). A per-episode extraction error is
 // recorded in the error map and does not stop the run.
-func backfillSerial(ctx context.Context, h *extract.Haiku, episodes []distill.RawEpisode, glossary []string) (map[string]extract.Result, map[string]error) {
+//
+// The third return is fatal-only, mirroring BatchRunner.Run's contract: nil
+// on a normal (possibly partially-erroring) completion, or ctx's error if
+// the run was canceled mid-loop — surfaced so the caller can record it in
+// the summary rather than silently returning a truncated result set.
+func backfillSerial(ctx context.Context, h *extract.Haiku, episodes []distill.RawEpisode, glossary []string) (map[string]extract.Result, map[string]error, error) {
 	results := make(map[string]extract.Result, len(episodes))
 	errs := make(map[string]error)
 
 	for i, ep := range episodes {
+		if err := ctx.Err(); err != nil {
+			return results, errs, err
+		}
+
 		res, err := h.Extract(ctx, ep, glossary)
 		if err != nil {
 			errs[ep.ID] = err
@@ -453,13 +465,13 @@ func backfillSerial(ctx context.Context, h *extract.Haiku, episodes []distill.Ra
 		if i < len(episodes)-1 {
 			select {
 			case <-ctx.Done():
-				return results, errs
+				return results, errs, ctx.Err()
 			case <-time.After(200 * time.Millisecond):
 			}
 		}
 	}
 
-	return results, errs
+	return results, errs, nil
 }
 
 // --- query verbs: thin callDaemon wrappers ---

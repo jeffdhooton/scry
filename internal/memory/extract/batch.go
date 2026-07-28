@@ -80,6 +80,14 @@ func (b *BatchRunner) Run(ctx context.Context, eps []distill.RawEpisode, glossar
 			return results, errs, fmt.Errorf("extract: batch submit failed: %w", err)
 		}
 
+		// batchID is captured once and never touched by the poll loop's error
+		// path — the SDK returns (nil, err) on a Get failure, so reassigning
+		// batch itself only on success (via a separate `got` variable) means
+		// a transient poll failure (a single 5xx, a rate limit) can never
+		// dereference a nil batch on the way out, which would otherwise
+		// panic and crash a potentially hours-long backfill.
+		batchID := batch.ID
+
 		for batch.ProcessingStatus != anthropic.MessageBatchProcessingStatusEnded {
 			select {
 			case <-ctx.Done():
@@ -87,10 +95,11 @@ func (b *BatchRunner) Run(ctx context.Context, eps []distill.RawEpisode, glossar
 			case <-time.After(pollInterval):
 			}
 
-			batch, err = b.client.Messages.Batches.Get(ctx, batch.ID)
+			got, err := b.client.Messages.Batches.Get(ctx, batchID)
 			if err != nil {
-				return results, errs, fmt.Errorf("extract: batch %s: poll failed: %w", batch.ID, err)
+				return results, errs, fmt.Errorf("extract: batch %s: poll failed: %w", batchID, err)
 			}
+			batch = got
 
 			if progress != nil {
 				completedInChunk := len(chunk) - int(batch.RequestCounts.Processing)
@@ -102,12 +111,12 @@ func (b *BatchRunner) Run(ctx context.Context, eps []distill.RawEpisode, glossar
 		}
 
 		var items []batchItem
-		stream := b.client.Messages.Batches.ResultsStreaming(ctx, batch.ID)
+		stream := b.client.Messages.Batches.ResultsStreaming(ctx, batchID)
 		for stream.Next() {
 			items = append(items, toBatchItem(stream.Current()))
 		}
 		if err := stream.Err(); err != nil {
-			return results, errs, fmt.Errorf("extract: batch %s: results stream failed: %w", batch.ID, err)
+			return results, errs, fmt.Errorf("extract: batch %s: results stream failed: %w", batchID, err)
 		}
 
 		chunkResults, chunkErrs := routeBatchResults(items)
