@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -77,6 +78,15 @@ func (daemonClient) PutCursor(ctx context.Context, c memstore.Cursor) error {
 	// into a memstore.Cursor.
 	var result map[string]any
 	return callDaemon(ctx, "memory.cursor.put", &c, &result)
+}
+
+// HasEpisodes reports which of ids are NOT yet committed to the store — see
+// backfillDaemon and runBackfill's use of it to skip re-paying for
+// extraction on episodes a previous run already ingested.
+func (daemonClient) HasEpisodes(ctx context.Context, ids []string) ([]string, error) {
+	var result daemon.MemoryHasEpisodesResult
+	err := callDaemon(ctx, "memory.hasEpisodes", &daemon.MemoryHasEpisodesParams{IDs: ids}, &result)
+	return result.Missing, err
 }
 
 // --- ingest ---
@@ -221,11 +231,20 @@ func memoryBackfillCmd() *cobra.Command {
 	return cmd
 }
 
+// backfillDaemon is the daemon surface runBackfill needs: ingest.Daemon's
+// glossary/commit/cursor RPCs plus a batched already-ingested check
+// (memory.hasEpisodes) that lets backfill skip re-paying for extraction on
+// episodes a previous ingest/sweep/backfill run already committed.
+type backfillDaemon interface {
+	ingest.Daemon
+	HasEpisodes(ctx context.Context, ids []string) ([]string, error)
+}
+
 // backfillConfig bundles what runBackfill needs beyond ctx/flags.
 type backfillConfig struct {
 	Since   time.Time // zero means "everything"
 	NoBatch bool
-	Daemon  ingest.Daemon
+	Daemon  backfillDaemon
 	Haiku   *extract.Haiku
 	Batch   *extract.BatchRunner
 }
@@ -236,12 +255,13 @@ const backfillGlossaryLimit = 200
 
 // backfillSummary is what `memory backfill` prints on success.
 type backfillSummary struct {
-	FilesScanned      int      `json:"files_scanned"`
-	EpisodesFound     int      `json:"episodes_found"`
-	EpisodesCommitted int      `json:"episodes_committed"`
-	EpisodesSkipped   int      `json:"episodes_skipped"`
-	FilesAdvanced     int      `json:"files_advanced"`
-	Errors            []string `json:"errors,omitempty"`
+	FilesScanned         int      `json:"files_scanned"`
+	EpisodesFound        int      `json:"episodes_found"`
+	EpisodesAlreadyKnown int      `json:"episodes_already_known"`
+	EpisodesCommitted    int      `json:"episodes_committed"`
+	EpisodesSkipped      int      `json:"episodes_skipped"`
+	FilesAdvanced        int      `json:"files_advanced"`
+	Errors               []string `json:"errors,omitempty"`
 }
 
 // backfillGroup is every episode distilled from one source path/dir, kept
@@ -303,51 +323,85 @@ func runBackfill(ctx context.Context, cfg backfillConfig) (backfillSummary, erro
 		groups = append(groups, backfillGroup{source: "loom", path: dir, episodes: episodes, modTime: info.ModTime()})
 	}
 
-	var allEpisodes []distill.RawEpisode
+	var discovered []distill.RawEpisode
 	for _, g := range groups {
-		allEpisodes = append(allEpisodes, g.episodes...)
+		discovered = append(discovered, g.episodes...)
 	}
-	summary.EpisodesFound = len(allEpisodes)
+	summary.EpisodesFound = len(discovered)
 
-	if len(allEpisodes) == 0 {
+	if len(discovered) == 0 {
 		fmt.Println("nothing to backfill")
 		return summary, nil
 	}
 
-	glossary, err := cfg.Daemon.Glossary(ctx, backfillGlossaryLimit)
+	// F5: skip re-extracting (re-paying for) episodes a previous
+	// ingest/sweep/backfill run already committed to the store —
+	// resolve.Apply's own idempotency check would no-op them anyway, so
+	// extracting them again buys nothing but a wasted API call.
+	discoveredIDs := make([]string, len(discovered))
+	for i, ep := range discovered {
+		discoveredIDs[i] = ep.ID
+	}
+	missing, err := cfg.Daemon.HasEpisodes(ctx, discoveredIDs)
 	if err != nil {
-		return summary, fmt.Errorf("memory backfill: glossary: %w", err)
+		return summary, fmt.Errorf("memory backfill: hasEpisodes: %w", err)
+	}
+	summary.EpisodesAlreadyKnown = len(discovered) - len(missing)
+
+	var allEpisodes []distill.RawEpisode
+	for _, g := range groups {
+		needExtract, _ := partitionKnownEpisodes(g.episodes, missing)
+		allEpisodes = append(allEpisodes, needExtract...)
 	}
 
 	var results map[string]extract.Result
 	var extractErrs map[string]error
-	var fatalErr error
-	if cfg.NoBatch {
-		results, extractErrs, fatalErr = backfillSerial(ctx, cfg.Haiku, allEpisodes, glossary)
-		if fatalErr != nil {
-			summary.Errors = append(summary.Errors, fmt.Sprintf("backfill canceled: %v", fatalErr))
-		}
+	if len(allEpisodes) == 0 {
+		fmt.Println("nothing to extract: every discovered episode is already ingested")
 	} else {
-		totalBatches := (len(allEpisodes) + extract.MaxBatchSize - 1) / extract.MaxBatchSize
-		progress := func(done, total int) {
-			batchNum := (done + extract.MaxBatchSize - 1) / extract.MaxBatchSize
-			if batchNum < 1 {
-				batchNum = 1
-			}
-			if batchNum > totalBatches {
-				batchNum = totalBatches
-			}
-			fmt.Printf("batch %d/%d: %d/%d done\n", batchNum, totalBatches, done, total)
+		glossary, err := cfg.Daemon.Glossary(ctx, backfillGlossaryLimit)
+		if err != nil {
+			return summary, fmt.Errorf("memory backfill: glossary: %w", err)
 		}
-		results, extractErrs, fatalErr = cfg.Batch.Run(ctx, allEpisodes, glossary, progress)
-		if fatalErr != nil {
-			summary.Errors = append(summary.Errors, fmt.Sprintf("batch run: %v", fatalErr))
+
+		var fatalErr error
+		if cfg.NoBatch {
+			results, extractErrs, fatalErr = backfillSerial(ctx, cfg.Haiku, allEpisodes, glossary)
+			if fatalErr != nil {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("backfill canceled: %v", fatalErr))
+			}
+		} else {
+			totalBatches := (len(allEpisodes) + extract.MaxBatchSize - 1) / extract.MaxBatchSize
+			progress := func(done, total int) {
+				batchNum := (done + extract.MaxBatchSize - 1) / extract.MaxBatchSize
+				if batchNum < 1 {
+					batchNum = 1
+				}
+				if batchNum > totalBatches {
+					batchNum = totalBatches
+				}
+				fmt.Printf("batch %d/%d: %d/%d done\n", batchNum, totalBatches, done, total)
+			}
+			results, extractErrs, fatalErr = cfg.Batch.Run(ctx, allEpisodes, glossary, progress)
+			if fatalErr != nil {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("batch run: %v", fatalErr))
+			}
 		}
+	}
+
+	missingSet := make(map[string]bool, len(missing))
+	for _, id := range missing {
+		missingSet[id] = true
 	}
 
 	for _, g := range groups {
 		resolved := true
 		for _, ep := range g.episodes {
+			if !missingSet[ep.ID] {
+				// Already committed by a previous run: nothing left to do
+				// for it, and it counts as resolved for cursor purposes.
+				continue
+			}
 			res, ok := results[ep.ID]
 			if ok {
 				if _, err := cfg.Daemon.Commit(ctx, memstore.Episode{
@@ -367,7 +421,16 @@ func runBackfill(ctx context.Context, cfg backfillConfig) (backfillSummary, erro
 			}
 			if extractErr, ok := extractErrs[ep.ID]; ok {
 				summary.Errors = append(summary.Errors, fmt.Sprintf("extract %s: %v", ep.ID, extractErr))
-				summary.EpisodesSkipped++
+				if errors.Is(extractErr, extract.ErrParse) {
+					// F1: only a content-level parse failure is
+					// skip-and-continue. Anything else (a transport-ish
+					// error, canceled/expired batch item) leaves the
+					// group's cursor unresolved below, same as an
+					// unresolved episode.
+					summary.EpisodesSkipped++
+					continue
+				}
+				resolved = false
 				continue
 			}
 			// Neither map has this episode ID: its batch never resolved
@@ -377,6 +440,17 @@ func runBackfill(ctx context.Context, cfg backfillConfig) (backfillSummary, erro
 		}
 
 		if !resolved {
+			continue
+		}
+
+		// F5(b): with --since set, episodes that occurred before the cutoff
+		// were filtered out before we ever saw them (see filterSince) — the
+		// group above only reflects what made it past that filter, not the
+		// whole file. Advancing the cursor here would wrongly mark the file
+		// as fully processed and hide those earlier episodes from every
+		// future sweep/backfill. Only a --since-less (full) backfill is
+		// allowed to retire a file's cursor.
+		if !cfg.Since.IsZero() {
 			continue
 		}
 
@@ -393,6 +467,26 @@ func runBackfill(ctx context.Context, cfg backfillConfig) (backfillSummary, erro
 	}
 
 	return summary, nil
+}
+
+// partitionKnownEpisodes splits episodes into those that still need
+// extraction (their ID is present in missing) and those already committed
+// by a previous run (ID absent from missing). Pure and side-effect-free so
+// it's cheaply unit-testable independent of the daemon RPC that produces
+// missing.
+func partitionKnownEpisodes(episodes []distill.RawEpisode, missing []string) (needExtract, alreadyKnown []distill.RawEpisode) {
+	missingSet := make(map[string]bool, len(missing))
+	for _, id := range missing {
+		missingSet[id] = true
+	}
+	for _, ep := range episodes {
+		if missingSet[ep.ID] {
+			needExtract = append(needExtract, ep)
+		} else {
+			alreadyKnown = append(alreadyKnown, ep)
+		}
+	}
+	return needExtract, alreadyKnown
 }
 
 // backfillClaudeOrCodex distills the full contents of an episodic
