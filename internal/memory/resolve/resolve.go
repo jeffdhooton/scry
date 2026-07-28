@@ -325,8 +325,19 @@ func mergeFact(st *store.Store, ep store.Episode, current store.Fact, incomingVa
 // applySupersedes implements Rule 5: resolve the ref's endpoint names
 // (without creating stub entities — an unresolved or nonexistent reference
 // is simply a no-op) and invalidate the current fact matching its triple, if
-// any.
+// any. ref.Relation is normalized the same way a fact's own Relation is
+// (see normalizeRelation) before it's used to look up the target fact —
+// stored relations are always normalized, so an un-normalized hint (e.g.
+// "Deployed: On!" instead of the stored "deployed_on") would otherwise
+// silently miss its target and never invalidate anything. A hint whose
+// relation normalizes to empty is skipped outright, same as a fact whose
+// own relation does.
 func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stats *Stats) error {
+	relation := normalizeRelation(ref.Relation)
+	if relation == "" {
+		return nil
+	}
+
 	srcSlug, err := resolveSlugOnly(st, ref.Src)
 	if err != nil {
 		return err
@@ -339,7 +350,7 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stat
 		return nil
 	}
 
-	current, err := currentFact(st, srcSlug, ref.Relation, dstSlug)
+	current, err := currentFact(st, srcSlug, relation, dstSlug)
 	if err != nil {
 		return err
 	}
@@ -347,7 +358,7 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stat
 		return nil
 	}
 	at := clampInvalidAt(ep.OccurredAt, current.ValidFrom)
-	if err := st.InvalidateFact(srcSlug, ref.Relation, dstSlug, current.ValidFrom, at); err != nil {
+	if err := st.InvalidateFact(srcSlug, relation, dstSlug, current.ValidFrom, at); err != nil {
 		return err
 	}
 	stats.FactsInvalidated++

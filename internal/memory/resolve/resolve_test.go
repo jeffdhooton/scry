@@ -392,6 +392,58 @@ func TestApply_Supersedes(t *testing.T) {
 	}
 }
 
+// TestApply_SupersedesNormalizesRelation covers the follow-up to F7: stored
+// fact relations are always normalized (normalizeRelation), so a supersedes
+// hint must normalize ref.Relation the same way before looking up its
+// target — otherwise a hint like "Deployed: On!" would silently miss the
+// stored "deployed_on" fact and never invalidate it.
+func TestApply_SupersedesNormalizesRelation(t *testing.T) {
+	st := openTemp(t)
+	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+
+	ep1 := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: t1, IngestedAt: t1}
+	res1 := extract.Result{
+		Facts: []extract.Fct{
+			{Src: "a", Relation: "deployed_on", Dst: "b", Fact: "a deployed on b", Confidence: 0.8},
+		},
+	}
+	if _, err := Apply(st, ep1, "", res1, DefaultExclusive); err != nil {
+		t.Fatalf("Apply 1: %v", err)
+	}
+
+	ep2 := store.Episode{ID: "ep-2", Source: "manual", SourceRef: "y", OccurredAt: t2, IngestedAt: t2}
+	res2 := extract.Result{
+		Facts: []extract.Fct{
+			{
+				Src: "a", Relation: "status", Dst: "moved", Fact: "a moved off b", Confidence: 0.9,
+				Supersedes: &extract.SupRef{Src: "a", Relation: "Deployed: On!", Dst: "b"},
+			},
+		},
+	}
+	stats2, err := Apply(st, ep2, "", res2, DefaultExclusive)
+	if err != nil {
+		t.Fatalf("Apply 2: %v", err)
+	}
+	if stats2.FactsInvalidated != 1 {
+		t.Fatalf("expected the normalized supersedes hint to invalidate the deployed_on fact, got %+v", stats2)
+	}
+
+	facts := mustFacts(t, st, "a")
+	var deployedOn *store.Fact
+	for i := range facts {
+		if facts[i].Relation == "deployed_on" && facts[i].Dst == "b" {
+			deployedOn = &facts[i]
+		}
+	}
+	if deployedOn == nil {
+		t.Fatalf("expected the deployed_on fact still present (invalidated, not deleted): %+v", facts)
+	}
+	if deployedOn.InvalidAt == nil {
+		t.Fatalf("expected the deployed_on fact to be invalidated by the (normalized) supersedes hint")
+	}
+}
+
 // Rule 5 (regression guard): a fact that merges onto an existing current
 // triple in Phase A must still apply its own supersedes hint in Phase B —
 // the hint targets a different triple and must not be silently dropped
