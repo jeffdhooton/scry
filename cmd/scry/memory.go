@@ -14,6 +14,7 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/ingest"
 	"github.com/jeffdhooton/scry/internal/memory/resolve"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
+	"github.com/jeffdhooton/scry/internal/memory/sweep"
 )
 
 // dormantNotice is printed (with exit 0, not an error) by ingest/sweep/
@@ -128,21 +129,43 @@ func memoryIngestCmd() *cobra.Command {
 	return cmd
 }
 
-// --- sweep / backfill: stubs, filled in by Tasks 9/10 ---
+// --- sweep (Task 9) / backfill (stub, filled in by Task 10) ---
 
 func memorySweepCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "sweep",
-		Short: "Sweep configured sources for new episodes (not yet implemented)",
+		Short: "Scan default roots (Claude/Codex transcripts, loom runs) for new episodes and ingest deltas",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if memoryDormant() {
 				fmt.Println(dormantNotice)
 				return nil
 			}
-			return errors.New("memory sweep: implemented in a later task")
+
+			dryRun, _ := cmd.Flags().GetBool("dry-run")
+
+			apiKey := os.Getenv("SCRY_MEMORY_API_KEY")
+			if apiKey == "" {
+				apiKey = os.Getenv("ANTHROPIC_API_KEY")
+			}
+			extractor := extract.NewHaiku(apiKey, os.Getenv("SCRY_MEMORY_MODEL"))
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+			defer cancel()
+
+			result, err := sweep.Run(ctx, sweep.Roots{}, ingest.Options{
+				Extractor: extractor,
+				Daemon:    daemonClient{},
+			}, sweep.DefaultActiveWindow, dryRun)
+			if err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
 		},
 	}
+	cmd.Flags().Bool("dry-run", false, "report what would be ingested without extracting or committing anything")
+	return cmd
 }
 
 func memoryBackfillCmd() *cobra.Command {
