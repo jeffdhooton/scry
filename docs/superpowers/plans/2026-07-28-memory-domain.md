@@ -348,7 +348,9 @@ Resolution rules (implement exactly, in order):
 - [ ] **Step 2:** FAIL → **Step 3:** implement → **Step 4:** PASS.
 - [ ] **Step 5:** Commit: `feat(memory): resolver with alias canonicalization and temporal invalidation`
 
----### Task 6: Recall — queries, orient, path
+---
+
+### Task 6: Recall — queries, orient, path
 
 **Files:**
 - Create: `internal/memory/recall/recall.go`
