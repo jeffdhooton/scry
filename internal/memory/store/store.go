@@ -214,27 +214,97 @@ func (s *Store) HasEpisode(id string) (bool, error) {
 
 // --- Entities ---
 
+// PutEntity writes e and (re)indexes al: keys for its Name and every alias.
+// If an entity already exists at e.Slug, any al: key the old version owned
+// that the new version no longer claims is deleted — but only when that
+// al: key still points at e.Slug, so a alias another entity has since
+// claimed for itself is never clobbered.
 func (s *Store) PutEntity(e Entity) error {
 	b, err := json.Marshal(e)
 	if err != nil {
 		return err
 	}
+	newNorms := normalizedNameSet(e.Name, e.Aliases)
 	return s.db.Update(func(txn *badger.Txn) error {
+		prev, err := getEntityTxn(txn, e.Slug)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return err
+		}
+		if err == nil {
+			for norm := range normalizedNameSet(prev.Name, prev.Aliases) {
+				if newNorms[norm] {
+					continue
+				}
+				if err := deleteAliasIfOwnedBy(txn, norm, e.Slug); err != nil {
+					return err
+				}
+			}
+		}
+
 		if err := txn.Set([]byte(prefixEntity+e.Slug), b); err != nil {
 			return err
 		}
-		names := append([]string{e.Name}, e.Aliases...)
-		for _, name := range names {
-			norm := Normalize(name)
-			if norm == "" {
-				continue
-			}
+		for norm := range newNorms {
 			if err := txn.Set([]byte(prefixAlias+norm), []byte(e.Slug)); err != nil {
 				return err
 			}
 		}
 		return nil
 	})
+}
+
+// normalizedNameSet returns the set of non-empty Normalize()d forms of name
+// and aliases.
+func normalizedNameSet(name string, aliases []string) map[string]bool {
+	set := make(map[string]bool, 1+len(aliases))
+	for _, n := range append([]string{name}, aliases...) {
+		if norm := Normalize(n); norm != "" {
+			set[norm] = true
+		}
+	}
+	return set
+}
+
+// getEntityTxn reads an Entity within an existing transaction, returning
+// ErrNotFound if it does not exist.
+func getEntityTxn(txn *badger.Txn, slug string) (Entity, error) {
+	var e Entity
+	item, err := txn.Get([]byte(prefixEntity + slug))
+	if errors.Is(err, badger.ErrKeyNotFound) {
+		return Entity{}, ErrNotFound
+	}
+	if err != nil {
+		return Entity{}, err
+	}
+	err = item.Value(func(val []byte) error {
+		return json.Unmarshal(val, &e)
+	})
+	return e, err
+}
+
+// deleteAliasIfOwnedBy removes al:<norm> only if it currently maps to slug,
+// so pruning a stale alias never clobbers a mapping another entity has
+// since claimed for itself.
+func deleteAliasIfOwnedBy(txn *badger.Txn, norm, slug string) error {
+	aliasKey := []byte(prefixAlias + norm)
+	item, err := txn.Get(aliasKey)
+	if errors.Is(err, badger.ErrKeyNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var owner string
+	if err := item.Value(func(val []byte) error {
+		owner = string(val)
+		return nil
+	}); err != nil {
+		return err
+	}
+	if owner != slug {
+		return nil
+	}
+	return txn.Delete(aliasKey)
 }
 
 func (s *Store) GetEntity(slug string) (Entity, error) {

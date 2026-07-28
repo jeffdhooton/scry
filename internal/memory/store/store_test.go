@@ -165,6 +165,83 @@ func TestEntityPutAndAliasResolution(t *testing.T) {
 	}
 }
 
+func TestPutEntityPrunesStaleAliases(t *testing.T) {
+	s := openTemp(t)
+	now := time.Now()
+
+	if err := s.PutEntity(Entity{Slug: "x", Name: "X", Type: "concept",
+		Aliases: []string{"a", "b"}, CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatalf("PutEntity initial: %v", err)
+	}
+
+	if err := s.PutEntity(Entity{Slug: "x", Name: "X", Type: "concept",
+		Aliases: []string{"b", "c"}, CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatalf("PutEntity update: %v", err)
+	}
+
+	if _, ok, err := s.ResolveAlias("a"); err != nil {
+		t.Fatalf("ResolveAlias(a): %v", err)
+	} else if ok {
+		t.Fatalf("stale alias %q should no longer resolve", "a")
+	}
+
+	slug, ok, err := s.ResolveAlias("b")
+	if err != nil {
+		t.Fatalf("ResolveAlias(b): %v", err)
+	}
+	if !ok || slug != "x" {
+		t.Fatalf("ResolveAlias(b) = %q, %v; want x, true", slug, ok)
+	}
+
+	slug, ok, err = s.ResolveAlias("c")
+	if err != nil {
+		t.Fatalf("ResolveAlias(c): %v", err)
+	}
+	if !ok || slug != "x" {
+		t.Fatalf("ResolveAlias(c) = %q, %v; want x, true", slug, ok)
+	}
+}
+
+func TestPutEntityDoesNotClobberAliasClaimedByAnotherEntity(t *testing.T) {
+	s := openTemp(t)
+	now := time.Now()
+
+	// x owns "shared".
+	if err := s.PutEntity(Entity{Slug: "x", Name: "X", Type: "concept",
+		Aliases: []string{"shared"}, CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatalf("PutEntity x: %v", err)
+	}
+
+	// y claims "shared" too; last-writer wins.
+	if err := s.PutEntity(Entity{Slug: "y", Name: "Y", Type: "concept",
+		Aliases: []string{"shared"}, CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatalf("PutEntity y: %v", err)
+	}
+
+	slug, ok, err := s.ResolveAlias("shared")
+	if err != nil {
+		t.Fatalf("ResolveAlias(shared) after y claims it: %v", err)
+	}
+	if !ok || slug != "y" {
+		t.Fatalf("ResolveAlias(shared) = %q, %v; want y, true", slug, ok)
+	}
+
+	// Re-putting x without "shared" must not delete y's mapping, since x no
+	// longer owns that al: key.
+	if err := s.PutEntity(Entity{Slug: "x", Name: "X", Type: "concept",
+		Aliases: nil, CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatalf("PutEntity x again: %v", err)
+	}
+
+	slug, ok, err = s.ResolveAlias("shared")
+	if err != nil {
+		t.Fatalf("ResolveAlias(shared) after re-put x: %v", err)
+	}
+	if !ok || slug != "y" {
+		t.Fatalf("re-putting x must not clobber y's alias: got %q, %v; want y, true", slug, ok)
+	}
+}
+
 func TestEntitiesFullScan(t *testing.T) {
 	s := openTemp(t)
 
