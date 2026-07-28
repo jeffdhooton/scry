@@ -321,12 +321,13 @@ var toolDefinitions = []tool{
 }
 
 func (s *Server) handleToolsList(req request) {
-	all := make([]tool, 0, len(toolDefinitions)+len(gitToolDefinitions)+len(schemaToolDefinitions)+len(httpToolDefinitions)+len(graphToolDefinitions))
+	all := make([]tool, 0, len(toolDefinitions)+len(gitToolDefinitions)+len(schemaToolDefinitions)+len(httpToolDefinitions)+len(graphToolDefinitions)+len(memoryToolDefinitions))
 	all = append(all, toolDefinitions...)
 	all = append(all, gitToolDefinitions...)
 	all = append(all, schemaToolDefinitions...)
 	all = append(all, httpToolDefinitions...)
 	all = append(all, graphToolDefinitions...)
+	all = append(all, memoryToolDefinitions...)
 	s.writeResult(req.ID, map[string]any{"tools": all})
 }
 
@@ -398,6 +399,14 @@ func (s *Server) handleToolsCall(ctx context.Context, req request) {
 		s.callGraphQuery(ctx, req.ID, "scry_graph_path", "graph.path", p.Arguments)
 	case "scry_graph_report":
 		s.callGraphQuery(ctx, req.ID, "scry_graph_report", "graph.report", p.Arguments)
+	case "scry_recall":
+		s.callMemoryQuery(ctx, req.ID, "scry_recall", "memory.recall", p.Arguments)
+	case "scry_memory_path":
+		s.callMemoryQuery(ctx, req.ID, "scry_memory_path", "memory.path", p.Arguments)
+	case "scry_episodes":
+		s.callMemoryQuery(ctx, req.ID, "scry_episodes", "memory.episodes", p.Arguments)
+	case "scry_remember":
+		s.callMemoryQuery(ctx, req.ID, "scry_remember", "memory.remember", p.Arguments)
 	default:
 		s.writeToolError(req.ID, fmt.Sprintf("unknown tool %q", p.Name))
 	}
