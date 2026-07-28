@@ -51,6 +51,19 @@ type rawBlock struct {
 // minSubstantiveTurns substantive turns yield zero episodes, but the
 // returned offset still advances to the end of the file so callers don't
 // re-read the same dead session on every poll.
+//
+// Final-line rule: a session file's last line may reach EOF without a
+// trailing newline, for two very different reasons - (a) the writer is
+// still mid-flush and the rest is coming any moment, or (b) the file has
+// stopped growing for good (process crash, abandoned session) and that
+// line, missing only its newline, is all there will ever be. Without
+// plumbing in file mtime/liveness, the two are told apart by content: a
+// record cut off only by a missing trailing newline is still a complete,
+// syntactically valid JSON value; a record truncated mid-write essentially
+// never is (an unterminated string/object/array). So an unterminated final
+// fragment is treated as consumed - and its turn ingested - only if
+// json.Valid accepts it whole; otherwise it is left unconsumed for the next
+// call to re-read once more bytes land.
 func ClaudeSession(path string, offset int64) ([]RawEpisode, int64, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -84,18 +97,20 @@ func ClaudeSession(path string, offset int64) ([]RawEpisode, int64, error) {
 			return nil, pos, readErr
 		}
 
-		// Only a newline-terminated line is a "complete" line. On EOF,
-		// ReadBytes returns whatever trailing fragment it found (which may
-		// be empty, if the file ends cleanly right after the last '\n').
-		// A non-empty, non-terminated fragment means the writer is still
-		// mid-line: do NOT advance pos or parse it. Counting it as
-		// consumed would let a later call resume mid-record, permanently
-		// losing the discarded head of that line once the writer finishes
-		// it and only the tail remains on disk. Leaving pos unmoved makes
-		// the next call re-read the fragment from the same offset, whole.
+		// A newline-terminated line is always "complete". A non-terminated
+		// fragment (only possible at EOF) is complete too, but only if it
+		// is a whole, valid JSON value on its own - see the "Final-line
+		// rule" doc above. A mid-write partial (invalid JSON) is left
+		// unconsumed: do NOT advance pos or parse it, so the next call
+		// re-reads it from the same offset once the writer finishes it.
 		complete := len(lineBytes) > 0 && lineBytes[len(lineBytes)-1] == '\n'
 		if !complete {
-			break
+			if !json.Valid([]byte(strings.TrimSpace(string(lineBytes)))) {
+				break
+			}
+			// Falls through: a complete, valid JSON record that's simply
+			// missing its trailing newline - treated exactly like a
+			// newline-terminated line below.
 		}
 
 		start := pos

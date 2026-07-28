@@ -257,6 +257,55 @@ func TestClaudeSessionPartialTrailingLineNotConsumed(t *testing.T) {
 	}
 }
 
+// TestClaudeSessionCompleteFinalLineWithoutNewline guards the flip side of
+// the partial-line case above: a file that has stopped growing for good
+// (crash, abandoned session) whose last record is syntactically complete
+// but simply missing its trailing newline. That record must still be
+// ingested - refusing forever to consume an unterminated fragment would
+// silently and permanently lose it, since no more bytes are ever coming.
+func TestClaudeSessionCompleteFinalLineWithoutNewline(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "abandoned_session.jsonl")
+
+	line1 := `{"type":"user","timestamp":"2026-07-15T10:00:00Z","cwd":"/tmp/dead","message":{"role":"user","content":"Starting a task that will never finish."}}` + "\n"
+	line2 := `{"type":"assistant","timestamp":"2026-07-15T10:00:01Z","cwd":"/tmp/dead","message":{"role":"assistant","content":[{"type":"text","text":"On it."}]}}` + "\n"
+	// The final line: a complete, valid JSON record, but with NO trailing
+	// newline - and none will ever be appended (this file has stopped
+	// growing forever, simulating a crash right after the write() call
+	// that wrote the record but before the next write() could add '\n').
+	line3NoNewline := `{"type":"assistant","timestamp":"2026-07-15T10:00:02Z","cwd":"/tmp/dead","message":{"role":"assistant","content":[{"type":"text","text":"Last thing I said before the process died."}]}}`
+
+	content := line1 + line2 + line3NoNewline
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	episodes, offset, err := ClaudeSession(path, 0)
+	if err != nil {
+		t.Fatalf("ClaudeSession error: %v", err)
+	}
+
+	if offset != int64(len(content)) {
+		t.Errorf("offset = %d, want %d (end of file, including the unterminated-but-complete final record)", offset, len(content))
+	}
+
+	if len(episodes) == 0 {
+		t.Fatalf("expected at least 1 episode (3 substantive turns present)")
+	}
+	var combined strings.Builder
+	for _, ep := range episodes {
+		combined.WriteString(ep.Text)
+	}
+	text := combined.String()
+
+	if !strings.Contains(text, "Last thing I said before the process died.") {
+		t.Errorf("final unterminated-but-complete turn was not ingested; got: %s", text)
+	}
+	if !strings.Contains(text, "Starting a task that will never finish.") {
+		t.Errorf("expected first turn's text present; got: %s", text)
+	}
+}
+
 func TestChunking(t *testing.T) {
 	base := time.Date(2026, 7, 15, 10, 0, 0, 0, time.UTC)
 	turnText := strings.Repeat("lorem ipsum dolor sit amet consectetur ", 20) // ~800 chars
