@@ -20,6 +20,8 @@ import (
 	"github.com/jeffdhooton/scry/internal/git"
 	scryhttp "github.com/jeffdhooton/scry/internal/http"
 	httpstore "github.com/jeffdhooton/scry/internal/http/store"
+	"github.com/jeffdhooton/scry/internal/memory/extract"
+	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
 
@@ -61,6 +63,38 @@ type Daemon struct {
 	proxyMu   sync.Mutex
 	proxy     *scryhttp.Proxy
 	httpStore *httpstore.Store
+
+	memOnce      sync.Once
+	memStore     *memstore.Store
+	memErr       error
+	memExtractor extract.Extractor
+}
+
+// memoryStore lazily opens the global memory store on first use, guarded by
+// a sync.Once so concurrent RPCs never race to open it. If the open fails,
+// the error is cached and returned on every subsequent call rather than
+// retried (a retry loop against a store that can't open is not useful and
+// risks panicking on a nil *Store).
+func (d *Daemon) memoryStore() (*memstore.Store, error) {
+	d.memOnce.Do(func() {
+		d.memStore, d.memErr = memstore.Open(filepath.Join(d.scryHome(), "memory"))
+	})
+	return d.memStore, d.memErr
+}
+
+// buildMemoryExtractor constructs the daemon's extract.Extractor from
+// environment: SCRY_MEMORY_API_KEY, falling back to ANTHROPIC_API_KEY. A nil
+// return means the memory domain is dormant — memory.remember still stores
+// episodes but never resolves them into facts.
+func buildMemoryExtractor() extract.Extractor {
+	apiKey := os.Getenv("SCRY_MEMORY_API_KEY")
+	if apiKey == "" {
+		apiKey = os.Getenv("ANTHROPIC_API_KEY")
+	}
+	if apiKey == "" {
+		return nil
+	}
+	return extract.NewHaiku(apiKey, os.Getenv("SCRY_MEMORY_MODEL"))
 }
 
 // New constructs a Daemon for the given layout. It does NOT start anything;
@@ -73,6 +107,7 @@ func New(layout Layout) *Daemon {
 		schemaRegistry: NewSchemaRegistry(),
 		graphRegistry:  NewGraphRegistry(),
 		server:         rpc.NewServer(),
+		memExtractor:   buildMemoryExtractor(),
 	}
 	d.watcher = NewWatcher(layout.Home, d.registry)
 	d.watcher.SetPostReindex(d.rebuildGraphAsync)
@@ -135,6 +170,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	defer d.schemaRegistry.CloseAll()
 	defer d.graphRegistry.CloseAll()
 	defer d.closeHTTP()
+	defer d.closeMemory()
 	defer d.watcher.Close()
 
 	runCtx, cancel := context.WithCancel(ctx)

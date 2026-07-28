@@ -33,6 +33,7 @@ func (d *Daemon) registerMethods() {
 	d.server.Register("ping", func(_ context.Context, _ json.RawMessage) (any, error) {
 		return map[string]any{"ok": true, "pid": os.Getpid()}, nil
 	})
+	d.registerMemoryMethods()
 }
 
 // QueryParams is the shared envelope for refs/defs/symbols/etc. Repo is the
