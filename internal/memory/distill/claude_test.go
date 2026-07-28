@@ -165,6 +165,98 @@ func TestClaudeSessionOffsetResume(t *testing.T) {
 	}
 }
 
+// TestClaudeSessionPartialTrailingLineNotConsumed guards against a real bug:
+// a live transcript file can be read mid-write, so its last line on disk may
+// be a partial fragment (no trailing '\n' yet). ClaudeSession must not count
+// that fragment's bytes as consumed - if it did, the next call would resume
+// reading from the middle of that line, permanently discarding its head
+// once the writer finishes it (the parse of the reassembled line would then
+// either fail or land on garbage, and the turn would be silently lost).
+func TestClaudeSessionPartialTrailingLineNotConsumed(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "live_session.jsonl")
+
+	line1 := `{"type":"user","timestamp":"2026-07-15T10:00:00Z","cwd":"/tmp/live","message":{"role":"user","content":"Hello there, first message."}}` + "\n"
+	line2 := `{"type":"assistant","timestamp":"2026-07-15T10:00:01Z","cwd":"/tmp/live","message":{"role":"assistant","content":[{"type":"text","text":"Hi! Second message here."}]}}` + "\n"
+	line3Full := `{"type":"assistant","timestamp":"2026-07-15T10:00:02Z","cwd":"/tmp/live","message":{"role":"assistant","content":[{"type":"text","text":"Third message, delivered whole only after the writer finishes."}]}}` + "\n"
+	line4 := `{"type":"user","timestamp":"2026-07-15T10:00:03Z","cwd":"/tmp/live","message":{"role":"user","content":"Fourth message, wraps it up."}}` + "\n"
+	line5 := `{"type":"assistant","timestamp":"2026-07-15T10:00:04Z","cwd":"/tmp/live","message":{"role":"assistant","content":[{"type":"text","text":"Fifth message, closes it out."}]}}` + "\n"
+
+	// Simulate a writer that has only flushed the first half of line 3, with
+	// no trailing newline yet.
+	line3Partial := line3Full[:len(line3Full)/2]
+
+	initial := line1 + line2 + line3Partial
+	if err := os.WriteFile(path, []byte(initial), 0o644); err != nil {
+		t.Fatalf("write initial fixture: %v", err)
+	}
+
+	episodes0, offset0, err := ClaudeSession(path, 0)
+	if err != nil {
+		t.Fatalf("first ClaudeSession call error: %v", err)
+	}
+
+	wantOffset0 := int64(len(line1) + len(line2))
+	if offset0 != wantOffset0 {
+		t.Errorf("offset after partial-line read = %d, want %d (end of last complete line, excluding the unterminated fragment)", offset0, wantOffset0)
+	}
+	// Only 2 substantive turns are complete at this point (< minSubstantiveTurns),
+	// so no episodes yet - this call's job is only to prove the fragment
+	// wasn't consumed.
+	if len(episodes0) != 0 {
+		t.Errorf("expected 0 episodes before the 3rd turn completes, got %d", len(episodes0))
+	}
+
+	// The writer finishes line 3 and appends two more whole lines (4 and 5,
+	// so the resumed portion alone has >= minSubstantiveTurns and actually
+	// yields an episode, proving the turn was recovered rather than just
+	// checking a byte offset).
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatalf("open for append: %v", err)
+	}
+	rest := line3Full[len(line3Partial):] + line4 + line5
+	if _, err := f.WriteString(rest); err != nil {
+		t.Fatalf("append rest of file: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("close appended file: %v", err)
+	}
+
+	episodes1, offset1, err := ClaudeSession(path, offset0)
+	if err != nil {
+		t.Fatalf("resumed ClaudeSession call error: %v", err)
+	}
+
+	fullContent, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read final fixture: %v", err)
+	}
+	if offset1 != int64(len(fullContent)) {
+		t.Errorf("offset after resume = %d, want file size %d", offset1, len(fullContent))
+	}
+
+	if len(episodes1) == 0 {
+		t.Fatalf("expected at least 1 episode once the 3rd and 4th turns are complete")
+	}
+	var combined strings.Builder
+	for _, ep := range episodes1 {
+		combined.WriteString(ep.Text)
+	}
+	text := combined.String()
+
+	// The previously-partial turn must be recovered whole, not lost.
+	if !strings.Contains(text, "Third message, delivered whole only after the writer finishes.") {
+		t.Errorf("resumed episodes lost the previously-partial turn; got: %s", text)
+	}
+	if !strings.Contains(text, "Fourth message, wraps it up.") {
+		t.Errorf("resumed episodes missing the newly appended turn; got: %s", text)
+	}
+	if !strings.Contains(text, "Fifth message, closes it out.") {
+		t.Errorf("resumed episodes missing the newly appended turn; got: %s", text)
+	}
+}
+
 func TestChunking(t *testing.T) {
 	base := time.Date(2026, 7, 15, 10, 0, 0, 0, time.UTC)
 	turnText := strings.Repeat("lorem ipsum dolor sit amet consectetur ", 20) // ~800 chars
@@ -243,6 +335,61 @@ func TestChunking(t *testing.T) {
 		if startNext >= endI {
 			t.Errorf("episodes %d and %d do not share an overlapping turn: end=%d start=%d", i, i+1, endI, startNext)
 		}
+	}
+}
+
+// TestChunkingTwoOversizedTurnsNoOverlap covers the boundary documented on
+// chunkTurns: two turns that each fit within maxEpisodeChars alone but
+// together exceed it can't be paired into one episode, so each lands in its
+// own single-turn episode with NO overlap between them (overlap is
+// structurally impossible there, not a bug). This must terminate (no
+// infinite loop chasing an overlap that can never happen) and must not
+// duplicate or drop either turn.
+func TestChunkingTwoOversizedTurnsNoOverlap(t *testing.T) {
+	base := time.Date(2026, 7, 15, 10, 0, 0, 0, time.UTC)
+
+	// ~9000 chars each; rendered (with role prefix) each turn alone is
+	// under maxEpisodeChars (16000), but any two together exceed it.
+	text0 := "TURNZERO-" + strings.Repeat("x", 9000)
+	text1 := "TURNONE-" + strings.Repeat("y", 9000)
+
+	turns := []turn{
+		{role: "user", text: text0, start: 0, end: int64(len(text0)), ts: base, cwd: "/tmp/big"},
+		{role: "assistant", text: text1, start: int64(len(text0)), end: int64(len(text0) + len(text1)), ts: base.Add(time.Second), cwd: "/tmp/big"},
+	}
+
+	episodes := chunkTurns("claude-session", "/fake/big.jsonl", turns)
+
+	if len(episodes) != 2 {
+		t.Fatalf("expected exactly 2 episodes (one per oversized-pair turn), got %d", len(episodes))
+	}
+	for i, ep := range episodes {
+		if len(ep.Text) > maxEpisodeChars {
+			t.Errorf("episode %d text length %d exceeds maxEpisodeChars %d", i, len(ep.Text), maxEpisodeChars)
+		}
+	}
+
+	// Both turns present exactly once: turn 0's marker only in episode 0,
+	// turn 1's marker only in episode 1 - i.e. no duplication and no loss.
+	if !strings.Contains(episodes[0].Text, "TURNZERO-") {
+		t.Errorf("episode 0 missing turn 0's content")
+	}
+	if strings.Contains(episodes[0].Text, "TURNONE-") {
+		t.Errorf("episode 0 unexpectedly contains turn 1's content (overlap should be impossible here)")
+	}
+	if !strings.Contains(episodes[1].Text, "TURNONE-") {
+		t.Errorf("episode 1 missing turn 1's content")
+	}
+	if strings.Contains(episodes[1].Text, "TURNZERO-") {
+		t.Errorf("episode 1 unexpectedly contains turn 0's content (overlap should be impossible here)")
+	}
+
+	// Confirm they really don't overlap in byte range, matching the "no
+	// overlap possible" documentation on chunkTurns.
+	_, end0 := parseSourceRef(t, episodes[0].SourceRef)
+	start1, _ := parseSourceRef(t, episodes[1].SourceRef)
+	if start1 != end0 {
+		t.Errorf("expected episode 1 to start exactly where episode 0 ended (no overlap): end0=%d start1=%d", end0, start1)
 	}
 }
 

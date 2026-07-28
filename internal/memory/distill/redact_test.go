@@ -1,8 +1,9 @@
 package distill
 
-import "testing"
-
-import "strings"
+import (
+	"strings"
+	"testing"
+)
 
 func TestRedact(t *testing.T) {
 	cases := []struct {

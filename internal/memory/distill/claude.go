@@ -70,6 +70,34 @@ func ClaudeSession(path string, offset int64) ([]RawEpisode, int64, error) {
 
 	for {
 		lineBytes, readErr := reader.ReadBytes('\n')
+
+		if readErr != nil && readErr != io.EOF {
+			// A real I/O error mid-read: bail out without counting
+			// whatever fragment we have as consumed (mirrors the
+			// not-newline-terminated handling below). Deliberately
+			// returns nil episodes rather than any turns/episodes
+			// accumulated so far - a mid-file read error means we can't
+			// vouch for the rest of the file either, so the caller should
+			// treat this call as having made no forward progress on
+			// episodes (pos is still advanced to what we did manage to
+			// read in full, so a retry doesn't redo completed work).
+			return nil, pos, readErr
+		}
+
+		// Only a newline-terminated line is a "complete" line. On EOF,
+		// ReadBytes returns whatever trailing fragment it found (which may
+		// be empty, if the file ends cleanly right after the last '\n').
+		// A non-empty, non-terminated fragment means the writer is still
+		// mid-line: do NOT advance pos or parse it. Counting it as
+		// consumed would let a later call resume mid-record, permanently
+		// losing the discarded head of that line once the writer finishes
+		// it and only the tail remains on disk. Leaving pos unmoved makes
+		// the next call re-read the fragment from the same offset, whole.
+		complete := len(lineBytes) > 0 && lineBytes[len(lineBytes)-1] == '\n'
+		if !complete {
+			break
+		}
+
 		start := pos
 		pos += int64(len(lineBytes))
 
@@ -80,11 +108,8 @@ func ClaudeSession(path string, offset int64) ([]RawEpisode, int64, error) {
 			}
 		}
 
-		if readErr != nil {
-			if readErr == io.EOF {
-				break
-			}
-			return nil, pos, readErr
+		if readErr == io.EOF {
+			break
 		}
 	}
 

@@ -63,9 +63,25 @@ func makeID(sourceRef string) string {
 }
 
 // chunkTurns assembles turns into one or more RawEpisodes, each bounded by
-// maxEpisodeChars, splitting only on turn boundaries. Consecutive episodes
-// share exactly one overlapping turn so extraction has context across the
-// seam. IDs are deterministic: same turns in, same IDs out.
+// maxEpisodeChars, splitting only on turn boundaries. IDs are deterministic:
+// same turns in, same IDs out.
+//
+// Overlap guarantee, precisely: consecutive episodes share exactly one
+// overlapping turn WHENEVER that is possible. It's possible exactly when an
+// episode ends up containing 2+ turns - then the next episode restarts at
+// this episode's last turn. It is NOT possible when an episode ends up
+// containing exactly 1 turn, which happens whenever that turn's rendered
+// size (a) exceeds maxEpisodeChars entirely (the degenerate oversized-turn
+// case - the first turn of any episode is always included regardless of
+// its size, so the episode makes forward progress instead of looping
+// forever), or (b) is merely too large to pair with the following turn
+// without exceeding maxEpisodeChars, even though it fits within
+// maxEpisodeChars alone. In both (a) and (b) there is nothing to overlap -
+// re-including the sole turn in the next episode would reproduce the exact
+// same episode and loop forever - so the next episode instead starts
+// strictly after it, with no overlap. This is a deliberate, acceptable gap
+// in the overlap guarantee, not a bug: it only occurs when overlap is
+// structurally impossible within the maxEpisodeChars budget.
 func chunkTurns(source, path string, turns []turn) []RawEpisode {
 	var episodes []RawEpisode
 	n := len(turns)
@@ -79,17 +95,15 @@ func chunkTurns(source, path string, turns []turn) []RawEpisode {
 		j := i
 		for j < n {
 			piece := renderTurn(turns[j])
+			// sb.Len() > 0 guards the very first turn of an episode: it is
+			// always included regardless of its own size, so a single
+			// turn larger than maxEpisodeChars still lands in an episode
+			// by itself rather than being skipped or looped on forever.
 			if sb.Len() > 0 && sb.Len()+len(piece) > maxEpisodeChars {
 				break
 			}
 			sb.WriteString(piece)
 			j++
-		}
-		if j == i {
-			// A single turn alone exceeds maxEpisodeChars; include it
-			// anyway so we always make forward progress.
-			sb.WriteString(renderTurn(turns[i]))
-			j = i + 1
 		}
 		last := j - 1
 
@@ -107,10 +121,15 @@ func chunkTurns(source, path string, turns []turn) []RawEpisode {
 			break
 		}
 		if last > i {
-			// 1-turn overlap: the next episode starts at the last turn of
-			// this one.
+			// This episode held 2+ turns: 1-turn overlap, the next
+			// episode restarts at this episode's last turn.
 			i = last
 		} else {
+			// This episode held exactly 1 turn (last == i): pairing it
+			// with the next turn was impossible within maxEpisodeChars,
+			// so there is no turn left to overlap with. Advance past it
+			// to guarantee forward progress (also prevents infinite
+			// looping on an oversized single turn).
 			i = last + 1
 		}
 	}
