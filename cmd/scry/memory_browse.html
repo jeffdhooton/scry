@@ -1,0 +1,775 @@
+<title>scry memory</title>
+<style>
+  :root {
+    --base: #1e1e2e;
+    --mantle: #181825;
+    --surface0: #313244;
+    --surface1: #45475a;
+    --surface2: #585b70;
+    --text: #cdd6f4;
+    --subtext: #a6adc8;
+    --mauve: #cba6f7;
+    --blue: #89b4fa;
+    --green: #a6e3a1;
+    --red: #f38ba8;
+    --yellow: #f9e2af;
+    --border: var(--surface0);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --base: #eff1f5;
+      --mantle: #e6e9ef;
+      --surface0: #ccd0da;
+      --surface1: #bcc0cc;
+      --surface2: #acb0be;
+      --text: #4c4f69;
+      --subtext: #6c6f85;
+      --mauve: #8839ef;
+      --blue: #1e66f5;
+      --green: #40a02b;
+      --red: #d20f39;
+      --yellow: #df8e1d;
+      --border: var(--surface0);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--base);
+    color: var(--text);
+    font-family: "Berkeley Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    height: 100%;
+  }
+  #app { display: flex; flex-direction: column; height: 100vh; }
+
+  header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--mantle);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 15px;
+    margin: 0;
+    color: var(--mauve);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+  .stat-value { font-size: 15px; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 10px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .controls {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: var(--base);
+  }
+  #search {
+    flex: 1 1 240px;
+    min-width: 180px;
+    background: var(--surface0);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font: inherit;
+  }
+  #search:focus { outline: 1px solid var(--mauve); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--border);
+    background: var(--surface0);
+    color: var(--subtext);
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+    user-select: none;
+  }
+  .chip.active {
+    background: var(--mauve);
+    color: var(--mantle);
+    border-color: var(--mauve);
+    font-weight: 700;
+  }
+  #sort-select {
+    background: var(--surface0);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font: inherit;
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+  .panel { overflow-y: auto; }
+  .panel.left {
+    width: 340px;
+    min-width: 260px;
+    border-right: 1px solid var(--border);
+    background: var(--mantle);
+    padding: 6px;
+  }
+  .panel.right {
+    flex: 1;
+    padding: 16px 20px;
+  }
+
+  .entity-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .entity-row:hover { background: var(--surface0); }
+  .entity-row.selected {
+    background: var(--surface0);
+    border-color: var(--mauve);
+  }
+  .entity-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entity-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .degree { font-size: 10px; color: var(--subtext); }
+  .lastseen { font-size: 10px; color: var(--subtext); }
+
+  .badge {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--mantle);
+  }
+  .badge-project   { background: var(--mauve); }
+  .badge-service   { background: var(--blue); }
+  .badge-machine   { background: var(--green); }
+  .badge-tool      { background: var(--red); }
+  .badge-person    { background: var(--yellow); }
+  .badge-decision  { background: var(--mauve); }
+  .badge-runbook   { background: var(--blue); }
+  .badge-concept   { background: var(--green); }
+  .badge-unknown   { background: var(--surface2); }
+
+  .show-more {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    background: var(--surface0);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 4px;
+    cursor: pointer;
+    font: inherit;
+  }
+  .show-more:hover { background: var(--surface1); }
+  .list-empty { padding: 20px; color: var(--subtext); text-align: center; }
+
+  .empty-state { color: var(--subtext); padding: 40px 0; text-align: center; }
+
+  .detail-header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .detail-header h2 { margin: 0; font-size: 18px; color: var(--text); }
+  .detail-slug { color: var(--subtext); font-size: 11px; }
+  .detail-desc { color: var(--subtext); margin: 8px 0; line-height: 1.5; }
+  .detail-row { margin: 4px 0; font-size: 12px; }
+  .detail-row .label { color: var(--subtext); margin-right: 6px; }
+  .pill {
+    display: inline-block;
+    background: var(--surface0);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin: 2px 4px 2px 0;
+    font-size: 11px;
+  }
+
+  #ego-canvas {
+    width: 100%;
+    height: 220px;
+    display: block;
+    background: var(--mantle);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 12px 0;
+  }
+  #ego-wrap { position: relative; }
+  #ego-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface0);
+    border: 1px solid var(--mauve);
+    color: var(--text);
+    padding: 3px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    display: none;
+    z-index: 5;
+    white-space: nowrap;
+  }
+
+  h3.section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--subtext);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin: 18px 0 8px;
+  }
+  .fact-row {
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .fact-row:last-child { border-bottom: none; }
+  .fact-edge { font-size: 12px; }
+  .fact-edge .rel { color: var(--blue); }
+  .fact-edge a.entity-link {
+    color: var(--mauve);
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .fact-edge a.entity-link:hover { text-decoration: underline; }
+  .fact-edge .self { color: var(--text); font-weight: 700; }
+  .fact-sentence { color: var(--subtext); margin: 3px 0; }
+  .fact-dates { font-size: 10px; color: var(--subtext); }
+  .fact-row.superseded .fact-edge .rel { color: var(--surface2); }
+  .fact-row.superseded { opacity: 0.75; }
+
+  .episode-row {
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 12px;
+  }
+  .episode-row:last-child { border-bottom: none; }
+  .episode-summary { color: var(--text); }
+  .episode-meta { color: var(--subtext); font-size: 10px; margin-top: 2px; }
+</style>
+
+<div id="app">
+  <header>
+    <h1>scry memory</h1>
+    <div class="stats">
+      <div class="stat"><span class="stat-value" id="stat-entities">–</span><span class="stat-label">entities</span></div>
+      <div class="stat"><span class="stat-value" id="stat-current">–</span><span class="stat-label">current facts</span></div>
+      <div class="stat"><span class="stat-value" id="stat-superseded">–</span><span class="stat-label">superseded facts</span></div>
+      <div class="stat"><span class="stat-value" id="stat-episodes">–</span><span class="stat-label">episodes</span></div>
+      <div class="stat"><span class="stat-value" id="stat-generated">–</span><span class="stat-label">generated</span></div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <input id="search" type="text" placeholder="search name, slug, alias, or fact text…" autocomplete="off">
+    <div class="chips" id="type-chips"></div>
+    <select id="sort-select">
+      <option value="connected">most connected</option>
+      <option value="recent">recently seen</option>
+      <option value="name">name</option>
+    </select>
+  </div>
+
+  <div class="main">
+    <div class="panel left">
+      <div id="entity-list"></div>
+      <button id="show-more" class="show-more" hidden>show more</button>
+    </div>
+    <div class="panel right" id="detail-panel">
+      <div class="empty-state">select an entity from the list</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = __SCRY_MEMORY_DATA__;
+
+const ENTITY_TYPES = ["project", "service", "machine", "tool", "person", "decision", "runbook", "concept"];
+const PAGE_SIZE = 200;
+
+function esc(s) {
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtDate(s) {
+  const d = parseDate(s);
+  if (!d) return "unknown";
+  return d.toISOString().slice(0, 10);
+}
+
+function relTime(s) {
+  const d = parseDate(s);
+  if (!d) return "unknown";
+  const diffMs = Date.now() - d.getTime();
+  const diffSec = Math.round(diffMs / 1000);
+  const abs = Math.abs(diffSec);
+  const suffix = diffSec >= 0 ? "ago" : "from now";
+  const units = [
+    ["y", 31536000], ["mo", 2592000], ["d", 86400], ["h", 3600], ["m", 60],
+  ];
+  for (const [label, secs] of units) {
+    if (abs >= secs) {
+      return Math.floor(abs / secs) + label + " " + suffix;
+    }
+  }
+  return "just now";
+}
+
+// --- index construction ---
+
+const entityBySlug = new Map();
+for (const e of DATA.entities || []) entityBySlug.set(e.slug, e);
+
+const episodeById = new Map();
+for (const ep of DATA.episodes || []) episodeById.set(ep.id, ep);
+
+// factsByEntity: slug -> array of every fact (current + superseded) where
+// the entity is src or dst.
+const factsByEntity = new Map();
+function pushFact(slug, f) {
+  let arr = factsByEntity.get(slug);
+  if (!arr) { arr = []; factsByEntity.set(slug, arr); }
+  arr.push(f);
+}
+let currentFactCount = 0, supersededFactCount = 0;
+for (const f of DATA.facts || []) {
+  if (f.invalid_at) supersededFactCount++; else currentFactCount++;
+  pushFact(f.src, f);
+  if (f.dst !== f.src) pushFact(f.dst, f);
+}
+
+// currentDegree: number of distinct entities connected via CURRENT facts —
+// used as "connection count" in the list and for the "most connected" sort
+// and ego-graph neighbor preference.
+const currentDegree = new Map();
+function degreeOf(slug) {
+  if (currentDegree.has(slug)) return currentDegree.get(slug);
+  const facts = factsByEntity.get(slug) || [];
+  const neighbors = new Set();
+  for (const f of facts) {
+    if (f.invalid_at) continue;
+    const other = f.src === slug ? f.dst : f.src;
+    if (other !== slug) neighbors.add(other);
+  }
+  currentDegree.set(slug, neighbors.size);
+  return neighbors.size;
+}
+
+// search blob per entity: name + slug + aliases + every fact sentence that
+// touches this entity (current and superseded).
+const searchBlob = new Map();
+function blobFor(e) {
+  if (searchBlob.has(e.slug)) return searchBlob.get(e.slug);
+  const parts = [e.name || "", e.slug || "", ...(e.aliases || [])];
+  for (const f of factsByEntity.get(e.slug) || []) {
+    parts.push(f.fact || "", f.relation || "");
+  }
+  const blob = parts.join("   ").toLowerCase();
+  searchBlob.set(e.slug, blob);
+  return blob;
+}
+
+// --- header stats ---
+
+document.getElementById("stat-entities").textContent = (DATA.entities || []).length.toLocaleString();
+document.getElementById("stat-current").textContent = currentFactCount.toLocaleString();
+document.getElementById("stat-superseded").textContent = supersededFactCount.toLocaleString();
+document.getElementById("stat-episodes").textContent = (DATA.episodes || []).length.toLocaleString();
+document.getElementById("stat-generated").textContent = DATA.generated_at ? relTime(DATA.generated_at) : "unknown";
+
+// --- controls state ---
+
+const state = {
+  query: "",
+  activeTypes: new Set(),
+  sort: "connected",
+  visibleCount: PAGE_SIZE,
+  selected: null,
+};
+
+const chipsEl = document.getElementById("type-chips");
+for (const t of ENTITY_TYPES) {
+  const chip = document.createElement("button");
+  chip.className = "chip";
+  chip.textContent = t;
+  chip.dataset.type = t;
+  chip.addEventListener("click", () => {
+    if (state.activeTypes.has(t)) state.activeTypes.delete(t);
+    else state.activeTypes.add(t);
+    chip.classList.toggle("active");
+    state.visibleCount = PAGE_SIZE;
+    renderList();
+  });
+  chipsEl.appendChild(chip);
+}
+
+const searchEl = document.getElementById("search");
+searchEl.addEventListener("input", () => {
+  state.query = searchEl.value.trim().toLowerCase();
+  state.visibleCount = PAGE_SIZE;
+  renderList();
+});
+
+const sortEl = document.getElementById("sort-select");
+sortEl.addEventListener("change", () => {
+  state.sort = sortEl.value;
+  renderList();
+});
+
+document.getElementById("show-more").addEventListener("click", () => {
+  state.visibleCount += PAGE_SIZE;
+  renderList();
+});
+
+// --- list rendering ---
+
+function filteredSortedEntities() {
+  let list = DATA.entities || [];
+  if (state.activeTypes.size > 0) {
+    list = list.filter((e) => state.activeTypes.has(e.type));
+  }
+  if (state.query) {
+    list = list.filter((e) => blobFor(e).includes(state.query));
+  }
+  const sorted = list.slice();
+  if (state.sort === "connected") {
+    sorted.sort((a, b) => degreeOf(b.slug) - degreeOf(a.slug) || a.name.localeCompare(b.name));
+  } else if (state.sort === "recent") {
+    sorted.sort((a, b) => (parseDate(b.last_seen) || 0) - (parseDate(a.last_seen) || 0));
+  } else {
+    sorted.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }
+  return sorted;
+}
+
+function badgeClass(type) {
+  return ENTITY_TYPES.includes(type) ? "badge-" + type : "badge-unknown";
+}
+
+function renderList() {
+  const listEl = document.getElementById("entity-list");
+  const all = filteredSortedEntities();
+  const visible = all.slice(0, state.visibleCount);
+
+  if (visible.length === 0) {
+    listEl.innerHTML = '<div class="list-empty">no entities match</div>';
+  } else {
+    listEl.innerHTML = visible.map((e) => {
+      const selected = e.slug === state.selected ? " selected" : "";
+      return `<div class="entity-row${selected}" data-slug="${esc(e.slug)}">
+        <span class="badge ${badgeClass(e.type)}">${esc(e.type || "?")}</span>
+        <span class="entity-name" title="${esc(e.name)}">${esc(e.name)}</span>
+        <span class="entity-meta">
+          <span class="degree">${degreeOf(e.slug)} links</span>
+          <span class="lastseen">${esc(relTime(e.last_seen))}</span>
+        </span>
+      </div>`;
+    }).join("");
+    for (const row of listEl.querySelectorAll(".entity-row")) {
+      row.addEventListener("click", () => selectEntity(row.dataset.slug));
+    }
+  }
+
+  const moreBtn = document.getElementById("show-more");
+  if (all.length > visible.length) {
+    moreBtn.hidden = false;
+    moreBtn.textContent = `show more (${(all.length - visible.length).toLocaleString()} remaining)`;
+  } else {
+    moreBtn.hidden = true;
+  }
+}
+
+// --- detail panel ---
+
+function entityLabel(slug) {
+  const e = entityBySlug.get(slug);
+  return e ? e.name : slug;
+}
+
+function selectEntity(slug) {
+  state.selected = slug;
+  renderList();
+  renderDetail(slug);
+}
+
+function renderDetail(slug) {
+  const panel = document.getElementById("detail-panel");
+  const e = entityBySlug.get(slug);
+  if (!e) {
+    panel.innerHTML = '<div class="empty-state">unknown entity</div>';
+    return;
+  }
+
+  const aliases = (e.aliases || []).map((a) => `<span class="pill">${esc(a)}</span>`).join("") || "<span class=\"detail-desc\">none</span>";
+  const repoRefs = (e.repo_refs || []).map((r) => `<span class="pill">${esc(r)}</span>`).join("") || "<span class=\"detail-desc\">none</span>";
+
+  const facts = (factsByEntity.get(slug) || []).slice();
+  const current = facts.filter((f) => !f.invalid_at)
+    .sort((a, b) => (parseDate(b.valid_from) || 0) - (parseDate(a.valid_from) || 0));
+  const superseded = facts.filter((f) => f.invalid_at)
+    .sort((a, b) => (parseDate(b.invalid_at) || 0) - (parseDate(a.invalid_at) || 0));
+
+  const epIds = new Set();
+  for (const f of facts) for (const id of (f.episodes || [])) epIds.add(id);
+  const episodes = [...epIds].map((id) => episodeById.get(id)).filter(Boolean)
+    .sort((a, b) => (parseDate(b.occurred_at) || 0) - (parseDate(a.occurred_at) || 0))
+    .slice(0, 10);
+
+  panel.innerHTML = `
+    <div class="detail-header">
+      <h2>${esc(e.name)}</h2>
+      <span class="badge ${badgeClass(e.type)}">${esc(e.type || "?")}</span>
+      <span class="detail-slug">${esc(e.slug)}</span>
+    </div>
+    <div class="detail-desc">${esc(e.description) || "<em>no description</em>"}</div>
+    <div class="detail-row"><span class="label">aliases</span>${aliases}</div>
+    <div class="detail-row"><span class="label">repo refs</span>${repoRefs}</div>
+
+    <div id="ego-wrap">
+      <canvas id="ego-canvas"></canvas>
+      <div id="ego-tooltip"></div>
+    </div>
+
+    <h3 class="section-title">Current facts (${current.length})</h3>
+    <div id="facts-current">${factRows(current, slug)}</div>
+
+    <h3 class="section-title">Superseded facts (${superseded.length})</h3>
+    <div id="facts-superseded">${factRows(superseded, slug)}</div>
+
+    <h3 class="section-title">Provenance episodes (${episodes.length} of ${epIds.size})</h3>
+    <div id="episodes">${episodeRows(episodes)}</div>
+  `;
+
+  for (const link of panel.querySelectorAll("a.entity-link")) {
+    link.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      selectEntity(link.dataset.slug);
+    });
+  }
+
+  drawEgoGraph(slug);
+}
+
+function factRows(facts, selfSlug) {
+  if (facts.length === 0) return '<div class="empty-state" style="padding:10px 0">none</div>';
+  return facts.map((f) => {
+    const srcIsSelf = f.src === selfSlug;
+    const dstIsSelf = f.dst === selfSlug;
+    const srcSpan = srcIsSelf
+      ? `<span class="self">${esc(entityLabel(f.src))}</span>`
+      : `<a class="entity-link" data-slug="${esc(f.src)}">${esc(entityLabel(f.src))}</a>`;
+    const dstSpan = dstIsSelf
+      ? `<span class="self">${esc(entityLabel(f.dst))}</span>`
+      : `<a class="entity-link" data-slug="${esc(f.dst)}">${esc(entityLabel(f.dst))}</a>`;
+    const dates = f.invalid_at
+      ? `valid_from ${esc(fmtDate(f.valid_from))} &middot; invalid_at ${esc(fmtDate(f.invalid_at))}`
+      : `valid_from ${esc(fmtDate(f.valid_from))}`;
+    const cls = f.invalid_at ? "fact-row superseded" : "fact-row";
+    return `<div class="${cls}">
+      <div class="fact-edge">${srcSpan} <span class="rel">&mdash;${esc(f.relation)}&rarr;</span> ${dstSpan}</div>
+      <div class="fact-sentence">${esc(f.fact)}</div>
+      <div class="fact-dates">${dates}</div>
+    </div>`;
+  }).join("");
+}
+
+function episodeRows(episodes) {
+  if (episodes.length === 0) return '<div class="empty-state" style="padding:10px 0">none</div>';
+  return episodes.map((ep) => `
+    <div class="episode-row">
+      <div class="episode-summary">${esc(ep.summary)}</div>
+      <div class="episode-meta">${esc(ep.source_ref)} &middot; ${esc(fmtDate(ep.occurred_at))}</div>
+    </div>
+  `).join("");
+}
+
+// --- ego graph (vanilla canvas, radial 1-hop layout) ---
+
+function drawEgoGraph(slug) {
+  const canvas = document.getElementById("ego-canvas");
+  const tooltip = document.getElementById("ego-tooltip");
+  if (!canvas) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(rect.width, 200);
+  const height = 220;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  canvas.style.height = height + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+
+  const style = getComputedStyle(document.documentElement);
+  const colorText = style.getPropertyValue("--text").trim() || "#cdd6f4";
+  const colorSubtext = style.getPropertyValue("--subtext").trim() || "#a6adc8";
+  const colorSurface = style.getPropertyValue("--surface1").trim() || "#45475a";
+  const colorMauve = style.getPropertyValue("--mauve").trim() || "#cba6f7";
+  const colorBlue = style.getPropertyValue("--blue").trim() || "#89b4fa";
+
+  // Gather 1-hop neighbors: unique connected slugs (current + superseded),
+  // capped at 30, preferring the highest-degree neighbors.
+  const facts = factsByEntity.get(slug) || [];
+  const neighborRelations = new Map(); // neighborSlug -> [{relation, dir, current}]
+  for (const f of facts) {
+    const other = f.src === slug ? f.dst : (f.dst === slug ? f.src : null);
+    if (!other || other === slug) continue;
+    const dir = f.src === slug ? "out" : "in";
+    let arr = neighborRelations.get(other);
+    if (!arr) { arr = []; neighborRelations.set(other, arr); }
+    arr.push({ relation: f.relation, dir, current: !f.invalid_at });
+  }
+  let neighbors = [...neighborRelations.keys()];
+  neighbors.sort((a, b) => degreeOf(b) - degreeOf(a));
+  neighbors = neighbors.slice(0, 30);
+
+  if (neighbors.length === 0) {
+    ctx.fillStyle = colorSubtext;
+    ctx.font = "12px monospace";
+    ctx.fillText("no connections", 12, 20);
+    tooltip.style.display = "none";
+    return;
+  }
+
+  const cx = width / 2, cy = height / 2;
+  const radius = Math.min(width, height) / 2 - 34;
+  const nodeR = 5;
+  const centerR = 8;
+
+  const positions = neighbors.map((n, i) => {
+    const angle = (2 * Math.PI * i) / neighbors.length - Math.PI / 2;
+    return { slug: n, x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+  });
+
+  function draw(hoverIdx) {
+    ctx.clearRect(0, 0, width, height);
+
+    // edges
+    for (let i = 0; i < positions.length; i++) {
+      const p = positions[i];
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(p.x, p.y);
+      ctx.strokeStyle = i === hoverIdx ? colorMauve : colorSurface;
+      ctx.lineWidth = i === hoverIdx ? 2 : 1;
+      ctx.stroke();
+    }
+
+    // neighbor nodes + labels
+    ctx.font = "10px monospace";
+    for (let i = 0; i < positions.length; i++) {
+      const p = positions[i];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, nodeR, 0, 2 * Math.PI);
+      ctx.fillStyle = i === hoverIdx ? colorMauve : colorBlue;
+      ctx.fill();
+
+      const label = entityLabel(p.slug);
+      const short = label.length > 16 ? label.slice(0, 15) + "…" : label;
+      ctx.fillStyle = colorSubtext;
+      const alignRight = p.x < cx;
+      ctx.textAlign = alignRight ? "right" : "left";
+      ctx.fillText(short, p.x + (alignRight ? -8 : 8), p.y + 3);
+    }
+
+    // center node
+    ctx.beginPath();
+    ctx.arc(cx, cy, centerR, 0, 2 * Math.PI);
+    ctx.fillStyle = colorMauve;
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.fillStyle = colorText;
+    ctx.font = "bold 10px monospace";
+    const centerLabel = entityLabel(slug);
+    ctx.fillText(centerLabel.length > 20 ? centerLabel.slice(0, 19) + "…" : centerLabel, cx, cy - centerR - 6);
+  }
+
+  draw(-1);
+
+  function hitTestNode(mx, my) {
+    for (let i = 0; i < positions.length; i++) {
+      const p = positions[i];
+      if (Math.hypot(mx - p.x, my - p.y) <= nodeR + 3) return i;
+    }
+    return -1;
+  }
+
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * dx + (py - y1) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+  }
+
+  function hitTestEdge(mx, my) {
+    for (let i = 0; i < positions.length; i++) {
+      const p = positions[i];
+      if (distToSegment(mx, my, cx, cy, p.x, p.y) <= 5) return i;
+    }
+    return -1;
+  }
+
+  canvas.onmousemove = (ev) => {
+    const r = canvas.getBoundingClientRect();
+    const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    let idx = hitTestNode(mx, my);
+    if (idx === -1) idx = hitTestEdge(mx, my);
+    draw(idx);
+    if (idx === -1) {
+      tooltip.style.display = "none";
+      canvas.style.cursor = "default";
+      return;
+    }
+    canvas.style.cursor = "pointer";
+    const rels = neighborRelations.get(positions[idx].slug) || [];
+    const relText = rels.map((rel) => (rel.dir === "out" ? "→ " : "← ") + rel.relation + (rel.current ? "" : " (superseded)")).join(", ");
+    tooltip.textContent = entityLabel(positions[idx].slug) + ": " + relText;
+    tooltip.style.left = Math.min(mx + 12, width - 10) + "px";
+    tooltip.style.top = Math.max(my - 24, 0) + "px";
+    tooltip.style.display = "block";
+  };
+  canvas.onmouseleave = () => {
+    draw(-1);
+    tooltip.style.display = "none";
+  };
+  canvas.onclick = (ev) => {
+    const r = canvas.getBoundingClientRect();
+    const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    const idx = hitTestNode(mx, my);
+    if (idx !== -1) selectEntity(positions[idx].slug);
+  };
+}
+
+renderList();
+</script>

@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -17,6 +22,14 @@ import (
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/memory/sweep"
 )
+
+// browseHTMLTemplate is the self-contained `scry memory browse` UI: a
+// single HTML file (vanilla JS + CSS, no CDN/network) with a
+// __SCRY_MEMORY_DATA__ placeholder that memoryBrowseCmd replaces with the
+// JSON-marshaled memory.export result.
+//
+//go:embed memory_browse.html
+var browseHTMLTemplate string
 
 // dormantNotice is printed (with exit 0, not an error) by ingest/sweep/
 // backfill when neither API key env var is set — the memory domain is
@@ -39,7 +52,7 @@ func memoryCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "memory", Short: "Global episodic memory graph"}
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
-		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd())
+		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd())
 	return cmd
 }
 
@@ -748,4 +761,71 @@ func memoryStatusCmd() *cobra.Command {
 			return printJSON(result, pretty)
 		},
 	}
+}
+
+// --- browse ---
+
+func memoryBrowseCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "browse",
+		Short: "Render a searchable local HTML visualization of the memory graph and open it",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out, _ := cmd.Flags().GetString("out")
+			noOpen, _ := cmd.Flags().GetBool("no-open")
+
+			if out == "" {
+				home, err := scryHome()
+				if err != nil {
+					return err
+				}
+				out = filepath.Join(home, "memory", "browse.html")
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+			var export daemon.MemoryExportResult
+			if err := callDaemon(ctx, "memory.export", nil, &export); err != nil {
+				return err
+			}
+
+			html, err := renderBrowseHTML(export)
+			if err != nil {
+				return err
+			}
+
+			if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+				return fmt.Errorf("create output dir: %w", err)
+			}
+			if err := os.WriteFile(out, html, 0o644); err != nil {
+				return fmt.Errorf("write %s: %w", out, err)
+			}
+			fmt.Println(out)
+
+			if !noOpen {
+				if err := exec.Command("open", out).Run(); err != nil {
+					fmt.Fprintf(os.Stderr, "memory browse: could not open %s automatically: %v\n", out, err)
+				}
+			}
+			return nil
+		},
+	}
+	cmd.Flags().String("out", "", "output path for the HTML file (default: ~/.scry/memory/browse.html)")
+	cmd.Flags().Bool("no-open", false, "write the file but do not open it")
+	return cmd
+}
+
+// renderBrowseHTML injects export, JSON-marshaled, into the embedded
+// browseHTMLTemplate's __SCRY_MEMORY_DATA__ placeholder as `const DATA =
+// <json>;`. "</" sequences are escaped to "<\/" so a fact or episode summary
+// containing a literal "</script>" can't prematurely close the inline
+// <script> tag.
+func renderBrowseHTML(export daemon.MemoryExportResult) ([]byte, error) {
+	b, err := json.Marshal(export)
+	if err != nil {
+		return nil, fmt.Errorf("marshal memory export: %w", err)
+	}
+	safe := strings.ReplaceAll(string(b), "</", "<\\/")
+	html := strings.Replace(browseHTMLTemplate, "__SCRY_MEMORY_DATA__", safe, 1)
+	return []byte(html), nil
 }

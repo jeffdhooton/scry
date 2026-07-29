@@ -117,6 +117,32 @@ func TestEpisodePutHasGet(t *testing.T) {
 	}
 }
 
+func TestAllEpisodes(t *testing.T) {
+	s := openTemp(t)
+	now := time.Now()
+
+	episodes := []Episode{
+		{ID: "e2", Source: "manual", SourceRef: "manual", OccurredAt: now, IngestedAt: now},
+		{ID: "e1", Source: "claude-session", SourceRef: "/path/file.jsonl#L1-L10", OccurredAt: now, IngestedAt: now},
+	}
+	for _, e := range episodes {
+		if err := s.PutEpisode(e); err != nil {
+			t.Fatalf("PutEpisode(%s): %v", e.ID, err)
+		}
+	}
+
+	got, err := s.AllEpisodes()
+	if err != nil {
+		t.Fatalf("AllEpisodes: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("want 2 episodes, got %d", len(got))
+	}
+	if got[0].ID != "e1" || got[1].ID != "e2" {
+		t.Fatalf("AllEpisodes not sorted by ID: %+v", got)
+	}
+}
+
 func TestEntityPutAndAliasResolution(t *testing.T) {
 	s := openTemp(t)
 
@@ -382,6 +408,44 @@ func TestFactsAboutUsesReverseIndex(t *testing.T) {
 	}
 	if len(about) != 1 || about[0].Src != "book-system" {
 		t.Fatalf("FactsAbout should find fact by src too: %+v", about)
+	}
+}
+
+func TestAllFacts(t *testing.T) {
+	s := openTemp(t)
+	v1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	current := Fact{Src: "book-system", Relation: "uses", Dst: "postgres", Fact: "book-system uses postgres",
+		ValidFrom: v1, Confidence: 0.8, Episodes: []string{"e1"}}
+	if err := s.PutFact(current); err != nil {
+		t.Fatalf("PutFact current: %v", err)
+	}
+
+	invalidAt := v1.AddDate(0, 0, 10)
+	superseded := Fact{Src: "book-system", Relation: "deployed_on", Dst: "old-host", Fact: "book-system ran on old-host",
+		ValidFrom: v1, InvalidAt: &invalidAt, Confidence: 0.7, Episodes: []string{"e2"}}
+	if err := s.PutFact(superseded); err != nil {
+		t.Fatalf("PutFact superseded: %v", err)
+	}
+
+	got, err := s.AllFacts()
+	if err != nil {
+		t.Fatalf("AllFacts: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("AllFacts should include invalidated facts too, want 2, got %d: %+v", len(got), got)
+	}
+	var sawCurrent, sawSuperseded bool
+	for _, f := range got {
+		if f.Relation == "uses" && f.InvalidAt == nil {
+			sawCurrent = true
+		}
+		if f.Relation == "deployed_on" && f.InvalidAt != nil {
+			sawSuperseded = true
+		}
+	}
+	if !sawCurrent || !sawSuperseded {
+		t.Fatalf("AllFacts missing expected entries: %+v", got)
 	}
 }
 

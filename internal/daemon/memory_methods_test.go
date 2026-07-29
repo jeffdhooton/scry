@@ -549,6 +549,62 @@ func TestMemoryHasEpisodes(t *testing.T) {
 	}
 }
 
+func TestMemoryExportIncludesEntitiesFactsAndEpisodesWithHistory(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	now := time.Now()
+
+	commitParams := MemoryCommitParams{
+		Episode: memstore.Episode{ID: "ep-export-1", Source: "manual", SourceRef: "manual", OccurredAt: now, IngestedAt: now},
+		Result: extract.Result{
+			EpisodeSummary: "seed",
+			Entities: []extract.Ent{
+				{Name: "book-system", Type: "service"},
+				{Name: "hermes-mini", Type: "machine"},
+			},
+			Facts: []extract.Fct{
+				{Src: "book-system", Relation: "deployed_on", Dst: "hermes-mini", Fact: "runs there", Confidence: 0.8},
+			},
+		},
+	}
+	if _, err := d.handleMemoryCommit(ctx, mustJSON(t, commitParams)); err != nil {
+		t.Fatalf("handleMemoryCommit: %v", err)
+	}
+
+	// Invalidate the fact so the export must surface both a current and a
+	// superseded fact (the UI shows history, per the RPC's contract).
+	if _, err := d.handleMemoryInvalidate(ctx, mustJSON(t, MemoryInvalidateParams{
+		Src: "book-system", Relation: "deployed_on", Dst: "hermes-mini",
+	})); err != nil {
+		t.Fatalf("handleMemoryInvalidate: %v", err)
+	}
+
+	res, err := d.handleMemoryExport(ctx, nil)
+	if err != nil {
+		t.Fatalf("handleMemoryExport: %v", err)
+	}
+	export, ok := res.(*MemoryExportResult)
+	if !ok {
+		t.Fatalf("handleMemoryExport result type = %T, want *MemoryExportResult", res)
+	}
+
+	if len(export.Entities) != 2 {
+		t.Errorf("Entities = %d, want 2: %+v", len(export.Entities), export.Entities)
+	}
+	if len(export.Episodes) != 1 || export.Episodes[0].ID != "ep-export-1" {
+		t.Errorf("Episodes = %+v, want exactly [ep-export-1]", export.Episodes)
+	}
+	if len(export.Facts) != 1 {
+		t.Fatalf("Facts = %d, want 1 (the sole fact, now invalidated), got %+v", len(export.Facts), export.Facts)
+	}
+	if export.Facts[0].InvalidAt == nil {
+		t.Errorf("Facts[0].InvalidAt = nil, want set — export must include invalidated facts for history")
+	}
+	if export.GeneratedAt.IsZero() {
+		t.Errorf("GeneratedAt is zero, want set")
+	}
+}
+
 func TestMemoryInvalidateAllCurrentMatches(t *testing.T) {
 	d := newTestMemoryDaemon(t)
 	ctx := context.Background()

@@ -42,6 +42,7 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.cursor.put", d.handleMemoryCursorPut)
 	d.server.Register("memory.hasEpisodes", d.handleMemoryHasEpisodes)
 	d.server.Register("memory.status", d.handleMemoryStatus)
+	d.server.Register("memory.export", d.handleMemoryExport)
 }
 
 // closeMemory closes the global memory store, if it was ever opened. Called
@@ -622,5 +623,52 @@ func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, 
 		Facts:    facts,
 		Dormant:  d.memExtractor == nil,
 		Cursors:  len(cursors),
+	}, nil
+}
+
+// --- memory.export ---
+
+// MemoryExportResult is a full dump of the memory graph — every entity,
+// every fact (including invalidated ones, so a UI can render history), and
+// every episode — for `scry memory browse` to render as a local
+// visualization. No params; this is a whole-store snapshot.
+type MemoryExportResult struct {
+	Entities    []memstore.Entity  `json:"entities"`
+	Facts       []memstore.Fact    `json:"facts"`
+	Episodes    []memstore.Episode `json:"episodes"`
+	GeneratedAt time.Time          `json:"generated_at"`
+}
+
+func (d *Daemon) handleMemoryExport(_ context.Context, _ json.RawMessage) (any, error) {
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	entities, err := st.Entities()
+	if err != nil {
+		return nil, err
+	}
+	facts, err := st.AllFacts()
+	if err != nil {
+		return nil, err
+	}
+	episodes, err := st.AllEpisodes()
+	if err != nil {
+		return nil, err
+	}
+	if entities == nil {
+		entities = []memstore.Entity{}
+	}
+	if facts == nil {
+		facts = []memstore.Fact{}
+	}
+	if episodes == nil {
+		episodes = []memstore.Episode{}
+	}
+	return &MemoryExportResult{
+		Entities:    entities,
+		Facts:       facts,
+		Episodes:    episodes,
+		GeneratedAt: time.Now(),
 	}, nil
 }

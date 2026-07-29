@@ -212,6 +212,34 @@ func (s *Store) HasEpisode(id string) (bool, error) {
 	return found, err
 }
 
+// AllEpisodes returns every episode, sorted by ID.
+func (s *Store) AllEpisodes() ([]Episode, error) {
+	var episodes []Episode
+	pb := []byte(prefixEpisode)
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 256
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(pb); it.ValidForPrefix(pb); it.Next() {
+			err := it.Item().Value(func(val []byte) error {
+				var e Episode
+				if err := json.Unmarshal(val, &e); err != nil {
+					return err
+				}
+				episodes = append(episodes, e)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	sort.Slice(episodes, func(i, j int) bool { return episodes[i].ID < episodes[j].ID })
+	return episodes, err
+}
+
 // --- Entities ---
 
 // PutEntity writes e and (re)indexes al: keys for its Name and every alias.
@@ -496,6 +524,37 @@ func (s *Store) FactsAbout(slug string, includeInvalid bool) ([]Fact, error) {
 			}
 			seen[fk] = true
 			facts = append(facts, f)
+		}
+		return nil
+	})
+	return facts, err
+}
+
+// AllFacts returns every fact in the store, including invalidated ones — a
+// full prefix scan over fa: (unlike FactsFrom/FactsAbout, which are scoped
+// to one entity). Order follows the fa: key layout (src, then relation, then
+// dst, then valid-from), which BadgerDB's iterator already yields sorted;
+// no additional sort is applied, mirroring FactsFrom.
+func (s *Store) AllFacts() ([]Fact, error) {
+	var facts []Fact
+	pb := []byte(prefixFact)
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 256
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(pb); it.ValidForPrefix(pb); it.Next() {
+			err := it.Item().Value(func(val []byte) error {
+				var f Fact
+				if err := json.Unmarshal(val, &f); err != nil {
+					return err
+				}
+				facts = append(facts, f)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	})
