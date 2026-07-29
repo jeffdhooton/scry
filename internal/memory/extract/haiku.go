@@ -66,7 +66,7 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 
 	params := anthropic.MessageNewParams{
 		Model:     anthropic.Model(h.model),
-		MaxTokens: 4000,
+		MaxTokens: 8000,
 		System:    system,
 		Messages:  []anthropic.MessageParam{userMsg},
 	}

@@ -100,8 +100,8 @@ func TestBuildBatchRequests(t *testing.T) {
 		if req.Params.Model != anthropic.Model("claude-haiku-4-5") {
 			t.Errorf("reqs[%d].Params.Model = %q, want claude-haiku-4-5", i, req.Params.Model)
 		}
-		if req.Params.MaxTokens != 4000 {
-			t.Errorf("reqs[%d].Params.MaxTokens = %d, want 4000", i, req.Params.MaxTokens)
+		if req.Params.MaxTokens != 8000 {
+			t.Errorf("reqs[%d].Params.MaxTokens = %d, want 8000", i, req.Params.MaxTokens)
 		}
 
 		wantSystem, wantUserMsg := buildMessages(ep, glossary)

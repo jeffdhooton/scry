@@ -78,9 +78,37 @@ var allowedEntityTypes = map[string]bool{
 // entity's type must be in the allowed set, and every fact must carry a
 // confidence value. Errors are descriptive enough to feed back to the model
 // for a corrective retry.
+//
+// If the fence-stripped text still doesn't parse (e.g. the model wrote prose
+// before/after the JSON, or wrapped it in markdown headers instead of a code
+// fence), ParseResult falls back to extracting the outermost JSON object —
+// the substring from the first '{' to the last '}' inclusive — and retries
+// unmarshal+validation once against that substring. This rescues
+// prose-wrapped and header-wrapped JSON; truncated JSON (no closing '}') is
+// correctly left to fail, since the payload is genuinely incomplete. If the
+// fallback also fails, the original error is returned so the caller sees the
+// first, more diagnostic failure.
 func ParseResult(raw string) (Result, error) {
 	text := stripFences(raw)
 
+	result, err := parseResultStrict(text)
+	if err == nil {
+		return result, nil
+	}
+
+	if start, end := strings.IndexByte(text, '{'), strings.LastIndexByte(text, '}'); start >= 0 && end > start {
+		if fallback, fallbackErr := parseResultStrict(text[start : end+1]); fallbackErr == nil {
+			return fallback, nil
+		}
+	}
+
+	return Result{}, err
+}
+
+// parseResultStrict unmarshals text (already fence-stripped, or a
+// first-'{'-to-last-'}' substring) into a Result and validates it. It does
+// not attempt any further recovery.
+func parseResultStrict(text string) (Result, error) {
 	var result Result
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
 		return Result{}, fmt.Errorf("extract: invalid JSON: %w", err)

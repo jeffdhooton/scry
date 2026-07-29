@@ -133,6 +133,69 @@ func TestParseResult(t *testing.T) {
 			t.Errorf("error = %v, want mention of confidence", err)
 		}
 	})
+
+	t.Run("prose-wrapped JSON falls back to outermost object", func(t *testing.T) {
+		raw := "I extracted the following:\n" + `{
+			"episode_summary": "ok",
+			"entities": [],
+			"facts": []
+		}`
+		result, err := ParseResult(raw)
+		if err != nil {
+			t.Fatalf("ParseResult() error = %v, want nil", err)
+		}
+		if result.EpisodeSummary != "ok" {
+			t.Errorf("EpisodeSummary = %q", result.EpisodeSummary)
+		}
+	})
+
+	t.Run("markdown-header-wrapped JSON falls back to outermost object", func(t *testing.T) {
+		raw := "# Result\n" + `{
+			"episode_summary": "ok",
+			"entities": [],
+			"facts": []
+		}` + "\ntrailing notes here"
+		result, err := ParseResult(raw)
+		if err != nil {
+			t.Fatalf("ParseResult() error = %v, want nil", err)
+		}
+		if result.EpisodeSummary != "ok" {
+			t.Errorf("EpisodeSummary = %q", result.EpisodeSummary)
+		}
+	})
+
+	t.Run("truncated JSON still fails with ErrParse-eligible error", func(t *testing.T) {
+		raw := `{
+			"episode_summary": "ok",
+			"entities": [],
+			"facts": [{"src": "a", "relation": "uses", "dst": "b", "fact": "a uses b", "confidence": 0.5`
+		_, err := ParseResult(raw)
+		if err == nil {
+			t.Fatal("ParseResult() error = nil, want error for truncated JSON")
+		}
+	})
+
+	t.Run("nested braces inside strings are handled by the first-to-last brace rule", func(t *testing.T) {
+		// The wrapping prose has no braces of its own, so the first '{' and
+		// last '}' in the whole text are exactly the JSON object's own
+		// delimiters — even though the object contains a string value that
+		// itself holds literal '{' and '}' characters (which a naive
+		// brace-counting matcher could trip over, but a plain first/last
+		// substring cut does not).
+		raw := "Here you go:\n" + `{
+			"episode_summary": "Discussed the shape {a: 1, b: {c: 2}} in chat.",
+			"entities": [],
+			"facts": []
+		}` + "\nHope that helps."
+		result, err := ParseResult(raw)
+		if err != nil {
+			t.Fatalf("ParseResult() error = %v, want nil", err)
+		}
+		wantSummary := "Discussed the shape {a: 1, b: {c: 2}} in chat."
+		if result.EpisodeSummary != wantSummary {
+			t.Errorf("EpisodeSummary = %q, want %q", result.EpisodeSummary, wantSummary)
+		}
+	})
 }
 
 func TestBuildMessages(t *testing.T) {
