@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -68,6 +69,9 @@ type Daemon struct {
 	memStore     *memstore.Store
 	memErr       error
 	memExtractor extract.Extractor
+
+	memUIMu  sync.Mutex
+	memUISrv *http.Server
 }
 
 // memoryStore lazily opens the global memory store on first use, guarded by
@@ -171,6 +175,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	defer d.graphRegistry.CloseAll()
 	defer d.closeHTTP()
 	defer d.closeMemory()
+	defer d.closeMemoryUI()
 	defer d.watcher.Close()
 
 	runCtx, cancel := context.WithCancel(ctx)
@@ -195,6 +200,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// source path still exists. Repos whose source dir was deleted stay in
 	// the index but get no watcher.
 	d.bootstrapWatchers(runCtx)
+
+	// Live memory graph UI, loopback-only, best-effort: a port conflict here
+	// must never keep the daemon itself from coming up.
+	d.startMemoryUI(runCtx)
 
 	serveErr := d.server.Serve(runCtx, ln)
 	if serveErr != nil && !errors.Is(serveErr, net.ErrClosed) {

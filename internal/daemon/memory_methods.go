@@ -640,6 +640,15 @@ type MemoryExportResult struct {
 }
 
 func (d *Daemon) handleMemoryExport(_ context.Context, _ json.RawMessage) (any, error) {
+	return d.memoryExport()
+}
+
+// memoryExport gathers the full memory-graph snapshot: every entity, every
+// fact (including invalidated ones, so a UI can render history), and every
+// episode. Shared by the memory.export RPC (handleMemoryExport, above) and
+// the daemon's live HTTP memory UI (internal/daemon/memory_ui.go), so both
+// surfaces build the export from one implementation.
+func (d *Daemon) memoryExport() (*MemoryExportResult, error) {
 	st, err := d.memoryStore()
 	if err != nil {
 		return nil, err
