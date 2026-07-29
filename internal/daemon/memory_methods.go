@@ -434,8 +434,9 @@ type MemoryRememberParams struct {
 // reported, from a call that genuinely extracted zero entities/facts from a
 // fact with no durable content. The MCP dispatch (callMemoryQuery) forwards
 // this raw over JSON without unmarshaling it into a typed struct, so it
-// needs no changes; there is no `scry memory remember` CLI verb to update
-// either.
+// needs no changes. The `scry memory remember` CLI verb (cmd/scry/memory.go)
+// unmarshals this typed struct directly and prints a stderr warning when
+// Dormant is true.
 type MemoryRememberResult struct {
 	Stats   resolve.Stats `json:"stats"`
 	Dormant bool          `json:"dormant"`

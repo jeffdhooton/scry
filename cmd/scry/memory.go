@@ -38,8 +38,8 @@ func memoryDormant() bool {
 func memoryCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "memory", Short: "Global episodic memory graph"}
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
-		memoryOrientCmd(), memoryRecallCmd(), memoryEntitiesCmd(), memoryFactsCmd(),
-		memoryInvalidateCmd(), memoryStatusCmd())
+		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
+		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd())
 	return cmd
 }
 
@@ -630,6 +630,37 @@ func memoryRecallCmd() *cobra.Command {
 	}
 	cmd.Flags().String("as-of", "", "RFC3339 timestamp; empty means current")
 	cmd.Flags().Int("limit", 5, "max results")
+	return cmd
+}
+
+func memoryRememberCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "remember <fact>",
+		Short: "Store a durable fact in global memory",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			entities, _ := cmd.Flags().GetStringArray("entity")
+
+			// No dormancy gate here: unlike ingest, the daemon holds the
+			// extractor for memory.remember and reports Dormant in the
+			// result itself, so the CLI just relays that rather than
+			// short-circuiting before the call.
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+			var result daemon.MemoryRememberResult
+			if err := callDaemon(ctx, "memory.remember", &daemon.MemoryRememberParams{
+				Fact: args[0], Entities: entities,
+			}, &result); err != nil {
+				return err
+			}
+			if result.Dormant {
+				fmt.Fprintln(os.Stderr, "memory: daemon is dormant (no API key in its environment) — fact stored as episode only, no graph facts extracted")
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
+		},
+	}
+	cmd.Flags().StringArray("entity", nil, "hint entity name to bias resolution (repeatable)")
 	return cmd
 }
 
