@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 )
@@ -17,21 +16,20 @@ const defaultModel = "claude-haiku-4-5"
 // Haiku is an Extractor backed by the Anthropic Messages API, defaulting
 // to Claude Haiku. The system prompt (stable) and glossary block (volatile)
 // are sent as separate system blocks so the stable prefix stays cacheable
-// across calls.
+// across calls. Despite the name it speaks to whatever Provider it is given,
+// including Messages-API-compatible endpoints that are not Anthropic.
 type Haiku struct {
 	client anthropic.Client
 	model  string
 }
 
-// NewHaiku builds a Haiku extractor. An empty model defaults to
-// "claude-haiku-4-5".
-func NewHaiku(apiKey, model string) *Haiku {
-	if model == "" {
-		model = defaultModel
-	}
+// NewHaiku builds a Haiku extractor against p. An empty p.Model defaults to
+// "claude-haiku-4-5"; see Provider.Validate for why that default only holds
+// on the Anthropic path.
+func NewHaiku(p Provider) *Haiku {
 	return &Haiku{
-		client: anthropic.NewClient(option.WithAPIKey(apiKey)),
-		model:  model,
+		client: anthropic.NewClient(p.requestOptions()...),
+		model:  p.resolveModel(),
 	}
 }
 

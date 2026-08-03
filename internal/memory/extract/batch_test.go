@@ -249,12 +249,12 @@ func TestRouteBatchResults(t *testing.T) {
 }
 
 func TestNewBatchRunnerDefaultsModel(t *testing.T) {
-	b := NewBatchRunner("test-key", "")
+	b := NewBatchRunner(Provider{APIKey: "test-key"})
 	if b.model != defaultModel {
 		t.Errorf("model = %q, want default %q", b.model, defaultModel)
 	}
 
-	b2 := NewBatchRunner("test-key", "claude-opus-4")
+	b2 := NewBatchRunner(Provider{APIKey: "test-key", Model: "claude-opus-4"})
 	if b2.model != "claude-opus-4" {
 		t.Errorf("model = %q, want claude-opus-4", b2.model)
 	}

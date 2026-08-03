@@ -16,15 +16,15 @@ func TestHaikuLive(t *testing.T) {
 	if os.Getenv("SCRY_LIVE_TEST") != "1" {
 		t.Skip("set SCRY_LIVE_TEST=1 to run live Haiku extraction tests")
 	}
-	apiKey := os.Getenv("SCRY_MEMORY_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("ANTHROPIC_API_KEY")
-	}
-	if apiKey == "" {
+	provider := ProviderFromEnv()
+	if provider.APIKey == "" {
 		t.Skip("set SCRY_MEMORY_API_KEY or ANTHROPIC_API_KEY to run live Haiku extraction tests")
 	}
+	if err := provider.Validate(); err != nil {
+		t.Fatalf("provider: %v", err)
+	}
 
-	h := NewHaiku(apiKey, "")
+	h := NewHaiku(provider)
 
 	ep := distill.RawEpisode{
 		Source: "claude-session",

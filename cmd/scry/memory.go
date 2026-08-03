@@ -122,11 +122,11 @@ func memoryIngestCmd() *cobra.Command {
 			}
 			path, _ := cmd.Flags().GetString("path")
 
-			apiKey := os.Getenv("SCRY_MEMORY_API_KEY")
-			if apiKey == "" {
-				apiKey = os.Getenv("ANTHROPIC_API_KEY")
+			provider := extract.ProviderFromEnv()
+			if err := provider.Validate(); err != nil {
+				return err
 			}
-			extractor := extract.NewHaiku(apiKey, os.Getenv("SCRY_MEMORY_MODEL"))
+			extractor := extract.NewHaiku(provider)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
@@ -166,11 +166,11 @@ func memorySweepCmd() *cobra.Command {
 
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-			apiKey := os.Getenv("SCRY_MEMORY_API_KEY")
-			if apiKey == "" {
-				apiKey = os.Getenv("ANTHROPIC_API_KEY")
+			provider := extract.ProviderFromEnv()
+			if err := provider.Validate(); err != nil {
+				return err
 			}
-			extractor := extract.NewHaiku(apiKey, os.Getenv("SCRY_MEMORY_MODEL"))
+			extractor := extract.NewHaiku(provider)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 			defer cancel()
@@ -212,11 +212,17 @@ func memoryBackfillCmd() *cobra.Command {
 			}
 			noBatch, _ := cmd.Flags().GetBool("no-batch")
 
-			apiKey := os.Getenv("SCRY_MEMORY_API_KEY")
-			if apiKey == "" {
-				apiKey = os.Getenv("ANTHROPIC_API_KEY")
+			provider := extract.ProviderFromEnv()
+			if err := provider.Validate(); err != nil {
+				return err
 			}
-			model := os.Getenv("SCRY_MEMORY_MODEL")
+			// The Batches API is Anthropic-only. A compatible endpoint serves
+			// v1/messages but not v1/messages/batches, so a custom base URL
+			// forces the serial path (and forfeits the 50% batch discount).
+			if !provider.Batched() && !noBatch {
+				noBatch = true
+				fmt.Fprintf(os.Stderr, "backfill: SCRY_MEMORY_BASE_URL is set (%s) — using serial extraction, the Batch API is Anthropic-only\n", provider.BaseURL)
+			}
 
 			// No overall timeout — this is a long-running, potentially
 			// hours-spanning job (batches can take up to 24h to end). ctx is
@@ -228,8 +234,8 @@ func memoryBackfillCmd() *cobra.Command {
 				Since:   since,
 				NoBatch: noBatch,
 				Daemon:  daemonClient{},
-				Haiku:   extract.NewHaiku(apiKey, model),
-				Batch:   extract.NewBatchRunner(apiKey, model),
+				Haiku:   extract.NewHaiku(provider),
+				Batch:   extract.NewBatchRunner(provider),
 			})
 			if err != nil {
 				return err
