@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 )
@@ -28,15 +27,13 @@ type BatchRunner struct {
 	model  string
 }
 
-// NewBatchRunner builds a BatchRunner. An empty model defaults to
-// defaultModel, same as NewHaiku.
-func NewBatchRunner(apiKey, model string) *BatchRunner {
-	if model == "" {
-		model = defaultModel
-	}
+// NewBatchRunner builds a BatchRunner against p. An empty p.Model defaults
+// to defaultModel, same as NewHaiku. Only Anthropic serves the Batches API —
+// callers must check Provider.Batched before routing work here.
+func NewBatchRunner(p Provider) *BatchRunner {
 	return &BatchRunner{
-		client: anthropic.NewClient(option.WithAPIKey(apiKey)),
-		model:  model,
+		client: anthropic.NewClient(p.requestOptions()...),
+		model:  p.resolveModel(),
 	}
 }
 

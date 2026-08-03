@@ -87,18 +87,17 @@ func (d *Daemon) memoryStore() (*memstore.Store, error) {
 }
 
 // buildMemoryExtractor constructs the daemon's extract.Extractor from
-// environment: SCRY_MEMORY_API_KEY, falling back to ANTHROPIC_API_KEY. A nil
-// return means the memory domain is dormant — memory.remember still stores
-// episodes but never resolves them into facts.
+// environment (see extract.ProviderFromEnv). A nil return means the memory
+// domain is dormant — memory.remember still stores episodes but never
+// resolves them into facts. Both a missing key and an unusable provider
+// config go dormant rather than failing the daemon's startup; the CLI
+// surfaces the same misconfiguration loudly, which is where it gets noticed.
 func buildMemoryExtractor() extract.Extractor {
-	apiKey := os.Getenv("SCRY_MEMORY_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("ANTHROPIC_API_KEY")
-	}
-	if apiKey == "" {
+	p := extract.ProviderFromEnv()
+	if p.APIKey == "" || p.Validate() != nil {
 		return nil
 	}
-	return extract.NewHaiku(apiKey, os.Getenv("SCRY_MEMORY_MODEL"))
+	return extract.NewHaiku(p)
 }
 
 // New constructs a Daemon for the given layout. It does NOT start anything;
