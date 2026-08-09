@@ -1187,3 +1187,29 @@ yet". The daemon-side fix covers CLI, MCP, and watcher paths at once.
 picks a surprising ancestor (nearest wins today — if a user wants a
 subdirectory served by an outer repo's index while the subdirectory has
 its own, that's already ambiguous and needs an explicit `--repo`).
+
+---
+
+## Two-tier language detection (2026-08-09)
+
+**Decision:** A detected language is *primary* if it has a root-level marker
+file (`composer.json`, `go.mod`, `package.json`/`tsconfig.json`,
+`pyproject.toml`/`requirements.txt`/`setup.py`/`Pipfile`) or holds ≥10% of
+source files. Otherwise, above a 1% floor, it is *incidental*: its indexer is
+not invoked and its absence never degrades repo status.
+
+**Why:** The previous flat 1% threshold invoked a full indexer for any
+language clearing 1% of files. Measured on `childscribe-beta-r4`: 855 PHP,
+110 TS/JS, 37 Python files and no Python marker. Python cleared the bar at
+3.7%, `scip-python` was not installed, and the entire repo was reported
+`partial` — 855 PHP files' worth of complete index described as degraded
+because of 37 incidental scripts. 17 of 44 indexed repos were in this state.
+
+The marker file carries the weight rather than share alone because it is a
+statement of intent: a repo with a real component in a language declares it.
+Share is the fallback for undeclared-but-substantial code.
+
+**What would change our minds:** A repo with a genuine, sizable component in
+a language that declares no marker and sits under 10% — it would be silently
+skipped. If that shows up, add the marker filename rather than lowering the
+share, or introduce a per-repo override in the manifest.

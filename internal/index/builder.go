@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/sources/coverage"
@@ -33,14 +32,18 @@ import (
 
 // Manifest is the per-repo metadata file written alongside the BadgerDB index.
 type Manifest struct {
-	SchemaVersion int       `json:"schema_version"`
-	RepoPath      string    `json:"repo_path"`
-	Languages     []string  `json:"languages"`
-	IndexedAt     time.Time `json:"indexed_at"`
-	Status        string          `json:"status"` // "ready" | "partial" | "broken"
+	SchemaVersion int             `json:"schema_version"`
+	RepoPath      string          `json:"repo_path"`
+	Languages     []string        `json:"languages"`
+	IndexedAt     time.Time       `json:"indexed_at"`
+	Status        string          `json:"status"` // "ready" | "partial"
 	FailedFiles   int             `json:"failed_files,omitempty"`
 	Stats         scip.Stats      `json:"stats"`
 	CoverageStats *coverage.Stats `json:"coverage_stats,omitempty"`
+	// Indexers records the per-language outcome of this build. Additive:
+	// manifests written before this field existed unmarshal with a nil
+	// slice, and every consumer must render correctly in that case.
+	Indexers []IndexerResult `json:"indexers,omitempty"`
 }
 
 // RepoLayout is the resolved on-disk layout for one repo.
@@ -148,6 +151,62 @@ func absRepoPath(repoPath string) (string, error) {
 	return abs, nil
 }
 
+// indexerFor maps a detected language to the indexer that covers it.
+// scip-typescript handles both TypeScript and JavaScript, so both fold into
+// a single "typescript" invocation.
+func indexerFor(language string) string {
+	if language == "javascript" {
+		return "typescript"
+	}
+	return language
+}
+
+// buildResults runs one indexer per detected primary language via run, and
+// records an IndexerResult for every detected language — including the
+// incidental ones that are deliberately never invoked. Results are ordered
+// by the indexer's first appearance in dets, so output is stable.
+//
+// run is injected so the decision logic is testable without a real repo or
+// real indexer binaries on PATH.
+func buildResults(dets []DetectedLanguage, run func(language string) error) []IndexerResult {
+	// Fold detected languages onto their indexer, summing file counts and
+	// taking the stronger tier.
+	order := []string{}
+	agg := map[string]*IndexerResult{}
+	for _, d := range dets {
+		key := indexerFor(d.Language)
+		cur, ok := agg[key]
+		if !ok {
+			agg[key] = &IndexerResult{
+				Language:  key,
+				Tier:      d.Tier,
+				FileCount: d.FileCount,
+				Share:     d.Share,
+			}
+			order = append(order, key)
+			continue
+		}
+		cur.FileCount += d.FileCount
+		cur.Share += d.Share
+		if d.Tier == TierPrimary {
+			cur.Tier = TierPrimary
+		}
+	}
+
+	out := make([]IndexerResult, 0, len(order))
+	for _, key := range order {
+		r := *agg[key]
+		if r.Tier != TierPrimary {
+			r.Status = IndexerSkipped
+			out = append(out, r)
+			continue
+		}
+		r.Status, r.Error, r.Remedy = classify(key, run(key))
+		out = append(out, r)
+	}
+	return out
+}
+
 // buildAtLayout is the shared body of Build and BuildIntoTemp. It runs
 // every applicable indexer, parses the SCIP output into the BadgerDB at
 // layout.BadgerDir, runs PHP post-processors, and writes the manifest to
@@ -157,64 +216,53 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		return nil, fmt.Errorf("create storage dir: %w", err)
 	}
 
-	languages, err := detectLanguages(repoPath)
+	dets, err := detectLanguages(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("detect languages: %w", err)
 	}
+	languages := primaryLanguages(dets)
 	if len(languages) == 0 {
 		return nil, errors.New("no supported languages detected in repo")
 	}
 
-	// Run every applicable indexer. Each one writes its own scip-<lang>.bin.
-	// We collect (language, scipPath) pairs and parse them sequentially after
+	// Run every primary indexer. Each writes its own scip-<lang>.bin. We
+	// collect (language, scipPath) pairs and parse them sequentially after
 	// all indexers finish — keeps the BadgerDB write batch contiguous.
 	type indexed struct {
 		language string
 		scipPath string
 	}
 	var produced []indexed
-	var indexerErrs []error
+	binDir := filepath.Join(scryHome, "bin")
 
-	if contains(languages, "typescript") || contains(languages, "javascript") {
-		out := layout.scipPath("typescript")
-		if _, err := typescript.Index(ctx, repoPath, out); err != nil {
-			indexerErrs = append(indexerErrs, fmt.Errorf("scip-typescript: %w", err))
-		} else {
-			produced = append(produced, indexed{"typescript", out})
+	results := buildResults(dets, func(language string) error {
+		out := layout.scipPath(language)
+		var err error
+		switch language {
+		case "typescript":
+			_, err = typescript.Index(ctx, repoPath, out)
+		case "go":
+			_, err = golang.Index(ctx, binDir, repoPath, out)
+		case "php":
+			_, err = php.Index(ctx, binDir, repoPath, out)
+		case "python":
+			_, err = python.Index(ctx, binDir, repoPath, out)
+		default:
+			return fmt.Errorf("no indexer for language %q", language)
 		}
-	}
-	if contains(languages, "go") {
-		out := layout.scipPath("go")
-		binDir := filepath.Join(scryHome, "bin")
-		if _, err := golang.Index(ctx, binDir, repoPath, out); err != nil {
-			indexerErrs = append(indexerErrs, fmt.Errorf("scip-go: %w", err))
-		} else {
-			produced = append(produced, indexed{"go", out})
+		if err != nil {
+			return err
 		}
-	}
-	if contains(languages, "php") {
-		out := layout.scipPath("php")
-		binDir := filepath.Join(scryHome, "bin")
-		if _, err := php.Index(ctx, binDir, repoPath, out); err != nil {
-			indexerErrs = append(indexerErrs, fmt.Errorf("scip-php: %w", err))
-		} else {
-			produced = append(produced, indexed{"php", out})
-		}
-	}
-	if contains(languages, "python") {
-		out := layout.scipPath("python")
-		binDir := filepath.Join(scryHome, "bin")
-		if _, err := python.Index(ctx, binDir, repoPath, out); err != nil {
-			indexerErrs = append(indexerErrs, fmt.Errorf("scip-python: %w", err))
-		} else {
-			produced = append(produced, indexed{"python", out})
-		}
-	}
+		produced = append(produced, indexed{language, out})
+		return nil
+	})
 
 	if len(produced) == 0 {
-		// Every indexer failed. Surface the first error verbatim.
-		if len(indexerErrs) > 0 {
-			return nil, indexerErrs[0]
+		// Every indexer failed. Surface the first real error verbatim.
+		for _, r := range results {
+			if r.Error != "" {
+				return nil, errors.New(r.Error)
+			}
 		}
 		return nil, fmt.Errorf("no supported indexer ran on repo languages %v", languages)
 	}
@@ -311,12 +359,16 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		covStats = cs
 	}
 
-	status := "ready"
-	if len(indexerErrs) > 0 {
-		status = "partial"
-		fmt.Fprintf(os.Stderr, "scry: %d indexer(s) failed; status=partial\n", len(indexerErrs))
-		for _, e := range indexerErrs {
-			fmt.Fprintf(os.Stderr, "scry:   %v\n", e)
+	status := deriveStatus(results)
+	if status != "ready" {
+		fmt.Fprintf(os.Stderr, "scry: status=%s\n", status)
+		for _, r := range results {
+			if r.Status == IndexerMissing || r.Status == IndexerFailed {
+				fmt.Fprintf(os.Stderr, "scry:   %s: %s — %s\n", r.Language, r.Status, r.Error)
+				if r.Remedy != "" {
+					fmt.Fprintf(os.Stderr, "scry:     fix: %s\n", r.Remedy)
+				}
+			}
 		}
 	}
 
@@ -328,6 +380,7 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		Status:        status,
 		Stats:         combined,
 		CoverageStats: covStats,
+		Indexers:      results,
 	}
 	if err := writeManifest(layout.ManifestPath, manifest); err != nil {
 		return nil, fmt.Errorf("write manifest: %w", err)
@@ -354,86 +407,6 @@ func writeManifest(path string, m *Manifest) error {
 		return err
 	}
 	return os.WriteFile(path, b, 0o644)
-}
-
-// detectLanguages walks the top of the repo, counts files by extension, and
-// returns the language names for any extension above a 1% threshold. P0
-// recognizes only TypeScript / JavaScript; other languages are reported but
-// the builder ignores them.
-func detectLanguages(repoPath string) ([]string, error) {
-	counts := map[string]int{}
-	var total int
-	skip := map[string]bool{
-		"node_modules": true,
-		".git":         true,
-		"dist":         true,
-		"build":        true,
-		"out":          true,
-		"vendor":       true,
-		"target":       true,
-		".next":        true,
-		".turbo":       true,
-		"coverage":     true,
-		// Python runtime / venv / cache directories. Counting their
-		// .py files as project code would skew language detection and
-		// cause unnecessary indexer invocations on dependency-only
-		// trees.
-		".venv":         true,
-		"venv":          true,
-		"env":           true,
-		"__pycache__":   true,
-		".mypy_cache":   true,
-		".pytest_cache": true,
-		".ruff_cache":   true,
-		".tox":          true,
-	}
-	err := filepath.WalkDir(repoPath, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return nil // best-effort
-		}
-		if d.IsDir() {
-			if skip[d.Name()] {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		ext := strings.ToLower(filepath.Ext(d.Name()))
-		switch ext {
-		case ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs":
-			counts[langForExt(ext)]++
-			total++
-		case ".go":
-			counts["go"]++
-			total++
-		case ".php":
-			counts["php"]++
-			total++
-		case ".py":
-			counts["python"]++
-			total++
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	var langs []string
-	for lang, c := range counts {
-		if total == 0 || float64(c)/float64(total) >= 0.01 {
-			langs = append(langs, lang)
-		}
-	}
-	return langs, nil
-}
-
-func langForExt(ext string) string {
-	switch ext {
-	case ".ts", ".tsx":
-		return "typescript"
-	case ".js", ".jsx", ".mjs", ".cjs":
-		return "javascript"
-	}
-	return ""
 }
 
 func contains(s []string, v string) bool {
