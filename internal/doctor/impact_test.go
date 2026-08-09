@@ -87,6 +87,61 @@ func TestCheckIndexerImpact_NothingMissingPasses(t *testing.T) {
 	}
 }
 
+func TestCheckIndexerImpact_LegacyManifestCountedViaLanguages(t *testing.T) {
+	// A manifest written before the Indexers field existed (nil Indexers)
+	// has no per-language tier data. It must still be counted by falling
+	// back to Languages — the old 1%-threshold list is precisely the set of
+	// languages that invoked an indexer at build time.
+	home := writeManifests(t,
+		index.Manifest{
+			RepoPath:  "/legacy-with-python",
+			Languages: []string{"php", "python"},
+			// Indexers deliberately unset (nil) to simulate a pre-upgrade manifest.
+		},
+		index.Manifest{
+			RepoPath:  "/legacy-without-python",
+			Languages: []string{"go"},
+		},
+	)
+	prior := []Check{
+		{ID: "indexers.scip_python", Status: StatusWarn, Remedy: "npm i -g @sourcegraph/scip-python"},
+	}
+
+	got := checkIndexerImpact(home, prior)
+	if got.Status != StatusWarn {
+		t.Fatalf("Status = %v, want Warn", got.Status)
+	}
+	if !strings.Contains(got.Detail, "1 indexed repo") {
+		t.Errorf("Detail = %q, want exactly 1 affected repo (only /legacy-with-python names python)", got.Detail)
+	}
+	if !strings.Contains(got.Detail, "pre-upgrade") {
+		t.Errorf("Detail = %q, want it to flag the count as legacy-derived", got.Detail)
+	}
+}
+
+func TestCheckIndexerImpact_CurrentManifestCountOmitsLegacyCaveat(t *testing.T) {
+	// When every affected repo has current per-indexer data, the detail
+	// string must not carry the pre-upgrade caveat — the count is confirmed,
+	// not estimated.
+	home := writeManifests(t, index.Manifest{
+		RepoPath: "/current",
+		Indexers: []index.IndexerResult{
+			{Language: "python", Tier: index.TierPrimary, Status: index.IndexerMissing},
+		},
+	})
+	prior := []Check{
+		{ID: "indexers.scip_python", Status: StatusWarn, Remedy: "npm i -g @sourcegraph/scip-python"},
+	}
+
+	got := checkIndexerImpact(home, prior)
+	if got.Status != StatusWarn {
+		t.Fatalf("Status = %v, want Warn", got.Status)
+	}
+	if strings.Contains(got.Detail, "pre-upgrade") {
+		t.Errorf("Detail = %q, must not carry the legacy caveat when the count is entirely current-manifest-derived", got.Detail)
+	}
+}
+
 func TestCheckIndexerImpact_MissingButNoReposAffected(t *testing.T) {
 	// scip-python missing, but no indexed repo treats Python as primary.
 	// Not worth a warning.

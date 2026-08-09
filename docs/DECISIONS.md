@@ -1190,7 +1190,7 @@ its own, that's already ambiguous and needs an explicit `--repo`).
 
 ---
 
-## Two-tier language detection (2026-08-09)
+## 2026-08-09 — Two-tier language detection
 
 **Decision:** A detected language is *primary* if it has a root-level marker
 file (`composer.json`, `go.mod`, `package.json`/`tsconfig.json`,

@@ -164,7 +164,35 @@ func TestBuildResults_MissingPrimaryDegrades(t *testing.T) {
 	}
 }
 
-// golangNotFound wraps the scip-go sentinel the way buildAtLayout does.
+// golangNotFound wraps the scip-go sentinel the way the "go" case in
+// buildAtLayout's run callback does, so classify() recognizes it as missing
+// rather than a generic failure.
 func golangNotFound() error {
 	return fmt.Errorf("scip-go: %w", golang.ErrIndexerNotFound)
+}
+
+func TestBuildResults_FoldedShareCanClearPrimaryBar(t *testing.T) {
+	// Neither language alone has a marker file or clears the 10% primary
+	// floor, but folded onto the shared typescript indexer their combined
+	// share (12%) does. The tier must be re-evaluated after folding, not
+	// frozen at whichever individual tier existed before the fold.
+	dets := []DetectedLanguage{
+		{Language: "typescript", Tier: TierIncidental, FileCount: 6, Share: 0.06},
+		{Language: "javascript", Tier: TierIncidental, FileCount: 6, Share: 0.06},
+	}
+	var invoked []string
+	results := buildResults(dets, func(language string) error {
+		invoked = append(invoked, language)
+		return nil
+	})
+
+	if len(results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(results))
+	}
+	if results[0].Tier != TierPrimary {
+		t.Errorf("Tier = %q, want primary (folded share 0.12 clears the 0.10 bar)", results[0].Tier)
+	}
+	if len(invoked) != 1 || invoked[0] != "typescript" {
+		t.Errorf("invoked = %v, want [typescript] (folded tier must be primary before invocation is decided)", invoked)
+	}
 }

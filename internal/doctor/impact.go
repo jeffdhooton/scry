@@ -47,8 +47,15 @@ func checkIndexerImpact(scryHome string, prior []Check) Check {
 		return base
 	}
 
-	// Count repos where a missing language is primary.
+	// Count repos where an unavailable language is primary. Manifests
+	// written before the Indexers field existed (m.Indexers == nil) have no
+	// per-language tier data at all, so fall back to m.Languages — the old
+	// 1%-threshold list is precisely the set of languages that invoked an
+	// indexer at the time. Track that fallback count separately so the
+	// detail string can flag it as a pre-upgrade estimate rather than
+	// silently passing it off as confirmed against current manifests.
 	affected := map[string]int{}
+	legacyAffected := map[string]int{}
 	reposDir := filepath.Join(scryHome, "repos")
 	entries, _ := os.ReadDir(reposDir)
 	for _, ent := range entries {
@@ -60,6 +67,14 @@ func checkIndexerImpact(scryHome string, prior []Check) Check {
 		if err := json.Unmarshal(b, &m); err != nil {
 			continue
 		}
+		if m.Indexers == nil {
+			for _, lang := range m.Languages {
+				if _, ok := missing[lang]; ok {
+					legacyAffected[lang]++
+				}
+			}
+			continue
+		}
 		for _, r := range m.Indexers {
 			if r.Tier != index.TierPrimary {
 				continue
@@ -69,14 +84,21 @@ func checkIndexerImpact(scryHome string, prior []Check) Check {
 			}
 		}
 	}
-	if len(affected) == 0 {
+	if len(affected) == 0 && len(legacyAffected) == 0 {
 		base.Status = StatusPass
 		base.Detail = "missing indexers affect no indexed repo"
 		return base
 	}
 
-	langs := make([]string, 0, len(affected))
+	langSet := map[string]bool{}
 	for l := range affected {
+		langSet[l] = true
+	}
+	for l := range legacyAffected {
+		langSet[l] = true
+	}
+	langs := make([]string, 0, len(langSet))
+	for l := range langSet {
 		langs = append(langs, l)
 	}
 	sort.Strings(langs)
@@ -84,7 +106,15 @@ func checkIndexerImpact(scryHome string, prior []Check) Check {
 	var parts []string
 	var remedies []string
 	for _, l := range langs {
-		parts = append(parts, fmt.Sprintf("%s missing — affects %d indexed repo(s)", l, affected[l]))
+		total := affected[l] + legacyAffected[l]
+		part := fmt.Sprintf("%s unavailable — affects %d indexed repo(s)", l, total)
+		if legacyAffected[l] > 0 {
+			// Some (or all) of this count came from a legacy manifest with
+			// no per-indexer data — that portion is an estimate derived
+			// from the old file-share language list, not a confirmed hit.
+			part += fmt.Sprintf(" (%d from pre-upgrade manifests; reindex to confirm)", legacyAffected[l])
+		}
+		parts = append(parts, part)
 		if r := missing[l]; r != "" {
 			remedies = append(remedies, r)
 		}

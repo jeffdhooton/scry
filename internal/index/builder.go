@@ -95,12 +95,15 @@ func NextLayout(layout RepoLayout) RepoLayout {
 // Behavior:
 //   - if the storage directory exists with an outdated schema_version, the
 //     BadgerDB is wiped and rebuilt
-//   - languages are detected by file extension; runs every supported indexer
-//     present (TypeScript, Go in P1)
+//   - languages are detected by file extension and tiered: a language is
+//     "primary" (its indexer runs) if it has a marker file (package.json,
+//     go.mod, composer.json, ...) or clears a 10% file-share floor;
+//     otherwise it's "incidental" and recorded but never indexed
 //   - per-language .scip dumps are kept on disk so future incremental rebuilds
 //     don't have to re-parse the world
-//   - status is "ready" if every detected indexer succeeded, "partial" if at
-//     least one ran but others failed
+//   - status is "ready" if every primary language's indexer succeeded,
+//     "partial" if a primary indexer is missing or failed (an incidental
+//     language's indexer never being invoked does not degrade status)
 func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 	abs, err := absRepoPath(repoPath)
 	if err != nil {
@@ -193,6 +196,15 @@ func buildResults(dets []DetectedLanguage, run func(language string) error) []In
 		}
 	}
 
+	// Re-check tier against the folded share: javascript+typescript may each
+	// sit below primaryShare individually (or have no marker file) yet clear
+	// the bar once combined, since they run through one indexer.
+	for _, r := range agg {
+		if r.Tier != TierPrimary && r.Share >= primaryShare {
+			r.Tier = TierPrimary
+		}
+	}
+
 	out := make([]IndexerResult, 0, len(order))
 	for _, key := range order {
 		r := *agg[key]
@@ -258,10 +270,12 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 	})
 
 	if len(produced) == 0 {
-		// Every indexer failed. Surface the first real error verbatim.
+		// Every indexer failed. Surface the first real error, prefixed with
+		// which language it came from — the underlying error strings (e.g.
+		// "resolve repo root: ...") often don't self-describe.
 		for _, r := range results {
 			if r.Error != "" {
-				return nil, errors.New(r.Error)
+				return nil, fmt.Errorf("%s: %s", r.Language, r.Error)
 			}
 		}
 		return nil, fmt.Errorf("no supported indexer ran on repo languages %v", languages)
@@ -409,11 +423,3 @@ func writeManifest(path string, m *Manifest) error {
 	return os.WriteFile(path, b, 0o644)
 }
 
-func contains(s []string, v string) bool {
-	for _, x := range s {
-		if x == v {
-			return true
-		}
-	}
-	return false
-}

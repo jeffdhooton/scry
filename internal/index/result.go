@@ -13,7 +13,7 @@ import (
 const (
 	IndexerOK      = "ok"      // ran, output parsed
 	IndexerMissing = "missing" // binary not installed
-	IndexerFailed  = "failed"  // ran and errored, or output failed to parse
+	IndexerFailed  = "failed"  // ran and returned a non-sentinel error
 	IndexerSkipped = "skipped" // incidental language, deliberately not invoked
 )
 
@@ -54,8 +54,8 @@ var notFoundSentinels = map[string]error{
 // deliberately: one wording for one problem.
 var indexerRemedies = map[string]string{
 	"typescript": "npm i -g @sourcegraph/scip-typescript",
-	"go":         "check network access; scry auto-downloads scip-go into ~/.scry/bin",
-	"php":        "install PHP 8.3+ and ensure `php` is on PATH",
+	"go":         "install scip-go manually: go install github.com/sourcegraph/scip-go/cmd/scip-go@latest",
+	"php":        "install PHP 8.3+ — Laravel Herd, brew install php, or https://www.php.net",
 	"python":     "npm i -g @sourcegraph/scip-python",
 }
 

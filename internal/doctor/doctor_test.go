@@ -76,7 +76,11 @@ func TestCheckCurrentRepo_LegacyManifestStillRenders(t *testing.T) {
 	if !strings.Contains(got.Detail, "ready") {
 		t.Errorf("Detail = %q, want it to contain the status label", got.Detail)
 	}
-	if strings.Contains(got.Detail, "—  ") {
-		t.Errorf("Detail = %q, has a dangling separator from an empty breakdown", got.Detail)
+	// Exactly one em-dash is expected: the normal "<status> — <stats>"
+	// separator at doctor.go:921. A second one (with either one or two
+	// trailing spaces) would mean the empty-breakdown guard at doctor.go:939
+	// regressed and appended a dangling " — " with nothing after it.
+	if strings.Count(got.Detail, "—") != 1 {
+		t.Errorf("Detail = %q, want exactly one em-dash separator", got.Detail)
 	}
 }

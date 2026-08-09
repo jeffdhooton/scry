@@ -35,7 +35,7 @@ func TestClassify(t *testing.T) {
 			language:   "go",
 			err:        fmt.Errorf("run: %w", golang.ErrIndexerNotFound),
 			wantStatus: IndexerMissing,
-			wantRemedy: "check network access; scry auto-downloads scip-go into ~/.scry/bin",
+			wantRemedy: "install scip-go manually: go install github.com/sourcegraph/scip-go/cmd/scip-go@latest",
 		},
 		{
 			name:       "arbitrary error is failed, no remedy",
