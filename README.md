@@ -611,6 +611,8 @@ Config paths are what the vendors document as of this writing; if a host has mov
 - **`scip-go` `enclosing_range` is partial.** Call graph coverage on Go is best-effort.
 - **Graph `queries` edge** (function -> table) is not yet implemented. Currently the graph connects code, git, schema, and HTTP domains via structural edges (calls, implements, changed_with, fk).
 - **Schema requires explicit init.** `scry init --schema` or `scry init --all` with a DSN or `.env` file.
+- **Incidental languages are skipped, not indexed.** A language is indexed only if it has a root-level marker file (`composer.json`, `go.mod`, `package.json`, `pyproject.toml`, …) or holds ≥10% of source files. A Laravel app with a handful of stray `.py` scripts will not run `scip-python`, and will not be reported as degraded for it. `scry doctor` lists skipped languages per repo.
+- **`scry status` reports per-indexer outcomes.** Each repo entry carries an `indexers` array recording `ok` / `missing` / `failed` / `skipped` per language, with the remedy for a missing indexer.
 - **HTTP proxy is explicit.** `scry proxy start` must be run manually; the daemon doesn't auto-start the proxy.
 
 ## Architecture

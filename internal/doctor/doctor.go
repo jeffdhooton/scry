@@ -129,6 +129,7 @@ func Run(opts Options) (*Report, error) {
 	r.add(checkScipPhpEmbed())
 	r.add(checkPythonInterpreter(opts.Timeout))
 	r.add(checkScipPython(opts.Timeout))
+	r.add(checkIndexerImpact(opts.ScryHome, r.Checks))
 	r.add(checkClaudeCLI(opts.Timeout))
 	r.add(checkMCPRegistration(opts.Timeout))
 	r.add(checkStaleMCPServers(opts.Timeout))
@@ -921,12 +922,33 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 		statusLabel,
 		m.Stats.Documents, m.Stats.Symbols, m.Stats.References,
 		age, strings.Join(m.Languages, "+"))
+
+	// Name what actually broke. Legacy manifests have no Indexers and fall
+	// through with today's output.
+	var remedy string
+	var degraded []string
+	for _, r := range m.Indexers {
+		switch r.Status {
+		case index.IndexerMissing, index.IndexerFailed:
+			degraded = append(degraded, fmt.Sprintf("%s %s (%s)", r.Language, r.Status, r.Error))
+			if remedy == "" {
+				remedy = r.Remedy
+			}
+		case index.IndexerSkipped:
+			degraded = append(degraded, fmt.Sprintf("%s skipped (incidental, %d files)", r.Language, r.FileCount))
+		}
+	}
+	if len(degraded) > 0 {
+		detail += " — " + strings.Join(degraded, "; ")
+	}
+
 	return Check{
 		ID:       "repo.current",
 		Category: CategoryRepo,
 		Name:     abs,
 		Status:   status,
 		Detail:   detail,
+		Remedy:   remedy,
 	}
 }
 
