@@ -68,11 +68,12 @@ type InitParams struct {
 // InitResult mirrors the manifest plus a wall-clock duration measured by the
 // daemon (not by the CLI).
 type InitResult struct {
-	Repo      string      `json:"repo"`
-	Languages []string    `json:"languages"`
-	Status    string      `json:"status"`
-	Stats     interface{} `json:"stats"`
-	ElapsedMs int64       `json:"elapsed_ms"`
+	Repo      string                `json:"repo"`
+	Languages []string              `json:"languages"`
+	Status    string                `json:"status"`
+	Stats     interface{}           `json:"stats"`
+	ElapsedMs int64                 `json:"elapsed_ms"`
+	Indexers  []index.IndexerResult `json:"indexers,omitempty"`
 }
 
 func (d *Daemon) handleInit(ctx context.Context, raw json.RawMessage) (any, error) {
@@ -120,6 +121,7 @@ func (d *Daemon) handleInit(ctx context.Context, raw json.RawMessage) (any, erro
 		Status:    manifest.Status,
 		Stats:     manifest.Stats,
 		ElapsedMs: elapsed.Milliseconds(),
+		Indexers:  manifest.Indexers,
 	}, nil
 }
 
@@ -142,10 +144,11 @@ type StatusResult struct {
 }
 
 type RepoStatusEntry struct {
-	Repo      string    `json:"repo"`
-	Status    string    `json:"status"`
-	Languages []string  `json:"languages,omitempty"`
-	IndexedAt time.Time `json:"indexed_at,omitempty"`
+	Repo      string                `json:"repo"`
+	Status    string                `json:"status"`
+	Languages []string              `json:"languages,omitempty"`
+	IndexedAt time.Time             `json:"indexed_at,omitempty"`
+	Indexers  []index.IndexerResult `json:"indexers,omitempty"`
 }
 
 func (d *Daemon) handleStatus(_ context.Context, raw json.RawMessage) (any, error) {
@@ -165,6 +168,7 @@ func (d *Daemon) handleStatus(_ context.Context, raw json.RawMessage) (any, erro
 			Status:    manifest.Status,
 			Languages: manifest.Languages,
 			IndexedAt: manifest.IndexedAt,
+			Indexers:  manifest.Indexers,
 		})
 	}
 
@@ -190,6 +194,7 @@ func (d *Daemon) handleStatus(_ context.Context, raw json.RawMessage) (any, erro
 			Status:    m.Status,
 			Languages: m.Languages,
 			IndexedAt: m.IndexedAt,
+			Indexers:  m.Indexers,
 		})
 	}
 	res.Git = d.gitStatusEntries()
