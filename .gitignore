@@ -1,2 +1,5 @@
 # Claude Code runtime state (scheduled task locks, etc.)
 .claude/
+
+# Locally built binary (`go build -o scry ./cmd/scry`)
+/scry

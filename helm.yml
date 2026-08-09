@@ -1,0 +1,17 @@
+name: Scry
+
+processes:
+  claude-code:
+    command: claude --dangerously-skip-permissions
+    type: agent
+    auto_start: false
+
+  daemon:
+    command: go run ./cmd/scry start --foreground
+    type: command
+    auto_start: false
+
+  shell:
+    command: $SHELL
+    type: terminal
+    auto_start: false
