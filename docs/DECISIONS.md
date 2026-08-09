@@ -1203,7 +1203,7 @@ language clearing 1% of files. Measured on `childscribe-beta-r4`: 855 PHP,
 110 TS/JS, 37 Python files and no Python marker. Python cleared the bar at
 3.7%, `scip-python` was not installed, and the entire repo was reported
 `partial` — 855 PHP files' worth of complete index described as degraded
-because of 37 incidental scripts. 17 of 44 indexed repos were in this state.
+because of 37 incidental scripts. 19 of 44 indexed repos were in this state.
 
 The marker file carries the weight rather than share alone because it is a
 statement of intent: a repo with a real component in a language declares it.

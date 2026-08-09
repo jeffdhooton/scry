@@ -23,7 +23,7 @@ var checkIDLanguages = map[string]string{
 
 // checkIndexerImpact cross-references the indexer checks already run against
 // every manifest on disk. Without it, doctor reports "scip-python not on
-// PATH" as a mild environment note while 17 indexed repos silently serve
+// PATH" as a mild environment note while 19 indexed repos silently serve
 // degraded results.
 func checkIndexerImpact(scryHome string, prior []Check) Check {
 	base := Check{
