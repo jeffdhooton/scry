@@ -13,19 +13,46 @@ import (
 
 func TestProviderFromEnvPrefersMemoryKey(t *testing.T) {
 	t.Setenv("SCRY_MEMORY_API_KEY", "memory-key")
-	t.Setenv("ANTHROPIC_API_KEY", "anthropic-key")
+	t.Setenv("DEEPSEEK_API_KEY", "deepseek-key")
 
 	if got := ProviderFromEnv().APIKey; got != "memory-key" {
 		t.Errorf("APIKey = %q, want memory-key", got)
 	}
 }
 
-func TestProviderFromEnvFallsBackToAnthropicKey(t *testing.T) {
+func TestProviderFromEnvFallsBackToDeepSeekKey(t *testing.T) {
 	t.Setenv("SCRY_MEMORY_API_KEY", "")
+	t.Setenv("DEEPSEEK_API_KEY", "deepseek-key")
+
+	if got := ProviderFromEnv().APIKey; got != "deepseek-key" {
+		t.Errorf("APIKey = %q, want deepseek-key", got)
+	}
+}
+
+// TestProviderFromEnvIgnoresAnthropicKey pins the regression this whole
+// default exists to prevent: ANTHROPIC_API_KEY is set in these shells for
+// unrelated reasons, and an unattended sweep must not silently bill it.
+func TestProviderFromEnvIgnoresAnthropicKey(t *testing.T) {
+	t.Setenv("SCRY_MEMORY_API_KEY", "")
+	t.Setenv("DEEPSEEK_API_KEY", "")
 	t.Setenv("ANTHROPIC_API_KEY", "anthropic-key")
 
-	if got := ProviderFromEnv().APIKey; got != "anthropic-key" {
-		t.Errorf("APIKey = %q, want anthropic-key", got)
+	if got := ProviderFromEnv().APIKey; got != "" {
+		t.Errorf("APIKey = %q, want empty (dormant) — ANTHROPIC_API_KEY must never activate extraction", got)
+	}
+}
+
+// TestProviderDefaultsToDeepSeekV4 pins both halves of the default: a bare
+// provider must resolve to DeepSeek's endpoint and an explicit V4 model id,
+// never to Anthropic or to the floating "deepseek-chat" alias.
+func TestProviderDefaultsToDeepSeekV4(t *testing.T) {
+	p := Provider{APIKey: "k"}
+
+	if got := p.resolveBaseURL(); got != "https://api.deepseek.com/anthropic" {
+		t.Errorf("resolveBaseURL() = %q, want DeepSeek", got)
+	}
+	if got := p.resolveModel(); got != "deepseek-v4-flash" {
+		t.Errorf("resolveModel() = %q, want deepseek-v4-flash", got)
 	}
 }
 
@@ -49,8 +76,8 @@ func TestProviderValidate(t *testing.T) {
 		p       Provider
 		wantErr bool
 	}{
-		{"anthropic default model", Provider{APIKey: "k"}, false},
-		{"anthropic explicit model", Provider{APIKey: "k", Model: "claude-opus-4"}, false},
+		{"default endpoint and model", Provider{APIKey: "k"}, false},
+		{"default endpoint explicit model", Provider{APIKey: "k", Model: "deepseek-v4-pro"}, false},
 		{"custom endpoint with model", Provider{APIKey: "k", Model: "deepseek-chat", BaseURL: "https://x/anthropic"}, false},
 		{"custom endpoint without model", Provider{APIKey: "k", BaseURL: "https://x/anthropic"}, true},
 	}
@@ -65,11 +92,14 @@ func TestProviderValidate(t *testing.T) {
 }
 
 func TestProviderBatched(t *testing.T) {
-	if !(Provider{APIKey: "k"}).Batched() {
-		t.Error("Anthropic provider should support the Batches API")
+	if (Provider{APIKey: "k"}).Batched() {
+		t.Error("default provider is DeepSeek and must not claim Batches API support")
 	}
 	if (Provider{APIKey: "k", Model: "m", BaseURL: "https://x/anthropic"}).Batched() {
 		t.Error("custom endpoint must not claim Batches API support")
+	}
+	if !(Provider{APIKey: "k", Model: "claude-haiku-4-5", BaseURL: "https://api.anthropic.com"}).Batched() {
+		t.Error("an explicitly named Anthropic endpoint should support the Batches API")
 	}
 }
 

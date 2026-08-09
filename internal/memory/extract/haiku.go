@@ -11,21 +11,19 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 )
 
-const defaultModel = "claude-haiku-4-5"
-
-// Haiku is an Extractor backed by the Anthropic Messages API, defaulting
-// to Claude Haiku. The system prompt (stable) and glossary block (volatile)
-// are sent as separate system blocks so the stable prefix stays cacheable
-// across calls. Despite the name it speaks to whatever Provider it is given,
-// including Messages-API-compatible endpoints that are not Anthropic.
+// Haiku is an Extractor speaking the Anthropic Messages wire format. The
+// system prompt (stable) and glossary block (volatile) are sent as separate
+// system blocks so the stable prefix stays cacheable across calls. The name
+// is historical: it talks to whatever Provider it is given, which by default
+// is DeepSeek V4, not Anthropic.
 type Haiku struct {
 	client anthropic.Client
 	model  string
 }
 
 // NewHaiku builds a Haiku extractor against p. An empty p.Model defaults to
-// "claude-haiku-4-5"; see Provider.Validate for why that default only holds
-// on the Anthropic path.
+// defaultModel (DeepSeek V4); see Provider.Validate for why an explicit
+// endpoint must name its own model.
 func NewHaiku(p Provider) *Haiku {
 	return &Haiku{
 		client: anthropic.NewClient(p.requestOptions()...),

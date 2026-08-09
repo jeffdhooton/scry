@@ -24,15 +24,15 @@ import (
 // dormantNotice is printed (with exit 0, not an error) by ingest/sweep/
 // backfill when neither API key env var is set — the memory domain is
 // opt-in, so an unconfigured key is a no-op, not a failure.
-const dormantNotice = "memory: dormant (no ANTHROPIC_API_KEY / SCRY_MEMORY_API_KEY)"
+const dormantNotice = "memory: dormant (no SCRY_MEMORY_API_KEY / DEEPSEEK_API_KEY)"
 
 // memoryDormant reports whether no API key is configured for extraction:
-// SCRY_MEMORY_API_KEY, falling back to ANTHROPIC_API_KEY — mirroring
-// buildMemoryExtractor in internal/daemon/daemon.go exactly, since the CLI's
-// ingest pipeline and the daemon's memory.remember must agree on when the
-// domain is "live".
+// SCRY_MEMORY_API_KEY, falling back to DEEPSEEK_API_KEY — mirroring
+// extract.ProviderFromEnv (and so buildMemoryExtractor in
+// internal/daemon/daemon.go) exactly, since the CLI's ingest pipeline and the
+// daemon's memory.remember must agree on when the domain is "live".
 func memoryDormant() bool {
-	return os.Getenv("SCRY_MEMORY_API_KEY") == "" && os.Getenv("ANTHROPIC_API_KEY") == ""
+	return os.Getenv("SCRY_MEMORY_API_KEY") == "" && os.Getenv("DEEPSEEK_API_KEY") == ""
 }
 
 // memoryCmd is the `scry memory` command tree: global episodic memory graph
@@ -221,7 +221,7 @@ func memoryBackfillCmd() *cobra.Command {
 			// forces the serial path (and forfeits the 50% batch discount).
 			if !provider.Batched() && !noBatch {
 				noBatch = true
-				fmt.Fprintf(os.Stderr, "backfill: SCRY_MEMORY_BASE_URL is set (%s) — using serial extraction, the Batch API is Anthropic-only\n", provider.BaseURL)
+				fmt.Fprintln(os.Stderr, "backfill: extraction is not pointed at Anthropic — using serial extraction, the Batch API is Anthropic-only")
 			}
 
 			// No overall timeout — this is a long-running, potentially
