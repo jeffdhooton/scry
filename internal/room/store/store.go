@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -137,4 +138,144 @@ func (s *Store) getJSON(key string, v any) error {
 			return json.Unmarshal(val, v)
 		})
 	})
+}
+
+// validTransitions covers UpdateTaskStatus. Claiming (open|abandoned ->
+// claimed) happens ONLY through ClaimTask, which requires an agent identity —
+// so the update path can never create an ownerless claim.
+var validTransitions = map[TaskStatus][]TaskStatus{
+	TaskClaimed:    {TaskInProgress, TaskAbandoned},
+	TaskInProgress: {TaskReview, TaskAbandoned},
+	TaskReview:     {TaskDone, TaskInProgress, TaskAbandoned},
+}
+
+func transitionAllowed(from, to TaskStatus) bool {
+	for _, t := range validTransitions[from] {
+		if t == to {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Store) openRoom(roomID string) (*Room, error) {
+	room, err := s.GetRoom(roomID)
+	if err != nil {
+		return nil, err
+	}
+	if room.Status == RoomClosed {
+		return nil, fmt.Errorf("room %q is closed", roomID)
+	}
+	return room, nil
+}
+
+func (s *Store) PostTask(roomID string, t *Task) (*Task, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.openRoom(roomID); err != nil {
+		return nil, err
+	}
+	if t.Title == "" {
+		return nil, fmt.Errorf("task title is required")
+	}
+	if t.ID == "" {
+		t.ID = newID()
+	}
+	now := time.Now().UTC()
+	t.RoomID = roomID
+	t.Status = TaskOpen
+	t.ClaimedBy = ""
+	t.CreatedAt = now
+	t.UpdatedAt = now
+	if err := s.putJSON(taskPrefix+roomID+":"+t.ID, t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+func (s *Store) getTask(roomID, taskID string) (*Task, error) {
+	var task Task
+	if err := s.getJSON(taskPrefix+roomID+":"+taskID, &task); err != nil {
+		return nil, fmt.Errorf("task %q not found in room %q", taskID, roomID)
+	}
+	return &task, nil
+}
+
+func (s *Store) ClaimTask(roomID, taskID, agent string) (*Task, error) {
+	if agent == "" {
+		return nil, fmt.Errorf("agent is required")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.openRoom(roomID); err != nil {
+		return nil, err
+	}
+	task, err := s.getTask(roomID, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if task.Status != TaskOpen && task.Status != TaskAbandoned {
+		return nil, fmt.Errorf("task %q already claimed by %q (status %s)", taskID, task.ClaimedBy, task.Status)
+	}
+	task.Status = TaskClaimed
+	task.ClaimedBy = agent
+	task.UpdatedAt = time.Now().UTC()
+	if err := s.putJSON(taskPrefix+roomID+":"+task.ID, task); err != nil {
+		return nil, err
+	}
+	return task, nil
+}
+
+func (s *Store) UpdateTaskStatus(roomID, taskID string, next TaskStatus) (*Task, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.openRoom(roomID); err != nil {
+		return nil, err
+	}
+	task, err := s.getTask(roomID, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if !transitionAllowed(task.Status, next) {
+		return nil, fmt.Errorf("invalid transition %s -> %s for task %q", task.Status, next, taskID)
+	}
+	task.Status = next
+	if next == TaskAbandoned {
+		task.ClaimedBy = ""
+	}
+	task.UpdatedAt = time.Now().UTC()
+	if err := s.putJSON(taskPrefix+roomID+":"+task.ID, task); err != nil {
+		return nil, err
+	}
+	return task, nil
+}
+
+func (s *Store) ListTasks(roomID string) ([]Task, error) {
+	prefix := []byte(taskPrefix + roomID + ":")
+	var tasks []Task
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			var task Task
+			if err := it.Item().Value(func(val []byte) error {
+				return json.Unmarshal(val, &task)
+			}); err != nil {
+				continue
+			}
+			tasks = append(tasks, task)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(tasks, func(i, j int) bool {
+		if tasks[i].CreatedAt.Equal(tasks[j].CreatedAt) {
+			return tasks[i].ID < tasks[j].ID
+		}
+		return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
+	})
+	return tasks, nil
 }
