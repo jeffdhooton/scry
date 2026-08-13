@@ -321,13 +321,14 @@ var toolDefinitions = []tool{
 }
 
 func (s *Server) handleToolsList(req request) {
-	all := make([]tool, 0, len(toolDefinitions)+len(gitToolDefinitions)+len(schemaToolDefinitions)+len(httpToolDefinitions)+len(graphToolDefinitions)+len(memoryToolDefinitions))
+	all := make([]tool, 0, len(toolDefinitions)+len(gitToolDefinitions)+len(schemaToolDefinitions)+len(httpToolDefinitions)+len(graphToolDefinitions)+len(memoryToolDefinitions)+len(roomToolDefinitions))
 	all = append(all, toolDefinitions...)
 	all = append(all, gitToolDefinitions...)
 	all = append(all, schemaToolDefinitions...)
 	all = append(all, httpToolDefinitions...)
 	all = append(all, graphToolDefinitions...)
 	all = append(all, memoryToolDefinitions...)
+	all = append(all, roomToolDefinitions...)
 	s.writeResult(req.ID, map[string]any{"tools": all})
 }
 
@@ -407,6 +408,22 @@ func (s *Server) handleToolsCall(ctx context.Context, req request) {
 		s.callMemoryQuery(ctx, req.ID, "scry_episodes", "memory.episodes", p.Arguments)
 	case "scry_remember":
 		s.callMemoryQuery(ctx, req.ID, "scry_remember", "memory.remember", p.Arguments)
+	case "scry_room_create":
+		s.callRoomQuery(ctx, req.ID, "scry_room_create", "room.create", p.Arguments)
+	case "scry_room_close":
+		s.callRoomQuery(ctx, req.ID, "scry_room_close", "room.close", p.Arguments)
+	case "scry_task_post":
+		s.callRoomQuery(ctx, req.ID, "scry_task_post", "room.task_post", p.Arguments)
+	case "scry_task_claim":
+		s.callRoomQuery(ctx, req.ID, "scry_task_claim", "room.task_claim", p.Arguments)
+	case "scry_task_update":
+		s.callRoomQuery(ctx, req.ID, "scry_task_update", "room.task_update", p.Arguments)
+	case "scry_task_list":
+		s.callRoomQuery(ctx, req.ID, "scry_task_list", "room.task_list", p.Arguments)
+	case "scry_post":
+		s.callRoomQuery(ctx, req.ID, "scry_post", "room.post", p.Arguments)
+	case "scry_read":
+		s.callRoomQuery(ctx, req.ID, "scry_read", "room.read", p.Arguments)
 	default:
 		s.writeToolError(req.ID, fmt.Sprintf("unknown tool %q", p.Name))
 	}

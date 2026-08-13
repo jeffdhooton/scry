@@ -23,6 +23,7 @@ import (
 	httpstore "github.com/jeffdhooton/scry/internal/http/store"
 	"github.com/jeffdhooton/scry/internal/memory/extract"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
+	roomstore "github.com/jeffdhooton/scry/internal/room/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
 
@@ -72,6 +73,10 @@ type Daemon struct {
 
 	memUIMu  sync.Mutex
 	memUISrv *http.Server
+
+	roomOnce sync.Once
+	roomSt   *roomstore.Store
+	roomErr  error
 }
 
 // memoryStore lazily opens the global memory store on first use, guarded by
@@ -119,6 +124,7 @@ func New(layout Layout) *Daemon {
 	d.registerSchemaMethods()
 	d.registerHTTPMethods()
 	d.registerGraphMethods()
+	d.registerRoomMethods()
 	return d
 }
 
@@ -173,6 +179,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	defer d.schemaRegistry.CloseAll()
 	defer d.graphRegistry.CloseAll()
 	defer d.closeHTTP()
+	defer d.closeRooms()
 	defer d.closeMemory()
 	defer d.closeMemoryUI()
 	defer d.watcher.Close()
