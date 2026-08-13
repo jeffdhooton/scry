@@ -251,6 +251,9 @@ func (s *Store) UpdateTaskStatus(roomID, taskID string, next TaskStatus) (*Task,
 }
 
 func (s *Store) ListTasks(roomID string) ([]Task, error) {
+	if _, err := s.GetRoom(roomID); err != nil {
+		return nil, err
+	}
 	prefix := []byte(taskPrefix + roomID + ":")
 	var tasks []Task
 	err := s.db.View(func(txn *badger.Txn) error {

@@ -281,3 +281,41 @@ func TestPostMessageValidation(t *testing.T) {
 		t.Fatal("want error for closed room")
 	}
 }
+
+func TestClosedRoomHistoryRemainsReadable(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	task, err := s.PostTask(room.ID, &Task{Title: "t"})
+	if err != nil {
+		t.Fatalf("post task: %v", err)
+	}
+	if _, err := s.PostMessage(room.ID, &Message{From: "a", Kind: KindStatus, Body: "done"}); err != nil {
+		t.Fatalf("post message: %v", err)
+	}
+	if _, err := s.CloseRoom(room.ID); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+
+	msgs, cursor, err := s.ReadSince(room.ID, 0, 50)
+	if err != nil {
+		t.Fatalf("read closed room: %v", err)
+	}
+	if len(msgs) != 1 || cursor != 1 {
+		t.Fatalf("closed-room read: %d msgs cursor %d", len(msgs), cursor)
+	}
+
+	tasks, err := s.ListTasks(room.ID)
+	if err != nil {
+		t.Fatalf("list closed room: %v", err)
+	}
+	if len(tasks) != 1 || tasks[0].ID != task.ID {
+		t.Fatalf("closed-room list: %+v", tasks)
+	}
+}
+
+func TestListTasksUnknownRoomErrors(t *testing.T) {
+	s := newTestStore(t)
+	if _, err := s.ListTasks("nope"); err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Fatalf("want not-found error, got %v", err)
+	}
+}
