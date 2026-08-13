@@ -200,3 +200,84 @@ func TestPostTaskToClosedRoomFails(t *testing.T) {
 		t.Fatalf("want closed-room error, got %v", err)
 	}
 }
+
+func TestPostAndReadSince(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+
+	for i := 1; i <= 5; i++ {
+		m, err := s.PostMessage(room.ID, &Message{
+			From: "claude-1", Kind: KindStatus, Body: fmt.Sprintf("update %d", i),
+		})
+		if err != nil {
+			t.Fatalf("post %d: %v", i, err)
+		}
+		if m.Seq != uint64(i) {
+			t.Fatalf("want seq %d, got %d", i, m.Seq)
+		}
+	}
+
+	msgs, cursor, err := s.ReadSince(room.ID, 0, 50)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(msgs) != 5 || cursor != 5 {
+		t.Fatalf("want 5 msgs cursor 5, got %d msgs cursor %d", len(msgs), cursor)
+	}
+
+	// Incremental read from the returned cursor sees only new messages.
+	if _, err := s.PostMessage(room.ID, &Message{From: "codex-1", Kind: KindHandoff, Body: "task 2 unblocked"}); err != nil {
+		t.Fatalf("post: %v", err)
+	}
+	msgs, cursor, err = s.ReadSince(room.ID, cursor, 50)
+	if err != nil {
+		t.Fatalf("read2: %v", err)
+	}
+	if len(msgs) != 1 || msgs[0].Kind != KindHandoff || cursor != 6 {
+		t.Fatalf("bad incremental read: %d msgs, cursor %d", len(msgs), cursor)
+	}
+
+	// Nothing new: empty result, cursor unchanged.
+	msgs, cursor, err = s.ReadSince(room.ID, cursor, 50)
+	if err != nil {
+		t.Fatalf("read3: %v", err)
+	}
+	if len(msgs) != 0 || cursor != 6 {
+		t.Fatalf("want empty read cursor 6, got %d msgs cursor %d", len(msgs), cursor)
+	}
+}
+
+func TestReadSinceRespectsLimit(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	for i := 0; i < 10; i++ {
+		if _, err := s.PostMessage(room.ID, &Message{From: "a", Kind: KindStatus, Body: "m"}); err != nil {
+			t.Fatalf("post: %v", err)
+		}
+	}
+	msgs, cursor, err := s.ReadSince(room.ID, 0, 3)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(msgs) != 3 || cursor != 3 {
+		t.Fatalf("limit ignored: %d msgs cursor %d", len(msgs), cursor)
+	}
+}
+
+func TestPostMessageValidation(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+
+	if _, err := s.PostMessage(room.ID, &Message{Kind: KindStatus, Body: "x"}); err == nil {
+		t.Fatal("want error for missing From")
+	}
+	if _, err := s.PostMessage(room.ID, &Message{From: "a", Kind: "gossip", Body: "x"}); err == nil {
+		t.Fatal("want error for bad kind")
+	}
+	if _, err := s.CloseRoom(room.ID); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+	if _, err := s.PostMessage(room.ID, &Message{From: "a", Kind: KindStatus, Body: "x"}); err == nil {
+		t.Fatal("want error for closed room")
+	}
+}

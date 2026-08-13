@@ -279,3 +279,103 @@ func (s *Store) ListTasks(roomID string) ([]Task, error) {
 	})
 	return tasks, nil
 }
+
+func validKind(k MessageKind) bool {
+	switch k {
+	case KindStatus, KindHandoff, KindContract, KindReview:
+		return true
+	}
+	return false
+}
+
+func seqKey(roomID string) string { return seqPrefix + roomID }
+func msgKey(roomID string, seq uint64) string {
+	return fmt.Sprintf("%s%s:%020d", msgPrefix, roomID, seq)
+}
+
+func (s *Store) PostMessage(roomID string, m *Message) (*Message, error) {
+	if m.From == "" {
+		return nil, fmt.Errorf("message from is required")
+	}
+	if m.Body == "" {
+		return nil, fmt.Errorf("message body is required")
+	}
+	if !validKind(m.Kind) {
+		return nil, fmt.Errorf("invalid message kind %q (want status|handoff|contract|review)", m.Kind)
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.openRoom(roomID); err != nil {
+		return nil, err
+	}
+
+	err := s.db.Update(func(txn *badger.Txn) error {
+		var seq uint64
+		item, err := txn.Get([]byte(seqKey(roomID)))
+		if err == nil {
+			if verr := item.Value(func(val []byte) error {
+				_, serr := fmt.Sscanf(string(val), "%d", &seq)
+				return serr
+			}); verr != nil {
+				return verr
+			}
+		} else if err != badger.ErrKeyNotFound {
+			return err
+		}
+		seq++
+
+		m.Seq = seq
+		m.RoomID = roomID
+		m.CreatedAt = time.Now().UTC()
+		data, err := json.Marshal(m)
+		if err != nil {
+			return err
+		}
+		if err := txn.Set([]byte(msgKey(roomID, seq)), data); err != nil {
+			return err
+		}
+		return txn.Set([]byte(seqKey(roomID)), []byte(fmt.Sprintf("%020d", seq)))
+	})
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (s *Store) ReadSince(roomID string, cursor uint64, limit int) ([]Message, uint64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if _, err := s.GetRoom(roomID); err != nil {
+		return nil, cursor, err
+	}
+	prefix := []byte(msgPrefix + roomID + ":")
+	start := []byte(msgKey(roomID, cursor+1))
+	msgs := []Message{}
+	next := cursor
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(start); it.ValidForPrefix(prefix); it.Next() {
+			if len(msgs) >= limit {
+				break
+			}
+			var m Message
+			if err := it.Item().Value(func(val []byte) error {
+				return json.Unmarshal(val, &m)
+			}); err != nil {
+				continue
+			}
+			msgs = append(msgs, m)
+			next = m.Seq
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, cursor, err
+	}
+	return msgs, next, nil
+}
