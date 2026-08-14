@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 func newTestStore(t *testing.T) *Store {
@@ -317,5 +318,176 @@ func TestListTasksUnknownRoomErrors(t *testing.T) {
 	s := newTestStore(t)
 	if _, err := s.ListTasks("nope"); err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Fatalf("want not-found error, got %v", err)
+	}
+}
+
+func TestListRoomsNewestFirst(t *testing.T) {
+	s := newTestStore(t)
+	first, err := s.CreateRoom("run-a", "/repo")
+	if err != nil {
+		t.Fatalf("create a: %v", err)
+	}
+	time.Sleep(2 * time.Millisecond)
+	second, err := s.CreateRoom("run-b", "/repo")
+	if err != nil {
+		t.Fatalf("create b: %v", err)
+	}
+
+	rooms, err := s.ListRooms()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(rooms) != 2 {
+		t.Fatalf("want 2 rooms, got %d", len(rooms))
+	}
+	if rooms[0].ID != second.ID || rooms[1].ID != first.ID {
+		t.Fatalf("not newest-first: %s then %s", rooms[0].RunID, rooms[1].RunID)
+	}
+}
+
+func TestFindRoomByRunIDReturnsTheNewest(t *testing.T) {
+	s := newTestStore(t)
+	if _, err := s.CreateRoom("sim-hookup", "/repo"); err != nil {
+		t.Fatalf("create wave1: %v", err)
+	}
+	time.Sleep(2 * time.Millisecond)
+	wave2, err := s.CreateRoom("sim-hookup", "/repo")
+	if err != nil {
+		t.Fatalf("create wave2: %v", err)
+	}
+	// Two waves reused the run id; the caller means the current one.
+	got, err := s.FindRoomByRunID("sim-hookup")
+	if err != nil {
+		t.Fatalf("find: %v", err)
+	}
+	if got.ID != wave2.ID {
+		t.Fatalf("want newest room %s, got %s", wave2.ID, got.ID)
+	}
+}
+
+func TestFindRoomByRunIDNotFound(t *testing.T) {
+	s := newTestStore(t)
+	if _, err := s.FindRoomByRunID("nope"); err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Fatalf("want not-found error, got %v", err)
+	}
+}
+
+func TestPostMessageWithReplyTo(t *testing.T) {
+	s := newTestStore(t)
+	room, err := s.CreateRoom("run-1", "/repo")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	first, err := s.PostMessage(room.ID, &Message{From: "codex-1", Kind: KindContract, Body: "proposal"})
+	if err != nil {
+		t.Fatalf("post first: %v", err)
+	}
+	reply, err := s.PostMessage(room.ID, &Message{
+		From: "claude-2", Kind: KindContract, Body: "accepted", ReplyTo: first.Seq,
+	})
+	if err != nil {
+		t.Fatalf("post reply: %v", err)
+	}
+	if reply.ReplyTo != first.Seq {
+		t.Fatalf("reply_to not persisted: %+v", reply)
+	}
+	msgs, _, err := s.ReadSince(room.ID, 0, 50)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(msgs) != 2 || msgs[1].ReplyTo != first.Seq {
+		t.Fatalf("reply_to lost on read: %+v", msgs)
+	}
+}
+
+func TestPostMessageRejectsUnknownReplyTo(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	_, err := s.PostMessage(room.ID, &Message{
+		From: "codex-1", Kind: KindStatus, Body: "hi", ReplyTo: 42,
+	})
+	if err == nil || !strings.Contains(err.Error(), "reply_to seq 42 not found") {
+		t.Fatalf("want unknown-reply_to error, got %v", err)
+	}
+}
+
+func TestPostReviewWithStructuredVerdict(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	m, err := s.PostMessage(room.ID, &Message{
+		From: "codex-reviewer", Kind: KindReview, Body: "two findings",
+		Verdict: "CHANGES", Severity: "P1",
+		Findings: []string{"DTO leaks a FIN field", "no RBAC test"},
+	})
+	if err != nil {
+		t.Fatalf("post: %v", err)
+	}
+	if m.Verdict != "CHANGES" || m.Severity != "P1" || len(m.Findings) != 2 {
+		t.Fatalf("structured fields lost: %+v", m)
+	}
+}
+
+func TestPostRejectsInvalidVerdictAndSeverity(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	if _, err := s.PostMessage(room.ID, &Message{
+		From: "r", Kind: KindReview, Body: "b", Verdict: "LGTM",
+	}); err == nil || !strings.Contains(err.Error(), "invalid verdict") {
+		t.Fatalf("want invalid-verdict error, got %v", err)
+	}
+	if _, err := s.PostMessage(room.ID, &Message{
+		From: "r", Kind: KindReview, Body: "b", Severity: "urgent",
+	}); err == nil || !strings.Contains(err.Error(), "invalid severity") {
+		t.Fatalf("want invalid-severity error, got %v", err)
+	}
+}
+
+func TestVerdictOnlyOnReviewMessages(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	if _, err := s.PostMessage(room.ID, &Message{
+		From: "w", Kind: KindStatus, Body: "done", Verdict: "APPROVED",
+	}); err == nil || !strings.Contains(err.Error(), "verdict is only valid") {
+		t.Fatalf("want verdict-kind error, got %v", err)
+	}
+}
+
+func TestHandoffCarriesPRURL(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	m, err := s.PostMessage(room.ID, &Message{
+		From: "claude-1", Kind: KindHandoff, Body: "mirrors are live",
+		PRURL: "https://github.com/x/y/pull/155",
+	})
+	if err != nil {
+		t.Fatalf("post: %v", err)
+	}
+	if m.PRURL != "https://github.com/x/y/pull/155" {
+		t.Fatalf("pr_url lost: %+v", m)
+	}
+}
+
+func TestPublishKindIsAccepted(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	m, err := s.PostMessage(room.ID, &Message{
+		From: "codex-1", Kind: KindPublish,
+		Body: "endpoints are final: GET /kipu/referrals/referred-out",
+	})
+	if err != nil {
+		t.Fatalf("post publish: %v", err)
+	}
+	if m.Kind != KindPublish {
+		t.Fatalf("kind lost: %+v", m)
+	}
+}
+
+func TestInvalidKindStillRejected(t *testing.T) {
+	s := newTestStore(t)
+	room, _ := s.CreateRoom("run-1", "/repo")
+	if _, err := s.PostMessage(room.ID, &Message{
+		From: "x", Kind: MessageKind("chatter"), Body: "b",
+	}); err == nil || !strings.Contains(err.Error(), "invalid message kind") {
+		t.Fatalf("want invalid-kind error, got %v", err)
 	}
 }

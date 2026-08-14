@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -99,7 +100,18 @@ func (d *Daemon) memoryStore() (*memstore.Store, error) {
 // surfaces the same misconfiguration loudly, which is where it gets noticed.
 func buildMemoryExtractor() extract.Extractor {
 	p := extract.ProviderFromEnv()
-	if p.APIKey == "" || p.Validate() != nil {
+	// Dormancy must be loud. A daemon restarted without the key went quietly
+	// dormant for a whole day: episodes kept being stored and never resolved
+	// into facts, and nothing said so until someone went looking.
+	if p.APIKey == "" {
+		log.Printf("memory: extraction DORMANT — no API key in the environment. " +
+			"Episodes will be stored but never resolved into facts. Set the " +
+			"provider key and restart the daemon.")
+		return nil
+	}
+	if err := p.Validate(); err != nil {
+		log.Printf("memory: extraction DORMANT — unusable provider config: %v. "+
+			"Episodes will be stored but never resolved into facts.", err)
 		return nil
 	}
 	return extract.NewHaiku(p)

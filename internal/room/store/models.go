@@ -55,6 +55,11 @@ const (
 	KindHandoff  MessageKind = "handoff"
 	KindContract MessageKind = "contract"
 	KindReview   MessageKind = "review"
+	// KindPublish is a one-way announcement: "here is the shape I built, no
+	// reply expected". Self-contained tasks were misusing `contract` for
+	// this, which drained propose/accept of meaning for the tasks that
+	// actually negotiate.
+	KindPublish MessageKind = "publish"
 )
 
 // Message is one entry in a room's append-only channel. Seq is a per-room,
@@ -67,4 +72,15 @@ type Message struct {
 	Kind      MessageKind `json:"kind"`
 	Body      string      `json:"body"`
 	CreatedAt time.Time   `json:"created_at"`
+	// ReplyTo is the Seq of the message this one answers. Reviewers were
+	// already citing "at seq 8 you accepted" in prose; this makes the edge
+	// real so a thread can be reconstructed instead of re-read.
+	ReplyTo uint64 `json:"reply_to,omitempty"`
+	// Structured review/handoff fields. All optional — the prose body stays
+	// the human-readable record. These exist because the orchestrator was
+	// regex-harvesting verdicts and PR links out of free text.
+	Verdict  string   `json:"verdict,omitempty"`  // APPROVED | CHANGES (review only)
+	Severity string   `json:"severity,omitempty"` // P0..P3
+	Findings []string `json:"findings,omitempty"`
+	PRURL    string   `json:"pr_url,omitempty"`
 }

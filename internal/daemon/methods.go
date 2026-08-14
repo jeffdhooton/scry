@@ -142,6 +142,9 @@ type StatusResult struct {
 	HTTP    map[string]any     `json:"http,omitempty"`
 	Graph   []map[string]any   `json:"graph,omitempty"`
 	Version string             `json:"version,omitempty"`
+	// RoomProtocol lets a long-lived `scry mcp` process detect that it
+	// predates the daemon it is talking to, instead of failing opaquely.
+	RoomProtocol int `json:"room_protocol"`
 }
 
 type RepoStatusEntry struct {
@@ -259,7 +262,7 @@ func repoStatusEntry(m *index.Manifest, heads *headCache) *RepoStatusEntry {
 }
 
 func (d *Daemon) handleStatus(ctx context.Context, raw json.RawMessage) (any, error) {
-	res := &StatusResult{PID: os.Getpid()}
+	res := &StatusResult{PID: os.Getpid(), RoomProtocol: RoomProtocolVersion}
 
 	headCtx, cancel := context.WithTimeout(ctx, statusSignalBudget)
 	defer cancel()

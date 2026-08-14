@@ -5,6 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -443,6 +448,29 @@ type MemoryRememberResult struct {
 	Dormant bool          `json:"dormant"`
 }
 
+// deadLetterExtraction records an extraction that could not be parsed, so the
+// episode can be re-resolved later instead of vanishing.
+func (d *Daemon) deadLetterExtraction(episodeID string, cause error) {
+	dir := filepath.Join(d.scryHome(), "memory", "dead-letter")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		log.Printf("memory: could not create dead-letter dir: %v", err)
+		return
+	}
+	name := fmt.Sprintf("%s-%s.json",
+		time.Now().UTC().Format("20060102T150405Z"), episodeID)
+	payload, _ := json.MarshalIndent(map[string]string{
+		"episode_id": episodeID,
+		"error":      cause.Error(),
+		"at":         time.Now().UTC().Format(time.RFC3339),
+	}, "", "  ")
+	if err := os.WriteFile(filepath.Join(dir, name), payload, 0o644); err != nil {
+		log.Printf("memory: could not write dead-letter file: %v", err)
+		return
+	}
+	log.Printf("memory: extraction failed for episode %s — dead-lettered to %s for replay",
+		episodeID, name)
+}
+
 func (d *Daemon) handleMemoryRemember(ctx context.Context, raw json.RawMessage) (any, error) {
 	var p MemoryRememberParams
 	if err := json.Unmarshal(raw, &p); err != nil {
@@ -491,6 +519,12 @@ func (d *Daemon) handleMemoryRemember(ctx context.Context, raw json.RawMessage) 
 	}
 	result, err := d.memExtractor.Extract(ctx, rawEp, p.Entities)
 	if err != nil {
+		// The episode is already stored; only its resolution into facts was
+		// lost. Losing a fact is acceptable only if it leaves a trace you can
+		// replay — a fact was dropped once with nothing but a log line.
+		if errors.Is(err, extract.ErrParse) {
+			d.deadLetterExtraction(rawEp.ID, err)
+		}
 		return nil, err
 	}
 	stats, err := resolve.Apply(st, ep, "", result, resolve.DefaultExclusive)
