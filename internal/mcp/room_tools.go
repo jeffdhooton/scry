@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -18,6 +19,27 @@ var roomToolDefinitions = []tool{
 				"repo":   map[string]any{"type": "string", "description": "Absolute path of the repo the run works on."},
 			},
 			"required": []string{"run_id"},
+		}),
+	},
+	{
+		Name:        "scry_room_get",
+		Description: "Look up a fleet room by room_id, or by run_id when you only know the fleet's name. Use this to rejoin or monitor a run whose room ID you do not have — do not go hunting for a room.json manifest on disk. With run_id, returns the newest room for that run (a second wave reuses the name).",
+		InputSchema: mustMarshal(map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"room_id": map[string]any{"type": "string", "description": "Room ID, if you have it."},
+				"run_id":  map[string]any{"type": "string", "description": "Fleet run name, e.g. 'sim-hookup-wave2'."},
+			},
+		}),
+	},
+	{
+		Name:        "scry_room_list",
+		Description: "List fleet rooms, newest first, with their run IDs, repos, and open/closed status. Use to find a recent run when you know neither its room ID nor its exact run name.",
+		InputSchema: mustMarshal(map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"limit": map[string]any{"type": "integer", "description": "Max rooms to return."},
+			},
 		}),
 	},
 	{
@@ -85,7 +107,7 @@ var roomToolDefinitions = []tool{
 	},
 	{
 		Name:        "scry_post",
-		Description: "Post a message to the room channel. kind=status for milestones, handoff when your output unblocks a dependent task, contract to negotiate/accept a boundary interface, review to request or respond to cross-review. Thread by task_id.",
+		Description: "Post a message to the room channel. kind=status for milestones, handoff when your output unblocks a dependent task, contract to negotiate/accept a boundary interface, publish to announce a boundary you built when no negotiation is expected, review to request or respond to cross-review. Thread by task_id, and set reply_to to the seq you are answering. Every post returns its seq — cite that seq when you refer back to a message.",
 		InputSchema: mustMarshal(map[string]any{
 			"type": "object",
 			"properties": map[string]any{
@@ -139,7 +161,17 @@ func (s *Server) callRoomQuery(ctx context.Context, id json.RawMessage, toolName
 	var raw json.RawMessage
 	if err := client.Call(ctx, rpcMethod, params, &raw); err != nil {
 		logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: toolName, LatencyMs: time.Since(start).Milliseconds(), Error: err.Error()})
-		s.writeToolError(id, fmt.Sprintf("scry %s: %s", rpcMethod, err.Error()))
+		msg := fmt.Sprintf("scry %s: %s", rpcMethod, err.Error())
+		// A method the daemon does not know means the two halves disagree
+		// about the protocol. In practice this is always a long-lived `scry
+		// mcp` process that outlived a daemon upgrade — say so, because the
+		// raw error reads like a room bug.
+		if strings.Contains(strings.ToLower(err.Error()), "method not found") {
+			msg += "\n\nThis scry MCP process and the scry daemon disagree about the room " +
+				"protocol. Restart your MCP connection (in Claude Code: /mcp, then " +
+				"reconnect scry) and retry."
+		}
+		s.writeToolError(id, msg)
 		return
 	}
 

@@ -13,6 +13,8 @@ import (
 
 func (d *Daemon) registerRoomMethods() {
 	d.server.Register("room.create", d.handleRoomCreate)
+	d.server.Register("room.get", d.handleRoomGet)
+	d.server.Register("room.list", d.handleRoomList)
 	d.server.Register("room.close", d.handleRoomClose)
 	d.server.Register("room.task_post", d.handleRoomTaskPost)
 	d.server.Register("room.task_claim", d.handleRoomTaskClaim)
@@ -65,6 +67,68 @@ func (d *Daemon) handleRoomCreate(_ context.Context, raw json.RawMessage) (any, 
 		return nil, err
 	}
 	return st.CreateRoom(p.RunID, p.Repo)
+}
+
+// RoomProtocolVersion is bumped whenever the room domain gains tools or
+// message fields an older `scry mcp` process cannot see. Long-lived MCP
+// processes outlive daemon upgrades, and a stale one fails in ways that read
+// as a room bug rather than a restart prompt.
+//
+//	1 — original room domain (create/close/task_*/post/read)
+//	2 — room.get, room.list, reply_to, structured verdict fields, publish kind
+const RoomProtocolVersion = 2
+
+// --- room.get ---
+
+type RoomGetParams struct {
+	RoomID string `json:"room_id,omitempty"`
+	RunID  string `json:"run_id,omitempty"`
+}
+
+func (d *Daemon) handleRoomGet(_ context.Context, raw json.RawMessage) (any, error) {
+	var p RoomGetParams
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return nil, invalidParams(err)
+	}
+	if p.RoomID == "" && p.RunID == "" {
+		return nil, invalidParams(fmt.Errorf("one of room_id or run_id is required"))
+	}
+	st, err := d.roomStore()
+	if err != nil {
+		return nil, err
+	}
+	if p.RoomID != "" {
+		return st.GetRoom(p.RoomID)
+	}
+	return st.FindRoomByRunID(p.RunID)
+}
+
+// --- room.list ---
+
+type RoomListParams struct {
+	Limit int `json:"limit,omitempty"`
+}
+
+func (d *Daemon) handleRoomList(_ context.Context, raw json.RawMessage) (any, error) {
+	var p RoomListParams
+	if len(raw) > 0 {
+		_ = json.Unmarshal(raw, &p)
+	}
+	st, err := d.roomStore()
+	if err != nil {
+		return nil, err
+	}
+	rooms, err := st.ListRooms()
+	if err != nil {
+		return nil, err
+	}
+	if p.Limit > 0 && len(rooms) > p.Limit {
+		rooms = rooms[:p.Limit]
+	}
+	if rooms == nil {
+		rooms = []roomstore.Room{}
+	}
+	return rooms, nil
 }
 
 // --- room.close ---
@@ -195,11 +259,16 @@ func (d *Daemon) handleRoomTaskList(_ context.Context, raw json.RawMessage) (any
 // --- room.post ---
 
 type RoomPostParams struct {
-	RoomID string `json:"room_id"`
-	TaskID string `json:"task_id,omitempty"`
-	From   string `json:"from"`
-	Kind   string `json:"kind"`
-	Body   string `json:"body"`
+	RoomID   string   `json:"room_id"`
+	TaskID   string   `json:"task_id,omitempty"`
+	From     string   `json:"from"`
+	Kind     string   `json:"kind"`
+	Body     string   `json:"body"`
+	ReplyTo  uint64   `json:"reply_to,omitempty"`
+	Verdict  string   `json:"verdict,omitempty"`
+	Severity string   `json:"severity,omitempty"`
+	Findings []string `json:"findings,omitempty"`
+	PRURL    string   `json:"pr_url,omitempty"`
 }
 
 func (d *Daemon) handleRoomPost(_ context.Context, raw json.RawMessage) (any, error) {
@@ -215,10 +284,15 @@ func (d *Daemon) handleRoomPost(_ context.Context, raw json.RawMessage) (any, er
 		return nil, err
 	}
 	return st.PostMessage(p.RoomID, &roomstore.Message{
-		TaskID: p.TaskID,
-		From:   p.From,
-		Kind:   roomstore.MessageKind(p.Kind),
-		Body:   p.Body,
+		TaskID:   p.TaskID,
+		From:     p.From,
+		Kind:     roomstore.MessageKind(p.Kind),
+		Body:     p.Body,
+		ReplyTo:  p.ReplyTo,
+		Verdict:  p.Verdict,
+		Severity: p.Severity,
+		Findings: p.Findings,
+		PRURL:    p.PRURL,
 	})
 }
 

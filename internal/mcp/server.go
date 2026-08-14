@@ -419,6 +419,10 @@ func (s *Server) handleToolsCall(ctx context.Context, req request) {
 		s.callMemoryQuery(ctx, req.ID, "scry_remember", "memory.remember", p.Arguments)
 	case "scry_room_create":
 		s.callRoomQuery(ctx, req.ID, "scry_room_create", "room.create", p.Arguments)
+	case "scry_room_get":
+		s.callRoomQuery(ctx, req.ID, "scry_room_get", "room.get", p.Arguments)
+	case "scry_room_list":
+		s.callRoomQuery(ctx, req.ID, "scry_room_list", "room.list", p.Arguments)
 	case "scry_room_close":
 		s.callRoomQuery(ctx, req.ID, "scry_room_close", "room.close", p.Arguments)
 	case "scry_task_post":

@@ -116,6 +116,55 @@ func (s *Store) CloseRoom(id string) (*Room, error) {
 	return room, nil
 }
 
+// ListRooms returns every room, newest first. Rooms are few (one per fleet
+// run) and small, so a full scan is the right shape here.
+func (s *Store) ListRooms() ([]Room, error) {
+	prefix := []byte(roomPrefix)
+	var rooms []Room
+	err := s.db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			var room Room
+			if err := it.Item().Value(func(val []byte) error {
+				return json.Unmarshal(val, &room)
+			}); err != nil {
+				continue
+			}
+			rooms = append(rooms, room)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(rooms, func(i, j int) bool {
+		if rooms[i].CreatedAt.Equal(rooms[j].CreatedAt) {
+			return rooms[i].ID < rooms[j].ID
+		}
+		return rooms[i].CreatedAt.After(rooms[j].CreatedAt)
+	})
+	return rooms, nil
+}
+
+// FindRoomByRunID returns the newest room for a run. Run IDs are not unique:
+// a second wave of the same fleet reuses the name, and the caller always
+// means the current one. Not having this bit three separate times — the
+// viewer, a wave relaunch, and mid-run monitoring — before room.json
+// manifests papered over it.
+func (s *Store) FindRoomByRunID(runID string) (*Room, error) {
+	rooms, err := s.ListRooms()
+	if err != nil {
+		return nil, err
+	}
+	for i := range rooms {
+		if rooms[i].RunID == runID {
+			return &rooms[i], nil
+		}
+	}
+	return nil, fmt.Errorf("room for run %q not found", runID)
+}
+
 // --- badger helpers ---
 
 func (s *Store) putJSON(key string, v any) error {
@@ -285,7 +334,17 @@ func (s *Store) ListTasks(roomID string) ([]Task, error) {
 
 func validKind(k MessageKind) bool {
 	switch k {
-	case KindStatus, KindHandoff, KindContract, KindReview:
+	case KindStatus, KindHandoff, KindContract, KindPublish, KindReview:
+		return true
+	}
+	return false
+}
+
+func validVerdict(v string) bool { return v == "APPROVED" || v == "CHANGES" }
+
+func validSeverity(s string) bool {
+	switch s {
+	case "P0", "P1", "P2", "P3":
 		return true
 	}
 	return false
@@ -304,7 +363,19 @@ func (s *Store) PostMessage(roomID string, m *Message) (*Message, error) {
 		return nil, fmt.Errorf("message body is required")
 	}
 	if !validKind(m.Kind) {
-		return nil, fmt.Errorf("invalid message kind %q (want status|handoff|contract|review)", m.Kind)
+		return nil, fmt.Errorf("invalid message kind %q (want status|handoff|contract|publish|review)", m.Kind)
+	}
+
+	if m.Verdict != "" {
+		if !validVerdict(m.Verdict) {
+			return nil, fmt.Errorf("invalid verdict %q (want APPROVED|CHANGES)", m.Verdict)
+		}
+		if m.Kind != KindReview {
+			return nil, fmt.Errorf("verdict is only valid on review messages, got kind %q", m.Kind)
+		}
+	}
+	if m.Severity != "" && !validSeverity(m.Severity) {
+		return nil, fmt.Errorf("invalid severity %q (want P0|P1|P2|P3)", m.Severity)
 	}
 
 	s.mu.Lock()
@@ -314,6 +385,11 @@ func (s *Store) PostMessage(roomID string, m *Message) (*Message, error) {
 	}
 
 	err := s.db.Update(func(txn *badger.Txn) error {
+		if m.ReplyTo > 0 {
+			if _, err := txn.Get([]byte(msgKey(roomID, m.ReplyTo))); err != nil {
+				return fmt.Errorf("reply_to seq %d not found in room %q", m.ReplyTo, roomID)
+			}
+		}
 		var seq uint64
 		item, err := txn.Get([]byte(seqKey(roomID)))
 		if err == nil {

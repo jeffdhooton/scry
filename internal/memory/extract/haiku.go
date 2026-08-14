@@ -78,26 +78,37 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 		return result, nil
 	}
 
-	// One corrective retry: echo the assistant's (invalid) reply, then ask
-	// for a corrected JSON object.
-	params.Messages = append(params.Messages,
-		anthropic.NewAssistantMessage(anthropic.NewTextBlock(raw)),
-		anthropic.NewUserMessage(anthropic.NewTextBlock(
-			fmt.Sprintf("Invalid JSON (%s). Return only the corrected JSON object.", parseErr),
-		)),
-	)
-
-	resp2, err := h.client.Messages.New(ctx, params)
-	if err != nil {
-		return Result{}, fmt.Errorf("extract: haiku retry request failed: %w", err)
+	// Two corrective retries. The first echoes the invalid reply and asks for
+	// a correction; the second is an explicit repair instruction, because a
+	// model that produced prose once tends to produce prose twice. A real
+	// fact was lost to a single-retry give-up — the extra attempt is far
+	// cheaper than the loss.
+	repairs := []string{
+		"Invalid JSON (%s). Return only the corrected JSON object.",
+		"Still invalid JSON (%s). Return ONLY the JSON object: no prose, no " +
+			"explanation, no markdown code fence. Start your reply with { and end it with }.",
 	}
-
-	raw2 := concatText(resp2)
-	result2, parseErr2 := ParseResult(raw2)
-	if parseErr2 != nil {
-		return Result{}, fmt.Errorf("extract: invalid JSON after retry: %w: %w", ErrParse, parseErr2)
+	for _, tmpl := range repairs {
+		params.Messages = append(params.Messages,
+			anthropic.NewAssistantMessage(anthropic.NewTextBlock(raw)),
+			anthropic.NewUserMessage(anthropic.NewTextBlock(
+				fmt.Sprintf(tmpl, parseErr),
+			)),
+		)
+		next, rerr := h.client.Messages.New(ctx, params)
+		if rerr != nil {
+			return Result{}, fmt.Errorf("extract: haiku retry request failed: %w", rerr)
+		}
+		raw = concatText(next)
+		result, parseErr = ParseResult(raw)
+		if parseErr == nil {
+			return result, nil
+		}
 	}
-	return result2, nil
+	// The raw reply rides along on the error so the caller can dead-letter the
+	// exact text rather than only the parse failure.
+	return Result{}, fmt.Errorf("extract: invalid JSON after 2 repairs: %w: %w (reply: %.400q)",
+		ErrParse, parseErr, raw)
 }
 
 // concatText joins every text content block in a response, in order.
