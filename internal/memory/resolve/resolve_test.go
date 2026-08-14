@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -121,8 +122,10 @@ func TestApply_AliasResolution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetEntity: %v", err)
 	}
-	if got.Description != "updated desc" {
-		t.Fatalf("description not overwritten: %+v", got)
+	// Descriptions fill, they do not replace: a later mention of the same
+	// entity must not rewrite an identity that is already established.
+	if got.Description != "original desc" {
+		t.Fatalf("description should be preserved, got: %+v", got)
 	}
 	if !got.CreatedAt.Equal(created) {
 		t.Fatalf("CreatedAt should be kept from existing: got %v want %v", got.CreatedAt, created)
@@ -157,7 +160,16 @@ func TestApply_EntityMerge_EmptyDescriptionAndRepoRefs(t *testing.T) {
 	ep := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: occurred, IngestedAt: occurred}
 	res := extract.Result{Entities: []extract.Ent{{Name: "loom", Type: "project", Description: ""}}}
 
-	if _, err := Apply(st, ep, "/Users/jeff/workspace/loom", res, DefaultExclusive); err != nil {
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, ".git"), 0o755); err != nil {
+		t.Fatalf("seed repo: %v", err)
+	}
+	// isWorkspacePath now requires /Users/ AND a real .git, so a temp dir
+	// outside the home cannot be a repo ref — assert the guard directly.
+	if isWorkspacePath(repoDir) {
+		t.Fatalf("temp dir outside /Users should not count as a workspace: %s", repoDir)
+	}
+	if _, err := Apply(st, ep, repoDir, res, DefaultExclusive); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	got, err := st.GetEntity("loom")
@@ -167,8 +179,8 @@ func TestApply_EntityMerge_EmptyDescriptionAndRepoRefs(t *testing.T) {
 	if got.Description != "original desc" {
 		t.Fatalf("description should not be overwritten by empty incoming: %+v", got)
 	}
-	if len(got.RepoRefs) != 1 || got.RepoRefs[0] != "/Users/jeff/workspace/loom" {
-		t.Fatalf("expected RepoRefs union with workspace cwd: %+v", got.RepoRefs)
+	if len(got.RepoRefs) != 0 {
+		t.Fatalf("a non-home path must not become a repo ref: %+v", got.RepoRefs)
 	}
 
 	// Non-workspace cwd must not be unioned in.
@@ -180,7 +192,8 @@ func TestApply_EntityMerge_EmptyDescriptionAndRepoRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetEntity 2: %v", err)
 	}
-	if len(got2.RepoRefs) != 1 {
+	// Still zero: neither cwd qualified, so nothing was ever unioned in.
+	if len(got2.RepoRefs) != 0 {
 		t.Fatalf("non-workspace cwd should not be unioned: %+v", got2.RepoRefs)
 	}
 }
@@ -869,5 +882,120 @@ func TestApply_RelationNormalizesToEmptySkipsFact(t *testing.T) {
 	}
 	if entities != 0 || facts != 0 {
 		t.Fatalf("expected nothing written, got entities=%d facts=%d", entities, facts)
+	}
+}
+
+// --- entity hygiene ---
+//
+// Three observed corruptions in the live graph, each with its own test:
+// a throwaway session overwrote a real project's description; temp worktree
+// names became permanent aliases; and repo_refs accumulated four unrelated
+// repos on one entity.
+
+func TestApply_DescriptionIsNotClobberedByALaterEpisode(t *testing.T) {
+	st := openTemp(t)
+	t0 := time.Date(2026, 8, 9, 12, 0, 0, 0, time.UTC)
+	ep1 := store.Episode{ID: "e1", Source: "manual", SourceRef: "a", OccurredAt: t0, IngestedAt: t0}
+	if _, err := Apply(st, ep1, "", extract.Result{Entities: []extract.Ent{
+		{Name: "cleaning-company", Type: "service", Description: "the residential cleaning operations app"},
+	}}, nil); err != nil {
+		t.Fatalf("apply 1: %v", err)
+	}
+
+	// A throwaway session in an unrelated temp dir mentions the same name.
+	t1 := t0.Add(120 * time.Hour)
+	ep2 := store.Episode{ID: "e2", Source: "manual", SourceRef: "b", OccurredAt: t1, IngestedAt: t1}
+	if _, err := Apply(st, ep2, "", extract.Result{Entities: []extract.Ent{
+		{Name: "cleaning-company", Type: "service", Description: "No git remote exists in survtest."},
+	}}, nil); err != nil {
+		t.Fatalf("apply 2: %v", err)
+	}
+
+	got, err := st.GetEntity(store.Slugify("cleaning-company"))
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.Description != "the residential cleaning operations app" {
+		t.Fatalf("description was clobbered: %q", got.Description)
+	}
+}
+
+func TestApply_EphemeralAliasesAreRejected(t *testing.T) {
+	st := openTemp(t)
+	t0 := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "e1", Source: "manual", SourceRef: "a", OccurredAt: t0, IngestedAt: t0}
+	if _, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{
+		Name: "setpoint", Type: "project", Description: "loop engine",
+		Aliases: []string{
+			"loop engine",                 // keep: a real alias
+			"setpoint-wt-9e6jz82r",        // drop: a temp worktree
+			"/private/var/folders/p2/T/x", // drop: a temp path
+			"/tmp/survtest",               // drop: a scratch dir
+			"a37497eb9f6b",                // drop: a bare hex id
+		},
+	}}}, nil); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	got, err := st.GetEntity(store.Slugify("setpoint"))
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	for _, bad := range []string{"setpoint-wt-9e6jz82r", "/private/var/folders/p2/T/x", "/tmp/survtest", "a37497eb9f6b"} {
+		if containsString(got.Aliases, bad) {
+			t.Fatalf("ephemeral alias survived: %q in %v", bad, got.Aliases)
+		}
+	}
+	if !containsString(got.Aliases, "loop engine") {
+		t.Fatalf("real alias was dropped: %v", got.Aliases)
+	}
+}
+
+func TestApply_EphemeralEntityNamesAreNotStored(t *testing.T) {
+	st := openTemp(t)
+	t0 := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "e1", Source: "manual", SourceRef: "a", OccurredAt: t0, IngestedAt: t0}
+	if _, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{
+		{Name: "setpoint-wt-9e6jz82r", Type: "project", Description: "a temp worktree"},
+	}}, nil); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if _, err := st.GetEntity(store.Slugify("setpoint-wt-9e6jz82r")); err == nil {
+		t.Fatal("a temp worktree was stored as an entity")
+	}
+}
+
+func TestApply_RepoRefsRequireARealRepoAndAreCapped(t *testing.T) {
+	st := openTemp(t)
+	t0 := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+
+	// A /Users/ path that is not a git repo must not become a repo ref.
+	notARepo := t.TempDir()
+	ep := store.Episode{ID: "e1", Source: "manual", SourceRef: "a", OccurredAt: t0, IngestedAt: t0}
+	if _, err := Apply(st, ep, notARepo, extract.Result{Entities: []extract.Ent{
+		{Name: "thing", Type: "project", Description: "d"},
+	}}, nil); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	got, _ := st.GetEntity(store.Slugify("thing"))
+	if len(got.RepoRefs) != 0 {
+		t.Fatalf("non-repo path became a repo ref: %v", got.RepoRefs)
+	}
+}
+
+func TestEphemeralName_CatchesSessionUUIDs(t *testing.T) {
+	// A recall surfaced `019ffe05-2a03-7263-b0c0-e0a8f98cddb8` as an alias of a
+	// real agent: a session UUID, durable to nothing.
+	for _, s := range []string{
+		"019ffe05-2a03-7263-b0c0-e0a8f98cddb8",
+		"8f9ed8d2-66a1-4dd3-90c5-f30a531f17d9",
+	} {
+		if !isEphemeralName(s) {
+			t.Fatalf("session uuid not rejected: %s", s)
+		}
+	}
+	for _, s := range []string{"setpoint", "loop engine", "hermes-mini", "program-health"} {
+		if isEphemeralName(s) {
+			t.Fatalf("durable name wrongly rejected: %s", s)
+		}
 	}
 }

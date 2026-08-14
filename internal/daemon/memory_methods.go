@@ -41,6 +41,8 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.entities", d.handleMemoryEntities)
 	d.server.Register("memory.facts", d.handleMemoryFacts)
 	d.server.Register("memory.invalidate", d.handleMemoryInvalidate)
+	d.server.Register("memory.hygiene", d.handleMemoryHygiene)
+	d.server.Register("memory.describe", d.handleMemoryDescribe)
 	d.server.Register("memory.orient", d.handleMemoryOrient)
 	d.server.Register("memory.remember", d.handleMemoryRemember)
 	d.server.Register("memory.cursor.get", d.handleMemoryCursorGet)
@@ -450,6 +452,58 @@ type MemoryRememberResult struct {
 
 // deadLetterExtraction records an extraction that could not be parsed, so the
 // episode can be re-resolved later instead of vanishing.
+// --- memory.describe ---
+
+type MemoryDescribeParams struct {
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+}
+
+// handleMemoryDescribe sets an entity's description deliberately. The write
+// path fills descriptions but never replaces them, so a wrong one — a
+// throwaway session once overwrote a real project's identity — can only be
+// corrected on purpose. This is that purpose.
+func (d *Daemon) handleMemoryDescribe(_ context.Context, raw json.RawMessage) (any, error) {
+	var p MemoryDescribeParams
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: err.Error()}
+	}
+	if strings.TrimSpace(p.Slug) == "" {
+		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: "slug is required"}
+	}
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	e, err := st.GetEntity(p.Slug)
+	if err != nil {
+		return nil, err
+	}
+	e.Description = p.Description
+	if err := st.PutEntity(e); err != nil {
+		return nil, err
+	}
+	return e, nil
+}
+
+// --- memory.hygiene ---
+
+type MemoryHygieneParams struct {
+	DryRun bool `json:"dry_run"`
+}
+
+func (d *Daemon) handleMemoryHygiene(_ context.Context, raw json.RawMessage) (any, error) {
+	var p MemoryHygieneParams
+	if len(raw) > 0 {
+		_ = json.Unmarshal(raw, &p)
+	}
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	return resolve.Hygiene(st, p.DryRun)
+}
+
 func (d *Daemon) deadLetterExtraction(episodeID string, cause error) {
 	dir := filepath.Join(d.scryHome(), "memory", "dead-letter")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
