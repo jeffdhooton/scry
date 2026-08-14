@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -262,27 +263,77 @@ func TestBuildAtLayout_AllLanguagesOKIsReadyWithPerLanguageCounts(t *testing.T) 
 }
 
 func TestBuildAtLayout_AbortsOnlyWhenTheOutcomeIsUntrustworthy(t *testing.T) {
-	// A store that cannot be opened means we cannot describe what the index
-	// holds — the one class of failure that may still abort with no manifest.
-	// We provoke it by putting a regular file where the BadgerDB dir belongs.
-	repo := goTSRepo(t)
-	scryHome := t.TempDir()
-	layout := Layout(scryHome, repo)
-	if err := os.MkdirAll(layout.StorageDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(layout.BadgerDir, []byte("not a directory"), 0o644); err != nil {
-		t.Fatal(err)
+	// The complement of every other test in this file. A failing *language*
+	// degrades; a failure that leaves us unable to say what the store holds
+	// aborts with no manifest, because a manifest we can't stand behind is
+	// worse than none. Each case below sabotages one such point.
+	//
+	// Note what "no manifest" protects: the previous build's manifest stays
+	// on disk untouched, so a reader sees the last outcome we could vouch
+	// for rather than a fresh one we couldn't.
+	cases := []struct {
+		name string
+		// sabotage runs after Layout but before the build, and breaks one
+		// step of the trustworthy path.
+		sabotage func(t *testing.T, layout RepoLayout)
+	}{
+		{
+			// A regular file where the storage dir belongs: MkdirAll fails
+			// before anything at all has run.
+			name: "storage dir uncreatable",
+			sabotage: func(t *testing.T, layout RepoLayout) {
+				if err := os.MkdirAll(filepath.Dir(layout.StorageDir), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(layout.StorageDir, []byte("not a directory"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			// A regular file where the BadgerDB dir belongs: store.Open
+			// fails after detection but before any ingest.
+			name: "store un-openable",
+			sabotage: func(t *testing.T, layout RepoLayout) {
+				if err := os.MkdirAll(layout.StorageDir, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(layout.BadgerDir, []byte("not a directory"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			// A directory where the manifest file belongs. This is the case
+			// that matters most: every indexer ran, every dump ingested, and
+			// we still must not report success — the build did real work
+			// that no reader will ever be able to see.
+			name: "manifest unwritable",
+			sabotage: func(t *testing.T, layout RepoLayout) {
+				if err := os.MkdirAll(layout.ManifestPath, 0o755); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
 	}
 
-	var invoked []string
-	run := fakeIndexer(t, repo, nil, &invoked)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := goTSRepo(t)
+			scryHome := t.TempDir()
+			layout := Layout(scryHome, repo)
+			tc.sabotage(t, layout)
 
-	if _, err := buildAtLayout(context.Background(), scryHome, repo, layout, run); err == nil {
-		t.Fatal("an unopenable store must abort the build")
-	}
-	if _, err := LoadManifest(layout); err == nil {
-		t.Error("no manifest may be written when we cannot say what the store contains")
+			var invoked []string
+			run := fakeIndexer(t, repo, nil, &invoked)
+
+			if _, err := buildAtLayout(context.Background(), scryHome, repo, layout, run); err == nil {
+				t.Fatal("an untrustworthy outcome must abort the build with an error")
+			}
+			if _, err := LoadManifest(layout); err == nil {
+				t.Error("no manifest may be written when we cannot say what the store contains")
+			}
+		})
 	}
 }
 
