@@ -186,47 +186,93 @@ func TestBuildAtLayout_ParseFailureCostsOnlyThatLanguage(t *testing.T) {
 }
 
 func TestBuildAtLayout_EveryIndexerFailingStillWritesAManifest(t *testing.T) {
-	// The reproduction: no indexer installed, `scry init` returns
-	// "rpc error -32603" and writes nothing, so there is no artifact telling
-	// the operator what to install.
-	repo := goTSRepo(t)
-	scryHome := t.TempDir()
-	layout := Layout(scryHome, repo)
+	// The reproduction: nothing usable comes out of the build, `scry init`
+	// returns "rpc error -32603" and writes nothing, so there is no artifact
+	// telling the operator what happened or what to do about it.
+	//
+	// A language can reach zero output three ways, and the manifest has to
+	// name a different fix for each — "npm i -g" is right for the first and
+	// actively wrong for the other two, where the tool is already installed.
+	tests := []struct {
+		name       string
+		behaviors  map[string]indexerBehavior
+		wantStatus string
+		wantRemedy string
+	}{
+		{
+			name: "no indexer installed",
+			behaviors: map[string]indexerBehavior{
+				"go":         failWith(fmt.Errorf("scip-go: %w", golang.ErrIndexerNotFound)),
+				"typescript": failWith(fmt.Errorf("scip-typescript: %w", typescript.ErrIndexerNotFound)),
+			},
+			wantStatus: IndexerMissing,
+		},
+		{
+			name: "every indexer installed but crashing",
+			behaviors: map[string]indexerBehavior{
+				"go":         failWith(errors.New("exit status 2: panic in scip-go")),
+				"typescript": failWith(errors.New("exit status 1: tsconfig.json not found")),
+			},
+			wantStatus: IndexerFailed,
+			wantRemedy: indexerFailureRemedy,
+		},
+		{
+			name: "every dump unparseable",
+			behaviors: map[string]indexerBehavior{
+				"go":         writeGarbage(t),
+				"typescript": writeGarbage(t),
+			},
+			wantStatus: IndexerFailed,
+			wantRemedy: parseFailureRemedy,
+		},
+	}
 
-	var invoked []string
-	run := fakeIndexer(t, repo, map[string]indexerBehavior{
-		"go":         failWith(fmt.Errorf("scip-go: %w", golang.ErrIndexerNotFound)),
-		"typescript": failWith(fmt.Errorf("scip-typescript: %w", typescript.ErrIndexerNotFound)),
-	}, &invoked)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := goTSRepo(t)
+			scryHome := t.TempDir()
+			layout := Layout(scryHome, repo)
 
-	m, err := buildAtLayout(context.Background(), scryHome, repo, layout, run)
-	if err != nil {
-		t.Fatalf("a build where every indexer is missing must still produce a manifest, got error: %v", err)
-	}
-	if m.Status != "partial" {
-		t.Errorf("Status = %q, want partial", m.Status)
-	}
-	if m.Stats.Documents != 0 || m.Stats.Symbols != 0 {
-		t.Errorf("Stats = %+v, want zero — nothing ingested", m.Stats)
-	}
-	for _, lang := range []string{"go", "typescript"} {
-		r := resultFor(t, m, lang)
-		if r.Status != IndexerMissing {
-			t.Errorf("%s status = %q, want missing", lang, r.Status)
-		}
-		if r.Error == "" {
-			t.Errorf("%s must record why it failed", lang)
-		}
-		if r.Remedy == "" {
-			t.Errorf("%s must record how to fix it — that is the whole point of writing the manifest", lang)
-		}
-		if r.SymbolCount != 0 {
-			t.Errorf("%s never ran, so its counts must be zero, got %+v", lang, r)
-		}
-	}
+			var invoked []string
+			run := fakeIndexer(t, repo, tt.behaviors, &invoked)
 
-	if _, err := LoadManifest(layout); err != nil {
-		t.Fatalf("manifest must exist on disk after a total failure: %v", err)
+			m, err := buildAtLayout(context.Background(), scryHome, repo, layout, run)
+			if err != nil {
+				t.Fatalf("a build that produced nothing must still produce a manifest, got error: %v", err)
+			}
+			if m.Status != "partial" {
+				t.Errorf("Status = %q, want partial", m.Status)
+			}
+			if m.Stats.Documents != 0 || m.Stats.Symbols != 0 {
+				t.Errorf("Stats = %+v, want zero — nothing ingested", m.Stats)
+			}
+			for _, lang := range []string{"go", "typescript"} {
+				r := resultFor(t, m, lang)
+				if r.Status != tt.wantStatus {
+					t.Errorf("%s status = %q, want %q", lang, r.Status, tt.wantStatus)
+				}
+				if r.Error == "" {
+					t.Errorf("%s must record why it failed", lang)
+				}
+				// Every failure carries a fix, and specifically the fix that
+				// matches how it failed. An empty remedy here leaves the
+				// operator exactly where the bare -32603 did.
+				if tt.wantRemedy == "" {
+					if r.Remedy == "" {
+						t.Errorf("%s must record how to fix it — that is the whole point of writing the manifest", lang)
+					}
+				} else if r.Remedy != tt.wantRemedy {
+					t.Errorf("%s remedy = %q, want %q", lang, r.Remedy, tt.wantRemedy)
+				}
+				if r.SymbolCount != 0 {
+					t.Errorf("%s produced nothing, so its counts must be zero, got %+v", lang, r)
+				}
+			}
+
+			if _, err := LoadManifest(layout); err != nil {
+				t.Fatalf("manifest must exist on disk after a total failure: %v", err)
+			}
+		})
 	}
 }
 
@@ -402,8 +448,10 @@ func TestBuildResults_PerLanguageOutcomes(t *testing.T) {
 			// Both are still invoked: one indexer's failure must never stop
 			// the next one from running.
 			wantInvoked: []string{"go", "typescript"},
-			wantStatus:  map[string]string{"go": IndexerFailed, "typescript": IndexerOK},
-			wantRemedy:  map[string]bool{"go": false},
+			wantStatus: map[string]string{"go": IndexerFailed, "typescript": IndexerOK},
+			// A crash carries a remedy too — a different one from a missing
+			// binary, since the tool is already installed, but never none.
+			wantRemedy:  map[string]bool{"go": true, "typescript": false},
 			wantDerived: "partial",
 		},
 		{

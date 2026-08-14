@@ -38,18 +38,22 @@ func TestClassify(t *testing.T) {
 			wantRemedy: "install scip-go manually: go install github.com/sourcegraph/scip-go/cmd/scip-go@latest",
 		},
 		{
-			name:       "arbitrary error is failed, no remedy",
+			// The installed-but-crashed path. It must not inherit the
+			// install command — the tool is already there — but it must
+			// still carry something, or the manifest records a failure the
+			// operator has no next step for.
+			name:       "arbitrary error is failed, with the crash remedy",
 			language:   "go",
 			err:        fmt.Errorf("exit status 2: panic in scip-go"),
 			wantStatus: IndexerFailed,
-			wantRemedy: "",
+			wantRemedy: indexerFailureRemedy,
 		},
 		{
 			name:       "unknown language with arbitrary error is failed",
 			language:   "ruby",
 			err:        fmt.Errorf("boom"),
 			wantStatus: IndexerFailed,
-			wantRemedy: "",
+			wantRemedy: indexerFailureRemedy,
 		},
 	}
 	for _, tt := range tests {

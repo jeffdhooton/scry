@@ -83,9 +83,20 @@ var indexerRemedies = map[string]string{
 // out-of-disk indexer run, which a clean rebuild fixes.
 const parseFailureRemedy = "the indexer ran but its SCIP output would not parse — re-run `scry init --force` on this repo; if it recurs, the dump is corrupt and the error above is worth reporting"
 
+// indexerFailureRemedy is the fix for a language whose indexer is installed
+// but exited with an error. Like parseFailureRemedy, deliberately not one of
+// indexerRemedies: the binary is present, so "install it" is wrong advice.
+// A failure recorded with no remedy is half a diagnosis, and this is the
+// half the manifest exists to carry — the operator reads it after the build,
+// with the build's stderr long gone.
+const indexerFailureRemedy = "the indexer is installed but exited with an error — the message above is its own; run it directly against this repo to see its full output, and check it supports this project's toolchain version"
+
 // classify converts one indexer's error into a (status, error, remedy)
 // triple. A nil error is ok; a wrapped not-found sentinel is missing and
-// carries a remedy; anything else is a genuine failure.
+// carries the install command; anything else is a genuine failure and
+// carries indexerFailureRemedy. Every non-ok status carries a remedy — a
+// manifest that records a failure without one leaves the operator exactly
+// where the bare error string did.
 //
 // "ok" here means only that the indexer binary exited cleanly. The ingest
 // step can still fail afterwards, in which case buildAtLayout's ingest loop
@@ -98,7 +109,7 @@ func classify(language string, err error) (status, errMsg, remedy string) {
 	if sentinel, ok := notFoundSentinels[language]; ok && errors.Is(err, sentinel) {
 		return IndexerMissing, err.Error(), indexerRemedies[language]
 	}
-	return IndexerFailed, err.Error(), ""
+	return IndexerFailed, err.Error(), indexerFailureRemedy
 }
 
 // deriveStatus computes the manifest status from the full result set. Only

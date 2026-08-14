@@ -1251,10 +1251,25 @@ in a different costume — but it does mean a total indexer outage during a
 watcher reindex empties an index that was previously good. The manifest says
 so, in per-language detail.
 
+**Every failure carries a remedy, and three different ones.** A language can
+reach zero output three ways, and they need different advice: the binary is
+absent (`indexerRemedies` — the install command), the binary ran and exited
+non-zero (`indexerFailureRemedy` — run it directly, check the toolchain
+version), or the binary succeeded and its dump would not parse
+(`parseFailureRemedy` — `scry init --force`, report it if it recurs). The
+last two deliberately do *not* reuse the install command: the tool is already
+installed, so "npm i -g" is wrong advice, and wrong advice costs more than
+none. A failure recorded without any remedy leaves the operator exactly where
+the bare `-32603` did, which is the thing this change exists to stop, so
+`classify` now returns a remedy for every non-ok status.
+
 **Testing:** the indexer invocation is injected into `buildAtLayout` as an
 `indexerRunner`, and the tests synthesize SCIP protobuf dumps directly
 (valid ones for the success path, garbage for the parse-failure path). No
-test needs scip-typescript, scip-go, scip-python, php or npm on PATH.
+test needs scip-typescript, scip-go, scip-python, php or npm on PATH. The
+zero-output test is table-driven over all three failure modes above, asserting
+each language carries the remedy matching *how* it failed rather than merely
+a non-empty one.
 
 **What would change our minds:** if the empty-store-on-total-failure case
 bites in practice, the fix belongs in the caller that swaps — `BuildIntoTemp`
