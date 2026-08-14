@@ -915,9 +915,7 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 		m.RepoPath = abs
 	}
 	stale, staleReason := repoStaleness(&m)
-	// TODO(3b5408ace1b3): pass index.EmptyLanguages(&m) once
-	// IndexerResult.SymbolCount lands from 4db54723315f (contract accepted).
-	var emptyLanguages []string
+	emptyLanguages := index.EmptyLanguages(&m)
 	statusLabel := index.EffectiveStatus(&m, stale, emptyLanguages)
 
 	status := StatusPass
@@ -946,6 +944,25 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 		case index.IndexerSkipped:
 			degraded = append(degraded, fmt.Sprintf("%s skipped (incidental, %d files)", r.Language, r.FileCount))
 		}
+	}
+	// Name the languages that indexed successfully into nothing. This is the
+	// finding a bare status word hides worst: "ready, 0 symbols" reads as an
+	// empty repo, and only the language name says which indexer to distrust.
+	// Ordered after the per-indexer findings and before stale, matching the
+	// status precedence.
+	for _, lang := range emptyLanguages {
+		files := 0
+		for _, r := range m.Indexers {
+			if r.Language == lang {
+				files = r.FileCount
+				break
+			}
+		}
+		degraded = append(degraded, fmt.Sprintf("%s indexed 0 symbols from %d files", lang, files))
+	}
+	if len(emptyLanguages) > 0 && remedy == "" {
+		remedy = fmt.Sprintf("%s reported success but produced no symbols — re-run `scry init --force`; if it recurs, the indexer is failing silently on this repo",
+			strings.Join(emptyLanguages, ", "))
 	}
 	// Stale trails the per-indexer findings, matching the status precedence:
 	// a missing indexer is the more urgent thing to fix, and its remedy keeps

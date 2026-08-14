@@ -104,6 +104,164 @@ func TestIsStale(t *testing.T) {
 	}
 }
 
+func TestEmptyLanguages(t *testing.T) {
+	// ok is a language that indexed normally.
+	ok := func(lang string, files, symbols int) IndexerResult {
+		return IndexerResult{
+			Language: lang, Status: IndexerOK, Tier: TierPrimary,
+			FileCount: files, SymbolCount: symbols,
+		}
+	}
+
+	tests := []struct {
+		name     string
+		indexers []IndexerResult
+		want     []string
+	}{
+		{
+			name:     "empty with files is flagged",
+			indexers: []IndexerResult{ok("typescript", 412, 0)},
+			want:     []string{"typescript"},
+		},
+		{
+			name: "empty with no files is not flagged",
+			// Zero symbols from zero files is the right answer, not a
+			// failure — a repo with no source in that language at all.
+			indexers: []IndexerResult{ok("python", 0, 0)},
+			want:     nil,
+		},
+		{
+			name:     "a language that found symbols is not flagged",
+			indexers: []IndexerResult{ok("go", 120, 8087)},
+			want:     nil,
+		},
+		{
+			name: "a single empty language among healthy ones is flagged alone",
+			indexers: []IndexerResult{
+				ok("go", 120, 8087),
+				ok("typescript", 412, 0),
+				ok("php", 88, 1254),
+			},
+			want: []string{"typescript"},
+		},
+		{
+			name: "every empty language is reported, in manifest order",
+			indexers: []IndexerResult{
+				ok("typescript", 412, 0),
+				ok("go", 120, 900),
+				ok("python", 33, 0),
+			},
+			want: []string{"typescript", "python"},
+		},
+		{
+			name: "an incidental language is never flagged",
+			// Incidental languages are deliberately not indexed deeply and
+			// can't degrade a repo's status either — see deriveStatus.
+			indexers: []IndexerResult{{
+				Language: "python", Status: IndexerOK, Tier: TierIncidental,
+				FileCount: 37, SymbolCount: 0,
+			}},
+			want: nil,
+		},
+		{
+			name: "a missing indexer is partial's business, not empty's",
+			indexers: []IndexerResult{{
+				Language: "typescript", Status: IndexerMissing, Tier: TierPrimary,
+				FileCount: 412, Error: "scip-typescript not found",
+			}},
+			want: nil,
+		},
+		{
+			name: "a failed indexer is partial's business, not empty's",
+			// Includes the parse-failure path: the binary ran, its dump
+			// wouldn't parse, so counts are zero — but the status is failed.
+			indexers: []IndexerResult{{
+				Language: "go", Status: IndexerFailed, Tier: TierPrimary,
+				FileCount: 120, Error: "parse go scip: unexpected EOF",
+			}},
+			want: nil,
+		},
+		{
+			name: "a skipped indexer is not flagged",
+			indexers: []IndexerResult{{
+				Language: "php", Status: IndexerSkipped, Tier: TierIncidental,
+				FileCount: 37,
+			}},
+			want: nil,
+		},
+		{
+			name: "a legacy manifest with no per-language results flags nothing",
+			// The 44 repos on disk predate IndexerResult entirely. They must
+			// read as not-empty rather than as every-language-empty.
+			indexers: nil,
+			want:     nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := EmptyLanguages(&Manifest{Indexers: tt.indexers})
+			if len(got) != len(tt.want) {
+				t.Fatalf("EmptyLanguages() = %v, want %v", got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Fatalf("EmptyLanguages() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestEmptyLanguagesNilManifest(t *testing.T) {
+	if got := EmptyLanguages(nil); got != nil {
+		t.Fatalf("EmptyLanguages(nil) = %v, want nil", got)
+	}
+}
+
+func TestEmptyLanguagesRollsUpToRepoStatus(t *testing.T) {
+	// The end-to-end shape from the goal: a repo whose indexer claimed success
+	// across a non-empty file set and produced nothing must not report ready.
+	m := &Manifest{
+		Status:    StatusReady,
+		IndexedAt: indexedAt,
+		Indexers: []IndexerResult{{
+			Language: "typescript", Status: IndexerOK, Tier: TierPrimary,
+			FileCount: 412, SymbolCount: 0,
+		}},
+	}
+	empty := EmptyLanguages(m)
+	if len(empty) != 1 || empty[0] != "typescript" {
+		t.Fatalf("EmptyLanguages() = %v, want [typescript]", empty)
+	}
+	if got := EffectiveStatus(m, false, empty); got != StatusEmpty {
+		t.Fatalf("EffectiveStatus() = %q, want %q", got, StatusEmpty)
+	}
+}
+
+func TestEmptyLanguagesNeedsNoReindex(t *testing.T) {
+	// Both signals must be computable from a manifest alone — the 44 repos
+	// already on disk are diagnosed by reading them, never by rebuilding
+	// first. A manifest pointing at a repo path that no longer exists still
+	// yields both answers without touching the filesystem.
+	m := &Manifest{
+		Status:     StatusReady,
+		RepoPath:   filepath.Join(t.TempDir(), "deleted-repo"),
+		IndexedAt:  indexedAt,
+		HeadCommit: "aaaa1111",
+		Indexers: []IndexerResult{{
+			Language: "go", Status: IndexerOK, Tier: TierPrimary,
+			FileCount: 120, SymbolCount: 0,
+		}},
+	}
+	if got := EmptyLanguages(m); len(got) != 1 {
+		t.Fatalf("EmptyLanguages() = %v, want one entry", got)
+	}
+	if !IsStale(m, "bbbb2222", time.Time{}) {
+		t.Fatal("IsStale() = false, want true from the recorded commit alone")
+	}
+}
+
 func TestEffectiveStatus(t *testing.T) {
 	tests := []struct {
 		name   string

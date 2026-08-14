@@ -133,6 +133,161 @@ func TestCheckCurrentRepo_PartialOutranksStale(t *testing.T) {
 	}
 }
 
+func TestCheckCurrentRepo_EmptyLanguageIsNamed(t *testing.T) {
+	repo, head := gitRepoWithCommit(t)
+	home := seedRepoManifest(t, repo, index.Manifest{
+		RepoPath:   repo,
+		Languages:  []string{"typescript"},
+		IndexedAt:  time.Now().Add(-2 * time.Hour),
+		Status:     index.StatusReady,
+		HeadCommit: head,
+		Indexers: []index.IndexerResult{{
+			Language: "typescript", Tier: index.TierPrimary, Status: index.IndexerOK,
+			FileCount: 412, SymbolCount: 0,
+		}},
+	})
+
+	got := checkCurrentRepo(home, repo)
+	if got.Status != StatusWarn {
+		t.Errorf("Status = %v, want Warn — an indexer that claimed success and produced nothing is not a pass", got.Status)
+	}
+	if !strings.HasPrefix(got.Detail, index.StatusEmpty+" ") {
+		t.Errorf("Detail = %q, want it to lead with the empty status", got.Detail)
+	}
+	// The whole point of the per-language rollup: say WHICH indexer to
+	// distrust, not just that the repo is empty.
+	if !strings.Contains(got.Detail, "typescript indexed 0 symbols from 412 files") {
+		t.Errorf("Detail = %q, want the empty language named with its file count", got.Detail)
+	}
+	if !strings.Contains(got.Detail, "ago") {
+		t.Errorf("Detail = %q, want the index age", got.Detail)
+	}
+	if got.Remedy == "" {
+		t.Error("Remedy = empty, want the empty-language remedy")
+	}
+}
+
+func TestCheckCurrentRepo_EveryEmptyLanguageIsNamed(t *testing.T) {
+	repo, head := gitRepoWithCommit(t)
+	home := seedRepoManifest(t, repo, index.Manifest{
+		RepoPath:   repo,
+		Languages:  []string{"typescript", "go", "python"},
+		IndexedAt:  time.Now().Add(-2 * time.Hour),
+		Status:     index.StatusReady,
+		HeadCommit: head,
+		Indexers: []index.IndexerResult{
+			{Language: "typescript", Tier: index.TierPrimary, Status: index.IndexerOK, FileCount: 412, SymbolCount: 0},
+			{Language: "go", Tier: index.TierPrimary, Status: index.IndexerOK, FileCount: 120, SymbolCount: 8087},
+			{Language: "python", Tier: index.TierPrimary, Status: index.IndexerOK, FileCount: 33, SymbolCount: 0},
+		},
+	})
+
+	got := checkCurrentRepo(home, repo)
+	for _, want := range []string{"typescript indexed 0 symbols", "python indexed 0 symbols"} {
+		if !strings.Contains(got.Detail, want) {
+			t.Errorf("Detail = %q, want it to contain %q", got.Detail, want)
+		}
+	}
+	if strings.Contains(got.Detail, "go indexed 0 symbols") {
+		t.Errorf("Detail = %q, want the healthy language left out", got.Detail)
+	}
+}
+
+func TestCheckCurrentRepo_EmptyNotFlaggedWithoutFiles(t *testing.T) {
+	repo, head := gitRepoWithCommit(t)
+	home := seedRepoManifest(t, repo, index.Manifest{
+		RepoPath:   repo,
+		Languages:  []string{"go"},
+		IndexedAt:  time.Now().Add(-2 * time.Hour),
+		Status:     index.StatusReady,
+		HeadCommit: head,
+		Indexers: []index.IndexerResult{
+			{Language: "go", Tier: index.TierPrimary, Status: index.IndexerOK, FileCount: 120, SymbolCount: 8087},
+			// Detected as a language but with nothing to index: zero symbols
+			// from zero files is the correct answer.
+			{Language: "python", Tier: index.TierPrimary, Status: index.IndexerOK, FileCount: 0, SymbolCount: 0},
+		},
+	})
+
+	got := checkCurrentRepo(home, repo)
+	if got.Status != StatusPass {
+		t.Errorf("Status = %v (%s), want Pass", got.Status, got.Detail)
+	}
+	if strings.Contains(got.Detail, index.StatusEmpty) {
+		t.Errorf("Detail = %q, want no empty marker", got.Detail)
+	}
+	if got.Remedy != "" {
+		t.Errorf("Remedy = %q, want none", got.Remedy)
+	}
+}
+
+func TestCheckCurrentRepo_EmptyOutranksStale(t *testing.T) {
+	repo, _ := gitRepoWithCommit(t)
+	home := seedRepoManifest(t, repo, index.Manifest{
+		RepoPath:   repo,
+		Languages:  []string{"typescript"},
+		IndexedAt:  time.Now().Add(-72 * time.Hour),
+		Status:     index.StatusReady,
+		HeadCommit: "0123456789abcdef0123456789abcdef01234567",
+		Indexers: []index.IndexerResult{{
+			Language: "typescript", Tier: index.TierPrimary, Status: index.IndexerOK,
+			FileCount: 412, SymbolCount: 0,
+		}},
+	})
+
+	got := checkCurrentRepo(home, repo)
+	// Empty leads: a reindex at the current commit will not fix an indexer
+	// that produces nothing, so it is the more useful word.
+	if !strings.HasPrefix(got.Detail, index.StatusEmpty+" ") {
+		t.Errorf("Detail = %q, want it to lead with the empty status", got.Detail)
+	}
+	// Both findings are still reported, empty before stale.
+	emptyAt := strings.Index(got.Detail, "typescript indexed 0 symbols")
+	staleAt := strings.Index(got.Detail, index.StatusStale+":")
+	if emptyAt < 0 || staleAt < 0 {
+		t.Fatalf("Detail = %q, want both the empty and the stale finding", got.Detail)
+	}
+	if emptyAt > staleAt {
+		t.Errorf("Detail = %q, want the empty finding before the stale one", got.Detail)
+	}
+}
+
+func TestCheckCurrentRepo_PartialOutranksEmpty(t *testing.T) {
+	repo, head := gitRepoWithCommit(t)
+	home := seedRepoManifest(t, repo, index.Manifest{
+		RepoPath:   repo,
+		Languages:  []string{"typescript", "python"},
+		IndexedAt:  time.Now().Add(-2 * time.Hour),
+		Status:     index.StatusPartial,
+		HeadCommit: head,
+		Indexers: []index.IndexerResult{
+			{
+				Language: "typescript", Tier: index.TierPrimary, Status: index.IndexerOK,
+				FileCount: 412, SymbolCount: 0,
+			},
+			{
+				Language: "python", Tier: index.TierPrimary, Status: index.IndexerMissing,
+				FileCount: 33,
+				Error:     "scip-python not found on PATH",
+				Remedy:    "npm i -g @sourcegraph/scip-python",
+			},
+		},
+	})
+
+	got := checkCurrentRepo(home, repo)
+	if !strings.HasPrefix(got.Detail, index.StatusPartial+" ") {
+		t.Errorf("Detail = %q, want it to lead with the partial status", got.Detail)
+	}
+	if !strings.Contains(got.Detail, "typescript indexed 0 symbols from 412 files") {
+		t.Errorf("Detail = %q, want the empty language still named under a partial label", got.Detail)
+	}
+	// The missing indexer keeps the remedy slot: installing it is the more
+	// urgent fix than re-running a build for the empty language.
+	if got.Remedy != "npm i -g @sourcegraph/scip-python" {
+		t.Errorf("Remedy = %q, want the missing-indexer remedy", got.Remedy)
+	}
+}
+
 // gitRepoWithCommit creates a git repo with one commit and returns its path
 // and HEAD sha. Skips the test when git is unavailable.
 func gitRepoWithCommit(t *testing.T) (string, string) {

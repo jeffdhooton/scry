@@ -44,6 +44,46 @@ func IsStale(m *Manifest, currentHead string, newestSourceMTime time.Time) bool 
 	return newestSourceMTime.After(m.IndexedAt)
 }
 
+// EmptyLanguages returns the primary languages whose indexer reported success
+// and produced no symbols anyway, across a non-zero count of detected source
+// files. That combination is a failure wearing a success label: the tool ran,
+// exited 0, and the store it filled is empty.
+//
+// The predicate leans on a guarantee from the builder (see IndexerResult's
+// count fields): the per-language counts are populated only on the success
+// path, so they are zero for every status other than IndexerOK. A language
+// that never ran therefore can't be mistaken for one that ran and found
+// nothing.
+//
+// The three conditions each rule out a legitimate zero:
+//   - TierPrimary: an incidental language is deliberately not indexed deeply,
+//     and it can't degrade a repo's status anyway (see deriveStatus).
+//   - IndexerOK: missing and failed languages are already reported as
+//     "partial", which outranks empty. Flagging them here would double-report
+//     one problem under two names.
+//   - FileCount > 0: zero symbols from zero files is the correct answer, not a
+//     failure. This is the case that keeps a repo with, say, a single stray
+//     .py file from being called empty forever.
+//
+// Order follows the manifest's own result order so the output is stable across
+// calls. Returns nil (not an empty slice) when nothing is empty, so callers can
+// test with len() and the daemon's omitempty drops the field entirely.
+func EmptyLanguages(m *Manifest) []string {
+	if m == nil {
+		return nil
+	}
+	var empty []string
+	for _, r := range m.Indexers {
+		if r.Tier != TierPrimary || r.Status != IndexerOK {
+			continue
+		}
+		if r.SymbolCount == 0 && r.FileCount > 0 {
+			empty = append(empty, r.Language)
+		}
+	}
+	return empty
+}
+
 // EffectiveStatus folds the manifest's recorded status together with the two
 // derived signals into the single label a user should see.
 //

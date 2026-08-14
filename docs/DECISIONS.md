@@ -1275,7 +1275,14 @@ computed when status is reported, from the manifest plus the live repo:
   written before `head_commit` existed — the comparison degrades to "is the
   newest source file's mtime after `IndexedAt`".
 - **empty**: a primary language whose indexer reported `ok` but produced zero
-  symbols across a non-zero detected file count.
+  symbols across a non-zero detected file count. Read from that language's own
+  `IndexerResult` counts, which the builder populates only on the success path
+  — so a language that never ran can't be mistaken for one that ran and found
+  nothing, which the aggregate `Manifest.Stats` cannot distinguish. Each of
+  the three conditions rules out a legitimate zero: incidental languages
+  aren't indexed deeply, missing/failed ones are already reported as
+  `partial`, and zero symbols from zero files is the correct answer rather
+  than a failure.
 
 `scry status` and `scry doctor` fold the manifest status and both signals
 into one display label with precedence `partial > empty > stale > ready`

@@ -210,9 +210,9 @@ func repoStatusEntry(m *index.Manifest, heads *headCache) *RepoStatusEntry {
 		newestSource = index.NewestSourceMTime(m.RepoPath)
 	}
 	stale := index.IsStale(m, head, newestSource)
-	// TODO(3b5408ace1b3): feed index.EmptyLanguages(m) here once
-	// IndexerResult.SymbolCount lands from 4db54723315f (contract accepted).
-	var emptyLanguages []string
+	// Reads the manifest's own per-language counts — no store access, no git,
+	// no walk.
+	emptyLanguages := index.EmptyLanguages(m)
 	return &RepoStatusEntry{
 		Repo:            m.RepoPath,
 		Status:          m.Status,
