@@ -1260,3 +1260,49 @@ test needs scip-typescript, scip-go, scip-python, php or npm on PATH.
 bites in practice, the fix belongs in the caller that swaps — `BuildIntoTemp`
 plus `SwapNext` can decline to promote a store that ingested nothing — not in
 `buildAtLayout`, which should keep the manifest and the store consistent.
+
+---
+
+## 2026-08-13 — Stale and empty are derived at report time, never persisted
+
+**Decision:** `Manifest.Status` on disk keeps exactly two values, `ready` and
+`partial` — they describe what the build produced. The two new signals are
+computed when status is reported, from the manifest plus the live repo:
+
+- **stale**: the manifest records `head_commit` (the repo's HEAD when the
+  build started). A repo is stale when the live HEAD differs. When either
+  side has no commit — not a git checkout, no commits yet, or a manifest
+  written before `head_commit` existed — the comparison degrades to "is the
+  newest source file's mtime after `IndexedAt`".
+- **empty**: a primary language whose indexer reported `ok` but produced zero
+  symbols across a non-zero detected file count.
+
+`scry status` and `scry doctor` fold the manifest status and both signals
+into one display label with precedence `partial > empty > stale > ready`
+(`index.EffectiveStatus`).
+
+**Why:** A signal that had to be written into the manifest would need a
+reindex to be discovered — exactly the thing that is broken. The 44 repos
+already on disk with months-old indexes must become diagnosable by *reading*
+them, not by rebuilding them first. Deriving also keeps the manifest a record
+of one build rather than a mutable status cache that two writers (the builder
+and the reporter) both own.
+
+HEAD comparison rather than timestamps because it is exact: it survives clock
+skew, a rebuild that ran long, and a checkout that rewinds to an older
+commit — all of which a `IndexedAt < newest mtime` test gets wrong. The mtime
+walk stays as the fallback for non-git trees and is only paid for when there
+is no commit to compare.
+
+Precedence puts `partial` first because a missing indexer is a louder fact
+than either derived signal, and `empty` above `stale` because an empty
+language is broken at the current commit while a stale one is fixed by
+exactly the reindex the label already implies.
+
+**Cost:** one `git rev-parse HEAD` per repo per status call, cached for the
+call and bounded by a 2s timeout. `scry status` is on the agent hot path; a
+wedged git invocation degrades the staleness signal, not the response.
+
+**What would change our minds:** if per-repo HEAD resolution ever shows up in
+status latency (many repos, cold FS cache), cache the result in the daemon
+across calls keyed by `.git/HEAD` mtime rather than re-running git each time.

@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/daemon"
+	gitindex "github.com/jeffdhooton/scry/internal/git/index"
 	"github.com/jeffdhooton/scry/internal/graph"
 	"github.com/jeffdhooton/scry/internal/index"
 	"github.com/jeffdhooton/scry/internal/install"
@@ -907,15 +908,23 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 		}
 	}
 	age := time.Since(m.IndexedAt).Round(time.Minute)
+
+	// Derive what the manifest can't record about itself: has the repo moved
+	// on since this index was built? Reads no store and triggers no reindex.
+	if m.RepoPath == "" {
+		m.RepoPath = abs
+	}
+	stale, staleReason := repoStaleness(&m)
+	// TODO(3b5408ace1b3): pass index.EmptyLanguages(&m) once
+	// IndexerResult.SymbolCount lands from 4db54723315f (contract accepted).
+	var emptyLanguages []string
+	statusLabel := index.EffectiveStatus(&m, stale, emptyLanguages)
+
 	status := StatusPass
-	statusLabel := m.Status
-	if statusLabel == "" {
-		statusLabel = "ready"
-	}
-	if statusLabel == "partial" {
+	switch statusLabel {
+	case index.StatusPartial, index.StatusEmpty, index.StatusStale:
 		status = StatusWarn
-	}
-	if statusLabel == "broken" {
+	case "broken":
 		status = StatusFail
 	}
 	detail := fmt.Sprintf("%s — %d docs, %d symbols, %d refs, indexed %s ago (%s)",
@@ -938,6 +947,15 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 			degraded = append(degraded, fmt.Sprintf("%s skipped (incidental, %d files)", r.Language, r.FileCount))
 		}
 	}
+	// Stale trails the per-indexer findings, matching the status precedence:
+	// a missing indexer is the more urgent thing to fix, and its remedy keeps
+	// the Remedy slot.
+	if stale {
+		degraded = append(degraded, staleReason)
+		if remedy == "" {
+			remedy = "run `scry init` to reindex at the current commit"
+		}
+	}
 	if len(degraded) > 0 {
 		detail += " — " + strings.Join(degraded, "; ")
 	}
@@ -950,6 +968,43 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 		Detail:   detail,
 		Remedy:   remedy,
 	}
+}
+
+// headTimeout caps the one `git rev-parse` doctor makes per repo.
+const headTimeout = 2 * time.Second
+
+// repoStaleness reports whether the index described by m has fallen behind
+// the repo it was built from, plus the sentence explaining which comparison
+// decided it. It makes one git call and, only when there is no commit to
+// compare against, one stat-only walk of the source tree.
+func repoStaleness(m *index.Manifest) (bool, string) {
+	ctx, cancel := context.WithTimeout(context.Background(), headTimeout)
+	defer cancel()
+	head, err := gitindex.HeadCommit(ctx, m.RepoPath)
+	if err != nil {
+		// No HEAD available is not a doctor failure — it just downgrades the
+		// comparison to mtimes below.
+		head = ""
+	}
+	var newestSource time.Time
+	if head == "" {
+		newestSource = index.NewestSourceMTime(m.RepoPath)
+	}
+	if !index.IsStale(m, head, newestSource) {
+		return false, ""
+	}
+	if head != "" && m.HeadCommit != "" {
+		return true, fmt.Sprintf("stale: built at %s, HEAD is now %s", shortSHA(m.HeadCommit), shortSHA(head))
+	}
+	return true, fmt.Sprintf("stale: source files edited %s after the index was built",
+		newestSource.Sub(m.IndexedAt).Round(time.Minute))
+}
+
+func shortSHA(sha string) string {
+	if len(sha) > 8 {
+		return sha[:8]
+	}
+	return sha
 }
 
 func checkCurrentRepoGraph(scryHome, cwd string) Check {

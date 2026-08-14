@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	gitindex "github.com/jeffdhooton/scry/internal/git/index"
 	"github.com/jeffdhooton/scry/internal/index"
 	"github.com/jeffdhooton/scry/internal/query"
 	"github.com/jeffdhooton/scry/internal/rpc"
@@ -144,15 +145,92 @@ type StatusResult struct {
 }
 
 type RepoStatusEntry struct {
-	Repo      string                `json:"repo"`
-	Status    string                `json:"status"`
-	Languages []string              `json:"languages,omitempty"`
-	IndexedAt time.Time             `json:"indexed_at,omitempty"`
-	Indexers  []index.IndexerResult `json:"indexers,omitempty"`
+	Repo string `json:"repo"`
+	// Status is what the build recorded in the manifest: "ready" or
+	// "partial". EffectiveStatus folds in the two signals derived at report
+	// time — see index.EffectiveStatus for the precedence.
+	Status string `json:"status"`
+	// EffectiveStatus is display-only: "ready" | "partial" | "empty" |
+	// "stale". Never written back to the manifest.
+	EffectiveStatus string `json:"effective_status"`
+	// Stale reports that the index no longer matches the repo — HEAD moved
+	// since the build, or (with no HEAD available) a source file is newer
+	// than the index.
+	Stale bool `json:"stale"`
+	// EmptyLanguages are primary languages whose indexer claimed success and
+	// produced no symbols anyway.
+	EmptyLanguages []string              `json:"empty_languages,omitempty"`
+	Languages      []string              `json:"languages,omitempty"`
+	IndexedAt      time.Time             `json:"indexed_at,omitempty"`
+	Indexers       []index.IndexerResult `json:"indexers,omitempty"`
 }
 
-func (d *Daemon) handleStatus(_ context.Context, raw json.RawMessage) (any, error) {
+// statusHeadTimeout caps HEAD resolution across a whole status call. `scry
+// status` is on the hot path for agents; one wedged git invocation must
+// degrade the staleness signal, not the response.
+const statusHeadTimeout = 2 * time.Second
+
+// headCache resolves each repo's HEAD at most once per status call. Repos
+// reach the status handler from two places (the in-memory registry and the
+// on-disk scan), and a future caller may ask for the same repo twice — the
+// cache makes "one git call per repo" a property of the type rather than of
+// the loop that happens to be written today.
+type headCache struct {
+	ctx     context.Context
+	entries map[string]string
+}
+
+func newHeadCache(ctx context.Context) *headCache {
+	return &headCache{ctx: ctx, entries: map[string]string{}}
+}
+
+// head returns the repo's current HEAD, or "" when it has none (not a git
+// checkout, no commits yet) or git couldn't be run. Errors are swallowed
+// deliberately: no HEAD means the caller falls back to comparing mtimes.
+func (h *headCache) head(repoPath string) string {
+	if head, ok := h.entries[repoPath]; ok {
+		return head
+	}
+	head, err := gitindex.HeadCommit(h.ctx, repoPath)
+	if err != nil {
+		head = ""
+	}
+	h.entries[repoPath] = head
+	return head
+}
+
+// repoStatusEntry builds one status row, deriving the stale and empty signals
+// from the manifest plus the live repo. Neither signal reads the store or
+// triggers a reindex.
+func repoStatusEntry(m *index.Manifest, heads *headCache) *RepoStatusEntry {
+	head := heads.head(m.RepoPath)
+	// Only pay for a tree walk when there is no commit to compare against.
+	var newestSource time.Time
+	if head == "" {
+		newestSource = index.NewestSourceMTime(m.RepoPath)
+	}
+	stale := index.IsStale(m, head, newestSource)
+	// TODO(3b5408ace1b3): feed index.EmptyLanguages(m) here once
+	// IndexerResult.SymbolCount lands from 4db54723315f (contract accepted).
+	var emptyLanguages []string
+	return &RepoStatusEntry{
+		Repo:            m.RepoPath,
+		Status:          m.Status,
+		EffectiveStatus: index.EffectiveStatus(m, stale, emptyLanguages),
+		Stale:           stale,
+		EmptyLanguages:  emptyLanguages,
+		Languages:       m.Languages,
+		IndexedAt:       m.IndexedAt,
+		Indexers:        m.Indexers,
+	}
+}
+
+func (d *Daemon) handleStatus(ctx context.Context, raw json.RawMessage) (any, error) {
 	res := &StatusResult{PID: os.Getpid()}
+
+	headCtx, cancel := context.WithTimeout(ctx, statusHeadTimeout)
+	defer cancel()
+	heads := newHeadCache(headCtx)
 
 	// Look at every repo we know about — both the in-memory registry and any
 	// repos that have a manifest on disk that the daemon hasn't loaded yet.
@@ -163,13 +241,12 @@ func (d *Daemon) handleStatus(_ context.Context, raw json.RawMessage) (any, erro
 		if err != nil {
 			continue
 		}
-		res.Repos = append(res.Repos, &RepoStatusEntry{
-			Repo:      e.RepoPath,
-			Status:    manifest.Status,
-			Languages: manifest.Languages,
-			IndexedAt: manifest.IndexedAt,
-			Indexers:  manifest.Indexers,
-		})
+		// The manifest's recorded repo path can be empty on hand-written or
+		// very old manifests; the registry knows the real one.
+		if manifest.RepoPath == "" {
+			manifest.RepoPath = e.RepoPath
+		}
+		res.Repos = append(res.Repos, repoStatusEntry(manifest, heads))
 	}
 
 	// Best-effort scan of the on-disk repos directory so the user sees indexed
@@ -189,13 +266,7 @@ func (d *Daemon) handleStatus(_ context.Context, raw json.RawMessage) (any, erro
 		if seen[m.RepoPath] {
 			continue
 		}
-		res.Repos = append(res.Repos, &RepoStatusEntry{
-			Repo:      m.RepoPath,
-			Status:    m.Status,
-			Languages: m.Languages,
-			IndexedAt: m.IndexedAt,
-			Indexers:  m.Indexers,
-		})
+		res.Repos = append(res.Repos, repoStatusEntry(&m, heads))
 	}
 	res.Git = d.gitStatusEntries()
 	res.Schema = d.schemaStatusEntries()

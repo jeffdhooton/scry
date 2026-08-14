@@ -7,9 +7,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	gitstore "github.com/jeffdhooton/scry/internal/git/store"
@@ -165,4 +168,36 @@ func Build(ctx context.Context, scryHome, repoPath string, depth int) (*Manifest
 func HasGit(repoPath string) bool {
 	info, err := os.Stat(filepath.Join(repoPath, ".git"))
 	return err == nil && info.IsDir()
+}
+
+// HeadCommit resolves the repo's current HEAD commit hash.
+//
+// It returns ("", nil) — not an error — for the ordinary cases where a path
+// simply has no HEAD to report: the path isn't a git checkout, or it's a fresh
+// repo with no commits yet. Callers use the empty string as "no HEAD
+// available" and fall back to a timestamp comparison. A genuine failure (git
+// missing from PATH) is returned as an error.
+//
+// It asks git rather than reading .git itself, so linked worktrees (where
+// .git is a file, not a directory) and submodules resolve correctly — hence
+// no HasGit pre-check here.
+//
+// This is one `git rev-parse` per call and nothing else: it is on the
+// `scry status` path, which must stay fast.
+func HeadCommit(ctx context.Context, repoPath string) (string, error) {
+	if info, err := os.Stat(repoPath); err != nil || !info.IsDir() {
+		return "", nil
+	}
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "HEAD")
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	if err != nil {
+		// A non-zero exit means "not a repository" or an unborn HEAD; both
+		// are just "no HEAD to compare against", not a scry failure.
+		if _, ok := errors.AsType[*exec.ExitError](err); ok {
+			return "", nil
+		}
+		return "", fmt.Errorf("git rev-parse HEAD: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
 }
