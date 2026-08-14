@@ -79,18 +79,8 @@ func detectLanguages(repoPath string) ([]DetectedLanguage, error) {
 			}
 			return nil
 		}
-		switch ext := strings.ToLower(filepath.Ext(d.Name())); ext {
-		case ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs":
-			counts[langForExt(ext)]++
-			total++
-		case ".go":
-			counts["go"]++
-			total++
-		case ".php":
-			counts["php"]++
-			total++
-		case ".py":
-			counts["python"]++
+		if lang := langForExt(strings.ToLower(filepath.Ext(d.Name()))); lang != "" {
+			counts[lang]++
 			total++
 		}
 		return nil
@@ -156,12 +146,24 @@ func primaryLanguages(dets []DetectedLanguage) []string {
 	return out
 }
 
+// langForExt maps a lowercased file extension (leading dot) to the language it
+// counts as, or "" if scry does not index it. This is the single definition of
+// "a source file" in this package: detectLanguages counts what it names, and
+// NewestSourceMTime walks what it names. Adding a language means adding it
+// here once — miss it in one of the two and the staleness mtime fallback goes
+// quietly blind to that language's files.
 func langForExt(ext string) string {
 	switch ext {
 	case ".ts", ".tsx":
 		return "typescript"
 	case ".js", ".jsx", ".mjs", ".cjs":
 		return "javascript"
+	case ".go":
+		return "go"
+	case ".php":
+		return "php"
+	case ".py":
+		return "python"
 	}
 	return ""
 }

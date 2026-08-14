@@ -119,6 +119,10 @@ func EffectiveStatus(m *Manifest, stale bool, emptyLanguages []string) string {
 //
 // This walks the tree, so it is only the fallback: callers with a git HEAD
 // should compare commits instead and never call this.
+//
+// "Source file" here means exactly what langForExt names, which is what
+// detection counts — the two must not drift, or a repo could be detected as
+// having a language whose edits never register as staleness.
 func NewestSourceMTime(repoPath string) time.Time {
 	var newest time.Time
 	err := filepath.WalkDir(repoPath, func(path string, d os.DirEntry, err error) error {
@@ -131,7 +135,7 @@ func NewestSourceMTime(repoPath string) time.Time {
 			}
 			return nil
 		}
-		if !isSourceExt(strings.ToLower(filepath.Ext(d.Name()))) {
+		if langForExt(strings.ToLower(filepath.Ext(d.Name()))) == "" {
 			return nil
 		}
 		info, err := d.Info()
@@ -147,14 +151,4 @@ func NewestSourceMTime(repoPath string) time.Time {
 		return time.Time{}
 	}
 	return newest
-}
-
-// isSourceExt reports whether ext (lowercased, leading dot) is one of the
-// extensions language detection counts.
-func isSourceExt(ext string) bool {
-	switch ext {
-	case ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".go", ".php", ".py":
-		return true
-	}
-	return false
 }

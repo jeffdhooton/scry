@@ -353,6 +353,33 @@ func TestNewestSourceMTimeMissingRepo(t *testing.T) {
 	}
 }
 
+// A language that detection counts but the mtime walk ignores would be
+// silently un-stale-able: edit only those files and the index never looks
+// out of date. Both sides now read langForExt, so this holds by construction
+// — the test is here to fail loudly if a future language is wired into only
+// one of them.
+func TestNewestSourceMTimeSeesEveryDetectedLanguage(t *testing.T) {
+	exts := []string{".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".go", ".php", ".py"}
+	for _, ext := range exts {
+		t.Run(ext, func(t *testing.T) {
+			if langForExt(ext) == "" {
+				t.Fatalf("langForExt(%q) = \"\", want a language — detection would skip it too", ext)
+			}
+			repo := t.TempDir()
+			touched := time.Now().Add(-1 * time.Hour)
+			writeAt(t, filepath.Join(repo, "only"+ext), touched)
+
+			got := NewestSourceMTime(repo)
+			if got.IsZero() {
+				t.Fatalf("NewestSourceMTime() = zero for a repo holding only %s; edits to %s files would never mark the index stale", ext, ext)
+			}
+			if got.Sub(touched).Abs() > 2*time.Second {
+				t.Fatalf("NewestSourceMTime() = %v, want ~%v", got, touched)
+			}
+		})
+	}
+}
+
 func TestManifestHeadCommitRoundTrip(t *testing.T) {
 	// A manifest written before head_commit existed unmarshals with "" and
 	// re-marshals without the key — the 44 repos already on disk depend on
