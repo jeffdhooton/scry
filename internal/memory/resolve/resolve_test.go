@@ -999,3 +999,109 @@ func TestEphemeralName_CatchesSessionUUIDs(t *testing.T) {
 		}
 	}
 }
+
+func TestIsGenericAlias_RejectsMergeMagnets(t *testing.T) {
+	// Every one of these was a real alias on one entity that had fused
+	// setpoint, cleaning-company's operations app, and program-health.
+	magnets := []string{
+		"workspace", "repo root", "the repo", "current worktree", "worktree",
+		"orchestrator", "task orchestrator", "executor", "the project",
+		"project", "app", "the app", "operations app", "loop", "north star",
+		"repo", "current directory", "root", "engine", "agent", "tool",
+	}
+	for _, m := range magnets {
+		if !isGenericAlias(m) {
+			t.Errorf("merge magnet not rejected: %q", m)
+		}
+	}
+	// Sub-paths are locations, not identities.
+	for _, p := range []string{"apps/operations", "setpoint/tools", "setpoint/greet-core"} {
+		if !isGenericAlias(p) {
+			t.Errorf("sub-path not rejected: %q", p)
+		}
+	}
+	// Real identities must survive.
+	for _, keep := range []string{
+		"setpoint", "loom", "loop engine", "jeffdhooton/setpoint",
+		"program-health", "hermes-mini", "childscribe", "scry",
+	} {
+		if isGenericAlias(keep) {
+			t.Errorf("real identity wrongly rejected: %q", keep)
+		}
+	}
+}
+
+func TestApply_GenericAliasesNeverMerge(t *testing.T) {
+	st := openTemp(t)
+	t0 := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+
+	ep1 := store.Episode{ID: "e1", Source: "manual", SourceRef: "a", OccurredAt: t0, IngestedAt: t0}
+	if _, err := Apply(st, ep1, "", extract.Result{Entities: []extract.Ent{
+		{Name: "setpoint", Type: "project", Description: "loop engine",
+			Aliases: []string{"loop engine", "workspace", "orchestrator"}},
+	}}, nil); err != nil {
+		t.Fatalf("apply 1: %v", err)
+	}
+
+	// A different project calling itself "the orchestrator" must NOT merge in.
+	ep2 := store.Episode{ID: "e2", Source: "manual", SourceRef: "b", OccurredAt: t0, IngestedAt: t0}
+	if _, err := Apply(st, ep2, "", extract.Result{Entities: []extract.Ent{
+		{Name: "orchestrator", Type: "project", Description: "something else entirely"},
+	}}, nil); err != nil {
+		t.Fatalf("apply 2: %v", err)
+	}
+
+	sp, err := st.GetEntity(store.Slugify("setpoint"))
+	if err != nil {
+		t.Fatalf("get setpoint: %v", err)
+	}
+	if containsString(sp.Aliases, "workspace") || containsString(sp.Aliases, "orchestrator") {
+		t.Fatalf("generic aliases were stored: %v", sp.Aliases)
+	}
+	if sp.Description != "loop engine" {
+		t.Fatalf("a foreign entity merged into setpoint: %q", sp.Description)
+	}
+}
+
+func TestIsGenericEntityName_RejectsProcessNouns(t *testing.T) {
+	// These are all real entities in the live graph. None is an identity;
+	// each became a magnet that thousands of documents then "collided" with.
+	junk := []string{
+		"plan", "the plan", "implementation plan", "commit", "task", "Task 2",
+		"Phase 1 plan", "phase 2", "step 3", "iteration 4", "review", "report",
+		"approved", "passed", "failed", "private", "status", "result",
+		"branch", "tests", "docs", "issue", "bug", "feature",
+	}
+	for _, j := range junk {
+		if !isGenericEntityName(j) {
+			t.Errorf("junk entity name not rejected: %q", j)
+		}
+	}
+	keep := []string{
+		"setpoint", "program-health", "scry", "hermes-mini", "childscribe",
+		"anthropic-api", "cleaning-company", "room-worker", "Bun v1.4.0",
+	}
+	for _, k := range keep {
+		if isGenericEntityName(k) {
+			t.Errorf("real identity wrongly rejected: %q", k)
+		}
+	}
+}
+
+func TestApply_GenericEntityNamesAreNotStored(t *testing.T) {
+	st := openTemp(t)
+	t0 := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "e1", Source: "manual", SourceRef: "a", OccurredAt: t0, IngestedAt: t0}
+	if _, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{
+		{Name: "plan", Type: "concept", Description: "an implementation plan"},
+		{Name: "setpoint", Type: "project", Description: "loop engine"},
+	}}, nil); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if _, err := st.GetEntity(store.Slugify("plan")); err == nil {
+		t.Fatal(`"plan" was stored as an entity`)
+	}
+	if _, err := st.GetEntity(store.Slugify("setpoint")); err != nil {
+		t.Fatalf("real entity was lost: %v", err)
+	}
+}

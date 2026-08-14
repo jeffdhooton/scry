@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -214,6 +215,19 @@ Defaults to a dry run — this edits recorded history, so read it first.`,
 			fmt.Printf("  entities changed:  %d\n", rep.EntitiesChanged)
 			fmt.Printf("  aliases dropped:   %d\n", rep.AliasesDropped)
 			fmt.Printf("  repo refs dropped: %d\n", rep.RepoRefsDropped)
+			if len(rep.Conflated) > 0 {
+				fmt.Printf("\n  %d entities carry another entity's name as an alias — the same\n"+
+					"  thing recorded twice, or two things fused into one. Reported only:\n"+
+					"  merging or splitting is a judgement call about which facts belong\n"+
+					"  where, and no heuristic should make it silently.\n", len(rep.Conflated))
+				for i, c := range rep.Conflated {
+					if i == 10 {
+						fmt.Printf("    ... and %d more\n", len(rep.Conflated)-10)
+						break
+					}
+					fmt.Printf("    %-34s fused with: %s\n", c.Slug, strings.Join(c.CollidesWith, ", "))
+				}
+			}
 			if len(rep.EphemeralEntities) > 0 {
 				fmt.Printf("\n  %d entities are themselves run artifacts (reported, not deleted;\n"+
 					"  their facts would be orphaned). Review before removing:\n", len(rep.EphemeralEntities))

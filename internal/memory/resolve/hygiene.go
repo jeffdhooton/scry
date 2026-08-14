@@ -14,6 +14,16 @@ type HygieneReport struct {
 	EntitiesChanged int `json:"entities_changed"`
 	AliasesDropped  int `json:"aliases_dropped"`
 	RepoRefsDropped int `json:"repo_refs_dropped"`
+	// Conflated are entities carrying an alias that is ALSO another entity's
+	// own name — the precise signature of two identities fused into one.
+	// Counting repo refs was tried and abandoned: a ref is added merely
+	// because an entity was mentioned in a session running there, so shared
+	// concepts (anthropic-api, spanning four repos) look identical to genuine
+	// fusion. An alias colliding with a real entity is unambiguous.
+	//
+	// Reported only — splitting is a judgement call about which facts belong
+	// where, and no heuristic should make it silently.
+	Conflated []ConflationReport `json:"conflated,omitempty"`
 	// EphemeralEntities are entities whose own name is a run artifact. They
 	// are REPORTED, not deleted: facts reference entities by slug as src and
 	// dst, so removing one would orphan its facts. Cleaning them up is a
@@ -39,10 +49,22 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 	if err != nil {
 		return rep, err
 	}
+	// Two passes. The first decides which slugs are real identities, because
+	// a collision against a junk entity ("plan", "commit") is not evidence of
+	// anything — and junk can appear anywhere in the list, so it cannot be
+	// decided while walking.
+	realSlugs := make(map[string]string, len(entities))
+	for _, e := range entities {
+		if isEphemeralName(e.Name) || isEphemeralName(e.Slug) || isGenericEntityName(e.Name) {
+			continue
+		}
+		realSlugs[e.Slug] = e.Name
+	}
+
 	for _, e := range entities {
 		rep.EntitiesScanned++
 
-		if isEphemeralName(e.Name) || isEphemeralName(e.Slug) {
+		if isEphemeralName(e.Name) || isEphemeralName(e.Slug) || isGenericEntityName(e.Name) {
 			// Flagged, never removed — its facts would be orphaned.
 			rep.EphemeralEntities = append(rep.EphemeralEntities, e.Name)
 		}
@@ -51,7 +73,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 
 		keptAliases := make([]string, 0, len(e.Aliases))
 		for _, a := range e.Aliases {
-			if isEphemeralName(a) {
+			if isEphemeralName(a) || isGenericAlias(a) {
 				rep.AliasesDropped++
 				rep.DroppedAliasList = append(rep.DroppedAliasList, a)
 				changed = true
@@ -80,6 +102,25 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			changed = true
 		}
 
+		// An alias that is another entity's own name means two identities are
+		// fused. Check the KEPT aliases, so junk already being dropped is not
+		// also reported.
+		var collisions []string
+		for _, a := range keptAliases {
+			slug := store.Slugify(a)
+			if slug == e.Slug {
+				continue
+			}
+			if name, ok := realSlugs[slug]; ok {
+				collisions = append(collisions, name)
+			}
+		}
+		if len(collisions) > 0 {
+			rep.Conflated = append(rep.Conflated, ConflationReport{
+				Slug: e.Slug, Name: e.Name, CollidesWith: collisions,
+			})
+		}
+
 		if !changed {
 			continue
 		}
@@ -94,4 +135,12 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 		}
 	}
 	return rep, nil
+}
+
+// ConflationReport names an entity that carries another entity's name as an
+// alias — two identities fused into one.
+type ConflationReport struct {
+	Slug         string   `json:"slug"`
+	Name         string   `json:"name"`
+	CollidesWith []string `json:"collides_with"`
 }
