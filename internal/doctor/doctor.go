@@ -75,6 +75,7 @@ type Check struct {
 	Status   Status   `json:"status"`
 	Detail   string   `json:"detail"`
 	Remedy   string   `json:"remedy,omitempty"`
+	Stderr   string   `json:"stderr,omitempty"`
 }
 
 // Report is the full diagnostic output.
@@ -926,6 +927,7 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 	// Name what actually broke. Legacy manifests have no Indexers and fall
 	// through with today's output.
 	var remedy string
+	var stderr string
 	var degraded []string
 	for _, r := range m.Indexers {
 		switch r.Status {
@@ -933,6 +935,9 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 			degraded = append(degraded, fmt.Sprintf("%s %s (%s)", r.Language, r.Status, r.Error))
 			if remedy == "" {
 				remedy = r.Remedy
+			}
+			if stderr == "" {
+				stderr = r.Stderr
 			}
 		case index.IndexerSkipped:
 			degraded = append(degraded, fmt.Sprintf("%s skipped (incidental, %d files)", r.Language, r.FileCount))
@@ -949,6 +954,7 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 		Status:   status,
 		Detail:   detail,
 		Remedy:   remedy,
+		Stderr:   stderr,
 	}
 }
 

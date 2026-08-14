@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	sourceexec "github.com/jeffdhooton/scry/internal/sources/exec"
 	"github.com/jeffdhooton/scry/internal/sources/golang"
 	"github.com/jeffdhooton/scry/internal/sources/python"
 )
@@ -15,6 +16,7 @@ func TestClassify(t *testing.T) {
 		err        error
 		wantStatus string
 		wantRemedy string
+		wantStderr string
 	}{
 		{
 			name:       "nil error is ok",
@@ -24,11 +26,14 @@ func TestClassify(t *testing.T) {
 			wantRemedy: "",
 		},
 		{
-			name:       "wrapped not-found sentinel is missing, with remedy",
-			language:   "python",
-			err:        fmt.Errorf("index python: %w", python.ErrIndexerNotFound),
+			name:     "wrapped not-found sentinel is missing, with remedy",
+			language: "python",
+			err: &sourceexec.ExitError{
+				Tool: "scip-python", Err: fmt.Errorf("index python: %w", python.ErrIndexerNotFound), Stderr: "resolver detail\n",
+			},
 			wantStatus: IndexerMissing,
 			wantRemedy: "npm i -g @sourcegraph/scip-python",
+			wantStderr: "resolver detail\n",
 		},
 		{
 			name:       "go sentinel is missing",
@@ -44,9 +49,10 @@ func TestClassify(t *testing.T) {
 			// operator has no next step for.
 			name:       "arbitrary error is failed, with the crash remedy",
 			language:   "go",
-			err:        fmt.Errorf("exit status 2: panic in scip-go"),
+			err:        &sourceexec.ExitError{Tool: "scip-go", Err: fmt.Errorf("exit status 2"), Stderr: "panic in scip-go\n"},
 			wantStatus: IndexerFailed,
 			wantRemedy: indexerFailureRemedy,
+			wantStderr: "panic in scip-go\n",
 		},
 		{
 			name:       "unknown language with arbitrary error is failed",
@@ -58,12 +64,15 @@ func TestClassify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, errMsg, remedy := classify(tt.language, tt.err)
+			status, errMsg, remedy, stderr := classify(tt.language, tt.err)
 			if status != tt.wantStatus {
 				t.Errorf("status = %q, want %q", status, tt.wantStatus)
 			}
 			if remedy != tt.wantRemedy {
 				t.Errorf("remedy = %q, want %q", remedy, tt.wantRemedy)
+			}
+			if stderr != tt.wantStderr {
+				t.Errorf("stderr = %q, want %q", stderr, tt.wantStderr)
 			}
 			if tt.err == nil {
 				if errMsg != "" {

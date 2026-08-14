@@ -144,11 +144,13 @@ type StatusResult struct {
 }
 
 type RepoStatusEntry struct {
-	Repo      string                `json:"repo"`
-	Status    string                `json:"status"`
-	Languages []string              `json:"languages,omitempty"`
-	IndexedAt time.Time             `json:"indexed_at,omitempty"`
-	Indexers  []index.IndexerResult `json:"indexers,omitempty"`
+	Repo      string    `json:"repo"`
+	Status    string    `json:"status"`
+	Languages []string  `json:"languages,omitempty"`
+	IndexedAt time.Time `json:"indexed_at,omitempty"`
+	// Indexers includes each failed indexer's captured stderr tail so status
+	// clients receive the same diagnostic persisted in the manifest.
+	Indexers []index.IndexerResult `json:"indexers,omitempty"`
 }
 
 func (d *Daemon) handleStatus(_ context.Context, raw json.RawMessage) (any, error) {

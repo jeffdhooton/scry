@@ -2,12 +2,30 @@ package index
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	sourceexec "github.com/jeffdhooton/scry/internal/sources/exec"
 	"github.com/jeffdhooton/scry/internal/sources/golang"
 )
+
+func TestBuildResultsRecordsCapturedStderr(t *testing.T) {
+	want := "compiler context\nfinal complaint\n"
+	results := buildResults([]DetectedLanguage{{
+		Language: "typescript", Tier: TierPrimary, FileCount: 4, Share: 1,
+	}}, func(string) error {
+		return &sourceexec.ExitError{Tool: "scip-typescript", Err: errors.New("exit status 1"), Stderr: want}
+	})
+
+	if len(results) != 1 {
+		t.Fatalf("results len = %d, want 1", len(results))
+	}
+	if results[0].Status != IndexerFailed || results[0].Stderr != want {
+		t.Fatalf("result = %+v, want failed with captured stderr", results[0])
+	}
+}
 
 func TestManifest_LegacyJSONWithoutIndexers(t *testing.T) {
 	// A manifest written before this feature must still unmarshal, with

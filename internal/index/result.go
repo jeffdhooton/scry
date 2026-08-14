@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 
+	sourceexec "github.com/jeffdhooton/scry/internal/sources/exec"
 	"github.com/jeffdhooton/scry/internal/sources/golang"
 	"github.com/jeffdhooton/scry/internal/sources/php"
 	"github.com/jeffdhooton/scry/internal/sources/python"
@@ -35,6 +36,7 @@ type IndexerResult struct {
 	Share     float64 `json:"share"`
 	Error     string  `json:"error,omitempty"`
 	Remedy    string  `json:"remedy,omitempty"`
+	Stderr    string  `json:"stderr,omitempty"`
 
 	// Ingest counts for this language alone, taken from the scip.Stats its
 	// own .scip dump parsed into, before they are summed into
@@ -91,10 +93,10 @@ const parseFailureRemedy = "the indexer ran but its SCIP output would not parse 
 // with the build's stderr long gone.
 const indexerFailureRemedy = "the indexer is installed but exited with an error — the message above is its own; run it directly against this repo to see its full output, and check it supports this project's toolchain version"
 
-// classify converts one indexer's error into a (status, error, remedy)
-// triple. A nil error is ok; a wrapped not-found sentinel is missing and
-// carries the install command; anything else is a genuine failure and
-// carries indexerFailureRemedy. Every non-ok status carries a remedy — a
+// classify converts one indexer's error into a status, display error, remedy,
+// and captured stderr tail. A nil error is ok; a wrapped not-found sentinel is
+// missing and carries the install command; anything else is a genuine failure
+// and carries indexerFailureRemedy. Every non-ok status carries a remedy — a
 // manifest that records a failure without one leaves the operator exactly
 // where the bare error string did.
 //
@@ -102,14 +104,18 @@ const indexerFailureRemedy = "the indexer is installed but exited with an error 
 // step can still fail afterwards, in which case buildAtLayout's ingest loop
 // downgrades that one language's result to IndexerFailed and swaps in
 // parseFailureRemedy.
-func classify(language string, err error) (status, errMsg, remedy string) {
+func classify(language string, err error) (status, errMsg, remedy, stderr string) {
 	if err == nil {
-		return IndexerOK, "", ""
+		return IndexerOK, "", "", ""
+	}
+	var exitErr *sourceexec.ExitError
+	if errors.As(err, &exitErr) {
+		stderr = exitErr.Stderr
 	}
 	if sentinel, ok := notFoundSentinels[language]; ok && errors.Is(err, sentinel) {
-		return IndexerMissing, err.Error(), indexerRemedies[language]
+		return IndexerMissing, err.Error(), indexerRemedies[language], stderr
 	}
-	return IndexerFailed, err.Error(), indexerFailureRemedy
+	return IndexerFailed, err.Error(), indexerFailureRemedy, stderr
 }
 
 // deriveStatus computes the manifest status from the full result set. Only

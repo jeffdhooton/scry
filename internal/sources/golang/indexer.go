@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 
 	"github.com/jeffdhooton/scry/internal/install"
+	sourceexec "github.com/jeffdhooton/scry/internal/sources/exec"
 )
 
 // ErrIndexerNotFound is returned when scip-go is not on PATH and could not
@@ -65,10 +66,8 @@ func Index(ctx context.Context, scryHomeBin, repoRoot, outputPath string) (strin
 		"--output", outputPath,
 		"--quiet",
 	)
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("scip-go exited non-zero: %w", err)
+	if err := sourceexec.Run(cmd, "scip-go", os.Stderr); err != nil {
+		return "", err
 	}
 	if _, err := os.Stat(outputPath); err != nil {
 		return "", fmt.Errorf("scip-go reported success but no output at %s: %w", outputPath, err)
