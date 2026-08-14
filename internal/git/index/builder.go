@@ -178,6 +178,10 @@ func HasGit(repoPath string) bool {
 // available" and fall back to a timestamp comparison. A genuine failure (git
 // missing from PATH) is returned as an error.
 //
+// The one failure callers must treat differently is the context expiring. That
+// is "we didn't wait for the answer", not "there is no answer", and it must
+// not be laundered into ("", nil) — see HeadUnknown.
+//
 // It asks git rather than reading .git itself, so linked worktrees (where
 // .git is a file, not a directory) and submodules resolve correctly — hence
 // no HasGit pre-check here.
@@ -192,6 +196,12 @@ func HeadCommit(ctx context.Context, repoPath string) (string, error) {
 	cmd.Dir = repoPath
 	out, err := cmd.Output()
 	if err != nil {
+		// Check the context before the exit code. Cancelling kills git, which
+		// surfaces as an ExitError indistinguishable from "not a repository" —
+		// so without this the timeout would report a repo as having no HEAD.
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", fmt.Errorf("git rev-parse HEAD: %w", ctxErr)
+		}
 		// A non-zero exit means "not a repository" or an unborn HEAD; both
 		// are just "no HEAD to compare against", not a scry failure.
 		if _, ok := errors.AsType[*exec.ExitError](err); ok {
@@ -200,4 +210,20 @@ func HeadCommit(ctx context.Context, repoPath string) (string, error) {
 		return "", fmt.Errorf("git rev-parse HEAD: %w", err)
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+// HeadUnknown reports whether a HeadCommit error means "we ran out of time to
+// ask" rather than "there is no HEAD here".
+//
+// The distinction decides whether a caller may fall back to comparing file
+// mtimes. When git is genuinely unavailable — no binary, not a checkout —
+// mtimes are the only staleness signal left and the fallback is correct. When
+// the call was merely cut short, the fallback is actively harmful: it reports
+// every repo touched since its build as stale, so a slow git turns into a
+// screenful of invented findings. Not knowing is the honest answer there.
+//
+// Callers hold this predicate rather than reimplementing it, so the two
+// meanings of an empty HEAD stay distinguishable in one place.
+func HeadUnknown(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
 }

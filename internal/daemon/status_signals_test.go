@@ -17,7 +17,7 @@ import (
 // derivation can be exercised without a real repo on disk.
 func staticHeads(repoPath, head string) *headCache {
 	h := newHeadCache(context.Background())
-	h.entries[repoPath] = head
+	h.entries[repoPath] = headAnswer{head: head, conclusive: true}
 	return h
 }
 
@@ -243,7 +243,7 @@ func TestHeadCacheResolvesEachRepoOnce(t *testing.T) {
 	}
 
 	heads := newHeadCache(context.Background())
-	first := heads.head(repo)
+	first, _ := heads.head(repo)
 	if len(first) != 40 {
 		t.Fatalf("head() = %q, want a 40-char sha", first)
 	}
@@ -253,16 +253,92 @@ func TestHeadCacheResolvesEachRepoOnce(t *testing.T) {
 	if err := os.RemoveAll(filepath.Join(repo, ".git")); err != nil {
 		t.Fatalf("rm .git: %v", err)
 	}
-	if second := heads.head(repo); second != first {
+	if second, _ := heads.head(repo); second != first {
 		t.Errorf("head() = %q on the second call, want the cached %q", second, first)
 	}
 }
 
 func TestHeadCacheEmptyForNonGitPath(t *testing.T) {
 	heads := newHeadCache(context.Background())
-	if got := heads.head(t.TempDir()); got != "" {
+	got, conclusive := heads.head(t.TempDir())
+	if got != "" {
 		t.Errorf("head() = %q, want empty for a non-git path", got)
 	}
+	// Conclusive: this path genuinely has no HEAD, so the mtime fallback the
+	// task requires is the right next step.
+	if !conclusive {
+		t.Error("head() conclusive = false for a non-git path, want true so the mtime fallback runs")
+	}
+}
+
+// The HEAD budget exists to bound what `scry status` costs. Blowing it must
+// not change any answer: a repo sitting exactly at its indexed commit is not
+// stale, however slow git was. Before this was handled, an expired budget sent
+// the repo down the mtime fallback, which reports stale for any repo touched
+// since its build — so the safety valve invented a finding and paid a full
+// tree walk per repo to do it.
+func TestRepoStatusEntryExpiredHeadBudgetDoesNotInventStaleness(t *testing.T) {
+	repo := gitRepoWithCommit(t)
+	// A source file newer than the index: the mtime fallback would call this
+	// stale, and only the commit comparison knows better.
+	src := filepath.Join(repo, "main.go")
+	if err := os.WriteFile(src, []byte("package main\n"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	head, conclusive := newHeadCache(context.Background()).head(repo)
+	if !conclusive || head == "" {
+		t.Fatalf("head() = %q, %v; want a resolved sha to build the manifest from", head, conclusive)
+	}
+	m := &index.Manifest{
+		RepoPath:   repo,
+		Status:     index.StatusReady,
+		IndexedAt:  time.Now().Add(-48 * time.Hour),
+		HeadCommit: head,
+	}
+
+	if got := repoStatusEntry(m, newHeadCache(context.Background())); got.Stale {
+		t.Fatalf("Stale = true with budget to spare, want false — HEAD has not moved")
+	}
+
+	expired, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
+	time.Sleep(5 * time.Millisecond)
+
+	got := repoStatusEntry(m, newHeadCache(expired))
+	if got.Stale {
+		t.Error("Stale = true once the HEAD budget expired, want false — " +
+			"an unanswered git call means we cannot tell, not that the index is behind")
+	}
+	if got.EffectiveStatus != index.StatusReady {
+		t.Errorf("EffectiveStatus = %q, want %q", got.EffectiveStatus, index.StatusReady)
+	}
+}
+
+// gitRepoWithCommit builds a one-commit repo, skipping when git is absent.
+func gitRepoWithCommit(t *testing.T) string {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not on PATH")
+	}
+	repo := t.TempDir()
+	if err := os.WriteFile(filepath.Join(repo, "seed.txt"), []byte("seed\n"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	for _, args := range [][]string{
+		{"init"},
+		{"config", "user.email", "test@example.com"},
+		{"config", "user.name", "test"},
+		{"add", "."},
+		{"commit", "-m", "seed"},
+	} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repo
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	return repo
 }
 
 func TestRepoStatusEntryJSONFieldNames(t *testing.T) {

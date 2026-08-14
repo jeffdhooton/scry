@@ -177,36 +177,55 @@ const statusHeadTimeout = 2 * time.Second
 // the loop that happens to be written today.
 type headCache struct {
 	ctx     context.Context
-	entries map[string]string
+	entries map[string]headAnswer
+}
+
+// headAnswer separates "this repo has no HEAD" from "we could not ask". Both
+// carry an empty head, and only the first one licenses the mtime fallback.
+type headAnswer struct {
+	head string
+	// conclusive is false only when the HEAD budget ran out before we got an
+	// answer. It is true even when git is missing entirely — that is a real,
+	// permanent "no HEAD", and mtimes are the right signal to fall back to.
+	conclusive bool
 }
 
 func newHeadCache(ctx context.Context) *headCache {
-	return &headCache{ctx: ctx, entries: map[string]string{}}
+	return &headCache{ctx: ctx, entries: map[string]headAnswer{}}
 }
 
-// head returns the repo's current HEAD, or "" when it has none (not a git
-// checkout, no commits yet) or git couldn't be run. Errors are swallowed
-// deliberately: no HEAD means the caller falls back to comparing mtimes.
-func (h *headCache) head(repoPath string) string {
-	if head, ok := h.entries[repoPath]; ok {
-		return head
+// head returns the repo's current HEAD and whether that answer is conclusive.
+//
+// ("", true) means the repo genuinely has no HEAD — not a checkout, no commits
+// yet, or no git binary — and the caller should compare mtimes instead.
+// ("", false) means the status call's HEAD budget expired first. The caller
+// must NOT guess from mtimes there: a repo sitting exactly at its indexed
+// commit would read as stale purely because git was slow, and it would pay a
+// full tree walk to reach that wrong answer.
+func (h *headCache) head(repoPath string) (string, bool) {
+	if answer, ok := h.entries[repoPath]; ok {
+		return answer.head, answer.conclusive
 	}
 	head, err := gitindex.HeadCommit(h.ctx, repoPath)
+	answer := headAnswer{head: head, conclusive: true}
 	if err != nil {
-		head = ""
+		answer = headAnswer{head: "", conclusive: !gitindex.HeadUnknown(err)}
 	}
-	h.entries[repoPath] = head
-	return head
+	h.entries[repoPath] = answer
+	return answer.head, answer.conclusive
 }
 
 // repoStatusEntry builds one status row, deriving the stale and empty signals
 // from the manifest plus the live repo. Neither signal reads the store or
 // triggers a reindex.
 func repoStatusEntry(m *index.Manifest, heads *headCache) *RepoStatusEntry {
-	head := heads.head(m.RepoPath)
-	// Only pay for a tree walk when there is no commit to compare against.
+	head, conclusive := heads.head(m.RepoPath)
+	// Only pay for a tree walk when we know there is no commit to compare
+	// against. An inconclusive answer means the budget ran out — walking then
+	// would spend the most expensive path we have to produce a stale flag we
+	// have no evidence for.
 	var newestSource time.Time
-	if head == "" {
+	if head == "" && conclusive {
 		newestSource = index.NewestSourceMTime(m.RepoPath)
 	}
 	stale := index.IsStale(m, head, newestSource)

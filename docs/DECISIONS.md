@@ -1310,6 +1310,28 @@ exactly the reindex the label already implies.
 call and bounded by a 2s timeout. `scry status` is on the agent hot path; a
 wedged git invocation degrades the staleness signal, not the response.
 
+**"No HEAD" and "couldn't ask" are different answers.** Both come back as an
+empty commit string, and only the first one licenses the mtime fallback. If
+the timeout fires and we fall back anyway, the safety valve does the opposite
+of its job twice over: it pays the most expensive path we have (a full source
+tree walk, per repo) to produce a *false* `stale` on every repo touched since
+its build — including repos sitting exactly at their indexed commit. On a
+machine with many repos, the tail of the list would report stale purely
+because git was slow.
+
+So `gitindex.HeadCommit` reports the two cases distinctly and
+`gitindex.HeadUnknown(err)` is the single place that tells them apart. It is
+true only for a context error. Note that cancellation *kills* git, and a
+killed process surfaces as an `*exec.ExitError` — the same error class as
+"not a repository" — so `HeadCommit` must check the context before the exit
+code or the distinction is lost precisely when it matters. A missing git
+binary is deliberately NOT unknown: that is a permanent absence of HEAD, and
+mtimes are the correct and only remaining signal.
+
+When the answer is inconclusive, both `scry status` and `scry doctor` report
+not-stale and skip the walk. Silence is the honest answer to a question we
+never got to ask; an invented finding is not.
+
 **What would change our minds:** if per-repo HEAD resolution ever shows up in
 status latency (many repos, cold FS cache), cache the result in the daemon
 across calls keyed by `.git/HEAD` mtime rather than re-running git each time.

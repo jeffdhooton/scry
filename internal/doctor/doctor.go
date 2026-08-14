@@ -998,13 +998,16 @@ func repoStaleness(m *index.Manifest) (bool, string) {
 	ctx, cancel := context.WithTimeout(context.Background(), headTimeout)
 	defer cancel()
 	head, err := gitindex.HeadCommit(ctx, m.RepoPath)
+	conclusive := true
 	if err != nil {
 		// No HEAD available is not a doctor failure — it just downgrades the
-		// comparison to mtimes below.
-		head = ""
+		// comparison to mtimes below. Unless we simply ran out of time to ask,
+		// in which case mtimes would answer a question we never got to pose:
+		// report nothing rather than a stale flag we can't support.
+		head, conclusive = "", !gitindex.HeadUnknown(err)
 	}
 	var newestSource time.Time
-	if head == "" {
+	if head == "" && conclusive {
 		newestSource = index.NewestSourceMTime(m.RepoPath)
 	}
 	if !index.IsStale(m, head, newestSource) {
