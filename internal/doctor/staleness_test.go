@@ -336,3 +336,66 @@ func touch(t *testing.T, path string, mtime time.Time) {
 		t.Fatalf("chtimes %s: %v", path, err)
 	}
 }
+
+// Every index already on disk was built before HeadCommit existed, so its
+// manifest carries no commit while the repo it describes still resolves one.
+// Doctor must diagnose those by reading them — the task forbids a signal that
+// only starts working after a reindex.
+func TestCheckCurrentRepo_LegacyManifestInAGitRepoStillDetectsStaleness(t *testing.T) {
+	repo, _ := gitRepoWithCommit(t)
+	src := filepath.Join(repo, "touched.go")
+	if err := os.WriteFile(src, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	home := seedRepoManifest(t, repo, index.Manifest{
+		RepoPath:  repo,
+		Languages: []string{"go"},
+		IndexedAt: time.Now().Add(-72 * time.Hour),
+		Status:    index.StatusReady,
+		// No HeadCommit: this manifest predates the field.
+	})
+
+	got := checkCurrentRepo(home, repo)
+	if got.Status != StatusWarn {
+		t.Errorf("Status = %v, want Warn", got.Status)
+	}
+	if !strings.Contains(got.Detail, index.StatusStale) {
+		t.Errorf("Detail = %q, want a legacy manifest with newer source to read as stale", got.Detail)
+	}
+	if got.Remedy == "" {
+		t.Error("Remedy = empty, want the reindex command")
+	}
+}
+
+// The same legacy manifest must stay quiet when nothing has been touched
+// since the build, or the fallback would just relabel every old index stale.
+func TestCheckCurrentRepo_LegacyManifestWithUntouchedSourceIsNotStale(t *testing.T) {
+	repo, _ := gitRepoWithCommit(t)
+	src := filepath.Join(repo, "untouched.go")
+	if err := os.WriteFile(src, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	old := time.Now().Add(-96 * time.Hour)
+	if err := os.Chtimes(src, old, old); err != nil {
+		t.Fatal(err)
+	}
+	// Any file git itself left behind would otherwise dominate the mtime.
+	filepath.WalkDir(repo, func(p string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		os.Chtimes(p, old, old)
+		return nil
+	})
+	home := seedRepoManifest(t, repo, index.Manifest{
+		RepoPath:  repo,
+		Languages: []string{"go"},
+		IndexedAt: time.Now().Add(-72 * time.Hour),
+		Status:    index.StatusReady,
+	})
+
+	got := checkCurrentRepo(home, repo)
+	if strings.Contains(got.Detail, index.StatusStale) {
+		t.Errorf("Detail = %q, want no stale marker when nothing was edited after the build", got.Detail)
+	}
+}

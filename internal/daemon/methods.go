@@ -165,10 +165,18 @@ type RepoStatusEntry struct {
 	Indexers       []index.IndexerResult `json:"indexers,omitempty"`
 }
 
-// statusHeadTimeout caps HEAD resolution across a whole status call. `scry
-// status` is on the hot path for agents; one wedged git invocation must
-// degrade the staleness signal, not the response.
-const statusHeadTimeout = 2 * time.Second
+// statusSignalBudget caps everything the staleness signal costs across a whole
+// status call — both HEAD resolution and the mtime walks that stand in for it.
+// `scry status` is on the hot path for agents; a wedged git invocation or a
+// huge tree must degrade the staleness signal, not the response.
+//
+// The walks are what make this a shared budget rather than a git-only one.
+// Every manifest written before HeadCommit existed has no commit to compare
+// against, so each one falls back to a full source walk: measured at ~2.9s
+// across the 42 such repos on one real machine. That cost is transitional —
+// it disappears per repo as each is reindexed and records a commit — but it
+// has to be bounded while it lasts.
+const statusSignalBudget = 2 * time.Second
 
 // headCache resolves each repo's HEAD at most once per status call. Repos
 // reach the status handler from two places (the in-memory registry and the
@@ -220,13 +228,17 @@ func (h *headCache) head(repoPath string) (string, bool) {
 // triggers a reindex.
 func repoStatusEntry(m *index.Manifest, heads *headCache) *RepoStatusEntry {
 	head, conclusive := heads.head(m.RepoPath)
-	// Only pay for a tree walk when we know there is no commit to compare
-	// against. An inconclusive answer means the budget ran out — walking then
-	// would spend the most expensive path we have to produce a stale flag we
+	// Fall back to mtimes exactly when there is no PAIR of commits to compare,
+	// which happens two ways. The manifest may have no commit — every index
+	// built before HeadCommit existed is in this state, and for those the
+	// live HEAD is irrelevant, so we walk no matter how git answered.
+	// Otherwise the repo may have no live HEAD; there we walk only on a
+	// conclusive answer, since an expired budget means we never got to ask and
+	// walking would spend our most expensive path to produce a stale flag we
 	// have no evidence for.
 	var newestSource time.Time
-	if head == "" && conclusive {
-		newestSource = index.NewestSourceMTime(m.RepoPath)
+	if m.HeadCommit == "" || (head == "" && conclusive) {
+		newestSource = index.NewestSourceMTime(heads.ctx, m.RepoPath)
 	}
 	stale := index.IsStale(m, head, newestSource)
 	// Reads the manifest's own per-language counts — no store access, no git,
@@ -247,7 +259,7 @@ func repoStatusEntry(m *index.Manifest, heads *headCache) *RepoStatusEntry {
 func (d *Daemon) handleStatus(ctx context.Context, raw json.RawMessage) (any, error) {
 	res := &StatusResult{PID: os.Getpid()}
 
-	headCtx, cancel := context.WithTimeout(ctx, statusHeadTimeout)
+	headCtx, cancel := context.WithTimeout(ctx, statusSignalBudget)
 	defer cancel()
 	heads := newHeadCache(headCtx)
 

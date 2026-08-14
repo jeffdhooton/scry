@@ -376,3 +376,67 @@ func TestRepoStatusEntryJSONFieldNames(t *testing.T) {
 		t.Errorf("status entry JSON = %s, want empty_languages omitted when nothing is empty", b)
 	}
 }
+
+// TestRepoStatusEntryLegacyManifestInAGitRepoStillDetectsStaleness pins the
+// case every already-indexed repo on a real machine is in: the manifest was
+// written before HeadCommit existed, so it carries no commit, while the repo
+// itself resolves a HEAD just fine.
+//
+// The commit comparison is unavailable — not because the repo lacks a HEAD,
+// but because the MANIFEST does — so mtimes are the only signal left. Deciding
+// the fallback on "the repo has no HEAD" instead of "there is no pair of
+// commits to compare" makes every pre-existing index permanently report
+// not-stale, which would mean staleness only works after a reindex. The task
+// forbids exactly that.
+func TestRepoStatusEntryLegacyManifestInAGitRepoStillDetectsStaleness(t *testing.T) {
+	repo := t.TempDir()
+	src := filepath.Join(repo, "main.go")
+	if err := os.WriteFile(src, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Index built an hour before the source file was last touched.
+	indexedAt := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(src, time.Now(), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	m := &index.Manifest{
+		RepoPath:  repo,
+		Status:    index.StatusReady,
+		IndexedAt: indexedAt,
+		// No HeadCommit: this manifest predates the field.
+	}
+	// The repo resolves a live HEAD, as a real checkout does.
+	got := repoStatusEntry(m, staticHeads(repo, "bbbb2222"))
+	if !got.Stale {
+		t.Error("Stale = false; a legacy manifest whose source outlived it must still read as stale")
+	}
+	if got.EffectiveStatus != index.StatusStale {
+		t.Errorf("EffectiveStatus = %q, want %q", got.EffectiveStatus, index.StatusStale)
+	}
+}
+
+// The same legacy manifest must NOT be called stale when nothing was touched
+// after the build — otherwise the fallback just relabels every old index.
+func TestRepoStatusEntryLegacyManifestWithUntouchedSourceIsNotStale(t *testing.T) {
+	repo := t.TempDir()
+	src := filepath.Join(repo, "main.go")
+	if err := os.WriteFile(src, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	old := time.Now().Add(-48 * time.Hour)
+	if err := os.Chtimes(src, old, old); err != nil {
+		t.Fatal(err)
+	}
+	m := &index.Manifest{
+		RepoPath:  repo,
+		Status:    index.StatusReady,
+		IndexedAt: time.Now().Add(-time.Hour),
+	}
+	got := repoStatusEntry(m, staticHeads(repo, "bbbb2222"))
+	if got.Stale {
+		t.Error("Stale = true; nothing was edited after the build")
+	}
+	if got.EffectiveStatus != index.StatusReady {
+		t.Errorf("EffectiveStatus = %q, want %q", got.EffectiveStatus, index.StatusReady)
+	}
+}

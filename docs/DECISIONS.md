@@ -1335,3 +1335,61 @@ never got to ask; an invented finding is not.
 **What would change our minds:** if per-repo HEAD resolution ever shows up in
 status latency (many repos, cold FS cache), cache the result in the daemon
 across calls keyed by `.git/HEAD` mtime rather than re-running git each time.
+
+## 2026-08-13 — Both derived signals must work on the indexes already on disk
+
+**Decision:** the mtime fallback fires whenever there is no *pair* of commits
+to compare — not merely when the repo has no live HEAD — and `EmptyLanguages`
+suppresses itself on manifests written before the per-language count fields
+existed.
+
+**Context:** both signals shipped correct against manifests the new builder
+writes, and wrong against every manifest already on disk. On this machine that
+is all 45 of them, and the task's opening premise is precisely "a repo indexed
+months ago reports ready today". A signal that only starts working after a
+reindex fails the requirement that neither may require a reindex to compute.
+
+Two independent bugs, found by running `scry doctor` against a real indexed
+repo rather than only against synthesized manifests:
+
+1. **Stale never fired on a legacy manifest.** `IsStale` handles a manifest
+   with no `head_commit` correctly — it falls back to mtimes. But both callers
+   decided whether to *compute* the mtime by asking whether the REPO had a
+   HEAD, not whether the comparison had two commits. A pre-`head_commit`
+   manifest in an ordinary git checkout resolves a live HEAD, so the walk was
+   skipped, a zero time was passed in, and the repo reported not-stale
+   permanently. The condition is now `m.HeadCommit == "" || (head == "" &&
+   conclusive)`. Note the asymmetry: when the manifest has no commit we walk
+   regardless of how git answered, because git's answer cannot decide anything
+   without a recorded commit to compare it against — the `conclusive` guard
+   only protects the case where a commit comparison was actually possible.
+
+2. **Empty fired on every legacy manifest.** Those manifests carry per-language
+   results with `file_count` but no `symbol_count`, so the predicate
+   `SymbolCount == 0 && FileCount > 0` matched a repo that had demonstrably
+   indexed 3061 symbols. Absent and zero are the same value per-language, but
+   they are separable in aggregate: the builder assigns each language's
+   `SymbolCount` from the same `scip.Stats` it sums into `Manifest.Stats`, so a
+   positive total with no positive per-language count proves the fields were
+   never written. `countsUnrecorded` encodes exactly that and returns no
+   languages. This is a narrow suppression — a genuinely empty build reports
+   zero in the aggregate too, so it is untouched.
+
+The second bug is the more dangerous one, and it is worth naming why: it
+replaces a silent green with a false red across every repo at once. A signal
+that flags 45 healthy repos gets ignored, including on the day it is correct.
+That failure mode is worse than the one this task set out to fix.
+
+**Cost, and why the walk is now bounded:** fixing (1) means every legacy
+manifest takes the mtime path, measured at ~2.9s across the 42 live repos on
+this machine. `scry status` is on the hot path for agents, so the status
+budget now covers walks as well as git calls, and `NewestSourceMTime` stops
+when it expires. Truncation is safe in one direction only: seeing fewer files
+can lower the maximum, so a bounded walk can go quiet on a stale repo but can
+never invent a file newer than the index. The cost is also transitional — it
+disappears per repo as each is reindexed and records a commit.
+
+**What would change our minds:** if the schema version is ever bumped for an
+unrelated reason, `countsUnrecorded` could become a straight version check
+instead of an aggregate inference. The inference is exact today, but it is a
+property of the builder's aggregation, so it needs the comment that says so.

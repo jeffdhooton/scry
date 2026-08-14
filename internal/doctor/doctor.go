@@ -987,7 +987,9 @@ func checkCurrentRepo(scryHome, cwd string) Check {
 	}
 }
 
-// headTimeout caps the one `git rev-parse` doctor makes per repo.
+// headTimeout caps what doctor spends deriving staleness for the one repo it
+// looks at: the single `git rev-parse`, plus the source walk that stands in
+// for it when there is no commit to compare against.
 const headTimeout = 2 * time.Second
 
 // repoStaleness reports whether the index described by m has fallen behind
@@ -1006,9 +1008,13 @@ func repoStaleness(m *index.Manifest) (bool, string) {
 		// report nothing rather than a stale flag we can't support.
 		head, conclusive = "", !gitindex.HeadUnknown(err)
 	}
+	// Mirror the daemon's rule: mtimes stand in whenever there is no pair of
+	// commits to compare. A manifest with no recorded commit needs the walk
+	// regardless of what git said, since the live HEAD has nothing to be
+	// compared against.
 	var newestSource time.Time
-	if head == "" && conclusive {
-		newestSource = index.NewestSourceMTime(m.RepoPath)
+	if m.HeadCommit == "" || (head == "" && conclusive) {
+		newestSource = index.NewestSourceMTime(ctx, m.RepoPath)
 	}
 	if !index.IsStale(m, head, newestSource) {
 		return false, ""

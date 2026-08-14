@@ -1,11 +1,15 @@
 package index
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/jeffdhooton/scry/internal/sources/scip"
 )
 
 var indexedAt = time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
@@ -334,7 +338,7 @@ func TestNewestSourceMTime(t *testing.T) {
 	// Ignored: inside a skipped directory, and newer than everything.
 	writeAt(t, filepath.Join(repo, "node_modules", "dep.ts"), time.Now())
 
-	if got := NewestSourceMTime(repo); got.Sub(recent).Abs() > 2*time.Second {
+	if got := NewestSourceMTime(context.Background(), repo); got.Sub(recent).Abs() > 2*time.Second {
 		t.Fatalf("NewestSourceMTime() = %v, want ~%v", got, recent)
 	}
 }
@@ -342,13 +346,13 @@ func TestNewestSourceMTime(t *testing.T) {
 func TestNewestSourceMTimeNoSources(t *testing.T) {
 	repo := t.TempDir()
 	writeAt(t, filepath.Join(repo, "README.md"), time.Now())
-	if got := NewestSourceMTime(repo); !got.IsZero() {
+	if got := NewestSourceMTime(context.Background(), repo); !got.IsZero() {
 		t.Fatalf("NewestSourceMTime() = %v, want zero time", got)
 	}
 }
 
 func TestNewestSourceMTimeMissingRepo(t *testing.T) {
-	if got := NewestSourceMTime(filepath.Join(t.TempDir(), "gone")); !got.IsZero() {
+	if got := NewestSourceMTime(context.Background(), filepath.Join(t.TempDir(), "gone")); !got.IsZero() {
 		t.Fatalf("NewestSourceMTime() = %v, want zero time", got)
 	}
 }
@@ -369,7 +373,7 @@ func TestNewestSourceMTimeSeesEveryDetectedLanguage(t *testing.T) {
 			touched := time.Now().Add(-1 * time.Hour)
 			writeAt(t, filepath.Join(repo, "only"+ext), touched)
 
-			got := NewestSourceMTime(repo)
+			got := NewestSourceMTime(context.Background(), repo)
 			if got.IsZero() {
 				t.Fatalf("NewestSourceMTime() = zero for a repo holding only %s; edits to %s files would never mark the index stale", ext, ext)
 			}
@@ -429,5 +433,116 @@ func writeAt(t *testing.T, path string, mtime time.Time) {
 	}
 	if err := os.Chtimes(path, mtime, mtime); err != nil {
 		t.Fatalf("chtimes %s: %v", path, err)
+	}
+}
+
+// The mtime walk is the most expensive thing the staleness signal can do, and
+// on a machine full of pre-HeadCommit manifests it runs once per repo. This
+// pins that an expired budget actually stops the walk.
+//
+// The assertion is built so it cannot pass vacuously. The context check fires
+// only every 512 entries, so a handful of files would never reach it; the repo
+// here holds well over that, and the single newest file sorts last, after the
+// cutoff. Stopping early therefore means we never see it — an observable
+// difference, not just an early return.
+func TestNewestSourceMTimeStopsWhenTheBudgetIsSpent(t *testing.T) {
+	repo := t.TempDir()
+	old := time.Now().Add(-48 * time.Hour)
+	for i := 0; i < 1200; i++ {
+		writeAt(t, filepath.Join(repo, fmt.Sprintf("a%05d.go", i)), old)
+	}
+	newest := time.Now().Add(-time.Minute)
+	writeAt(t, filepath.Join(repo, "zzz-last.go"), newest)
+
+	// A live budget sees the whole tree, including the last file.
+	full := NewestSourceMTime(context.Background(), repo)
+	if full.Sub(newest).Abs() > 2*time.Second {
+		t.Fatalf("with budget: NewestSourceMTime() = %v, want ~%v", full, newest)
+	}
+
+	// A spent budget stops before reaching it.
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	got := NewestSourceMTime(cancelled, repo)
+	if got.Sub(newest).Abs() <= 2*time.Second {
+		t.Fatal("spent budget still walked the entire tree; the bound does nothing")
+	}
+	// Truncation may only LOWER the maximum. Reporting a time newer than
+	// anything actually seen would let a bounded walk invent staleness, which
+	// is the one thing this fallback must never do.
+	if got.After(full) {
+		t.Errorf("truncated walk reported %v, newer than the full walk's %v", got, full)
+	}
+}
+
+// TestEmptyLanguagesIgnoresManifestsPredatingTheCounts guards the false
+// positive that matters most in practice: every index already on disk has
+// per-language results but no per-language COUNTS, because those fields were
+// added after it was written. Reading their absent SymbolCount as "produced
+// nothing" calls a perfectly healthy repo empty.
+//
+// This is the real manifest for the scry repo itself, verbatim: 274 go files,
+// status ok, 3061 symbols in the aggregate, and no symbol_count key anywhere.
+// Flagging it would have reported 45 healthy repos on one machine as empty —
+// the silent-green bug inverted into a loud false alarm.
+//
+// The two cases are distinguishable in aggregate even though they are not
+// per-language: the builder sets each language's SymbolCount from the same
+// scip.Stats it adds into Manifest.Stats, so symbols in the total with none
+// against any language proves the fields were never written.
+func TestEmptyLanguagesIgnoresManifestsPredatingTheCounts(t *testing.T) {
+	legacy := `{
+	  "schema_version": 2,
+	  "repo_path": "/Users/jeff/workspace/context-stack/scry",
+	  "languages": ["go"],
+	  "indexed_at": "2026-08-13T14:23:16.464004Z",
+	  "status": "ready",
+	  "stats": {"Documents":165,"Symbols":3061,"Definitions":2451,"References":24582},
+	  "indexers": [
+	    {"language":"go","status":"ok","tier":"primary","file_count":274,"share":1}
+	  ]
+	}`
+	var m Manifest
+	if err := json.Unmarshal([]byte(legacy), &m); err != nil {
+		t.Fatalf("unmarshal legacy manifest: %v", err)
+	}
+	if got := EmptyLanguages(&m); got != nil {
+		t.Errorf("EmptyLanguages() = %v, want nil — this repo indexed 3061 symbols", got)
+	}
+	if got := EffectiveStatus(&m, false, EmptyLanguages(&m)); got != StatusReady {
+		t.Errorf("EffectiveStatus() = %q, want %q", got, StatusReady)
+	}
+}
+
+// The suppression must be narrow: a manifest that really did record the counts
+// and really did produce nothing still has to be flagged. Here the aggregate
+// agrees with the per-language counts (both zero for typescript), so there is
+// no evidence the fields are missing.
+func TestEmptyLanguagesStillFlagsARealEmptyAlongsideAHealthyLanguage(t *testing.T) {
+	m := &Manifest{
+		Status: StatusReady,
+		Stats:  scip.Stats{Symbols: 8087},
+		Indexers: []IndexerResult{
+			{Language: "go", Status: IndexerOK, Tier: TierPrimary, FileCount: 120, SymbolCount: 8087},
+			{Language: "typescript", Status: IndexerOK, Tier: TierPrimary, FileCount: 412, SymbolCount: 0},
+		},
+	}
+	got := EmptyLanguages(m)
+	if len(got) != 1 || got[0] != "typescript" {
+		t.Fatalf("EmptyLanguages() = %v, want [typescript]", got)
+	}
+}
+
+// A genuinely empty build records zero in the aggregate too, so nothing
+// suppresses it: this is the case the whole EMPTY signal exists for.
+func TestEmptyLanguagesFlagsAWhollyEmptyBuild(t *testing.T) {
+	m := &Manifest{
+		Status:   StatusReady,
+		Stats:    scip.Stats{Symbols: 0},
+		Indexers: []IndexerResult{{Language: "typescript", Status: IndexerOK, Tier: TierPrimary, FileCount: 412, SymbolCount: 0}},
+	}
+	got := EmptyLanguages(m)
+	if len(got) != 1 || got[0] != "typescript" {
+		t.Fatalf("EmptyLanguages() = %v, want [typescript]", got)
 	}
 }
