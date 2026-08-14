@@ -55,7 +55,8 @@ machine-readable report suitable for bug reports or scripts.`,
 			var fixes []doctor.FixResult
 			if fix {
 				fixes = doctor.RunFixes(report, doctor.FixOptions{
-					Options: doctor.Options{ScryHome: home, Cwd: cwd},
+					Options:      doctor.Options{ScryHome: home, Cwd: cwd},
+					AllowNetwork: true,
 				})
 				// Re-run the diagnostic so the "after" report reflects
 				// whatever the fixes changed. Users get a clean view of

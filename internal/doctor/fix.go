@@ -7,8 +7,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/install"
 	"github.com/jeffdhooton/scry/internal/setup"
 )
 
@@ -25,15 +27,14 @@ type FixResult struct {
 // FixOptions mirrors Options but adds toggles specific to remediation.
 type FixOptions struct {
 	Options
-	// AllowNetwork permits fixes that go out to npm, GitHub, etc.
-	// Defaults false so a `scry doctor --fix` in an air-gapped CI
-	// doesn't silently hang on network calls.
+	// AllowNetwork permits fixes that go out to npm, GitHub, etc. The CLI sets
+	// this for --fix; API callers may leave it false for a read-mostly run.
 	AllowNetwork bool
 }
 
 // RunFixes iterates the checks in the Report and applies a remediation
-// for each one that has a fixer registered. Fixes are fast (<1s each)
-// and side-effectful but reversible where possible. Any fix that would
+// for each one that has a fixer registered. Fixes are side-effectful but
+// reversible where possible. Any fix that would
 // take "real time" (running `scry init`, indexing a repo, installing PHP)
 // is skipped with a message rather than executed — the first rule of
 // scry doctor --fix is no surprising 50-second waits.
@@ -44,7 +45,7 @@ func RunFixes(r *Report, opts FixOptions) []FixResult {
 		}
 	}
 	if opts.Timeout == 0 {
-		opts.Timeout = 5 * time.Second
+		opts.Timeout = 5 * time.Minute
 	}
 
 	var results []FixResult
@@ -67,11 +68,13 @@ func RunFixes(r *Report, opts FixOptions) []FixResult {
 // "no auto-fix available" — the check stays broken and the user reads
 // the Remedy line.
 var fixers = map[string]func(Check, FixOptions) FixResult{
-	"env.scry_home":    fixScryHome,
-	"daemon.state":     fixStaleDaemon,
-	"claude.mcp":       fixRunSetup,
-	"claude.skill":     fixRunSetup,
-	"claude.global_md": fixGlobalCLAUDEmd,
+	"env.scry_home":            fixScryHome,
+	"daemon.state":             fixStaleDaemon,
+	"claude.mcp":               fixRunSetup,
+	"claude.skill":             fixRunSetup,
+	"claude.global_md":         fixGlobalCLAUDEmd,
+	"indexers.scip_typescript": fixNPMIndexer("typescript"),
+	"indexers.scip_python":     fixNPMIndexer("python"),
 }
 
 // ---------------- individual fixers ----------------
@@ -121,6 +124,112 @@ func fixStaleDaemon(chk Check, opts FixOptions) FixResult {
 		Action:  "cleanup stale daemon files",
 		Detail:  fmt.Sprintf("removed %d stale file(s)", removed),
 	}
+}
+
+func fixNPMIndexer(tool string) func(Check, FixOptions) FixResult {
+	return func(chk Check, opts FixOptions) FixResult {
+		binary := install.BinaryName(tool)
+		toolPath, _ := exec.LookPath(binary)
+		npmPath, _ := exec.LookPath("npm")
+		plan := install.PlanFor(tool, install.Env{NPMPath: npmPath, ToolPath: toolPath})
+		command := strings.Join(plan.Command, " ")
+
+		if toolPath != "" {
+			if staleDaemonIndexerPATH(opts.ScryHome, toolPath) {
+				if err := restartDaemonForFix(opts); err != nil {
+					return FixResult{
+						CheckID: chk.ID,
+						Name:    chk.Name,
+						Status:  StatusWarn,
+						Action:  "scry daemon restart",
+						Detail:  err.Error(),
+					}
+				}
+				return FixResult{
+					CheckID: chk.ID,
+					Name:    chk.Name,
+					Status:  StatusPass,
+					Action:  "scry daemon restart",
+					Detail:  binary + " was already installed; restarted the daemon with the current PATH",
+				}
+			}
+			return FixResult{
+				CheckID: chk.ID,
+				Name:    chk.Name,
+				Status:  StatusPass,
+				Action:  "already installed",
+				Detail:  plan.Reason,
+			}
+		}
+		if npmPath == "" {
+			return FixResult{
+				CheckID: chk.ID,
+				Name:    chk.Name,
+				Status:  StatusWarn,
+				Action:  command,
+				Detail:  plan.Reason + "; install Node.js/npm, then run: " + command,
+			}
+		}
+		if !opts.AllowNetwork {
+			return FixResult{
+				CheckID: chk.ID,
+				Name:    chk.Name,
+				Status:  StatusSkip,
+				Action:  command,
+				Detail:  "network fixes are disabled; run manually: " + command,
+			}
+		}
+
+		ctx, cancel := ensureCmdContext(opts)
+		defer cancel()
+		res, err := install.Provision(ctx, plan)
+		if err != nil {
+			return FixResult{
+				CheckID: chk.ID,
+				Name:    chk.Name,
+				Status:  StatusWarn,
+				Action:  command,
+				Detail:  err.Error(),
+			}
+		}
+		detail := fmt.Sprintf("installed %s at %s", res.Binary, res.Path)
+		if res.Version != "" {
+			detail += " (" + res.Version + ")"
+		}
+		if staleDaemonIndexerPATH(opts.ScryHome, res.Path) {
+			if err := restartDaemonForFix(opts); err != nil {
+				return FixResult{
+					CheckID: chk.ID,
+					Name:    chk.Name,
+					Status:  StatusWarn,
+					Action:  command,
+					Detail:  detail + "; installed, but daemon restart failed: " + err.Error(),
+				}
+			}
+			detail += "; restarted the daemon with the current PATH"
+		}
+		return FixResult{
+			CheckID: chk.ID,
+			Name:    chk.Name,
+			Status:  StatusPass,
+			Action:  command,
+			Detail:  detail,
+		}
+	}
+}
+
+func restartDaemonForFix(opts FixOptions) error {
+	exe, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("resolve scry binary for daemon restart: %w", err)
+	}
+	ctx, cancel := ensureCmdContext(opts)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, exe, "daemon", "restart").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("run `scry daemon restart`: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 // fixRunSetup delegates to setup.Install with Force=true so the embedded
