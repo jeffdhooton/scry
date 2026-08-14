@@ -76,13 +76,21 @@ var indexerRemedies = map[string]string{
 	"python":     "npm i -g @sourcegraph/scip-python",
 }
 
+// parseFailureRemedy is the fix for a language whose indexer ran cleanly but
+// whose SCIP dump would not parse. Deliberately not one of indexerRemedies:
+// the tool is installed, so telling the operator to install it is wrong
+// advice. A corrupt or truncated dump is almost always a killed or
+// out-of-disk indexer run, which a clean rebuild fixes.
+const parseFailureRemedy = "the indexer ran but its SCIP output would not parse — re-run `scry init --force` on this repo; if it recurs, the dump is corrupt and the error above is worth reporting"
+
 // classify converts one indexer's error into a (status, error, remedy)
 // triple. A nil error is ok; a wrapped not-found sentinel is missing and
 // carries a remedy; anything else is a genuine failure.
 //
 // "ok" here means only that the indexer binary exited cleanly. The ingest
-// step can still fail afterwards, in which case buildAtLayout downgrades
-// that one language's result to IndexerFailed — see markParseFailed.
+// step can still fail afterwards, in which case buildAtLayout's ingest loop
+// downgrades that one language's result to IndexerFailed and swaps in
+// parseFailureRemedy.
 func classify(language string, err error) (status, errMsg, remedy string) {
 	if err == nil {
 		return IndexerOK, "", ""

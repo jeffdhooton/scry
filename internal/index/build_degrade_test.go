@@ -160,6 +160,11 @@ func TestBuildAtLayout_ParseFailureCostsOnlyThatLanguage(t *testing.T) {
 	if tsRes.DocumentCount != 0 || tsRes.SymbolCount != 0 || tsRes.DefinitionCount != 0 || tsRes.ReferenceCount != 0 {
 		t.Errorf("failed language must carry zero counts, got %+v", tsRes)
 	}
+	// A parse failure means the indexer is installed and ran, so it must not
+	// inherit the "go install scip-typescript" remedy — it needs its own.
+	if tsRes.Remedy != parseFailureRemedy {
+		t.Errorf("typescript remedy = %q, want the parse-failure remedy", tsRes.Remedy)
+	}
 
 	// The surviving language's records are aggregated and the corrupt one's
 	// are not.

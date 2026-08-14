@@ -354,6 +354,10 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 			if i, ok := resultIdx[p.language]; ok {
 				results[i].Status = IndexerFailed
 				results[i].Error = fmt.Sprintf("parse %s scip: %v", p.language, err)
+				// classify returned no remedy for this language because the
+				// indexer itself succeeded. A failure with no remedy is half
+				// a diagnosis, so give this path its own.
+				results[i].Remedy = parseFailureRemedy
 			}
 			fmt.Fprintf(os.Stderr, "scry: parse %s scip: %v\n", p.language, err)
 			continue
