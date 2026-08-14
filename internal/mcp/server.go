@@ -311,8 +311,17 @@ var toolDefinitions = []tool{
 		}),
 	},
 	{
-		Name:        "scry_status",
-		Description: "List every repo scry has indexed, with document counts, ref counts, and last-indexed timestamps. Use this to check whether a repo is indexed before running a symbol query, or to see which repos are searchable.",
+		Name: "scry_status",
+		// The trust signals are the point of the second half. An agent that
+		// reads only "is this repo listed?" will happily query a months-old
+		// index and get confidently wrong file:line answers, which is the exact
+		// failure `effective_status` exists to prevent. Naming each state and
+		// what it means for query results is the only place MCP has to say so.
+		Description: "List every repo scry has indexed, with document counts, ref counts, and last-indexed timestamps. Use this to check whether a repo is indexed before running a symbol query, or to see which repos are searchable. " +
+			"Check each repo's effective_status before trusting query results. ready: the index matches the repo's current commit. " +
+			"stale: the repo moved on since the index was built, so file:line answers may be out of date — run `scry init` to reindex. " +
+			"empty: an indexer reported success but produced no symbols for the languages listed in empty_languages, so queries against those languages come back empty even though the code is there — do not read that silence as \"no such symbol\". " +
+			"partial: a language failed to index at all; the indexers field says which and why.",
 		InputSchema: mustMarshal(map[string]any{
 			"type":       "object",
 			"properties": map[string]any{},

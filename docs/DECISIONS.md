@@ -1305,3 +1305,136 @@ a non-empty one.
 bites in practice, the fix belongs in the caller that swaps — `BuildIntoTemp`
 plus `SwapNext` can decline to promote a store that ingested nothing — not in
 `buildAtLayout`, which should keep the manifest and the store consistent.
+
+---
+
+## 2026-08-13 — Stale and empty are derived at report time, never persisted
+
+**Decision:** `Manifest.Status` on disk keeps exactly two values, `ready` and
+`partial` — they describe what the build produced. The two new signals are
+computed when status is reported, from the manifest plus the live repo:
+
+- **stale**: the manifest records `head_commit` (the repo's HEAD when the
+  build started). A repo is stale when the live HEAD differs. When either
+  side has no commit — not a git checkout, no commits yet, or a manifest
+  written before `head_commit` existed — the comparison degrades to "is the
+  newest source file's mtime after `IndexedAt`".
+- **empty**: a primary language whose indexer reported `ok` but produced zero
+  symbols across a non-zero detected file count. Read from that language's own
+  `IndexerResult` counts, which the builder populates only on the success path
+  — so a language that never ran can't be mistaken for one that ran and found
+  nothing, which the aggregate `Manifest.Stats` cannot distinguish. Each of
+  the three conditions rules out a legitimate zero: incidental languages
+  aren't indexed deeply, missing/failed ones are already reported as
+  `partial`, and zero symbols from zero files is the correct answer rather
+  than a failure.
+
+`scry status` and `scry doctor` fold the manifest status and both signals
+into one display label with precedence `partial > empty > stale > ready`
+(`index.EffectiveStatus`).
+
+**Why:** A signal that had to be written into the manifest would need a
+reindex to be discovered — exactly the thing that is broken. The 44 repos
+already on disk with months-old indexes must become diagnosable by *reading*
+them, not by rebuilding them first. Deriving also keeps the manifest a record
+of one build rather than a mutable status cache that two writers (the builder
+and the reporter) both own.
+
+HEAD comparison rather than timestamps because it is exact: it survives clock
+skew, a rebuild that ran long, and a checkout that rewinds to an older
+commit — all of which a `IndexedAt < newest mtime` test gets wrong. The mtime
+walk stays as the fallback for non-git trees and is only paid for when there
+is no commit to compare.
+
+Precedence puts `partial` first because a missing indexer is a louder fact
+than either derived signal, and `empty` above `stale` because an empty
+language is broken at the current commit while a stale one is fixed by
+exactly the reindex the label already implies.
+
+**Cost:** one `git rev-parse HEAD` per repo per status call, cached for the
+call and bounded by a 2s timeout. `scry status` is on the agent hot path; a
+wedged git invocation degrades the staleness signal, not the response.
+
+**"No HEAD" and "couldn't ask" are different answers.** Both come back as an
+empty commit string, and only the first one licenses the mtime fallback. If
+the timeout fires and we fall back anyway, the safety valve does the opposite
+of its job twice over: it pays the most expensive path we have (a full source
+tree walk, per repo) to produce a *false* `stale` on every repo touched since
+its build — including repos sitting exactly at their indexed commit. On a
+machine with many repos, the tail of the list would report stale purely
+because git was slow.
+
+So `gitindex.HeadCommit` reports the two cases distinctly and
+`gitindex.HeadUnknown(err)` is the single place that tells them apart. It is
+true only for a context error. Note that cancellation *kills* git, and a
+killed process surfaces as an `*exec.ExitError` — the same error class as
+"not a repository" — so `HeadCommit` must check the context before the exit
+code or the distinction is lost precisely when it matters. A missing git
+binary is deliberately NOT unknown: that is a permanent absence of HEAD, and
+mtimes are the correct and only remaining signal.
+
+When the answer is inconclusive, both `scry status` and `scry doctor` report
+not-stale and skip the walk. Silence is the honest answer to a question we
+never got to ask; an invented finding is not.
+
+**What would change our minds:** if per-repo HEAD resolution ever shows up in
+status latency (many repos, cold FS cache), cache the result in the daemon
+across calls keyed by `.git/HEAD` mtime rather than re-running git each time.
+
+## 2026-08-13 — Both derived signals must work on the indexes already on disk
+
+**Decision:** the mtime fallback fires whenever there is no *pair* of commits
+to compare — not merely when the repo has no live HEAD — and `EmptyLanguages`
+suppresses itself on manifests written before the per-language count fields
+existed.
+
+**Context:** both signals shipped correct against manifests the new builder
+writes, and wrong against every manifest already on disk. On this machine that
+is all 45 of them, and the task's opening premise is precisely "a repo indexed
+months ago reports ready today". A signal that only starts working after a
+reindex fails the requirement that neither may require a reindex to compute.
+
+Two independent bugs, found by running `scry doctor` against a real indexed
+repo rather than only against synthesized manifests:
+
+1. **Stale never fired on a legacy manifest.** `IsStale` handles a manifest
+   with no `head_commit` correctly — it falls back to mtimes. But both callers
+   decided whether to *compute* the mtime by asking whether the REPO had a
+   HEAD, not whether the comparison had two commits. A pre-`head_commit`
+   manifest in an ordinary git checkout resolves a live HEAD, so the walk was
+   skipped, a zero time was passed in, and the repo reported not-stale
+   permanently. The condition is now `m.HeadCommit == "" || (head == "" &&
+   conclusive)`. Note the asymmetry: when the manifest has no commit we walk
+   regardless of how git answered, because git's answer cannot decide anything
+   without a recorded commit to compare it against — the `conclusive` guard
+   only protects the case where a commit comparison was actually possible.
+
+2. **Empty fired on every legacy manifest.** Those manifests carry per-language
+   results with `file_count` but no `symbol_count`, so the predicate
+   `SymbolCount == 0 && FileCount > 0` matched a repo that had demonstrably
+   indexed 3061 symbols. Absent and zero are the same value per-language, but
+   they are separable in aggregate: the builder assigns each language's
+   `SymbolCount` from the same `scip.Stats` it sums into `Manifest.Stats`, so a
+   positive total with no positive per-language count proves the fields were
+   never written. `countsUnrecorded` encodes exactly that and returns no
+   languages. This is a narrow suppression — a genuinely empty build reports
+   zero in the aggregate too, so it is untouched.
+
+The second bug is the more dangerous one, and it is worth naming why: it
+replaces a silent green with a false red across every repo at once. A signal
+that flags 45 healthy repos gets ignored, including on the day it is correct.
+That failure mode is worse than the one this task set out to fix.
+
+**Cost, and why the walk is now bounded:** fixing (1) means every legacy
+manifest takes the mtime path, measured at ~2.9s across the 42 live repos on
+this machine. `scry status` is on the hot path for agents, so the status
+budget now covers walks as well as git calls, and `NewestSourceMTime` stops
+when it expires. Truncation is safe in one direction only: seeing fewer files
+can lower the maximum, so a bounded walk can go quiet on a stale repo but can
+never invent a file newer than the index. The cost is also transitional — it
+disappears per repo as each is reindexed and records a commit.
+
+**What would change our minds:** if the schema version is ever bumped for an
+unrelated reason, `countsUnrecorded` could become a straight version check
+instead of an aggregate inference. The inference is exact today, but it is a
+property of the builder's aggregation, so it needs the comment that says so.

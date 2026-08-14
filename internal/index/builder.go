@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"time"
 
+	gitindex "github.com/jeffdhooton/scry/internal/git/index"
 	"github.com/jeffdhooton/scry/internal/sources/coverage"
 	"github.com/jeffdhooton/scry/internal/sources/golang"
 	"github.com/jeffdhooton/scry/internal/sources/php"
@@ -32,11 +33,17 @@ import (
 
 // Manifest is the per-repo metadata file written alongside the BadgerDB index.
 type Manifest struct {
-	SchemaVersion int             `json:"schema_version"`
-	RepoPath      string          `json:"repo_path"`
-	Languages     []string        `json:"languages"`
-	IndexedAt     time.Time       `json:"indexed_at"`
-	Status        string          `json:"status"` // "ready" | "partial"
+	SchemaVersion int       `json:"schema_version"`
+	RepoPath      string    `json:"repo_path"`
+	Languages     []string  `json:"languages"`
+	IndexedAt     time.Time `json:"indexed_at"`
+	Status        string    `json:"status"` // "ready" | "partial"
+	// HeadCommit is the repo's git HEAD when this build started. Empty when
+	// the repo is not a git checkout (or has no commits yet). Recorded so
+	// staleness is decided by comparing commits rather than clocks — see
+	// IsStale. Additive: manifests written before this field existed
+	// unmarshal with "" and fall back to the mtime comparison.
+	HeadCommit    string          `json:"head_commit,omitempty"`
 	FailedFiles   int             `json:"failed_files,omitempty"`
 	Stats         scip.Stats      `json:"stats"`
 	CoverageStats *coverage.Stats `json:"coverage_stats,omitempty"`
@@ -288,6 +295,16 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		return nil, fmt.Errorf("create storage dir: %w", err)
 	}
 
+	// Resolve HEAD before any indexer runs, not after: a commit landing
+	// mid-build must leave the index looking stale (prompting a reindex)
+	// rather than falsely current.
+	headCommit, err := gitindex.HeadCommit(ctx, repoPath)
+	if err != nil {
+		// Not fatal — an index without a recorded HEAD still works, it just
+		// falls back to the mtime comparison for staleness.
+		fmt.Fprintf(os.Stderr, "scry: resolve HEAD for %s: %v\n", repoPath, err)
+	}
+
 	dets, err := detectLanguages(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("detect languages: %w", err)
@@ -461,6 +478,7 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		Languages:     languages,
 		IndexedAt:     time.Now().UTC(),
 		Status:        status,
+		HeadCommit:    headCommit,
 		Stats:         combined,
 		CoverageStats: covStats,
 		Indexers:      results,
