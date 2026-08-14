@@ -253,7 +253,7 @@ func buildResults(dets []DetectedLanguage, run func(language string) error) []In
 			out = append(out, r)
 			continue
 		}
-		r.Status, r.Error, r.Remedy = classify(key, run(key))
+		r.Status, r.Error, r.Remedy, r.Stderr = classify(key, run(key))
 		out = append(out, r)
 	}
 	return out
@@ -491,4 +491,3 @@ func writeManifest(path string, m *Manifest) error {
 	}
 	return os.WriteFile(path, b, 0o644)
 }
-
