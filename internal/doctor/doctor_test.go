@@ -31,6 +31,7 @@ func seedRepoManifest(t *testing.T, repoPath string, m index.Manifest) string {
 
 func TestCheckCurrentRepo_NamesTheFailingIndexer(t *testing.T) {
 	repo := t.TempDir()
+	stderr := "full compiler context\nfinal complaint\n"
 	home := seedRepoManifest(t, repo, index.Manifest{
 		RepoPath:  repo,
 		Languages: []string{"php", "python"},
@@ -42,6 +43,7 @@ func TestCheckCurrentRepo_NamesTheFailingIndexer(t *testing.T) {
 				Language: "python", Tier: index.TierPrimary, Status: index.IndexerMissing,
 				Error:  "scip-python not found on PATH",
 				Remedy: "npm i -g @sourcegraph/scip-python",
+				Stderr: stderr,
 			},
 		},
 	})
@@ -55,6 +57,16 @@ func TestCheckCurrentRepo_NamesTheFailingIndexer(t *testing.T) {
 	}
 	if got.Remedy != "npm i -g @sourcegraph/scip-python" {
 		t.Errorf("Remedy = %q, want the install command", got.Remedy)
+	}
+	if got.Stderr != stderr {
+		t.Errorf("Stderr = %q, want full captured tail %q", got.Stderr, stderr)
+	}
+	b, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("marshal check: %v", err)
+	}
+	if !strings.Contains(string(b), `"stderr":"full compiler context\nfinal complaint\n"`) {
+		t.Errorf("JSON = %s, want full stderr field", b)
 	}
 }
 
@@ -82,5 +94,19 @@ func TestCheckCurrentRepo_LegacyManifestStillRenders(t *testing.T) {
 	// regressed and appended a dangling " — " with nothing after it.
 	if strings.Count(got.Detail, "—") != 1 {
 		t.Errorf("Detail = %q, want exactly one em-dash separator", got.Detail)
+	}
+}
+
+func TestStaleDaemonIndexerCheckNamesRestartRemedy(t *testing.T) {
+	got := staleDaemonIndexerCheck("indexers.scip_typescript", "scip-typescript")
+	if got.Status != StatusWarn {
+		t.Fatalf("Status = %v, want Warn", got.Status)
+	}
+	want := "scip-typescript is installed but the running daemon started before it; run `scry daemon restart`"
+	if got.Detail != want {
+		t.Errorf("Detail = %q, want %q", got.Detail, want)
+	}
+	if got.Remedy != "scry daemon restart" {
+		t.Errorf("Remedy = %q, want scry daemon restart", got.Remedy)
 	}
 }

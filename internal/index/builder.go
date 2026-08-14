@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"time"
 
+	gitindex "github.com/jeffdhooton/scry/internal/git/index"
 	"github.com/jeffdhooton/scry/internal/sources/coverage"
 	"github.com/jeffdhooton/scry/internal/sources/golang"
 	"github.com/jeffdhooton/scry/internal/sources/php"
@@ -32,11 +33,17 @@ import (
 
 // Manifest is the per-repo metadata file written alongside the BadgerDB index.
 type Manifest struct {
-	SchemaVersion int             `json:"schema_version"`
-	RepoPath      string          `json:"repo_path"`
-	Languages     []string        `json:"languages"`
-	IndexedAt     time.Time       `json:"indexed_at"`
-	Status        string          `json:"status"` // "ready" | "partial"
+	SchemaVersion int       `json:"schema_version"`
+	RepoPath      string    `json:"repo_path"`
+	Languages     []string  `json:"languages"`
+	IndexedAt     time.Time `json:"indexed_at"`
+	Status        string    `json:"status"` // "ready" | "partial"
+	// HeadCommit is the repo's git HEAD when this build started. Empty when
+	// the repo is not a git checkout (or has no commits yet). Recorded so
+	// staleness is decided by comparing commits rather than clocks — see
+	// IsStale. Additive: manifests written before this field existed
+	// unmarshal with "" and fall back to the mtime comparison.
+	HeadCommit    string          `json:"head_commit,omitempty"`
 	FailedFiles   int             `json:"failed_files,omitempty"`
 	Stats         scip.Stats      `json:"stats"`
 	CoverageStats *coverage.Stats `json:"coverage_stats,omitempty"`
@@ -104,12 +111,14 @@ func NextLayout(layout RepoLayout) RepoLayout {
 //   - status is "ready" if every primary language's indexer succeeded,
 //     "partial" if a primary indexer is missing or failed (an incidental
 //     language's indexer never being invoked does not degrade status)
+//   - one language failing never fails the build: every other language still
+//     ingests, and a manifest is written recording what each one did
 func Build(ctx context.Context, scryHome, repoPath string) (*Manifest, error) {
 	abs, err := absRepoPath(repoPath)
 	if err != nil {
 		return nil, err
 	}
-	return buildAtLayout(ctx, scryHome, abs, Layout(scryHome, abs))
+	return buildAtLayout(ctx, scryHome, abs, Layout(scryHome, abs), runInstalledIndexer)
 }
 
 // BuildIntoTemp runs a full index pass against repoPath but writes the
@@ -135,7 +144,7 @@ func BuildIntoTemp(ctx context.Context, scryHome, repoPath string) (*Manifest, R
 		return nil, next, fmt.Errorf("remove stale next badger dir: %w", err)
 	}
 	_ = os.Remove(next.ManifestPath)
-	manifest, err := buildAtLayout(ctx, scryHome, abs, next)
+	manifest, err := buildAtLayout(ctx, scryHome, abs, next, runInstalledIndexer)
 	if err != nil {
 		return nil, next, err
 	}
@@ -162,6 +171,44 @@ func indexerFor(language string) string {
 		return "typescript"
 	}
 	return language
+}
+
+// indexerRunner runs one language's indexer, writing its SCIP dump to out.
+// It is the seam buildAtLayout invokes indexers through, injected so a whole
+// build can be exercised without scip-typescript, scip-go, scip-python, php
+// or npm anywhere on PATH.
+type indexerRunner func(ctx context.Context, language, binDir, repoPath, out string) error
+
+// The three store operations buildAtLayout performs on an already-open
+// store. Each is a var only so tests can exercise its abort path: every one
+// of them is a member of the "we cannot describe the store" set that must
+// refuse to write a manifest, and none can be provoked from outside. The
+// store is open by the time they run, so filesystem sabotage set up before
+// the build trips store.Open instead and would pass those tests for the
+// wrong reason. Production never replaces any of them.
+var (
+	resetStore          = func(st *store.Store) error { return st.Reset() }
+	schemaVersionOnDisk = func(st *store.Store) (int, error) { return st.SchemaVersionOnDisk() }
+	setStoreMeta        = func(st *store.Store, key string, value any) error { return st.SetMeta(key, value) }
+)
+
+// runInstalledIndexer is the production indexerRunner: it shells out to the
+// real indexer binary for the language.
+func runInstalledIndexer(ctx context.Context, language, binDir, repoPath, out string) error {
+	var err error
+	switch language {
+	case "typescript":
+		_, err = typescript.Index(ctx, repoPath, out)
+	case "go":
+		_, err = golang.Index(ctx, binDir, repoPath, out)
+	case "php":
+		_, err = php.Index(ctx, binDir, repoPath, out)
+	case "python":
+		_, err = python.Index(ctx, binDir, repoPath, out)
+	default:
+		return fmt.Errorf("no indexer for language %q", language)
+	}
+	return err
 }
 
 // buildResults runs one indexer per detected primary language via run, and
@@ -213,19 +260,49 @@ func buildResults(dets []DetectedLanguage, run func(language string) error) []In
 			out = append(out, r)
 			continue
 		}
-		r.Status, r.Error, r.Remedy = classify(key, run(key))
+		r.Status, r.Error, r.Remedy, r.Stderr = classify(key, run(key))
 		out = append(out, r)
 	}
 	return out
 }
 
 // buildAtLayout is the shared body of Build and BuildIntoTemp. It runs
-// every applicable indexer, parses the SCIP output into the BadgerDB at
-// layout.BadgerDir, runs PHP post-processors, and writes the manifest to
-// layout.ManifestPath. repoPath must already be absolute.
-func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLayout) (*Manifest, error) {
+// every applicable indexer through run, parses the SCIP output into the
+// BadgerDB at layout.BadgerDir, runs PHP post-processors, and writes the
+// manifest to layout.ManifestPath. repoPath must already be absolute.
+//
+// It degrades per language rather than collapsing. A language whose indexer
+// is missing, whose indexer fails, or whose SCIP output won't parse costs
+// the build that one language: every other language still ingests, the
+// failure is recorded on that language's IndexerResult, and a manifest is
+// written with status "partial". That holds all the way down to zero
+// languages producing output — that build writes a manifest too, recording
+// every language's failure and remedy, because "here is what broke and how
+// to fix it" beats an error string with no artifact behind it.
+//
+// Only an outcome that would make the index untrustworthy aborts with an
+// error and no manifest: the storage dir won't create, the store won't open,
+// Reset fails, a meta write fails, or the manifest won't write. In each of
+// those we cannot describe what the store contains, so we must not claim to.
+//
+// Because the manifest always describes what the store actually holds, a
+// build that ingested nothing leaves an empty store behind rather than the
+// previous build's data. Callers that swap a freshly built store into a live
+// position (BuildIntoTemp + Registry.SwapNext) therefore promote an empty
+// index in that case; the manifest says so.
+func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLayout, run indexerRunner) (*Manifest, error) {
 	if err := os.MkdirAll(layout.StorageDir, 0o755); err != nil {
 		return nil, fmt.Errorf("create storage dir: %w", err)
+	}
+
+	// Resolve HEAD before any indexer runs, not after: a commit landing
+	// mid-build must leave the index looking stale (prompting a reindex)
+	// rather than falsely current.
+	headCommit, err := gitindex.HeadCommit(ctx, repoPath)
+	if err != nil {
+		// Not fatal — an index without a recorded HEAD still works, it just
+		// falls back to the mtime comparison for staleness.
+		fmt.Fprintf(os.Stderr, "scry: resolve HEAD for %s: %v\n", repoPath, err)
 	}
 
 	dets, err := detectLanguages(repoPath)
@@ -249,46 +326,30 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 
 	results := buildResults(dets, func(language string) error {
 		out := layout.scipPath(language)
-		var err error
-		switch language {
-		case "typescript":
-			_, err = typescript.Index(ctx, repoPath, out)
-		case "go":
-			_, err = golang.Index(ctx, binDir, repoPath, out)
-		case "php":
-			_, err = php.Index(ctx, binDir, repoPath, out)
-		case "python":
-			_, err = python.Index(ctx, binDir, repoPath, out)
-		default:
-			return fmt.Errorf("no indexer for language %q", language)
-		}
-		if err != nil {
+		if err := run(ctx, language, binDir, repoPath, out); err != nil {
 			return err
 		}
 		produced = append(produced, indexed{language, out})
 		return nil
 	})
 
-	if len(produced) == 0 {
-		// Every indexer failed. Surface the first real error, prefixed with
-		// which language it came from — the underlying error strings (e.g.
-		// "resolve repo root: ...") often don't self-describe.
-		for _, r := range results {
-			if r.Error != "" {
-				return nil, fmt.Errorf("%s: %s", r.Language, r.Error)
-			}
-		}
-		return nil, fmt.Errorf("no supported indexer ran on repo languages %v", languages)
+	// Index into results by language, so the ingest loop below can downgrade
+	// the one language whose dump won't parse without disturbing the others.
+	resultIdx := make(map[string]int, len(results))
+	for i, r := range results {
+		resultIdx[r.Language] = i
 	}
 
 	// Open store, wipe stale data, parse each .scip into the same BadgerDB.
+	// Everything from here to the ingest loop is the untrustworthy class: if
+	// any of it fails we cannot say what the store holds, so we abort.
 	st, err := store.Open(layout.BadgerDir)
 	if err != nil {
 		return nil, fmt.Errorf("open store: %w", err)
 	}
 	defer st.Close()
 
-	disk, err := st.SchemaVersionOnDisk()
+	disk, err := schemaVersionOnDisk(st)
 	if err != nil {
 		return nil, fmt.Errorf("read schema version: %w", err)
 	}
@@ -298,23 +359,44 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 	}
 	// Always reset before re-ingesting so we don't accumulate stale records
 	// from a previous build.
-	if err := st.Reset(); err != nil {
+	if err := resetStore(st); err != nil {
 		return nil, fmt.Errorf("reset store: %w", err)
 	}
 
-	if err := st.SetMeta("schema_version", store.SchemaVersion); err != nil {
+	if err := setStoreMeta(st, "schema_version", store.SchemaVersion); err != nil {
 		return nil, fmt.Errorf("write schema version: %w", err)
 	}
-	if err := st.SetMeta("repo_path", repoPath); err != nil {
+	if err := setStoreMeta(st, "repo_path", repoPath); err != nil {
 		return nil, fmt.Errorf("write repo path: %w", err)
 	}
 
 	combined := scip.Stats{}
 	phpProduced := false
+	ingested := 0
 	for _, p := range produced {
 		stats, err := scip.Parse(ctx, p.scipPath, st)
 		if err != nil {
-			return nil, fmt.Errorf("parse %s scip: %w", p.language, err)
+			// This language's dump is unusable. That says nothing about the
+			// other languages' dumps, so record it against this language
+			// alone and keep ingesting. Note that scip.Parse writes through
+			// a batched writer it only flushes on success, so a failed parse
+			// leaves at most a partial batch behind, never a torn one.
+			if i, ok := resultIdx[p.language]; ok {
+				results[i].Status = IndexerFailed
+				results[i].Error = fmt.Sprintf("parse %s scip: %v", p.language, err)
+				// classify returned no remedy for this language because the
+				// indexer itself succeeded. A failure with no remedy is half
+				// a diagnosis, so give this path its own.
+				results[i].Remedy = parseFailureRemedy
+			}
+			fmt.Fprintf(os.Stderr, "scry: parse %s scip: %v\n", p.language, err)
+			continue
+		}
+		if i, ok := resultIdx[p.language]; ok {
+			results[i].DocumentCount = stats.Documents
+			results[i].SymbolCount = stats.Symbols
+			results[i].DefinitionCount = stats.Definitions
+			results[i].ReferenceCount = stats.References
 		}
 		combined.Documents += stats.Documents
 		combined.Symbols += stats.Symbols
@@ -322,6 +404,7 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		combined.References += stats.References
 		combined.CallEdges += stats.CallEdges
 		combined.Implementations += stats.Implementations
+		ingested++
 		if p.language == "php" {
 			phpProduced = true
 		}
@@ -376,6 +459,9 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 	status := deriveStatus(results)
 	if status != "ready" {
 		fmt.Fprintf(os.Stderr, "scry: status=%s\n", status)
+		if ingested == 0 {
+			fmt.Fprintf(os.Stderr, "scry:   no language produced a usable index for %s — the store is empty\n", repoPath)
+		}
 		for _, r := range results {
 			if r.Status == IndexerMissing || r.Status == IndexerFailed {
 				fmt.Fprintf(os.Stderr, "scry:   %s: %s — %s\n", r.Language, r.Status, r.Error)
@@ -392,6 +478,7 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		Languages:     languages,
 		IndexedAt:     time.Now().UTC(),
 		Status:        status,
+		HeadCommit:    headCommit,
 		Stats:         combined,
 		CoverageStats: covStats,
 		Indexers:      results,
@@ -422,4 +509,3 @@ func writeManifest(path string, m *Manifest) error {
 	}
 	return os.WriteFile(path, b, 0o644)
 }
-

@@ -28,6 +28,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	sourceexec "github.com/jeffdhooton/scry/internal/sources/exec"
 )
 
 //go:embed scip-php.tar.gz
@@ -108,10 +110,8 @@ func Index(ctx context.Context, scryHomeBin, repoRoot, outputPath string) (strin
 		scipBin,
 	)
 	cmd.Dir = repoRoot
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("scip-php exited non-zero: %w", err)
+	if err := sourceexec.Run(cmd, "scip-php", os.Stderr); err != nil {
+		return "", err
 	}
 
 	// scip-php writes to ./index.scip — pick it up and move it to outputPath.

@@ -55,7 +55,8 @@ machine-readable report suitable for bug reports or scripts.`,
 			var fixes []doctor.FixResult
 			if fix {
 				fixes = doctor.RunFixes(report, doctor.FixOptions{
-					Options: doctor.Options{ScryHome: home, Cwd: cwd},
+					Options:      doctor.Options{ScryHome: home, Cwd: cwd},
+					AllowNetwork: true,
 				})
 				// Re-run the diagnostic so the "after" report reflects
 				// whatever the fixes changed. Users get a clean view of
@@ -150,6 +151,19 @@ func printDoctorReport(w io.Writer, r *doctor.Report) {
 			marker, color := markerFor(chk.Status)
 			label := c.apply(color, marker) + " " + padRight(chk.Name, 28)
 			fmt.Fprintf(w, "  %s %s\n", label, dimIfBlank(c, chk.Detail))
+			if chk.Stderr != "" {
+				preview, clipped := stderrPreview(chk.Stderr)
+				for i, line := range preview {
+					if i == 0 {
+						fmt.Fprintf(w, "    %s stderr: %s\n", c.dim("→"), c.dim(line))
+					} else {
+						fmt.Fprintf(w, "      %s\n", c.dim(line))
+					}
+				}
+				if clipped {
+					fmt.Fprintf(w, "    %s run `scry doctor --json` for full stderr\n", c.dim("→"))
+				}
+			}
 			if chk.Remedy != "" {
 				fmt.Fprintf(w, "    %s %s\n", c.dim("→"), c.dim(chk.Remedy))
 			}
@@ -166,6 +180,31 @@ func printDoctorReport(w io.Writer, r *doctor.Report) {
 	if r.Failed > 0 {
 		fmt.Fprintln(w, c.apply("red", "scry doctor: some checks failed — see details above"))
 	}
+}
+
+const (
+	doctorStderrLines     = 3
+	doctorStderrLineBytes = 240
+)
+
+// stderrPreview keeps the human checklist compact while favoring the final
+// compiler lines. The complete captured tail remains available via --json.
+func stderrPreview(stderr string) (preview []string, clipped bool) {
+	lines := strings.Split(strings.TrimSpace(stderr), "\n")
+	if len(lines) > doctorStderrLines {
+		lines = lines[len(lines)-doctorStderrLines:]
+		clipped = true
+	}
+	preview = make([]string, 0, len(lines))
+	for _, line := range lines {
+		if len(line) > doctorStderrLineBytes {
+			line = line[len(line)-doctorStderrLineBytes:]
+			line = "…" + line
+			clipped = true
+		}
+		preview = append(preview, line)
+	}
+	return preview, clipped
 }
 
 // isTerminal reports whether f is attached to a character device (i.e. a

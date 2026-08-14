@@ -12,6 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	sourceexec "github.com/jeffdhooton/scry/internal/sources/exec"
 )
 
 // ErrIndexerNotFound is returned when scip-typescript is not on PATH.
@@ -56,10 +58,8 @@ func Index(ctx context.Context, repoRoot, outputPath string) (string, error) {
 	)
 	// scip-typescript writes its build log to stdout/stderr; pipe both up so the
 	// caller can decide whether to surface them.
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("scip-typescript exited non-zero: %w", err)
+	if err := sourceexec.Run(cmd, "scip-typescript", os.Stderr); err != nil {
+		return "", err
 	}
 	if _, err := os.Stat(outputPath); err != nil {
 		return "", fmt.Errorf("scip-typescript reported success but no output at %s: %w", outputPath, err)
