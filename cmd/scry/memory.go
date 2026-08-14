@@ -51,7 +51,8 @@ it.`,
 	}
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
-		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd())
+		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
+		memoryHygieneCmd(), memoryDescribeCmd())
 	return cmd
 }
 
@@ -148,6 +149,89 @@ func memoryIngestCmd() *cobra.Command {
 	cmd.Flags().String("path", "", "path to the transcript file, run directory, or seed markdown file (required)")
 	_ = cmd.MarkFlagRequired("source")
 	_ = cmd.MarkFlagRequired("path")
+	return cmd
+}
+
+// --- describe ---
+
+func memoryDescribeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "describe <slug> <description>",
+		Short: "Set an entity's description deliberately",
+		Long: `The write path fills descriptions but never replaces them, so a mention can
+no longer overwrite an established identity. That also means a wrong
+description can only be corrected on purpose. This is how.`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			var out map[string]any
+			if err := callDaemon(ctx, "memory.describe",
+				map[string]any{"slug": args[0], "description": args[1]}, &out); err != nil {
+				return err
+			}
+			fmt.Printf("%s: %s\n", args[0], args[1])
+			return nil
+		},
+	}
+	return cmd
+}
+
+// --- hygiene ---
+
+func memoryHygieneCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "hygiene",
+		Short: "Repair entities polluted by run artifacts (temp worktrees, scratch dirs, dead repo refs)",
+		Long: `Cleans entity identity that the write path used to accept:
+
+  - aliases that are temp worktrees, scratch paths, or bare hex ids
+  - repo refs pointing at directories that are no longer repositories
+  - repo refs beyond the per-entity cap
+
+Entities whose own name is a run artifact are REPORTED, not deleted: facts
+reference entities by slug, so removing one would orphan its facts.
+
+Defaults to a dry run — this edits recorded history, so read it first.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apply, _ := cmd.Flags().GetBool("apply")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			var rep resolve.HygieneReport
+			if err := callDaemon(ctx, "memory.hygiene",
+				map[string]any{"dry_run": !apply}, &rep); err != nil {
+				return err
+			}
+
+			mode := "dry run"
+			if apply {
+				mode = "applied"
+			}
+			fmt.Printf("memory hygiene (%s)\n", mode)
+			fmt.Printf("  entities scanned:  %d\n", rep.EntitiesScanned)
+			fmt.Printf("  entities changed:  %d\n", rep.EntitiesChanged)
+			fmt.Printf("  aliases dropped:   %d\n", rep.AliasesDropped)
+			fmt.Printf("  repo refs dropped: %d\n", rep.RepoRefsDropped)
+			if len(rep.EphemeralEntities) > 0 {
+				fmt.Printf("\n  %d entities are themselves run artifacts (reported, not deleted;\n"+
+					"  their facts would be orphaned). Review before removing:\n", len(rep.EphemeralEntities))
+				for i, n := range rep.EphemeralEntities {
+					if i == 15 {
+						fmt.Printf("    ... and %d more\n", len(rep.EphemeralEntities)-15)
+						break
+					}
+					fmt.Printf("    %s\n", n)
+				}
+			}
+			if !apply && (rep.EntitiesChanged > 0) {
+				fmt.Printf("\nre-run with --apply to write these changes\n")
+			}
+			return nil
+		},
+	}
+	cmd.Flags().Bool("apply", false, "write the changes (default is a dry run)")
 	return cmd
 }
 

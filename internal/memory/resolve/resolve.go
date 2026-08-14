@@ -23,6 +23,8 @@ package resolve
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -92,6 +94,11 @@ func Apply(st *store.Store, ep store.Episode, cwd string, res extract.Result, ex
 
 // resolveEntity implements Rule 2 for a single extracted entity.
 func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, stats *Stats) error {
+	// A run artifact is not an identity. Storing one pollutes recall forever
+	// and can never be usefully recalled later.
+	if isEphemeralName(ent.Name) {
+		return nil
+	}
 	slug, found, err := st.ResolveAlias(ent.Name)
 	if err != nil {
 		return err
@@ -115,7 +122,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 			Name:        ent.Name,
 			Type:        ent.Type,
 			Description: ent.Description,
-			Aliases:     ent.Aliases,
+			Aliases:     keepDurable(ent.Aliases),
 			CreatedAt:   ep.OccurredAt,
 			LastSeen:    ep.OccurredAt,
 		}
@@ -130,8 +137,12 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	}
 
 	// Merge onto the existing entity.
-	existing.Aliases = unionStrings(existing.Aliases, ent.Aliases)
-	if ent.Description != "" {
+	existing.Aliases = unionStrings(existing.Aliases, keepDurable(ent.Aliases))
+	// Fill the description, never replace it. Last-writer-wins let a
+	// throwaway session in a scratch directory overwrite a real project's
+	// description with an observation about the scratch directory. An
+	// identity should be stable; correct it deliberately, not by mention.
+	if existing.Description == "" && ent.Description != "" {
 		existing.Description = ent.Description
 	}
 	if ep.OccurredAt.After(existing.LastSeen) {
@@ -139,6 +150,9 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	}
 	if isWorkspacePath(cwd) {
 		existing.RepoRefs = unionStrings(existing.RepoRefs, []string{cwd})
+		if len(existing.RepoRefs) > maxRepoRefs {
+			existing.RepoRefs = existing.RepoRefs[len(existing.RepoRefs)-maxRepoRefs:]
+		}
 	}
 	if err := st.PutEntity(existing); err != nil {
 		return err
@@ -485,10 +499,64 @@ func clampInvalidAt(at, validFrom time.Time) time.Time {
 // worth recording as a RepoRef, as opposed to "", "/", or scratch/system
 // paths such as "/tmp/...".
 func isWorkspacePath(cwd string) bool {
-	if cwd == "" {
+	if cwd == "" || !strings.HasPrefix(cwd, "/Users/") {
 		return false
 	}
-	return strings.HasPrefix(cwd, "/Users/")
+	// A repo ref must be an actual repository that still exists. Without
+	// this, every session's cwd accumulated onto whatever entity it happened
+	// to mention — one entity ended up claiming four unrelated repos, which
+	// makes it useless for answering "where does this live?".
+	if _, err := os.Stat(filepath.Join(cwd, ".git")); err != nil {
+		return false
+	}
+	return true
+}
+
+// maxRepoRefs caps how many repositories one entity may claim. An entity
+// that genuinely spans more than a handful of repos is not an entity, it is
+// a category, and listing twenty paths helps nobody.
+const maxRepoRefs = 6
+
+// ephemeralPatterns match names that are artifacts of a single run rather
+// than durable identities: temp worktrees, scratch directories, and bare
+// hex ids. These were being promoted to permanent entities and aliases —
+// `setpoint-wt-9e6jz82r` became an alias of a real project, and a throwaway
+// `/tmp` experiment became an entity.
+var (
+	tempWorktreeRe = regexp.MustCompile(`(?i)-wt-[a-z0-9]{6,}$|^setpoint-wt-|^loom-wt-`)
+	bareHexRe      = regexp.MustCompile(`^[0-9a-f]{8,}$`)
+	// Session/thread UUIDs: durable to nothing, and they were being stored as
+	// aliases of real agents.
+	uuidRe = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+)
+
+func isEphemeralName(name string) bool {
+	n := strings.TrimSpace(name)
+	if n == "" {
+		return true
+	}
+	if strings.HasPrefix(n, "/tmp/") || strings.HasPrefix(n, "/private/tmp/") ||
+		strings.HasPrefix(n, "/private/var/folders/") || strings.HasPrefix(n, "/var/folders/") {
+		return true
+	}
+	if tempWorktreeRe.MatchString(n) {
+		return true
+	}
+	if bareHexRe.MatchString(strings.ToLower(n)) || uuidRe.MatchString(n) {
+		return true
+	}
+	return false
+}
+
+// keepDurable drops ephemeral names from a candidate alias list.
+func keepDurable(names []string) []string {
+	out := make([]string, 0, len(names))
+	for _, n := range names {
+		if !isEphemeralName(n) {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 // unionStrings appends elements of incoming to existing that are not
