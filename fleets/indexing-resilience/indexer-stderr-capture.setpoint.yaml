@@ -1,0 +1,35 @@
+name: indexer-stderr-capture
+type: coding
+goal: "`scip-typescript exited non-zero: exit status 1` is the entire diagnostic a\
+  \ user gets today. Change each shell-out indexer in `internal/sources/typescript`,\
+  \ `internal/sources/golang`, `internal/sources/php`, and `internal/sources/python`\
+  \ to capture the child process's stderr and, on non-zero exit, return an error carrying\
+  \ a clipped tail of it (last ~8 KB \u2014 the tail is where the compiler's real\
+  \ complaint lands; prepend an explicit truncation marker when clipping). Introduce\
+  \ one shared error type for this so `errors.As` works uniformly, keep existing not-found\
+  \ sentinels (`typescript.ErrIndexerNotFound` etc.) matchable via `errors.Is` so\
+  \ `index.classify` still routes them to `missing`. Then record the captured tail\
+  \ on `IndexerResult` and surface it through `scry status` (daemon `StatusResult`,\
+  \ internal/daemon/methods.go) and `scry doctor` (internal/doctor) \u2014 full tail\
+  \ in `--json`, a clipped few lines in the human checklist with a pointer to the\
+  \ JSON for the rest. Tests must exercise capture and clipping without any real indexer\
+  \ binary: run a fake command (e.g. a `sh -c` or `go run`-free stub, or inject the\
+  \ exec seam) that writes a large known stderr and exits non-zero, and assert the\
+  \ tail, the truncation marker, and that the sentinel classification is preserved."
+workspace:
+  repo: /Users/jeff/workspace/context-stack/scry
+  worktree: true
+  branch: setpoint/indexer-stderr-capture
+execute:
+  engine: codex
+verify:
+  gate: command
+  command: go build ./... && go test ./...
+  scoped_command: go test ./internal/sources/... ./internal/index/... ./internal/doctor/...
+    && go test ./internal/sources/... ./internal/index/... ./internal/doctor/... -run
+    'TestIndexerErrorCapturesStderr' -v 2>&1 | grep -q 'RUN   TestIndexerErrorCapturesStderr'
+stop:
+  max_iters: 6
+deliver:
+  push: true
+  pr: true

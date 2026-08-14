@@ -1,0 +1,11 @@
+{
+  "room_id": "c64b179104e6",
+  "run_id": "indexing-resilience",
+  "repo": "/Users/jeff/workspace/context-stack/scry",
+  "members": {
+    "partial-degrade-build": "claude-partial-degrade-build",
+    "indexer-stderr-capture": "codex-indexer-stderr-capture",
+    "npm-indexer-provisioning": "codex-npm-indexer-provisioning",
+    "stale-and-empty-signals": "claude-stale-and-empty-signals"
+  }
+}

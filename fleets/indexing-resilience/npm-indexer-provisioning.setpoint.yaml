@@ -1,0 +1,36 @@
+name: npm-indexer-provisioning
+type: coding
+goal: "`internal/install/install.go` documents that scip-typescript has no GitHub\
+  \ release assets and therefore skips it, handing the user a remedy string to run\
+  \ by hand; scip-python has the same problem. Both install cleanly from npm (`npm\
+  \ i -g @sourcegraph/scip-typescript` \u2192 0.4.0, `npm i -g @sourcegraph/scip-python`).\
+  \ Add an npm provisioning path: detect npm on PATH, install the package globally,\
+  \ verify the resulting binary is invocable, and report what happened. When npm is\
+  \ absent, do not silently skip \u2014 emit the exact command the user must run and\
+  \ the prerequisite that is missing. Wire this into both `scry install` and `scry\
+  \ doctor --fix` (internal/doctor/fix.go) so a single command can bring a broken\
+  \ machine to green. Also handle the specific case that burned the reproduction:\
+  \ a daemon started before the install has a stale PATH and will keep reporting the\
+  \ tool as missing forever. Detect it \u2014 the binary resolves for the CLI process\
+  \ but the daemon's recorded environment/start time predates the install \u2014 and\
+  \ say so explicitly ('scip-typescript is installed but the running daemon started\
+  \ before it; run `scry daemon restart`') rather than reporting the tool as missing.\
+  \ Structure the provisioning decision as a pure, table-testable function; no test\
+  \ may shell out to npm or require any indexer installed."
+workspace:
+  repo: /Users/jeff/workspace/context-stack/scry
+  worktree: true
+  branch: setpoint/npm-indexer-provisioning
+execute:
+  engine: codex
+verify:
+  gate: command
+  command: go build ./... && go test ./...
+  scoped_command: go test ./internal/install/... ./internal/doctor/... && go test
+    ./internal/install/... ./internal/doctor/... -run 'TestInstallProvisionsNpmIndexer'
+    -v 2>&1 | grep -q 'RUN   TestInstallProvisionsNpmIndexer'
+stop:
+  max_iters: 6
+deliver:
+  push: true
+  pr: true

@@ -1,0 +1,36 @@
+name: partial-degrade-build
+type: coding
+goal: "Make `internal/index` degrade per-language instead of collapsing. Today `buildAtLayout`\
+  \ (internal/index/builder.go) aborts and writes no manifest when every indexer fails,\
+  \ and \u2014 worse \u2014 a single `scip.Parse` failure at builder.go:317 returns\
+  \ an error for the entire build, discarding the languages that succeeded and leaving\
+  \ the previous stale manifest untouched. Fix both: a per-language parse/ingest failure\
+  \ must be recorded as an `IndexerFailed` result for that language while every other\
+  \ language still ingests, and a manifest must be written on every build that produced\
+  \ any usable output (status `partial`). Only a genuinely untrustworthy outcome \u2014\
+  \ storage dir uncreatable, store un-openable, `Reset` failure, manifest unwritable\
+  \ \u2014 may abort. When zero languages produced output, still write a manifest\
+  \ recording every language's failure plus remedy rather than returning bare `rpc\
+  \ error -32603` with no manifest. Also record per-language ingest counts on `IndexerResult`\
+  \ (documents, symbols, definitions, references) so downstream consumers can tell\
+  \ a language that indexed nothing from one that indexed nothing because it never\
+  \ ran. Cover with table-driven tests through the injected `run func(language string)\
+  \ error` seam in `buildResults` plus a `buildAtLayout`-level test using a fake/stubbed\
+  \ indexer runner \u2014 no test may require scip-typescript, scip-python, scip-go,\
+  \ php, or npm on PATH."
+workspace:
+  repo: /Users/jeff/workspace/context-stack/scry
+  worktree: true
+  branch: setpoint/partial-degrade-build
+execute:
+  engine: claude
+verify:
+  gate: command
+  command: go build ./... && go test ./...
+  scoped_command: go test ./internal/index/... && go test ./internal/index/... -run
+    'TestBuildContinuesAfterMissingIndexer' -v 2>&1 | grep -q 'RUN   TestBuildContinuesAfterMissingIndexer'
+stop:
+  max_iters: 6
+deliver:
+  push: true
+  pr: true

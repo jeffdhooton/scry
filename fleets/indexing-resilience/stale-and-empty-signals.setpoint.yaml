@@ -1,0 +1,36 @@
+name: stale-and-empty-signals
+type: coding
+goal: "A repo indexed months ago and a repo whose graph builds `node_count: 0, edge_count:\
+  \ 0` from a non-empty file set both report `ready` today. Add two derived signals.\
+  \ STALE: the index is older than the repo's current HEAD \u2014 compare the manifest's\
+  \ `IndexedAt`/recorded HEAD against the live HEAD via the existing `internal/git`\
+  \ helpers; if HEAD moved (or, when HEAD is unavailable, the newest source file mtime\
+  \ is newer than `IndexedAt`), mark stale. Record the HEAD commit at build time in\
+  \ the manifest so the comparison is exact rather than clock-based. EMPTY: a primary\
+  \ language whose indexer reported `ok` but produced zero symbols across a non-zero\
+  \ detected file count is a failure wearing a success label \u2014 flag it per-language\
+  \ and roll it up to the repo. Surface both through `scry status` (daemon `StatusResult`)\
+  \ and `scry doctor`: a repo can be `ready`, `partial`, `stale`, or `empty`, and\
+  \ doctor must print which languages are empty and how old the index is. Neither\
+  \ signal may require a reindex to compute, and neither may make `scry status` slow\
+  \ \u2014 HEAD resolution is one git call per repo, cached for the status call. Tests\
+  \ must cover: HEAD-moved stale, HEAD-unchanged not-stale, missing-git fallback,\
+  \ empty-with-files flagged, empty-with-no-files not flagged, and the precedence\
+  \ order when a repo is both partial and stale."
+workspace:
+  repo: /Users/jeff/workspace/context-stack/scry
+  worktree: true
+  branch: setpoint/stale-and-empty-signals
+execute:
+  engine: claude
+verify:
+  gate: command
+  command: go build ./... && go test ./...
+  scoped_command: go test ./internal/index/... ./internal/daemon/... ./internal/doctor/...
+    && go test ./internal/index/... ./internal/daemon/... ./internal/doctor/... -run
+    'TestStatusReportsStaleIndex' -v 2>&1 | grep -q 'RUN   TestStatusReportsStaleIndex'
+stop:
+  max_iters: 6
+deliver:
+  push: true
+  pr: true
