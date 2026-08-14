@@ -14,6 +14,7 @@
 curl -fsSL https://raw.githubusercontent.com/jeffdhooton/scry/main/scripts/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 scry setup                   # MCP server + skill + PreToolUse hook for Claude Code
+scry install                 # provision and verify the npm SCIP indexers
 cd ~/path/to/your/repo && scry init --all
 scry doctor                  # green/yellow/red checklist; exit 1 if anything failed
 ```
@@ -28,8 +29,8 @@ scry itself is a single static Go binary with no runtime dependencies. Prerequis
 |---|---|---|
 | Go code indexing | nothing | `scip-go` auto-downloads to `~/.scry/bin/` (pinned, SHA256-verified) |
 | PHP / Laravel indexing | `php` 8.1+ on PATH | `scip-php` is embedded in the binary, extracted on first use |
-| TypeScript / JS indexing | `npm i -g @sourcegraph/scip-typescript` | npm package, no auto-download available |
-| Python indexing | `python3` (3.10–3.13) + `npm i -g @sourcegraph/scip-python` | Node >=16; see the Python gotcha below |
+| TypeScript / JS indexing | `npm` on PATH | `scry install typescript` installs and verifies the global npm package |
+| Python indexing | `python3` (3.10–3.13) + `npm` on PATH | `scry install python`; Node >=16; see the Python gotcha below |
 | Git intelligence | `git` on PATH | already there if it's a repo |
 | Schema introspection | a reachable MySQL/PostgreSQL DSN | read from `--dsn` or a `.env` file |
 | Claude Code integration | the `claude` CLI on PATH | `scry setup` shells out to `claude mcp add` |
@@ -169,7 +170,7 @@ scry doctor --fix            # auto-remediate the fixable checks
 
 **Exit code is 1 if any check FAILED, 0 otherwise.** Warnings are advisory and don't affect the exit code — "scip-typescript not installed" only matters if you index TypeScript.
 
-`--fix` handles the fast, reversible subset: creating `~/.scry`, clearing a stale daemon PID/socket, re-running `scry setup` for a missing MCP registration or skill, and creating `~/.claude/CLAUDE.md` with the routing rule when that file doesn't exist yet (an existing one is never edited). Anything slow or surprising (installing PHP, running `scry init`) is reported, never executed.
+`--fix` creates `~/.scry`, clears stale daemon files, refreshes missing Claude integration, and provisions missing npm SCIP indexers. It verifies each installed binary and restarts a daemon whose environment predates the install. This may use the network and take several minutes. Installing PHP and running `scry init` are still reported, never executed.
 
 Then confirm end to end:
 
@@ -188,7 +189,7 @@ scry refs SomeSymbolYouKnow  # expect: occurrences with file:line:col
 | Claude never calls scry tools | Skill and hook missing or Claude Code wasn't restarted. `scry doctor`, then restart. Add the [global config block](#global-agent-config-files). |
 | Empty results for a symbol you can see | Vendor/external symbol, name collision, or repo not indexed. Try the qualified form (`Class::method`), check `scry status`, fall back to Grep. |
 | `"not indexed yet"` RPC error | The watcher is mid-reindex. Retry once — the swap takes ~12ms. |
-| TypeScript repo indexes zero symbols | `scip-typescript` missing: `npm i -g @sourcegraph/scip-typescript`. |
+| TypeScript repo indexes zero symbols | Run `scry install typescript`, then `scry daemon restart` if the diagnostic says the daemon predates the install. |
 | Memory commands print "dormant" | No `SCRY_MEMORY_API_KEY` / `DEEPSEEK_API_KEY` in that shell. Note launchd/cron don't inherit your shell env. |
 | Stale daemon after a crash | `scry stop` then any command re-spawns it, or `scry doctor --fix`. |
 | Everything is weird | `scry stop && rm -rf ~/.scry/repos && scry init --all`. Indexes are disposable. |
@@ -220,10 +221,13 @@ export PATH="$HOME/.local/bin:$PATH"
 # 2. Register with Claude Code (idempotent; also removes legacy tome/flume/lore)
 scry setup
 
-# 3. Index the repo you're working in
+# 3. Provision npm indexers (explicit global install; requires npm on PATH)
+scry install
+
+# 4. Index the repo you're working in
 cd "$(git rev-parse --show-toplevel)" && scry init --all
 
-# 4. Verify — exits 1 if any check FAILED
+# 5. Verify — exits 1 if any check FAILED
 scry doctor --json
 ```
 
@@ -237,8 +241,8 @@ scry defs <a symbol you saw in the code>   # non-empty result set?
 **Rules for doing this well:**
 
 - **Parse `scry doctor --json`, don't eyeball the pretty output.** Each check carries an `id`, `status` (`pass` / `warn` / `fail`), and a `remedy` string. Act on `fail`; report `warn` to the user only when it's relevant to their stack (a missing `scip-python` is noise in a Go repo).
-- **Try `scry doctor --fix` before asking the user for anything.** It resolves missing `~/.scry`, stale daemons, missing MCP registration/skill, and writes a global CLAUDE.md when the user has none — all without prompting. Re-run `scry doctor --json` afterward and only surface what's *still* failing.
-- **Never install language indexers silently.** `npm i -g @sourcegraph/scip-typescript` and `scip-python` are global installs on the user's machine — propose them, don't run them unasked. `scip-go` and `scip-php` need no permission (auto-download / embedded).
+- **Try `scry doctor --fix` before asking the user for anything.** It resolves missing `~/.scry`, stale daemons, missing MCP registration/skill, and missing npm SCIP indexers. It may use the network and take several minutes. Re-run `scry doctor --json` afterward and only surface what's *still* failing.
+- **Never install language indexers silently.** `scry install` and a user-requested `scry doctor --fix` explicitly authorize the global npm installs. Outside those commands, propose the exact command instead of running it unasked. `scip-go` and `scip-php` use the existing auto-download / embedded paths.
 - **Never enable the memory domain on your own.** It costs money per token and reads every transcript on the machine. Explain it, hand the user the env var, let them decide. Absent a key it stays dormant and harmless.
 - **Tell the user to restart Claude Code.** MCP servers and skills are loaded at session start; nothing you did in step 2 is visible in the *current* session.
 - **If the host isn't Claude Code**, `scry setup` has nothing to register — do the [per-host MCP config](#mcp-registration-per-host) instead (Codex, Cursor, Gemini CLI, Claude Desktop). Always write an absolute binary path; `~` isn't expanded in those config files.
@@ -604,7 +608,7 @@ Config paths are what the vendors document as of this writing; if a host has mov
 
 ## Known limitations
 
-- **`scip-typescript` requires manual install.** It's an npm package; no auto-download available. Workaround: `npm i -g @sourcegraph/scip-typescript`.
+- **npm is required to provision `scip-typescript` and `scip-python`.** Run `scry install`; when npm is absent, scry prints the prerequisite and exact manual command instead of silently skipping the indexer.
 - **Vue Single File Components are not indexed.** scip-typescript only walks `.ts`/`.tsx` files.
 - **Symbol kind always reports `UnspecifiedKind`.** scip-typescript v0.4.0 doesn't populate `SymbolInformation.Kind`.
 - **`<200ms` incremental update is unreachable.** SCIP indexers are project-wide. Realistic: ~600ms small, ~10s large.

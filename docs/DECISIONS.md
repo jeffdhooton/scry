@@ -9,6 +9,36 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-08-13 — Explicit npm provisioning for TypeScript and Python indexers
+
+**Decision:** Superseding the manual-only portions of the 2026-04-10 and
+2026-04-11 indexer-install decisions, scry may install the official
+`@sourcegraph/scip-typescript` and `@sourcegraph/scip-python` packages globally
+when the user explicitly runs `scry install` or `scry doctor --fix`. The flow
+requires `npm` on PATH, invokes the exact documented `npm i -g` command, and
+then resolves and invokes the resulting binary with `--version`. If npm is
+missing, scry names that prerequisite and prints the command instead of
+silently skipping the tool.
+
+A daemon that predates a newly installed binary may retain a PATH that cannot
+resolve it. Doctor reports that ordering as a warning with the explicit remedy
+`scry daemon restart`; `doctor --fix` performs the restart after provisioning.
+The planning decision remains pure and takes all PATH and timestamp facts as
+inputs, so tests never need npm, network access, or an installed indexer.
+
+**Why:** Both packages install cleanly through npm, while the previous manual
+remedy left an otherwise automated setup broken and allowed a stale daemon to
+keep reporting a just-installed indexer as missing. The explicit commands are
+the consent boundary for the global install; indexing itself still never
+silently installs an npm package.
+
+**What would change our minds:** official, checksum-verifiable standalone
+release binaries would move these tools to the pinned GitHub-release path.
+Conversely, an npm install that cannot be verified non-interactively would
+move the affected tool back to a surfaced manual remedy.
+
+---
+
 ## 2026-04-12 — Test coverage: aggregate-only, user-generated, four format parsers
 
 **Decision:** Test coverage indexing ships as a post-processor in the build
