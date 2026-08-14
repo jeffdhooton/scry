@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/jeffdhooton/scry/internal/sources/golang"
 	"github.com/jeffdhooton/scry/internal/sources/typescript"
+	"github.com/jeffdhooton/scry/internal/store"
 )
 
 // These tests exercise a whole build without any indexer binary on the
@@ -276,6 +278,12 @@ func TestBuildAtLayout_AbortsOnlyWhenTheOutcomeIsUntrustworthy(t *testing.T) {
 		// sabotage runs after Layout but before the build, and breaks one
 		// step of the trustworthy path.
 		sabotage func(t *testing.T, layout RepoLayout)
+		// wantErr is a substring of the error the sabotaged step wraps its
+		// failure in. Asserting it is what keeps a case from passing for the
+		// wrong reason: without it, sabotage that happened to trip an
+		// *earlier* abort would still produce an error and no manifest, and
+		// the step we meant to cover would go untested.
+		wantErr string
 	}{
 		{
 			// A regular file where the storage dir belongs: MkdirAll fails
@@ -289,6 +297,7 @@ func TestBuildAtLayout_AbortsOnlyWhenTheOutcomeIsUntrustworthy(t *testing.T) {
 					t.Fatal(err)
 				}
 			},
+			wantErr: "create storage dir",
 		},
 		{
 			// A regular file where the BadgerDB dir belongs: store.Open
@@ -302,6 +311,25 @@ func TestBuildAtLayout_AbortsOnlyWhenTheOutcomeIsUntrustworthy(t *testing.T) {
 					t.Fatal(err)
 				}
 			},
+			wantErr: "open store",
+		},
+		{
+			// A failing Reset. Unlike the other three this one cannot be
+			// provoked from the filesystem: the store is already open by the
+			// time Reset runs, so anything we break beforehand trips Open
+			// instead and would pass this test for the wrong reason. We go
+			// through the resetStore seam instead. What it guards is stale
+			// data — a build that could not wipe the previous generation
+			// would ingest on top of it and describe the mixture as fresh.
+			name: "reset fails",
+			sabotage: func(t *testing.T, layout RepoLayout) {
+				prev := resetStore
+				resetStore = func(*store.Store) error {
+					return errors.New("drop all: injected")
+				}
+				t.Cleanup(func() { resetStore = prev })
+			},
+			wantErr: "reset store",
 		},
 		{
 			// A directory where the manifest file belongs. This is the case
@@ -314,6 +342,7 @@ func TestBuildAtLayout_AbortsOnlyWhenTheOutcomeIsUntrustworthy(t *testing.T) {
 					t.Fatal(err)
 				}
 			},
+			wantErr: "write manifest",
 		},
 	}
 
@@ -327,8 +356,12 @@ func TestBuildAtLayout_AbortsOnlyWhenTheOutcomeIsUntrustworthy(t *testing.T) {
 			var invoked []string
 			run := fakeIndexer(t, repo, nil, &invoked)
 
-			if _, err := buildAtLayout(context.Background(), scryHome, repo, layout, run); err == nil {
+			_, err := buildAtLayout(context.Background(), scryHome, repo, layout, run)
+			if err == nil {
 				t.Fatal("an untrustworthy outcome must abort the build with an error")
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("aborted somewhere other than the sabotaged step: want an error mentioning %q, got %q", tc.wantErr, err)
 			}
 			if _, err := LoadManifest(layout); err == nil {
 				t.Error("no manifest may be written when we cannot say what the store contains")

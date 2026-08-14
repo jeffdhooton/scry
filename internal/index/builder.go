@@ -172,6 +172,14 @@ func indexerFor(language string) string {
 // or npm anywhere on PATH.
 type indexerRunner func(ctx context.Context, language, binDir, repoPath, out string) error
 
+// resetStore wipes the store before re-ingest. It is a var only so tests can
+// exercise the reset-failure abort path, which is one of the four outcomes
+// the build must refuse to write a manifest for and is otherwise impossible
+// to provoke from outside: the store is already open by the time it runs, so
+// no filesystem sabotage set up before the build can reach it. Production
+// never replaces this.
+var resetStore = func(st *store.Store) error { return st.Reset() }
+
 // runInstalledIndexer is the production indexerRunner: it shells out to the
 // real indexer binary for the language.
 func runInstalledIndexer(ctx context.Context, language, binDir, repoPath, out string) error {
@@ -329,7 +337,7 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 	}
 	// Always reset before re-ingesting so we don't accumulate stale records
 	// from a previous build.
-	if err := st.Reset(); err != nil {
+	if err := resetStore(st); err != nil {
 		return nil, fmt.Errorf("reset store: %w", err)
 	}
 
