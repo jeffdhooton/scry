@@ -96,12 +96,17 @@ func Apply(st *store.Store, ep store.Episode, cwd string, res extract.Result, ex
 func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, stats *Stats) error {
 	// A run artifact is not an identity. Storing one pollutes recall forever
 	// and can never be usefully recalled later.
-	if isEphemeralName(ent.Name) {
+	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) {
 		return nil
 	}
 	slug, found, err := st.ResolveAlias(ent.Name)
 	if err != nil {
 		return err
+	}
+	// A generic name must never pull an entity in by alias: that is the
+	// runaway-merge path. Give it its own slug and let it stand alone.
+	if found && isGenericAlias(ent.Name) {
+		found = false
 	}
 	if !found {
 		slug = store.Slugify(ent.Name)
@@ -548,13 +553,113 @@ func isEphemeralName(name string) bool {
 	return false
 }
 
+// genericAliases are role words, not identities. They were the mechanism of
+// the worst corruption in the graph: once "workspace" and "orchestrator"
+// became aliases of one project, every later session that said "the
+// workspace" merged into it, fusing three unrelated projects into a single
+// entity that claimed four repos.
+//
+// A role describes what something is doing right now. An identity is what it
+// IS. Only identities belong here.
+var genericAliases = map[string]bool{
+	"agent": true, "app": true, "the app": true, "application": true,
+	"cli": true, "codebase": true, "current directory": true, "cwd": true,
+	"current worktree": true, "daemon": true, "dir": true, "directory": true,
+	"engine": true, "executor": true, "here": true, "loop": true,
+	"main": true, "module": true, "north star": true, "orchestrator": true,
+	"package": true, "project": true, "the project": true, "repo": true,
+	"the repo": true, "repo root": true, "repository": true, "root": true,
+	"runner": true, "server": true, "service": true, "session": true,
+	"task orchestrator": true, "room orchestrator": true, "tool": true,
+	"this repo": true, "worktree": true, "workspace": true,
+	"operations app": true, "ops app": true, "the fleet": true,
+	"the mini": false, // a real machine nickname — kept deliberately
+}
+
+// processNouns are the vocabulary of doing work rather than the names of
+// things. Stored as entities they become universal magnets: once "plan"
+// exists, every design document in the graph carries it as an alias and
+// "collides" with it, and the collision signal becomes useless.
+var processNouns = map[string]bool{
+	"approved": true, "bug": true, "branch": true, "change": true,
+	"commit": true, "design": true, "doc": true, "docs": true,
+	"error": true, "failed": true, "failure": true, "feature": true,
+	"fix": true, "issue": true, "iteration": true, "note": true,
+	"notes": true, "output": true, "passed": true, "phase": true,
+	"plan": true, "pr": true, "private": true, "public": true,
+	"report": true, "result": true, "results": true, "review": true,
+	"spec": true, "status": true, "step": true, "task": true,
+	"test": true, "tests": true, "ticket": true, "warning": true,
+	"success": true, "done": true, "pending": true, "blocked": true,
+}
+
+// numberedStepRe matches "task 2", "phase 1 plan", "step 3", "iteration 4":
+// positions in a process, not identities.
+var bareNumberRe = regexp.MustCompile(`^\d{1,6}$`)
+
+var numberedStepRe = regexp.MustCompile(`(?i)^(task|phase|step|iteration|wave|round|part)\s+\d+`)
+
+// isGenericEntityName reports whether a name is process vocabulary rather
+// than an identity, and so must never be stored as an entity at all.
+func isGenericEntityName(name string) bool {
+	n := strings.ToLower(strings.TrimSpace(name))
+	n = strings.TrimPrefix(n, "the ")
+	if n == "" {
+		return true
+	}
+	if processNouns[n] {
+		return true
+	}
+	// A bare number is never an identity. "87" and "88" were entities, each
+	// carrying a PR number and a build command as aliases.
+	if bareNumberRe.MatchString(n) {
+		return true
+	}
+	if numberedStepRe.MatchString(n) {
+		return true
+	}
+	// "implementation plan", "rollout plan", "test plan" — a qualifier on a
+	// process noun is still a process noun.
+	if fields := strings.Fields(n); len(fields) == 2 && processNouns[fields[1]] {
+		return true
+	}
+	return isGenericAlias(n)
+}
+
+// isGenericAlias reports whether a name is a role rather than an identity,
+// and so must never be stored as an alias or used to merge entities.
+func isGenericAlias(name string) bool {
+	n := strings.ToLower(strings.TrimSpace(name))
+	if n == "" {
+		return true
+	}
+	if v, ok := genericAliases[n]; ok {
+		return v
+	}
+	// A sub-path is a location, not an identity: "apps/operations" is a
+	// directory that exists in more than one repo.
+	if strings.Contains(n, "/") && !strings.Contains(n, ".") &&
+		!strings.HasPrefix(n, "/") && len(strings.Split(n, "/")) == 2 {
+		// Keep owner/repo forms (jeffdhooton/setpoint); drop path forms
+		// whose first segment is a common source directory.
+		head := strings.Split(n, "/")[0]
+		switch head {
+		case "apps", "src", "internal", "cmd", "packages", "lib", "pkg",
+			"setpoint", "tests", "docs", "scripts":
+			return true
+		}
+	}
+	return false
+}
+
 // keepDurable drops ephemeral names from a candidate alias list.
 func keepDurable(names []string) []string {
 	out := make([]string, 0, len(names))
 	for _, n := range names {
-		if !isEphemeralName(n) {
-			out = append(out, n)
+		if isEphemeralName(n) || isGenericAlias(n) {
+			continue
 		}
+		out = append(out, n)
 	}
 	return out
 }
