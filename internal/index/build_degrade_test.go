@@ -310,6 +310,22 @@ func TestBuildAtLayout_AllLanguagesOKIsReadyWithPerLanguageCounts(t *testing.T) 
 	}
 }
 
+// sabotageMetaWrite breaks exactly one of buildAtLayout's two meta writes,
+// letting every other one through. Failing all of them would make the
+// repo_path case abort on schema_version instead — an error and no manifest,
+// but from the wrong step, which is the failure mode wantErr exists to catch.
+func sabotageMetaWrite(t *testing.T, key string) {
+	t.Helper()
+	prev := setStoreMeta
+	setStoreMeta = func(st *store.Store, k string, v any) error {
+		if k == key {
+			return errors.New("meta write: injected")
+		}
+		return prev(st, k, v)
+	}
+	t.Cleanup(func() { setStoreMeta = prev })
+}
+
 func TestBuildAtLayout_AbortsOnlyWhenTheOutcomeIsUntrustworthy(t *testing.T) {
 	// The complement of every other test in this file. A failing *language*
 	// degrades; a failure that leaves us unable to say what the store holds
@@ -376,6 +392,44 @@ func TestBuildAtLayout_AbortsOnlyWhenTheOutcomeIsUntrustworthy(t *testing.T) {
 				t.Cleanup(func() { resetStore = prev })
 			},
 			wantErr: "reset store",
+		},
+		{
+			// A failing schema-version read. Same seam rationale as Reset.
+			// What it guards is the generation check: a build that cannot
+			// tell which schema the store on disk was written under cannot
+			// know whether the records it is about to sit beside are even
+			// readable by this binary.
+			name: "schema version unreadable",
+			sabotage: func(t *testing.T, layout RepoLayout) {
+				prev := schemaVersionOnDisk
+				schemaVersionOnDisk = func(*store.Store) (int, error) {
+					return 0, errors.New("meta read: injected")
+				}
+				t.Cleanup(func() { schemaVersionOnDisk = prev })
+			},
+			wantErr: "read schema version",
+		},
+		{
+			// A failing schema_version write, the first of the two meta
+			// writes. An index whose schema stamp never landed reads as
+			// version 0 on the next open, which is the "wipe and rebuild"
+			// signal — so a build that swallowed this would silently
+			// discard itself later rather than at the point of failure.
+			name: "schema version unwritable",
+			sabotage: func(t *testing.T, layout RepoLayout) {
+				sabotageMetaWrite(t, "schema_version")
+			},
+			wantErr: "write schema version",
+		},
+		{
+			// The second meta write. repo_path is how a store found on disk
+			// names the repo it describes; without it the store is an
+			// anonymous pile of records.
+			name: "repo path unwritable",
+			sabotage: func(t *testing.T, layout RepoLayout) {
+				sabotageMetaWrite(t, "repo_path")
+			},
+			wantErr: "write repo path",
 		},
 		{
 			// A directory where the manifest file belongs. This is the case

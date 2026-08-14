@@ -172,13 +172,18 @@ func indexerFor(language string) string {
 // or npm anywhere on PATH.
 type indexerRunner func(ctx context.Context, language, binDir, repoPath, out string) error
 
-// resetStore wipes the store before re-ingest. It is a var only so tests can
-// exercise the reset-failure abort path, which is one of the four outcomes
-// the build must refuse to write a manifest for and is otherwise impossible
-// to provoke from outside: the store is already open by the time it runs, so
-// no filesystem sabotage set up before the build can reach it. Production
-// never replaces this.
-var resetStore = func(st *store.Store) error { return st.Reset() }
+// The three store operations buildAtLayout performs on an already-open
+// store. Each is a var only so tests can exercise its abort path: every one
+// of them is a member of the "we cannot describe the store" set that must
+// refuse to write a manifest, and none can be provoked from outside. The
+// store is open by the time they run, so filesystem sabotage set up before
+// the build trips store.Open instead and would pass those tests for the
+// wrong reason. Production never replaces any of them.
+var (
+	resetStore          = func(st *store.Store) error { return st.Reset() }
+	schemaVersionOnDisk = func(st *store.Store) (int, error) { return st.SchemaVersionOnDisk() }
+	setStoreMeta        = func(st *store.Store, key string, value any) error { return st.SetMeta(key, value) }
+)
 
 // runInstalledIndexer is the production indexerRunner: it shells out to the
 // real indexer binary for the language.
@@ -327,7 +332,7 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 	}
 	defer st.Close()
 
-	disk, err := st.SchemaVersionOnDisk()
+	disk, err := schemaVersionOnDisk(st)
 	if err != nil {
 		return nil, fmt.Errorf("read schema version: %w", err)
 	}
@@ -341,10 +346,10 @@ func buildAtLayout(ctx context.Context, scryHome, repoPath string, layout RepoLa
 		return nil, fmt.Errorf("reset store: %w", err)
 	}
 
-	if err := st.SetMeta("schema_version", store.SchemaVersion); err != nil {
+	if err := setStoreMeta(st, "schema_version", store.SchemaVersion); err != nil {
 		return nil, fmt.Errorf("write schema version: %w", err)
 	}
-	if err := st.SetMeta("repo_path", repoPath); err != nil {
+	if err := setStoreMeta(st, "repo_path", repoPath); err != nil {
 		return nil, fmt.Errorf("write repo path: %w", err)
 	}
 
