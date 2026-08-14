@@ -1213,3 +1213,50 @@ Share is the fallback for undeclared-but-substantial code.
 a language that declares no marker and sits under 10% — it would be silently
 skipped. If that shows up, add the marker filename rather than lowering the
 share, or introduce a per-repo override in the manifest.
+
+---
+
+## 2026-08-13 — A build degrades per language; only an undescribable store aborts
+
+**Decision:** `index.buildAtLayout` writes a manifest on every build that
+reaches the ingest stage, including one where zero languages produced usable
+output. A language whose indexer is missing, whose indexer fails, or whose
+`.scip` dump won't parse costs that one language: its `IndexerResult` records
+the status, error and remedy, every other language still ingests, and the
+manifest lands with status `partial`. Only an outcome that leaves us unable
+to describe what the store contains still aborts with no manifest — storage
+dir uncreatable, store un-openable, `SchemaVersionOnDisk`/`Reset`/`SetMeta`
+failure, manifest unwritable.
+
+`IndexerResult` also carries the per-language ingest counts
+(`document_count`, `symbol_count`, `definition_count`, `reference_count`)
+taken from that language's own `scip.Stats` before aggregation, so a
+consumer can tell "indexed and found nothing" from "never ran".
+
+**Why:** Two failure modes collapsed a whole build. `scip.Parse` returning an
+error for one language returned an error for the entire build — discarding
+the languages that had already ingested and leaving the previous manifest in
+place to describe a store that no longer matched it. And a build where every
+indexer was missing returned `rpc error -32603` with no artifact at all, so
+the operator got an error code instead of the list of things to install. The
+per-language remedy strings already existed; they just never reached disk in
+the case where they mattered most.
+
+**Consequence worth knowing:** the manifest now always describes what the
+store actually holds, which means a build that ingested nothing leaves an
+empty store rather than the previous build's data. `Registry.SwapNext` will
+promote that empty index. This is the honest reading — the alternative is a
+manifest that describes a store it isn't paired with, which is the bug above
+in a different costume — but it does mean a total indexer outage during a
+watcher reindex empties an index that was previously good. The manifest says
+so, in per-language detail.
+
+**Testing:** the indexer invocation is injected into `buildAtLayout` as an
+`indexerRunner`, and the tests synthesize SCIP protobuf dumps directly
+(valid ones for the success path, garbage for the parse-failure path). No
+test needs scip-typescript, scip-go, scip-python, php or npm on PATH.
+
+**What would change our minds:** if the empty-store-on-total-failure case
+bites in practice, the fix belongs in the caller that swaps — `BuildIntoTemp`
+plus `SwapNext` can decline to promote a store that ingested nothing — not in
+`buildAtLayout`, which should keep the manifest and the store consistent.

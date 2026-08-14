@@ -35,6 +35,23 @@ type IndexerResult struct {
 	Share     float64 `json:"share"`
 	Error     string  `json:"error,omitempty"`
 	Remedy    string  `json:"remedy,omitempty"`
+
+	// Ingest counts for this language alone, taken from the scip.Stats its
+	// own .scip dump parsed into, before they are summed into
+	// Manifest.Stats. They exist so a consumer can tell "this language
+	// indexed and found nothing" from "this language never ran" — the
+	// aggregate stats can't distinguish those, and the difference is the
+	// whole diagnosis.
+	//
+	// All four are zero for every status other than IndexerOK: a missing or
+	// skipped indexer never ran, and a failed one either never ran or
+	// produced output that wouldn't parse. So Status == IndexerOK with
+	// SymbolCount == 0 and FileCount > 0 means exactly "claimed success,
+	// produced nothing".
+	DocumentCount   int `json:"document_count,omitempty"`
+	SymbolCount     int `json:"symbol_count,omitempty"`
+	DefinitionCount int `json:"definition_count,omitempty"`
+	ReferenceCount  int `json:"reference_count,omitempty"`
 }
 
 // notFoundSentinels maps a language to the sentinel its source package
@@ -62,6 +79,10 @@ var indexerRemedies = map[string]string{
 // classify converts one indexer's error into a (status, error, remedy)
 // triple. A nil error is ok; a wrapped not-found sentinel is missing and
 // carries a remedy; anything else is a genuine failure.
+//
+// "ok" here means only that the indexer binary exited cleanly. The ingest
+// step can still fail afterwards, in which case buildAtLayout downgrades
+// that one language's result to IndexerFailed — see markParseFailed.
 func classify(language string, err error) (status, errMsg, remedy string) {
 	if err == nil {
 		return IndexerOK, "", ""
@@ -77,9 +98,11 @@ func classify(language string, err error) (status, errMsg, remedy string) {
 // is missing is a fact worth recording, not a reason to call an otherwise
 // complete index degraded.
 //
-// "broken" is never returned. When no indexer produces output at all,
-// buildAtLayout returns an error and writes no manifest, so that value in
-// Manifest.Status is vestigial.
+// "broken" is never returned, including when no language produced usable
+// output at all: that build still writes a manifest, and every primary
+// language in it is missing or failed, so it derives to "partial". A repo
+// whose every indexer failed and one that lost a single language differ in
+// the per-language results, not in the status word.
 func deriveStatus(results []IndexerResult) string {
 	for _, r := range results {
 		if r.Tier != TierPrimary {
