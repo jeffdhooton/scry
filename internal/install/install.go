@@ -1,24 +1,25 @@
-// Package install downloads and verifies pinned upstream indexer binaries
-// into ~/.scry/bin/.
+// Package install plans and provisions upstream indexer binaries. GitHub
+// release binaries are downloaded into ~/.scry/bin; npm-published indexers
+// are installed globally with npm.
 //
-// Per docs/DECISIONS.md "Auto-download pinned indexers, never auto-update":
+// For GitHub releases, per docs/DECISIONS.md "Auto-download pinned indexers,
+// never auto-update":
 //   - versions are compiled into the scry binary; users get a stable indexer
 //     until they update scry itself
 //   - every download is verified against a SHA256 baked into this package
 //   - the cache lives at ~/.scry/bin/<name> and is reused across runs
 //
 // Coverage in P1:
-//   - scip-go: yes. Sourcegraph publishes per-platform tarballs on GitHub.
-//   - scip-typescript: no. The npm package has no GitHub release assets;
-//     auto-install would mean shelling out to `npm` or `npx`, which we don't
-//     want to do silently. Users install it themselves with
-//     `npm i -g @sourcegraph/scip-typescript`.
+//   - scip-go: Sourcegraph publishes per-platform tarballs on GitHub.
+//   - scip-typescript and scip-python: installed from their official npm
+//     packages when npm is available.
 //   - scip-php: deferred to P2 (PHAR build out of the calibration plan).
 package install
 
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -26,10 +27,179 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
+
+// Source describes how an indexer is provisioned.
+type Source int
+
+const (
+	SourceGitHubRelease Source = iota
+	SourceNPM
+	SourceManual
+)
+
+// Env contains every external fact used to choose a provisioning plan.
+// PlanFor deliberately performs no filesystem or PATH probes itself.
+type Env struct {
+	NPMPath         string
+	ToolPath        string
+	DaemonStartedAt time.Time
+	ToolInstalledAt time.Time
+}
+
+// Plan is the side-effect-free provisioning decision for one language tool.
+// Tool uses the language keys from index.indexerRemedies: typescript, python,
+// go, and php.
+type Plan struct {
+	Tool       string
+	Source     Source
+	Package    string
+	Command    []string
+	Reason     string
+	Actionable bool
+}
+
+type npmTool struct {
+	binary      string
+	packageName string
+}
+
+var npmTools = map[string]npmTool{
+	"typescript": {binary: "scip-typescript", packageName: "@sourcegraph/scip-typescript"},
+	"python":     {binary: "scip-python", packageName: "@sourcegraph/scip-python"},
+}
+
+// PlanFor decides how to provision tool using only the supplied environment.
+// Keeping the probes outside this function makes every branch table-testable
+// without npm, an indexer binary, or network access.
+func PlanFor(tool string, env Env) Plan {
+	if spec, ok := npmTools[tool]; ok {
+		plan := Plan{
+			Tool:    tool,
+			Source:  SourceNPM,
+			Package: spec.packageName,
+			Command: []string{"npm", "i", "-g", spec.packageName},
+		}
+		if env.ToolPath != "" {
+			plan.Reason = fmt.Sprintf("%s is already installed at %s", spec.binary, env.ToolPath)
+			return plan
+		}
+		if env.NPMPath == "" {
+			plan.Reason = fmt.Sprintf("npm is not on PATH; it is required to install %s", spec.binary)
+			return plan
+		}
+		plan.Actionable = true
+		plan.Reason = fmt.Sprintf("install %s from npm", spec.binary)
+		return plan
+	}
+
+	switch tool {
+	case "go":
+		plan := Plan{Tool: tool, Source: SourceGitHubRelease}
+		if env.ToolPath != "" {
+			plan.Reason = "scip-go is already installed at " + env.ToolPath
+			return plan
+		}
+		plan.Actionable = true
+		plan.Reason = "install the pinned scip-go GitHub release"
+		return plan
+	case "php":
+		if env.ToolPath != "" {
+			return Plan{
+				Tool:   tool,
+				Source: SourceManual,
+				Reason: "php is already installed at " + env.ToolPath,
+			}
+		}
+		return Plan{
+			Tool:   tool,
+			Source: SourceManual,
+			Reason: "PHP 8.3+ is a prerequisite and must be installed manually",
+		}
+	default:
+		return Plan{
+			Tool:   tool,
+			Source: SourceManual,
+			Reason: fmt.Sprintf("no provisioning recipe for tool %q", tool),
+		}
+	}
+}
+
+// StaleDaemonPATH reports the specific ordering that leaves a running daemon
+// unable to see a newly installed binary even though the current CLI can.
+func StaleDaemonPATH(env Env) bool {
+	return env.ToolPath != "" &&
+		!env.DaemonStartedAt.IsZero() &&
+		env.ToolInstalledAt.After(env.DaemonStartedAt)
+}
+
+// ProvisionResult describes a completed provisioning attempt.
+type ProvisionResult struct {
+	Tool    string
+	Binary  string
+	Path    string
+	Version string
+}
+
+// Provision executes an actionable npm plan and verifies that the installed
+// binary both resolves on PATH and can be invoked. Decision-making remains in
+// PlanFor; this function is intentionally the side-effectful boundary.
+func Provision(ctx context.Context, plan Plan) (ProvisionResult, error) {
+	if !plan.Actionable {
+		return ProvisionResult{}, errors.New(plan.Reason)
+	}
+	if plan.Source != SourceNPM {
+		return ProvisionResult{}, fmt.Errorf("provisioning source for %q is not npm", plan.Tool)
+	}
+	spec, ok := npmTools[plan.Tool]
+	if !ok {
+		return ProvisionResult{}, fmt.Errorf("no npm provisioning recipe for %q", plan.Tool)
+	}
+	if len(plan.Command) == 0 {
+		return ProvisionResult{}, fmt.Errorf("npm provisioning command for %q is empty", plan.Tool)
+	}
+
+	cmd := exec.CommandContext(ctx, plan.Command[0], plan.Command[1:]...)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		detail := strings.TrimSpace(string(out))
+		if detail != "" {
+			return ProvisionResult{}, fmt.Errorf("%s: %w: %s", strings.Join(plan.Command, " "), err, detail)
+		}
+		return ProvisionResult{}, fmt.Errorf("%s: %w", strings.Join(plan.Command, " "), err)
+	}
+
+	bin, err := exec.LookPath(spec.binary)
+	if err != nil {
+		return ProvisionResult{}, fmt.Errorf("npm installed %s, but %s is not on PATH; ensure npm's global bin directory is on PATH", plan.Package, spec.binary)
+	}
+	verify := exec.CommandContext(ctx, bin, "--version")
+	out, err := verify.CombinedOutput()
+	if err != nil {
+		return ProvisionResult{}, fmt.Errorf("npm installed %s at %s, but invoking %s --version failed: %w: %s", plan.Package, bin, spec.binary, err, strings.TrimSpace(string(out)))
+	}
+	return ProvisionResult{
+		Tool:    plan.Tool,
+		Binary:  spec.binary,
+		Path:    bin,
+		Version: strings.TrimSpace(string(out)),
+	}, nil
+}
+
+// BinaryName returns the executable associated with a provisioning key.
+func BinaryName(tool string) string {
+	if spec, ok := npmTools[tool]; ok {
+		return spec.binary
+	}
+	if tool == "go" {
+		return "scip-go"
+	}
+	return tool
+}
 
 // Indexer describes one downloadable upstream indexer.
 type Indexer struct {

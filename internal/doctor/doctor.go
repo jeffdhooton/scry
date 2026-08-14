@@ -125,11 +125,11 @@ func Run(opts Options) (*Report, error) {
 	r.add(checkNOFILE())
 	r.add(checkDaemonState(opts.ScryHome))
 	r.add(checkPHPInterpreter(opts.Timeout))
-	r.add(checkScipTypescript())
+	r.add(checkScipTypescript(opts.ScryHome))
 	r.add(checkScipGo(opts.ScryHome))
 	r.add(checkScipPhpEmbed())
 	r.add(checkPythonInterpreter(opts.Timeout))
-	r.add(checkScipPython(opts.Timeout))
+	r.add(checkScipPython(opts.ScryHome, opts.Timeout))
 	r.add(checkIndexerImpact(opts.ScryHome, r.Checks))
 	r.add(checkClaudeCLI(opts.Timeout))
 	r.add(checkMCPRegistration(opts.Timeout))
@@ -474,7 +474,7 @@ func parsePythonVersion(versionLine string) (major, minor int, ok bool) {
 	return maj, min, true
 }
 
-func checkScipPython(timeout time.Duration) Check {
+func checkScipPython(scryHome string, timeout time.Duration) Check {
 	bin, err := exec.LookPath("scip-python")
 	if err != nil {
 		return Check{
@@ -485,6 +485,9 @@ func checkScipPython(timeout time.Duration) Check {
 			Detail:   "not on PATH (required only for indexing Python repos)",
 			Remedy:   "npm i -g @sourcegraph/scip-python",
 		}
+	}
+	if staleDaemonIndexerPATH(scryHome, bin) {
+		return staleDaemonIndexerCheck("indexers.scip_python", "scip-python")
 	}
 	// Best-effort version parse. If --version fails or parses weird,
 	// still report the binary as Pass — the important thing is it exists.
@@ -504,7 +507,7 @@ func checkScipPython(timeout time.Duration) Check {
 	}
 }
 
-func checkScipTypescript() Check {
+func checkScipTypescript(scryHome string) Check {
 	bin, err := exec.LookPath("scip-typescript")
 	if err != nil {
 		return Check{
@@ -516,12 +519,48 @@ func checkScipTypescript() Check {
 			Remedy:   "npm i -g @sourcegraph/scip-typescript",
 		}
 	}
+	if staleDaemonIndexerPATH(scryHome, bin) {
+		return staleDaemonIndexerCheck("indexers.scip_typescript", "scip-typescript")
+	}
 	return Check{
 		ID:       "indexers.scip_typescript",
 		Category: CategoryIndexers,
 		Name:     "scip-typescript",
 		Status:   StatusPass,
 		Detail:   bin,
+	}
+}
+
+func staleDaemonIndexerPATH(scryHome, toolPath string) bool {
+	layout := daemon.LayoutFor(scryHome)
+	alive, _ := daemon.AliveDaemon(layout)
+	if !alive {
+		return false
+	}
+	daemonInfo, err := os.Stat(layout.PIDPath)
+	if err != nil {
+		return false
+	}
+	toolInfo, err := os.Lstat(toolPath)
+	if err != nil {
+		return false
+	}
+	return install.StaleDaemonPATH(install.Env{
+		ToolPath:        toolPath,
+		DaemonStartedAt: daemonInfo.ModTime(),
+		ToolInstalledAt: toolInfo.ModTime(),
+	})
+}
+
+func staleDaemonIndexerCheck(id, binary string) Check {
+	detail := fmt.Sprintf("%s is installed but the running daemon started before it; run `scry daemon restart`", binary)
+	return Check{
+		ID:       id,
+		Category: CategoryIndexers,
+		Name:     binary,
+		Status:   StatusWarn,
+		Detail:   detail,
+		Remedy:   "scry daemon restart",
 	}
 }
 

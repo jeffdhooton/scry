@@ -96,3 +96,17 @@ func TestCheckCurrentRepo_LegacyManifestStillRenders(t *testing.T) {
 		t.Errorf("Detail = %q, want exactly one em-dash separator", got.Detail)
 	}
 }
+
+func TestStaleDaemonIndexerCheckNamesRestartRemedy(t *testing.T) {
+	got := staleDaemonIndexerCheck("indexers.scip_typescript", "scip-typescript")
+	if got.Status != StatusWarn {
+		t.Fatalf("Status = %v, want Warn", got.Status)
+	}
+	want := "scip-typescript is installed but the running daemon started before it; run `scry daemon restart`"
+	if got.Detail != want {
+		t.Errorf("Detail = %q, want %q", got.Detail, want)
+	}
+	if got.Remedy != "scry daemon restart" {
+		t.Errorf("Remedy = %q, want scry daemon restart", got.Remedy)
+	}
+}

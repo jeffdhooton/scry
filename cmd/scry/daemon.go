@@ -9,9 +9,60 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/jeffdhooton/scry/internal/daemon"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
+
+func daemonCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "daemon",
+		Short: "Manage the scry daemon",
+	}
+	cmd.AddCommand(&cobra.Command{
+		Use:   "restart",
+		Short: "Restart the daemon with the current environment",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			home, err := scryHome()
+			if err != nil {
+				return err
+			}
+			layout := daemon.LayoutFor(home)
+			alive, pid := daemon.AliveDaemon(layout)
+			if alive {
+				ctx, cancel := context.WithTimeout(cmd.Context(), time.Second)
+				err := callDaemon(ctx, "shutdown", nil, nil)
+				cancel()
+				if err != nil && pid > 0 {
+					_ = syscall.Kill(pid, syscall.SIGTERM)
+				}
+				deadline := time.Now().Add(daemon.DefaultShutdownGrace)
+				for time.Now().Before(deadline) {
+					if running, _ := daemon.AliveDaemon(layout); !running {
+						break
+					}
+					time.Sleep(50 * time.Millisecond)
+				}
+				if running, currentPID := daemon.AliveDaemon(layout); running {
+					if currentPID > 0 {
+						_ = syscall.Kill(currentPID, syscall.SIGKILL)
+					}
+					return errors.New("daemon did not stop")
+				}
+			}
+			if err := spawnDaemon(); err != nil {
+				return err
+			}
+			if err := waitForSocket(layout.SocketPath, 2*time.Second); err != nil {
+				return fmt.Errorf("daemon did not restart: %w", err)
+			}
+			fmt.Fprintln(os.Stderr, "scry: daemon restarted")
+			return nil
+		},
+	})
+	return cmd
+}
 
 // dialDaemon opens a client connection to the running daemon, auto-spawning
 // it if it isn't already up. The wait budget is 2 seconds total — long enough
