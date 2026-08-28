@@ -21,6 +21,13 @@ import (
 type Registry struct {
 	mu      sync.RWMutex
 	entries map[string]*Entry
+
+	// OnAccess, when set, is called with the repo path every time a query
+	// resolves to an indexed repo. The daemon uses it to keep watcher LRU
+	// order tied to real activity, and to start a watcher on demand for a repo
+	// that bootstrap could not afford to watch. Always called outside the
+	// registry lock.
+	OnAccess func(repoPath string)
 }
 
 // Entry is one indexed repo as known to the daemon.
@@ -41,6 +48,17 @@ func NewRegistry() *Registry {
 // through symlinked checkouts (e.g. monorepo/apps/foo -> ~/Herd/Foo).
 // Returns an error if no candidate is indexed (caller should run init).
 func (r *Registry) Get(scryHome, repoPath string) (*Entry, error) {
+	e, err := r.get(scryHome, repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if r.OnAccess != nil {
+		r.OnAccess(e.RepoPath)
+	}
+	return e, nil
+}
+
+func (r *Registry) get(scryHome, repoPath string) (*Entry, error) {
 	abs, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("resolve repo path: %w", err)

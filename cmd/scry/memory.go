@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jeffdhooton/scry/internal/config"
 	"github.com/jeffdhooton/scry/internal/daemon"
 	"github.com/jeffdhooton/scry/internal/memory/browse"
 	"github.com/jeffdhooton/scry/internal/memory/distill"
@@ -23,17 +24,42 @@ import (
 )
 
 // dormantNotice is printed (with exit 0, not an error) by ingest/sweep/
-// backfill when neither API key env var is set — the memory domain is
-// opt-in, so an unconfigured key is a no-op, not a failure.
+// backfill when no API key is set — the memory domain is opt-in, so an
+// unconfigured key is a no-op, not a failure.
 const dormantNotice = "memory: dormant (no SCRY_MEMORY_API_KEY / DEEPSEEK_API_KEY)"
 
-// memoryDormant reports whether no API key is configured for extraction:
-// SCRY_MEMORY_API_KEY, falling back to DEEPSEEK_API_KEY — mirroring
-// extract.ProviderFromEnv (and so buildMemoryExtractor in
-// internal/daemon/daemon.go) exactly, since the CLI's ingest pipeline and the
-// daemon's memory.remember must agree on when the domain is "live".
-func memoryDormant() bool {
-	return os.Getenv("SCRY_MEMORY_API_KEY") == "" && os.Getenv("DEEPSEEK_API_KEY") == ""
+// memoryProviders resolves the extraction chain the same way the daemon
+// does (buildMemoryExtractor in internal/daemon/daemon.go): ~/.scry/
+// config.yaml's memory.models first, the environment otherwise. The CLI's
+// ingest pipeline and the daemon's memory.remember must agree on which
+// models are live and when the domain is dormant.
+func memoryProviders() (extract.Providers, error) {
+	home, err := scryHome()
+	if err != nil {
+		return extract.Providers{}, err
+	}
+	cfg, err := config.Load(home)
+	if err != nil {
+		return extract.Providers{}, err
+	}
+	return extract.ResolveProviders(cfg), nil
+}
+
+// memoryExtractor builds the CLI's extractor, or returns (nil, nil) after
+// printing dormantNotice when no key is configured.
+func memoryExtractor() (extract.Providers, extract.Extractor, error) {
+	ps, err := memoryProviders()
+	if err != nil {
+		return ps, nil, err
+	}
+	if ps.Dormant() {
+		fmt.Println(dormantNotice)
+		return ps, nil, nil
+	}
+	if err := ps.Validate(); err != nil {
+		return ps, nil, err
+	}
+	return ps, extract.NewExtractor(ps), nil
 }
 
 // memoryCmd is the `scry memory` command tree: global episodic memory graph
@@ -111,11 +137,6 @@ func memoryIngestCmd() *cobra.Command {
 		Short: "Distill, extract, and commit one transcript/run/seed source",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if memoryDormant() {
-				fmt.Println(dormantNotice)
-				return nil
-			}
-
 			source, _ := cmd.Flags().GetString("source")
 			switch source {
 			case "claude", "codex", "loom", "seed":
@@ -124,11 +145,10 @@ func memoryIngestCmd() *cobra.Command {
 			}
 			path, _ := cmd.Flags().GetString("path")
 
-			provider := extract.ProviderFromEnv()
-			if err := provider.Validate(); err != nil {
+			_, extractor, err := memoryExtractor()
+			if err != nil || extractor == nil {
 				return err
 			}
-			extractor := extract.NewHaiku(provider)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
@@ -257,18 +277,12 @@ func memorySweepCmd() *cobra.Command {
 		Short: "Scan default roots (Claude/Codex transcripts, loom runs) for new episodes and ingest deltas",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if memoryDormant() {
-				fmt.Println(dormantNotice)
-				return nil
-			}
-
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-			provider := extract.ProviderFromEnv()
-			if err := provider.Validate(); err != nil {
+			_, extractor, err := memoryExtractor()
+			if err != nil || extractor == nil {
 				return err
 			}
-			extractor := extract.NewHaiku(provider)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 			defer cancel()
@@ -294,10 +308,6 @@ func memoryBackfillCmd() *cobra.Command {
 		Short: "Backfill every episode across default roots via the Batch API (50% discount), or serially with --no-batch",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if memoryDormant() {
-				fmt.Println(dormantNotice)
-				return nil
-			}
 
 			sinceStr, _ := cmd.Flags().GetString("since")
 			var since time.Time
@@ -310,14 +320,17 @@ func memoryBackfillCmd() *cobra.Command {
 			}
 			noBatch, _ := cmd.Flags().GetBool("no-batch")
 
-			provider := extract.ProviderFromEnv()
-			if err := provider.Validate(); err != nil {
+			ps, extractor, err := memoryExtractor()
+			if err != nil || extractor == nil {
 				return err
 			}
 			// The Batches API is Anthropic-only. A compatible endpoint serves
 			// v1/messages but not v1/messages/batches, so a custom base URL
 			// forces the serial path (and forfeits the 50% batch discount).
-			if !provider.Batched() && !noBatch {
+			// Only the chain's primary is batched; the serial path runs the
+			// whole chain.
+			primary := ps.Providers[0]
+			if !primary.Batched() && !noBatch {
 				noBatch = true
 				fmt.Fprintln(os.Stderr, "backfill: extraction is not pointed at Anthropic — using serial extraction, the Batch API is Anthropic-only")
 			}
@@ -332,8 +345,8 @@ func memoryBackfillCmd() *cobra.Command {
 				Since:   since,
 				NoBatch: noBatch,
 				Daemon:  daemonClient{},
-				Haiku:   extract.NewHaiku(provider),
-				Batch:   extract.NewBatchRunner(provider),
+				Serial:  extractor,
+				Batch:   extract.NewBatchRunner(primary),
 			})
 			if err != nil {
 				return err
@@ -361,7 +374,7 @@ type backfillConfig struct {
 	Since   time.Time // zero means "everything"
 	NoBatch bool
 	Daemon  backfillDaemon
-	Haiku   *extract.Haiku
+	Serial  extract.Extractor
 	Batch   *extract.BatchRunner
 }
 
@@ -482,7 +495,7 @@ func runBackfill(ctx context.Context, cfg backfillConfig) (backfillSummary, erro
 
 		var fatalErr error
 		if cfg.NoBatch {
-			results, extractErrs, fatalErr = backfillSerial(ctx, cfg.Haiku, allEpisodes, glossary)
+			results, extractErrs, fatalErr = backfillSerial(ctx, cfg.Serial, allEpisodes, glossary)
 			if fatalErr != nil {
 				summary.Errors = append(summary.Errors, fmt.Sprintf("backfill canceled: %v", fatalErr))
 			}
@@ -655,7 +668,7 @@ func filterSince(episodes []distill.RawEpisode, since time.Time) []distill.RawEp
 // on a normal (possibly partially-erroring) completion, or ctx's error if
 // the run was canceled mid-loop — surfaced so the caller can record it in
 // the summary rather than silently returning a truncated result set.
-func backfillSerial(ctx context.Context, h *extract.Haiku, episodes []distill.RawEpisode, glossary []string) (map[string]extract.Result, map[string]error, error) {
+func backfillSerial(ctx context.Context, h extract.Extractor, episodes []distill.RawEpisode, glossary []string) (map[string]extract.Result, map[string]error, error) {
 	results := make(map[string]extract.Result, len(episodes))
 	errs := make(map[string]error)
 

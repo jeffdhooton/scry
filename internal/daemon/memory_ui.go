@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/memory/browse"
@@ -49,6 +50,7 @@ func (d *Daemon) startMemoryUI(ctx context.Context) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", d.handleMemoryUIIndex)
 	mux.HandleFunc("/data.json", d.handleMemoryUIData)
+	mux.HandleFunc("/health", d.handleMemoryUIHealth)
 	srv := &http.Server{Handler: mux}
 
 	d.memUIMu.Lock()
@@ -144,4 +146,40 @@ func (d *Daemon) handleMemoryUIData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(export)
+}
+
+// MemoryUIHealth is the /health payload. PID identifies the process serving
+// the UI so `scry doctor` can confirm it is the same daemon that owns the
+// RPC socket: the split-brain incident (docs/DAEMON_SPLIT_BRAIN_DIAGNOSIS.md)
+// had an orphan on port 7279 that could not open the memory store because
+// the canonical daemon held Badger's lock, and the only symptom was a 500.
+type MemoryUIHealth struct {
+	PID         int    `json:"pid"`
+	SocketPath  string `json:"socket_path"`
+	MemoryDir   string `json:"memory_dir"`
+	MemoryOK    bool   `json:"memory_ok"`
+	MemoryError string `json:"memory_error,omitempty"`
+}
+
+// handleMemoryUIHealth reports which process is serving the UI and whether
+// it can open the memory store. Always 200 with a body; the fields carry
+// the verdict so a probe can distinguish "orphan serving" from "down".
+func (d *Daemon) handleMemoryUIHealth(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/health" {
+		http.NotFound(w, r)
+		return
+	}
+	h := MemoryUIHealth{
+		PID:        os.Getpid(),
+		SocketPath: d.layout.SocketPath,
+		MemoryDir:  filepath.Join(d.scryHome(), "memory"),
+		MemoryOK:   true,
+	}
+	if _, err := d.memoryStore(); err != nil {
+		h.MemoryOK = false
+		h.MemoryError = err.Error()
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(h)
 }

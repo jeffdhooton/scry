@@ -15,10 +15,12 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/config"
 	"github.com/jeffdhooton/scry/internal/git"
 	scryhttp "github.com/jeffdhooton/scry/internal/http"
 	httpstore "github.com/jeffdhooton/scry/internal/http/store"
@@ -37,6 +39,7 @@ type Layout struct {
 	Home       string // ~/.scry
 	SocketPath string // ~/.scry/scryd.sock
 	PIDPath    string // ~/.scry/scryd.pid
+	LockPath   string // ~/.scry/scryd.lock — process-lifetime flock, see owner.go
 	LogPath    string // ~/.scry/scryd.log
 }
 
@@ -46,6 +49,7 @@ func LayoutFor(home string) Layout {
 		Home:       home,
 		SocketPath: filepath.Join(home, "scryd.sock"),
 		PIDPath:    filepath.Join(home, "scryd.pid"),
+		LockPath:   filepath.Join(home, "scryd.lock"),
 		LogPath:    filepath.Join(home, "scryd.log"),
 	}
 }
@@ -93,28 +97,40 @@ func (d *Daemon) memoryStore() (*memstore.Store, error) {
 }
 
 // buildMemoryExtractor constructs the daemon's extract.Extractor from
-// environment (see extract.ProviderFromEnv). A nil return means the memory
-// domain is dormant — memory.remember still stores episodes but never
-// resolves them into facts. Both a missing key and an unusable provider
-// config go dormant rather than failing the daemon's startup; the CLI
-// surfaces the same misconfiguration loudly, which is where it gets noticed.
-func buildMemoryExtractor() extract.Extractor {
-	p := extract.ProviderFromEnv()
+// ~/.scry/config.yaml (memory.models) falling back to the environment (see
+// extract.ResolveProviders). A nil return means the memory domain is
+// dormant — memory.remember still stores episodes but never resolves them
+// into facts. A missing key, an unusable provider config, and a malformed
+// config file all go dormant rather than failing the daemon's startup; the
+// CLI surfaces the same misconfiguration loudly, which is where it gets
+// noticed.
+func buildMemoryExtractor(scryHome string) extract.Extractor {
+	cfg, err := config.Load(scryHome)
+	if err != nil {
+		log.Printf("memory: extraction DORMANT — %v. Episodes will be stored "+
+			"but never resolved into facts. Fix the file and restart the daemon.", err)
+		return nil
+	}
+	ps := extract.ResolveProviders(cfg)
 	// Dormancy must be loud. A daemon restarted without the key went quietly
 	// dormant for a whole day: episodes kept being stored and never resolved
 	// into facts, and nothing said so until someone went looking.
-	if p.APIKey == "" {
+	if ps.Dormant() {
 		log.Printf("memory: extraction DORMANT — no API key in the environment. " +
 			"Episodes will be stored but never resolved into facts. Set the " +
 			"provider key and restart the daemon.")
 		return nil
 	}
-	if err := p.Validate(); err != nil {
+	if err := ps.Validate(); err != nil {
 		log.Printf("memory: extraction DORMANT — unusable provider config: %v. "+
 			"Episodes will be stored but never resolved into facts.", err)
 		return nil
 	}
-	return extract.NewHaiku(p)
+	log.Printf("memory: extraction chain (%s): %s", ps.Source, strings.Join(ps.Models(), " -> "))
+	if ps.Source == "config.yaml" && (os.Getenv("SCRY_MEMORY_MODEL") != "" || os.Getenv("SCRY_MEMORY_BASE_URL") != "") {
+		log.Printf("memory: ignoring SCRY_MEMORY_MODEL / SCRY_MEMORY_BASE_URL — memory.models in %s takes precedence", config.Path(scryHome))
+	}
+	return extract.NewExtractor(ps)
 }
 
 // New constructs a Daemon for the given layout. It does NOT start anything;
@@ -127,7 +143,7 @@ func New(layout Layout) *Daemon {
 		schemaRegistry: NewSchemaRegistry(),
 		graphRegistry:  NewGraphRegistry(),
 		server:         rpc.NewServer(),
-		memExtractor:   buildMemoryExtractor(),
+		memExtractor:   buildMemoryExtractor(layout.Home),
 	}
 	d.watcher = NewWatcher(layout.Home, d.registry)
 	d.watcher.SetPostReindex(d.rebuildGraphAsync)
@@ -146,24 +162,36 @@ func New(layout Layout) *Daemon {
 //
 // Returns nil on clean shutdown, otherwise the first error that broke the run.
 func (d *Daemon) Run(ctx context.Context) error {
-	// Raise NOFILE soft limit before doing anything else. fsnotify uses one
-	// file descriptor per watched directory, and macOS' default 256 is way
-	// below what a single Laravel-class repo needs (1000+ dirs is normal once
-	// you count vendor and storage subtrees). The hard limit is usually
-	// unlimited; we just need to opt into it.
+	// Raise NOFILE soft limit before doing anything else. fsnotify needs far
+	// more descriptors than macOS' default 256 — on the kqueue backends it
+	// holds one per watched *file*, not just per watched directory, so a
+	// single Laravel-class repo can want thousands.
 	raiseNOFILE()
+
+	// Size the watcher's descriptor budget from the limit we actually got.
+	// New() ran before raiseNOFILE, so the budget it built was sized against
+	// the pre-raise soft limit.
+	d.watcher.SetBudget(defaultWatchFDBudget())
 
 	if err := os.MkdirAll(d.layout.Home, 0o755); err != nil {
 		return fmt.Errorf("ensure home: %w", err)
 	}
 
-	// Refuse to start if another daemon is already alive on the same socket.
-	if alive, pid := d.aliveDaemonPID(); alive {
-		return fmt.Errorf("scry daemon already running (pid %d, socket %s)", pid, d.layout.SocketPath)
+	// Become the one daemon for this home, or step aside for a healthy one
+	// (returns *AlreadyRunningError). An incumbent that holds the lock but
+	// does not answer is retired and waited for before we proceed — see
+	// owner.go for why a PID file alone was not enough. The lock is the
+	// first thing acquired and the last thing released: every other
+	// teardown below runs before it, so a successor can only start
+	// mutating scryd.sock / scryd.pid once this process is fully gone.
+	own, err := acquireOwnership(d.layout, defaultTakeoverPolicy())
+	if err != nil {
+		return err
 	}
+	defer own.Release()
 
-	// Stale socket from a previous crash — safe to remove now that we've
-	// confirmed nothing's listening.
+	// Stale socket from a previous crash. We hold the lock and no healthy
+	// daemon answered, so nothing live is behind this pathname.
 	if err := os.Remove(d.layout.SocketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("remove stale socket: %w", err)
 	}
@@ -184,7 +212,8 @@ func (d *Daemon) Run(ctx context.Context) error {
 		_ = ln.Close()
 		return fmt.Errorf("write pid file: %w", err)
 	}
-	defer os.Remove(d.layout.PIDPath)
+	fmt.Fprintf(os.Stderr, "scry: daemon pid %d owns %s (lock %s)\n", os.Getpid(), d.layout.SocketPath, d.layout.LockPath)
+	defer removeOwnedPIDFile(d.layout, os.Getpid())
 	defer os.Remove(d.layout.SocketPath)
 	defer d.registry.CloseAll()
 	defer d.gitRegistry.CloseAll()
@@ -214,10 +243,40 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 	}()
 
-	// Bootstrap: walk ~/.scry/repos and start a watcher for every repo whose
-	// source path still exists. Repos whose source dir was deleted stay in
-	// the index but get no watcher.
+	// Start a watcher on demand for any repo a query touches, and keep the
+	// watcher LRU ordered by real activity so the repos being worked in keep
+	// their watches. Starting one walks the repo, so it runs off the query
+	// path; Watch itself is serialized and idempotent.
+	d.registry.OnAccess = func(repoPath string) {
+		if d.watcher.Touch(repoPath) {
+			return
+		}
+		if !d.watcher.ClaimOnDemand(repoPath) {
+			return
+		}
+		go func() {
+			if err := d.watcher.Watch(runCtx, repoPath); err != nil {
+				fmt.Fprintf(os.Stderr, "scry: watch on demand %s: %v\n", repoPath, err)
+			}
+		}()
+	}
+
+	// Sweep rotate-then-delete garbage from previous daemon lifetimes before
+	// any watcher can start a reindex of its own. Synchronous on purpose: it
+	// is cheap when there is nothing to do, and when there IS something to do
+	// (a dead daemon left hundreds of GB of index.db.old.* archives) freeing
+	// the disk beats coming up a few seconds sooner.
+	sweepStaleIndexTrash(d.layout.Home)
+
+	// Bootstrap: start watchers for the most recently indexed repos, as many
+	// as the descriptor budget affords. The rest are watched on demand above.
 	d.bootstrapWatchers(runCtx)
+
+	// Keep the daemon's descriptor use bounded. The budget covers what the
+	// watchers reserve at Add time, but the kqueue backends keep opening
+	// descriptors on their own as watched directories gain files, so the
+	// actual total has to be watched too.
+	d.watcher.StartFDGovernor(runCtx)
 
 	// Live memory graph UI, loopback-only, best-effort: a port conflict here
 	// must never keep the daemon itself from coming up.
@@ -228,12 +287,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 		return serveErr
 	}
 	return nil
-}
-
-// aliveDaemonPID checks the PID file and pings the socket. Returns the PID of
-// a confirmed-running daemon, or (false, 0) otherwise.
-func (d *Daemon) aliveDaemonPID() (bool, int) {
-	return AliveDaemon(d.layout)
 }
 
 // AliveDaemon is the standalone version usable from the CLI to decide whether

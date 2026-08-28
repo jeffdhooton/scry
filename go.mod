@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/anthropics/anthropic-sdk-go v1.61.0
 	github.com/dgraph-io/badger/v4 v4.9.1
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/scip-code/scip/bindings/go/scip v0.7.0
@@ -45,4 +45,5 @@ require (
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

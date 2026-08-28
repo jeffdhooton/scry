@@ -9,6 +9,92 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-08-19 — Watchers are bounded by a descriptor budget, not a directory cap
+
+**Decision:** The file watchers are bounded by a shared file-descriptor budget
+(a quarter of the soft NOFILE limit, clamped to 2048–16384) rather than by
+`maxWatchedDirs` alone. Adding a directory is charged its real cost, which is
+platform-specific: on the kqueue backends (macOS, BSD) it is `1 + len(entries)`,
+elsewhere `1`. Repos are watched lazily — bootstrap watches the most recently
+indexed repos until the budget is spent, and a query for any other repo starts
+its watcher on demand, evicting the least recently used one. `raiseNOFILE` now
+raises the soft limit to a fixed 65536 instead of the hard limit. A periodic
+governor samples the process's actual descriptor count and evicts watchers while
+it exceeds half the soft limit.
+
+**Why:** `maxWatchedDirs = 2048` counted directories, which does not bound
+descriptors. fsnotify's kqueue backend cannot watch a directory as a unit the
+way inotify does, so `watchDirectoryFiles` opens a descriptor for every entry
+inside every watched directory. A 20-directory tree — 1% of the cap — measured
+4021 descriptors. With 125 registered repos all watched at startup, one daemon
+reached ~131,000 descriptors, about 91% of every open file on the machine, and
+unrelated processes began failing with `ENFILE` on the system-wide file table.
+Raising NOFILE to the hard limit made this possible: macOS reports that limit as
+`RLIM_INFINITY`, so the process had no ceiling at all while competing for a
+global resource. Measured after the change: the same 74 repos cost 14,239
+descriptors instead of ~131,000.
+
+The governor exists because the budget alone is not sufficient. kqueue keeps
+opening descriptors after the initial Add — writing into a watched directory
+makes `dirChange` start watching every entry that has appeared since — so a
+build campaign grows the set past whatever the walk reserved.
+
+**What would change our minds:** an fsnotify release that watches directories
+on macOS without a descriptor per entry (FSEvents-backed, say) would remove the
+platform asymmetry and let the dir cap bound descriptors again. On a
+Linux-only deployment the budget is nearly inert and could be relaxed.
+
+---
+
+## 2026-08-19 — Watches are removed before the fsnotify watcher is closed
+
+**Decision:** `closeWatcher` removes every path from an `fsnotify.Watcher`
+before calling `Close`, instead of calling `Close` alone.
+
+**Why:** fsnotify v1.9.0's kqueue backend leaks every descriptor on `Close`.
+`Close` marks the watcher closed via `shared.close()` and only then loops
+calling `Remove` for each watched path — but `remove()` begins with
+`if w.isClosed() { return nil }`, so it returns before reaching its
+`unix.Close(info.wd)`. Measured: closing a watcher holding 1155 descriptors
+released 1. Only the close-pipe descriptor is actually freed.
+
+This matters more after the budget change than before it. Eviction is the
+budget's release valve; if closing a watcher frees the accounting but not the
+descriptors, the daemon over-commits and drifts upward every time it evicts —
+strictly worse than not evicting at all. Removing the watches first takes the
+working path through `remove()`, which closes each directory's descriptor and,
+via `watchesInDir`, the per-file descriptors kqueue opened inside it.
+
+**What would change our minds:** an upstream fix. This is a workaround for a
+library bug, not a design preference, and `closeWatcher` should collapse back to
+`fsw.Close()` once a released fsnotify closes its own descriptors. It is worth
+reporting upstream.
+
+---
+
+## 2026-08-19 — A daemon that is alive but not serving is retired, not orphaned
+
+**Decision:** When a starting daemon finds a PID file naming a live process that
+fails the socket liveness ping, it sends that process `SIGTERM` before taking
+over the socket.
+
+**Why:** The previous behaviour treated "process alive but not answering" as a
+stale socket: it removed the socket file and started anyway, leaving the old
+process running forever. That is self-reinforcing. A daemon starved of
+descriptors cannot `accept`, so it fails the ping, so the next start orphans it
+— while it still holds every descriptor its watchers opened. Four daemons were
+observed alive within a two-hour window, two of them referencing the same
+socket path, each independently watching every indexed repo. The orphan is not
+serving anyone by definition of having failed the ping, so terminating it is
+strictly better than leaving it holding a five-figure descriptor set.
+
+**What would change our minds:** evidence that a healthy daemon can fail the
+200ms ping under normal load. That would make this a liveness-detection problem
+rather than an orphan problem, and the ping would need to become more patient
+before it is allowed to justify a SIGTERM.
+
+---
+
 ## 2026-08-13 — Explicit npm provisioning for TypeScript and Python indexers
 
 **Decision:** Superseding the manual-only portions of the 2026-04-10 and
@@ -1438,3 +1524,167 @@ disappears per repo as each is reindexed and records a commit.
 unrelated reason, `countsUnrecorded` could become a straight version check
 instead of an aggregate inference. The inference is exact today, but it is a
 property of the builder's aggregation, so it needs the comment that says so.
+
+## 2026-08-22 — Watcher self-trigger loop: drop Chmod-only events, defer in-flight events behind an mtime gate
+
+**Decision:** three coupled changes in `internal/daemon/watch.go`:
+
+1. `relevantEvent` requires a content op (`Create|Write|Remove|Rename`). A
+   Chmod-only event is dropped no matter the extension.
+2. The run loop tracks an in-flight reindex. Events arriving mid-build never
+   arm the debounce; their paths are recorded (capped at 256) and, when the
+   build finishes, exactly one catch-up reindex is armed **iff** one of those
+   files still exists with mtime newer than the build start.
+3. Reindex scheduling (debounce, cooldown, in-flight) all lives in the run
+   goroutine; the old `maybeReindex`'s unconditional `AfterFunc` re-arm — and
+   its data race on `lastReindex` — are gone. The build body is a `doReindex`
+   field so tests drive the real scheduling with a fake build.
+
+**Context:** the daemon reindexed `idea-planning` 368,959 times over 13 hours,
+dirtying ~11 MB/s until the VM compressor exhausted its segment limit and the
+machine kernel-panicked (4 times). Reproduced deterministically: one `touch`
+produced 46 reindexes in 90 seconds. The self-trigger, captured live with an
+instrumented watcher, is *not* a file the pipeline writes: some step of every
+reindex runs a git operation that re-hashes dirty working-tree files, git
+mmaps any such file ≥ 32 KB (`SMALL_FILE_SIZE`), and on APFS that read fires
+a `NOTE_ATTRIB` (atime) kevent, which fsnotify's kqueue backend delivers as
+`Chmod`. Any watched repo with one dirty source file over 32 KB looped
+forever; `idea-planning` had two.
+
+The mtime gate decides the mid-build-edit corner named in
+`docs/REINDEX_LOOP_DIAGNOSIS.md`: a real edit survives (file exists, mtime
+advanced → one catch-up), while every observed self-trigger class fails it —
+atime bumps don't advance mtime, and an indexer's create+delete temp file no
+longer exists. A hypothetical indexer that rewrites a source-extension file
+in-repo on every run would still loop; nothing event-driven can distinguish
+that from a user edit, and no indexer we ship does it.
+
+**Consequence:** a bare `touch` (attribute-only, no write) no longer triggers
+a reindex — verifying the watcher now requires a real content write. Correct
+by construction (content is unchanged, the index is not stale) but a behavior
+change from the pre-fix watcher.
+
+**What would change our minds:** an editor whose save path is invisible under
+the content-op mask (none known — atomic saves emit Create/Rename), or a
+first-party indexer that must write source-extension files into the repo.
+
+## 2026-08-22 — Startup sweep of rotate-then-delete garbage
+
+**Decision:** `sweepStaleIndexTrash` runs synchronously in `Daemon.Run`
+before watchers start, deleting `index.db.old.*`, `index.db.next`, and
+`manifest.json.next` under every `~/.scry/repos/<hash>/`.
+
+**Context:** `Registry.SwapNext` archives the live store and callers delete
+the archive in a fire-and-forget goroutine that dies with the daemon. ~8% of
+the 369k loop cycles orphaned their archive: 31,542 dirs, 271 GB. The paths
+are rotate-then-delete garbage by design — nothing ever reads them — so the
+sweep needs no coordination beyond running before the first reindex can
+create a fresh `index.db.next`.
+
+## 2026-08-22 — Graph store: single writer via BeginBuild/EndBuild
+
+**Decision:** `GraphRegistry` gains `BeginBuild`/`EndBuild`. BeginBuild
+serializes builds (one mutex across repos), closes the registry's handle so
+`graph.Build` can take badger's directory lock, and marks the repo so `Get`
+returns "graph rebuild in progress — retry shortly" instead of reopening
+mid-build. Both build paths (`graph.build` RPC and the post-reindex rebuild)
+run inside the pair; `GraphRegistry.Evict` is gone with its callers.
+
+**Context:** every post-reindex graph rebuild failed with "Cannot acquire
+directory lock", so graph data silently went stale on every reindex. The
+diagnosis doc blamed the `scry mcp` process, but `lsof` showed MCP holds no
+graph DB — it proxies through the daemon. The daemon was racing itself:
+rebuild goroutines overlapped with each other (the comment claimed a 30s
+debounce that never existed) and with `Get` reopening the store between the
+old `Evict` and `graph.Build`'s open. Under loop-era churn a rebuild was
+always in flight, so the "race" lost deterministically.
+
+**Trade-off:** graph queries during a rebuild fail fast with a retryable
+error instead of serving the stale pre-build graph. Serving stale would need
+build-into-temp + swap like the code index; worth doing only if the failing
+window (seconds, post-reindex only) annoys in practice.
+
+## 2026-08-23 — Memory extraction: ordered model chain in `~/.scry/config.yaml`
+
+**Decision:** `memory.models` in `~/.scry/config.yaml` is an ordered list
+of extraction models (`model`, optional `base_url`, optional `api_key_env`).
+`extract.Chain` tries each in order and returns the first success; the
+combined error wraps `ErrParse` only when *every* model failed on content,
+so a transport failure anywhere still means "retry next sweep" rather than
+"skip forever". When the list is present it replaces `SCRY_MEMORY_MODEL` /
+`SCRY_MEMORY_BASE_URL` outright (the daemon logs that it is ignoring them);
+with no file, the env behaves exactly as before. Keys never live in the
+file — `api_key_env` names the variable, defaulting to the existing
+`SCRY_MEMORY_API_KEY` / `DEEPSEEK_API_KEY` lookup. This is the first thing
+to actually use the `config.yaml` decided on 2026-04-10; it is parsed with
+`gopkg.in/yaml.v3`, not viper — one section does not justify the dependency.
+
+**Context:** three dead-letters in a day, all `deepseek-v4-flash`: two
+empty replies (`reply: ""` even after both repair turns) and one invented
+entity type (`"model"`). Each cost a real fact. `deepseek-v4-pro` sits on
+the same endpoint with the same key, so a flash → pro chain rescues those
+episodes for a few cents without touching a second provider. Empty replies
+now also carry `stop_reason` and the content block types in the error,
+because `reply: ""` on its own said nothing about *why*.
+
+**Why replace rather than merge with env:** a file the user wrote on
+purpose should mean exactly what it says. Layering env on top ("env is the
+primary, config supplies fallbacks") makes the effective chain depend on
+which shell spawned the daemon — the exact ambiguity the file exists to
+remove.
+
+**What would change our minds:** a fallback that should *not* fire on every
+failure (e.g. only on empty replies, never on 4xx) — then `Chain` grows a
+predicate. Or per-model batch support beyond Anthropic — today only the
+primary is batched in `backfill`; the serial path runs the whole chain.
+
+
+## 2026-08-28 — Daemon ownership: process-lifetime flock, launchd as the one start authority
+
+The daemon takes an exclusive `flock` on `~/.scry/scryd.lock` before it
+touches `scryd.sock` or `scryd.pid`, and holds it until the last deferred
+teardown has run (`internal/daemon/owner.go`, wired at the top of
+`Daemon.Run`). A starter that finds the lock held gives the holder
+`StartupGrace` (3s) to answer on the socket: a healthy answer means it exits
+with `ErrAlreadyRunning` (exit 0 from `scry start --foreground`); no answer
+means the holder is retired — SIGTERM, wait up to `DefaultShutdownGrace+5s`
+for the lock to be released, then SIGKILL and wait 3s more, then give up
+with an error. Every step is logged with the target PID, signal delivery,
+and time-to-release. A lock held by a process that recorded no PID is never
+signalled (fail closed). Pre-lock daemons named only by the PID file get the
+same grace/retire treatment, guarded by a `ps` command-name check against
+PID reuse. The lock file is never unlinked. An exiting daemon removes the
+PID file only if it still names that daemon.
+
+On macOS, when a LaunchAgent whose `ProgramArguments` run `scry start
+--foreground` exists in `~/Library/LaunchAgents`, clients that need the
+daemon run `launchctl kickstart gui/<uid>/<label>` and retry the socket
+instead of spawning a detached process; direct spawn remains the fallback
+when there is no agent or launchctl refuses. `scry doctor` gained
+`daemon.instances` (count of `scry start --foreground` processes vs the
+canonical socket PID) and `daemon.memory_ui` (GET `/health` on the UI port
+must be served by the canonical PID and be able to open the memory store).
+
+**Context:** `docs/DAEMON_SPLIT_BRAIN_DIAGNOSIS.md`. Three foreground
+daemons survived on the same machine: one on the RPC socket and Badger
+memory lock, one on port 7279 (returning 500 because it could not open the
+memory store), one holding watchers. launchd `KeepAlive` and client
+auto-spawn had both decided the daemon was down; each retired only the PID
+it could see, unlinked the socket pathname, and wrote its own PID. Unlinking
+a Unix socket path does not close the previous listener, so the earlier
+daemons stayed alive and unaddressable. `scry doctor` reported 0 failed.
+
+**Why flock and not a smarter PID file:** the kernel releases a flock when
+the holder dies, so "lock held" is proof of a live owner with no PID-reuse
+ambiguity and no start-time bookkeeping; and holding it across the whole
+teardown makes replacement-before-exit impossible rather than merely
+unlikely. **Why launchd is the authority:** it is the only starter that
+sources `~/.secrets.zsh`; a client-spawned winner runs dormant. **Why
+escalate to SIGKILL:** a daemon that ignores TERM for 10s is hung, and the
+alternative — leaving it — is exactly the orphan this fixes.
+
+**What would change our minds:** a Linux service manager in daily use
+(systemd `--user`), which would want the same "ask the supervisor" path
+with a different discovery; or a daemon shutdown that legitimately needs
+longer than 10s, which would raise `TermGrace` rather than remove
+escalation.

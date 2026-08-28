@@ -27,6 +27,16 @@ func (d *Daemon) registerGraphMethods() {
 type GraphRegistry struct {
 	mu      sync.RWMutex
 	entries map[string]*GraphEntry
+	// building marks repos whose graph is being rebuilt in place. Get must
+	// not reopen the store for these: graph.Build holds badger's directory
+	// lock, and a reopen either fails or (worse) steals the lock so the
+	// build fails. Guarded by mu.
+	building map[string]bool
+	// buildMu serializes builds. Post-reindex rebuild goroutines used to
+	// overlap freely, and whichever came second died on the directory lock —
+	// which under watcher churn was every one of them, so the graph silently
+	// went stale forever.
+	buildMu sync.Mutex
 }
 
 type GraphEntry struct {
@@ -36,7 +46,38 @@ type GraphEntry struct {
 }
 
 func NewGraphRegistry() *GraphRegistry {
-	return &GraphRegistry{entries: map[string]*GraphEntry{}}
+	return &GraphRegistry{
+		entries:  map[string]*GraphEntry{},
+		building: map[string]bool{},
+	}
+}
+
+// BeginBuild claims exclusive build rights for repoPath: it waits out any
+// build already in flight, closes the registry's handle so the builder can
+// take badger's directory lock, and makes Get refuse to reopen the store
+// until EndBuild. Every caller must pair it with EndBuild.
+func (r *GraphRegistry) BeginBuild(repoPath string) {
+	r.buildMu.Lock()
+	r.mu.Lock()
+	if e, ok := r.entries[repoPath]; ok {
+		_ = e.Store.Close()
+		delete(r.entries, repoPath)
+	}
+	r.building[repoPath] = true
+	r.mu.Unlock()
+}
+
+// EndBuild releases the build claim. A successful build hands the freshly
+// opened store in as entry; a failed one passes nil and the next Get lazily
+// reopens whatever is on disk.
+func (r *GraphRegistry) EndBuild(repoPath string, entry *GraphEntry) {
+	r.mu.Lock()
+	delete(r.building, repoPath)
+	if entry != nil {
+		r.entries[repoPath] = entry
+	}
+	r.mu.Unlock()
+	r.buildMu.Unlock()
 }
 
 func (r *GraphRegistry) Get(scryHome, repoPath string) (*GraphEntry, error) {
@@ -55,6 +96,9 @@ func (r *GraphRegistry) Get(scryHome, repoPath string) (*GraphEntry, error) {
 	defer r.mu.Unlock()
 	if e = r.entries[abs]; e != nil {
 		return e, nil
+	}
+	if r.building[abs] {
+		return nil, fmt.Errorf("graph rebuild in progress for %s — retry shortly", abs)
 	}
 	layout := graph.Layout(scryHome, abs)
 	if _, err := os.Stat(layout.BadgerDir); errors.Is(err, os.ErrNotExist) {
@@ -75,15 +119,6 @@ func (r *GraphRegistry) Put(e *GraphEntry) {
 	r.mu.Lock()
 	r.entries[e.RepoPath] = e
 	r.mu.Unlock()
-}
-
-func (r *GraphRegistry) Evict(repoPath string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if e, ok := r.entries[repoPath]; ok {
-		_ = e.Store.Close()
-		delete(r.entries, repoPath)
-	}
 }
 
 func (r *GraphRegistry) CloseAll() {
@@ -133,8 +168,6 @@ func (d *Daemon) handleGraphBuild(_ context.Context, raw json.RawMessage) (any, 
 		return nil, err
 	}
 
-	d.graphRegistry.Evict(abs)
-
 	// Gather available domain stores
 	src := graph.Sources{}
 
@@ -158,6 +191,13 @@ func (d *Daemon) handleGraphBuild(_ context.Context, raw json.RawMessage) (any, 
 	src.HTTP = d.httpStore
 	d.proxyMu.Unlock()
 
+	// Take exclusive build rights: closes the registry's handle and keeps
+	// concurrent queries and post-reindex rebuilds off badger's directory
+	// lock while graph.Build rewrites the store in place.
+	d.graphRegistry.BeginBuild(abs)
+	var freshEntry *GraphEntry
+	defer func() { d.graphRegistry.EndBuild(abs, freshEntry) }()
+
 	start := time.Now()
 	manifest, err := graph.Build(d.scryHome(), abs, src)
 	if err != nil {
@@ -170,7 +210,7 @@ func (d *Daemon) handleGraphBuild(_ context.Context, raw json.RawMessage) (any, 
 	if err != nil {
 		return nil, fmt.Errorf("reopen graph store: %w", err)
 	}
-	d.graphRegistry.Put(&GraphEntry{RepoPath: abs, Layout: layout, Store: st})
+	freshEntry = &GraphEntry{RepoPath: abs, Layout: layout, Store: st}
 
 	return &GraphBuildResult{
 		Repo:        abs,
@@ -290,9 +330,10 @@ func (d *Daemon) handleGraphReport(_ context.Context, raw json.RawMessage) (any,
 	return report, nil
 }
 
-// rebuildGraphAsync is the PostReindexFunc callback. It debounces graph
-// rebuilds: if a graph was built less than 30s ago, it schedules a delayed
-// rebuild instead of running immediately.
+// rebuildGraphAsync is the PostReindexFunc callback. Rebuilds run on a
+// goroutine so the reindex path never blocks on graph work; BeginBuild
+// serializes them, so back-to-back reindexes queue their rebuilds instead of
+// racing for badger's directory lock.
 func (d *Daemon) rebuildGraphAsync(repoPath string) {
 	abs, err := filepath.Abs(repoPath)
 	if err != nil {
@@ -323,7 +364,10 @@ func (d *Daemon) rebuildGraphAsync(repoPath string) {
 		src.HTTP = d.httpStore
 		d.proxyMu.Unlock()
 
-		d.graphRegistry.Evict(abs)
+		d.graphRegistry.BeginBuild(abs)
+		var freshEntry *GraphEntry
+		defer func() { d.graphRegistry.EndBuild(abs, freshEntry) }()
+
 		manifest, err := graph.Build(d.scryHome(), abs, src)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "scry: graph rebuild %s failed: %v\n", abs, err)
@@ -335,7 +379,7 @@ func (d *Daemon) rebuildGraphAsync(repoPath string) {
 			fmt.Fprintf(os.Stderr, "scry: reopen graph store %s: %v\n", abs, err)
 			return
 		}
-		d.graphRegistry.Put(&GraphEntry{RepoPath: abs, Layout: layout, Store: st})
+		freshEntry = &GraphEntry{RepoPath: abs, Layout: layout, Store: st}
 
 		fmt.Fprintf(os.Stderr, "scry: graph rebuilt %s in %s (%d nodes, %d edges, %d communities)\n",
 			abs, time.Since(start).Round(time.Millisecond),

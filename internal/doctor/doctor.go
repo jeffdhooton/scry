@@ -40,6 +40,7 @@ import (
 	"github.com/jeffdhooton/scry/internal/graph"
 	"github.com/jeffdhooton/scry/internal/index"
 	"github.com/jeffdhooton/scry/internal/install"
+	"github.com/jeffdhooton/scry/internal/rpc"
 	"github.com/jeffdhooton/scry/internal/sources/php"
 )
 
@@ -125,6 +126,9 @@ func Run(opts Options) (*Report, error) {
 	r.add(checkScryHome(opts.ScryHome))
 	r.add(checkNOFILE())
 	r.add(checkDaemonState(opts.ScryHome))
+	r.add(checkDaemonWatch(opts.ScryHome, opts.Timeout))
+	r.add(checkDaemonInstances(opts.ScryHome, opts.Timeout))
+	r.add(checkMemoryUIHealth(opts.ScryHome, opts.Timeout))
 	r.add(checkPHPInterpreter(opts.Timeout))
 	r.add(checkScipTypescript(opts.ScryHome))
 	r.add(checkScipGo(opts.ScryHome))
@@ -314,6 +318,73 @@ func checkDaemonState(scryHome string) Check {
 		Name:     "scry daemon",
 		Status:   StatusPass,
 		Detail:   "not running (will auto-spawn on first query)",
+	}
+}
+
+// checkDaemonWatch reports live watch coverage from the running daemon:
+// how many repos hold a watcher and how much of the shared descriptor budget
+// is in use. Unwatched repos are normal — watchers are lazy and LRU-evicted —
+// and a nearly-full budget is also normal: bootstrap deliberately fills it and
+// eviction reclaims it, so neither is a warning condition. The numbers are the
+// information; they exist so tuning (docs/DECISIONS.md) works from data.
+func checkDaemonWatch(scryHome string, timeout time.Duration) Check {
+	layout := daemon.LayoutFor(scryHome)
+	alive, _ := daemon.AliveDaemon(layout)
+	if !alive {
+		return Check{
+			ID:       "daemon.watch",
+			Category: CategoryDaemon,
+			Name:     "watch coverage",
+			Status:   StatusSkip,
+			Detail:   "daemon not running",
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	client, err := rpc.Dial(layout.SocketPath)
+	if err != nil {
+		return Check{
+			ID:       "daemon.watch",
+			Category: CategoryDaemon,
+			Name:     "watch coverage",
+			Status:   StatusWarn,
+			Detail:   "could not query daemon: " + err.Error(),
+		}
+	}
+	defer client.Close()
+	var res daemon.StatusResult
+	if err := client.Call(ctx, "status", &daemon.StatusParams{}, &res); err != nil {
+		return Check{
+			ID:       "daemon.watch",
+			Category: CategoryDaemon,
+			Name:     "watch coverage",
+			Status:   StatusWarn,
+			Detail:   "status call failed: " + err.Error(),
+		}
+	}
+	if res.Watch == nil {
+		// Daemon predates watch reporting.
+		return Check{
+			ID:       "daemon.watch",
+			Category: CategoryDaemon,
+			Name:     "watch coverage",
+			Status:   StatusSkip,
+			Detail:   "running daemon does not report watch stats (older build)",
+		}
+	}
+	watched := 0
+	for _, repo := range res.Repos {
+		if repo.Watched {
+			watched++
+		}
+	}
+	return Check{
+		ID:       "daemon.watch",
+		Category: CategoryDaemon,
+		Name:     "watch coverage",
+		Status:   StatusPass,
+		Detail: fmt.Sprintf("%d of %d indexed repos watched; fd budget %d/%d, daemon holding %d fds",
+			watched, len(res.Repos), res.Watch.BudgetUsed, res.Watch.BudgetCap, res.Watch.ProcessFDs),
 	}
 }
 

@@ -30,6 +30,10 @@ type Provider struct {
 	APIKey  string
 	Model   string
 	BaseURL string
+	// KeyEnv names the environment variable APIKey was read from. It is
+	// diagnostic only — so an error about a missing key can say which
+	// variable to set.
+	KeyEnv string
 }
 
 // ProviderFromEnv resolves the extraction provider from the environment:
