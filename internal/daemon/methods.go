@@ -134,14 +134,17 @@ type StatusParams struct {
 
 // StatusResult is the daemon's view of the world.
 type StatusResult struct {
-	PID     int                `json:"pid"`
-	Uptime  string             `json:"uptime,omitempty"`
-	Repos   []*RepoStatusEntry `json:"repos"`
-	Git     []map[string]any   `json:"git,omitempty"`
-	Schema  []map[string]any   `json:"schema,omitempty"`
-	HTTP    map[string]any     `json:"http,omitempty"`
-	Graph   []map[string]any   `json:"graph,omitempty"`
-	Version string             `json:"version,omitempty"`
+	PID    int                `json:"pid"`
+	Uptime string             `json:"uptime,omitempty"`
+	Repos  []*RepoStatusEntry `json:"repos"`
+	Git    []map[string]any   `json:"git,omitempty"`
+	Schema []map[string]any   `json:"schema,omitempty"`
+	HTTP   map[string]any     `json:"http,omitempty"`
+	Graph  []map[string]any   `json:"graph,omitempty"`
+	// Watch summarises live watch coverage and the shared descriptor budget.
+	// nil only in tests that build the result by hand.
+	Watch   *WatchStats `json:"watch,omitempty"`
+	Version string      `json:"version,omitempty"`
 	// RoomProtocol lets a long-lived `scry mcp` process detect that it
 	// predates the daemon it is talking to, instead of failing opaquely.
 	RoomProtocol int `json:"room_protocol"`
@@ -165,6 +168,11 @@ type RepoStatusEntry struct {
 	EmptyLanguages []string  `json:"empty_languages,omitempty"`
 	Languages      []string  `json:"languages,omitempty"`
 	IndexedAt      time.Time `json:"indexed_at,omitempty"`
+	// Watched reports whether the daemon holds a live file watcher on this
+	// repo. A repo that is stale AND unwatched will stay stale until something
+	// queries it (which starts a watcher on demand) — the watched flag is what
+	// tells those two kinds of stale apart.
+	Watched bool `json:"watched"`
 	// Indexers includes each failed indexer's captured stderr tail so status
 	// clients receive the same diagnostic persisted in the manifest.
 	Indexers []index.IndexerResult `json:"indexers,omitempty"`
@@ -282,7 +290,9 @@ func (d *Daemon) handleStatus(ctx context.Context, raw json.RawMessage) (any, er
 		if manifest.RepoPath == "" {
 			manifest.RepoPath = e.RepoPath
 		}
-		res.Repos = append(res.Repos, repoStatusEntry(manifest, heads))
+		entry := repoStatusEntry(manifest, heads)
+		entry.Watched = d.watcher.Watching(manifest.RepoPath)
+		res.Repos = append(res.Repos, entry)
 	}
 
 	// Best-effort scan of the on-disk repos directory so the user sees indexed
@@ -302,8 +312,12 @@ func (d *Daemon) handleStatus(ctx context.Context, raw json.RawMessage) (any, er
 		if seen[m.RepoPath] {
 			continue
 		}
-		res.Repos = append(res.Repos, repoStatusEntry(&m, heads))
+		entry := repoStatusEntry(&m, heads)
+		entry.Watched = d.watcher.Watching(m.RepoPath)
+		res.Repos = append(res.Repos, entry)
 	}
+	stats := d.watcher.Stats()
+	res.Watch = &stats
 	res.Git = d.gitStatusEntries()
 	res.Schema = d.schemaStatusEntries()
 	res.HTTP = d.httpStatusEntry()

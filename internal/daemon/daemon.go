@@ -160,12 +160,16 @@ func New(layout Layout) *Daemon {
 //
 // Returns nil on clean shutdown, otherwise the first error that broke the run.
 func (d *Daemon) Run(ctx context.Context) error {
-	// Raise NOFILE soft limit before doing anything else. fsnotify uses one
-	// file descriptor per watched directory, and macOS' default 256 is way
-	// below what a single Laravel-class repo needs (1000+ dirs is normal once
-	// you count vendor and storage subtrees). The hard limit is usually
-	// unlimited; we just need to opt into it.
+	// Raise NOFILE soft limit before doing anything else. fsnotify needs far
+	// more descriptors than macOS' default 256 — on the kqueue backends it
+	// holds one per watched *file*, not just per watched directory, so a
+	// single Laravel-class repo can want thousands.
 	raiseNOFILE()
+
+	// Size the watcher's descriptor budget from the limit we actually got.
+	// New() ran before raiseNOFILE, so the budget it built was sized against
+	// the pre-raise soft limit.
+	d.watcher.SetBudget(defaultWatchFDBudget())
 
 	if err := os.MkdirAll(d.layout.Home, 0o755); err != nil {
 		return fmt.Errorf("ensure home: %w", err)
@@ -228,10 +232,40 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 	}()
 
-	// Bootstrap: walk ~/.scry/repos and start a watcher for every repo whose
-	// source path still exists. Repos whose source dir was deleted stay in
-	// the index but get no watcher.
+	// Start a watcher on demand for any repo a query touches, and keep the
+	// watcher LRU ordered by real activity so the repos being worked in keep
+	// their watches. Starting one walks the repo, so it runs off the query
+	// path; Watch itself is serialized and idempotent.
+	d.registry.OnAccess = func(repoPath string) {
+		if d.watcher.Touch(repoPath) {
+			return
+		}
+		if !d.watcher.ClaimOnDemand(repoPath) {
+			return
+		}
+		go func() {
+			if err := d.watcher.Watch(runCtx, repoPath); err != nil {
+				fmt.Fprintf(os.Stderr, "scry: watch on demand %s: %v\n", repoPath, err)
+			}
+		}()
+	}
+
+	// Sweep rotate-then-delete garbage from previous daemon lifetimes before
+	// any watcher can start a reindex of its own. Synchronous on purpose: it
+	// is cheap when there is nothing to do, and when there IS something to do
+	// (a dead daemon left hundreds of GB of index.db.old.* archives) freeing
+	// the disk beats coming up a few seconds sooner.
+	sweepStaleIndexTrash(d.layout.Home)
+
+	// Bootstrap: start watchers for the most recently indexed repos, as many
+	// as the descriptor budget affords. The rest are watched on demand above.
 	d.bootstrapWatchers(runCtx)
+
+	// Keep the daemon's descriptor use bounded. The budget covers what the
+	// watchers reserve at Add time, but the kqueue backends keep opening
+	// descriptors on their own as watched directories gain files, so the
+	// actual total has to be watched too.
+	d.watcher.StartFDGovernor(runCtx)
 
 	// Live memory graph UI, loopback-only, best-effort: a port conflict here
 	// must never keep the daemon itself from coming up.
