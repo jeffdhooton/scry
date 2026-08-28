@@ -1639,3 +1639,52 @@ predicate. Or per-model batch support beyond Anthropic — today only the
 primary is batched in `backfill`; the serial path runs the whole chain.
 
 
+## 2026-08-28 — Daemon ownership: process-lifetime flock, launchd as the one start authority
+
+The daemon takes an exclusive `flock` on `~/.scry/scryd.lock` before it
+touches `scryd.sock` or `scryd.pid`, and holds it until the last deferred
+teardown has run (`internal/daemon/owner.go`, wired at the top of
+`Daemon.Run`). A starter that finds the lock held gives the holder
+`StartupGrace` (3s) to answer on the socket: a healthy answer means it exits
+with `ErrAlreadyRunning` (exit 0 from `scry start --foreground`); no answer
+means the holder is retired — SIGTERM, wait up to `DefaultShutdownGrace+5s`
+for the lock to be released, then SIGKILL and wait 3s more, then give up
+with an error. Every step is logged with the target PID, signal delivery,
+and time-to-release. A lock held by a process that recorded no PID is never
+signalled (fail closed). Pre-lock daemons named only by the PID file get the
+same grace/retire treatment, guarded by a `ps` command-name check against
+PID reuse. The lock file is never unlinked. An exiting daemon removes the
+PID file only if it still names that daemon.
+
+On macOS, when a LaunchAgent whose `ProgramArguments` run `scry start
+--foreground` exists in `~/Library/LaunchAgents`, clients that need the
+daemon run `launchctl kickstart gui/<uid>/<label>` and retry the socket
+instead of spawning a detached process; direct spawn remains the fallback
+when there is no agent or launchctl refuses. `scry doctor` gained
+`daemon.instances` (count of `scry start --foreground` processes vs the
+canonical socket PID) and `daemon.memory_ui` (GET `/health` on the UI port
+must be served by the canonical PID and be able to open the memory store).
+
+**Context:** `docs/DAEMON_SPLIT_BRAIN_DIAGNOSIS.md`. Three foreground
+daemons survived on the same machine: one on the RPC socket and Badger
+memory lock, one on port 7279 (returning 500 because it could not open the
+memory store), one holding watchers. launchd `KeepAlive` and client
+auto-spawn had both decided the daemon was down; each retired only the PID
+it could see, unlinked the socket pathname, and wrote its own PID. Unlinking
+a Unix socket path does not close the previous listener, so the earlier
+daemons stayed alive and unaddressable. `scry doctor` reported 0 failed.
+
+**Why flock and not a smarter PID file:** the kernel releases a flock when
+the holder dies, so "lock held" is proof of a live owner with no PID-reuse
+ambiguity and no start-time bookkeeping; and holding it across the whole
+teardown makes replacement-before-exit impossible rather than merely
+unlikely. **Why launchd is the authority:** it is the only starter that
+sources `~/.secrets.zsh`; a client-spawned winner runs dormant. **Why
+escalate to SIGKILL:** a daemon that ignores TERM for 10s is hung, and the
+alternative — leaving it — is exactly the orphan this fixes.
+
+**What would change our minds:** a Linux service manager in daily use
+(systemd `--user`), which would want the same "ask the supervisor" path
+with a different discovery; or a daemon shutdown that legitimately needs
+longer than 10s, which would raise `TermGrace` rather than remove
+escalation.

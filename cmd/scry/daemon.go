@@ -79,7 +79,9 @@ func dialDaemon() (*rpc.Client, error) {
 		if err := spawnDaemon(); err != nil {
 			return nil, fmt.Errorf("auto-spawn daemon: %w", err)
 		}
-		if err := waitForSocket(layout.SocketPath, 2*time.Second); err != nil {
+		// 5s rather than 2s: a launchd-mediated start adds a hop, and a
+		// starter that must retire an unresponsive incumbent waits for it.
+		if err := waitForSocket(layout.SocketPath, 5*time.Second); err != nil {
 			return nil, fmt.Errorf("daemon did not come up: %w", err)
 		}
 	}
@@ -91,10 +93,29 @@ func dialDaemon() (*rpc.Client, error) {
 	return c, nil
 }
 
-// spawnDaemon forks the current scry binary as a detached background process
-// running `scry start --background`. The child becomes session-leader so it
-// survives our exit, and its stdio goes to the daemon log file.
+// spawnDaemon starts the daemon. When a LaunchAgent supervises the daemon it
+// is the one start authority: we ask launchd to kickstart it and never spawn
+// a competing detached process (which would race KeepAlive for the socket
+// and would run without the secret-bearing environment the agent sources —
+// see docs/DAEMON_SPLIT_BRAIN_DIAGNOSIS.md). Without an agent, or if
+// launchctl refuses (agent not bootstrapped), the current binary is forked
+// as a detached background process running `scry start --foreground`.
 func spawnDaemon() error {
+	if agent, ok := daemon.FindLaunchAgent(); ok {
+		if err := agent.Kickstart(); err == nil {
+			fmt.Fprintf(os.Stderr, "scry: asked launchd to start %s\n", agent.Label)
+			return nil
+		} else {
+			fmt.Fprintf(os.Stderr, "scry: %v; spawning daemon directly\n", err)
+		}
+	}
+	return spawnDetachedDaemon()
+}
+
+// spawnDetachedDaemon forks the current scry binary as a detached background
+// process. The child gets its own process group so it survives our exit,
+// and its stdio goes to the daemon log file.
+func spawnDetachedDaemon() error {
 	exe, err := os.Executable()
 	if err != nil {
 		return err

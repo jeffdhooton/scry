@@ -127,6 +127,8 @@ func Run(opts Options) (*Report, error) {
 	r.add(checkNOFILE())
 	r.add(checkDaemonState(opts.ScryHome))
 	r.add(checkDaemonWatch(opts.ScryHome, opts.Timeout))
+	r.add(checkDaemonInstances(opts.ScryHome, opts.Timeout))
+	r.add(checkMemoryUIHealth(opts.ScryHome, opts.Timeout))
 	r.add(checkPHPInterpreter(opts.Timeout))
 	r.add(checkScipTypescript(opts.ScryHome))
 	r.add(checkScipGo(opts.ScryHome))

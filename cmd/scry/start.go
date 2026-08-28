@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -30,7 +31,14 @@ for inspecting daemon logs or running under a supervisor.`,
 
 			if foreground {
 				d := daemon.New(layout)
-				return d.Run(context.Background())
+				err := d.Run(context.Background())
+				if errors.Is(err, daemon.ErrAlreadyRunning) {
+					// Not a failure: a healthy daemon is serving. Exiting 0
+					// keeps a supervisor from treating this as a crash.
+					fmt.Fprintf(os.Stderr, "scry: %v\n", err)
+					return nil
+				}
+				return err
 			}
 
 			if alive, pid := daemon.AliveDaemon(layout); alive {

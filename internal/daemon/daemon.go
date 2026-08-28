@@ -39,6 +39,7 @@ type Layout struct {
 	Home       string // ~/.scry
 	SocketPath string // ~/.scry/scryd.sock
 	PIDPath    string // ~/.scry/scryd.pid
+	LockPath   string // ~/.scry/scryd.lock — process-lifetime flock, see owner.go
 	LogPath    string // ~/.scry/scryd.log
 }
 
@@ -48,6 +49,7 @@ func LayoutFor(home string) Layout {
 		Home:       home,
 		SocketPath: filepath.Join(home, "scryd.sock"),
 		PIDPath:    filepath.Join(home, "scryd.pid"),
+		LockPath:   filepath.Join(home, "scryd.lock"),
 		LogPath:    filepath.Join(home, "scryd.log"),
 	}
 }
@@ -175,13 +177,21 @@ func (d *Daemon) Run(ctx context.Context) error {
 		return fmt.Errorf("ensure home: %w", err)
 	}
 
-	// Refuse to start if another daemon is already alive on the same socket.
-	if alive, pid := d.aliveDaemonPID(); alive {
-		return fmt.Errorf("scry daemon already running (pid %d, socket %s)", pid, d.layout.SocketPath)
+	// Become the one daemon for this home, or step aside for a healthy one
+	// (returns *AlreadyRunningError). An incumbent that holds the lock but
+	// does not answer is retired and waited for before we proceed — see
+	// owner.go for why a PID file alone was not enough. The lock is the
+	// first thing acquired and the last thing released: every other
+	// teardown below runs before it, so a successor can only start
+	// mutating scryd.sock / scryd.pid once this process is fully gone.
+	own, err := acquireOwnership(d.layout, defaultTakeoverPolicy())
+	if err != nil {
+		return err
 	}
+	defer own.Release()
 
-	// Stale socket from a previous crash — safe to remove now that we've
-	// confirmed nothing's listening.
+	// Stale socket from a previous crash. We hold the lock and no healthy
+	// daemon answered, so nothing live is behind this pathname.
 	if err := os.Remove(d.layout.SocketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("remove stale socket: %w", err)
 	}
@@ -202,7 +212,8 @@ func (d *Daemon) Run(ctx context.Context) error {
 		_ = ln.Close()
 		return fmt.Errorf("write pid file: %w", err)
 	}
-	defer os.Remove(d.layout.PIDPath)
+	fmt.Fprintf(os.Stderr, "scry: daemon pid %d owns %s (lock %s)\n", os.Getpid(), d.layout.SocketPath, d.layout.LockPath)
+	defer removeOwnedPIDFile(d.layout, os.Getpid())
 	defer os.Remove(d.layout.SocketPath)
 	defer d.registry.CloseAll()
 	defer d.gitRegistry.CloseAll()
@@ -276,12 +287,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 		return serveErr
 	}
 	return nil
-}
-
-// aliveDaemonPID checks the PID file and pings the socket. Returns the PID of
-// a confirmed-running daemon, or (false, 0) otherwise.
-func (d *Daemon) aliveDaemonPID() (bool, int) {
-	return AliveDaemon(d.layout)
 }
 
 // AliveDaemon is the standalone version usable from the CLI to decide whether

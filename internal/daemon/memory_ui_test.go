@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -139,5 +140,33 @@ func TestForceMemoryUILoopback(t *testing.T) {
 				t.Errorf("forceMemoryUILoopback(%q) = %q, want %q", tc.in, got, tc.want)
 			}
 		})
+	}
+}
+
+// TestMemoryUIHealthReportsServingPID covers GET /health: it must name the
+// process serving the UI so `scry doctor` can tell whether the UI and the
+// canonical RPC socket belong to the same daemon — the split-brain
+// signature in docs/DAEMON_SPLIT_BRAIN_DIAGNOSIS.md was an orphan serving
+// port 7279 while another process owned the socket and the memory store.
+func TestMemoryUIHealthReportsServingPID(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+
+	req := httptest.NewRequest("GET", "/health", nil)
+	w := httptest.NewRecorder()
+	d.handleMemoryUIHealth(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != 200 {
+		t.Fatalf("GET /health status = %d, want 200", resp.StatusCode)
+	}
+	var h MemoryUIHealth
+	if err := json.Unmarshal(w.Body.Bytes(), &h); err != nil {
+		t.Fatalf("unmarshal /health: %v", err)
+	}
+	if h.PID != os.Getpid() {
+		t.Errorf("health.PID = %d, want %d", h.PID, os.Getpid())
+	}
+	if !h.MemoryOK {
+		t.Errorf("health.MemoryOK = false (%q), want true for a daemon that owns the store", h.MemoryError)
 	}
 }
