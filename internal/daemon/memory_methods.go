@@ -690,6 +690,10 @@ type MemoryStatusResult struct {
 	Facts    int  `json:"facts"`
 	Dormant  bool `json:"dormant"`
 	Cursors  int  `json:"cursors"`
+	// Models is the extraction chain in order (primary first), empty when
+	// dormant — so `scry memory status` shows which models are actually
+	// live, not which ones the shell env would have picked.
+	Models []string `json:"models,omitempty"`
 }
 
 func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, error) {
@@ -705,12 +709,17 @@ func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, 
 	if err != nil {
 		return nil, err
 	}
+	var models []string
+	if ch, ok := d.memExtractor.(*extract.Chain); ok {
+		models = ch.Names()
+	}
 	return &MemoryStatusResult{
 		Episodes: episodes,
 		Entities: entities,
 		Facts:    facts,
 		Dormant:  d.memExtractor == nil,
 		Cursors:  len(cursors),
+		Models:   models,
 	}, nil
 }
 

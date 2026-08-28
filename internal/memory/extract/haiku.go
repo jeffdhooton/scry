@@ -72,6 +72,7 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 		return Result{}, fmt.Errorf("extract: haiku request failed: %w", err)
 	}
 
+	lastResp := resp
 	raw := concatText(resp)
 	result, parseErr := ParseResult(raw)
 	if parseErr == nil {
@@ -99,6 +100,7 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 		if rerr != nil {
 			return Result{}, fmt.Errorf("extract: haiku retry request failed: %w", rerr)
 		}
+		lastResp = next
 		raw = concatText(next)
 		result, parseErr = ParseResult(raw)
 		if parseErr == nil {
@@ -106,9 +108,23 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 		}
 	}
 	// The raw reply rides along on the error so the caller can dead-letter the
-	// exact text rather than only the parse failure.
-	return Result{}, fmt.Errorf("extract: invalid JSON after 2 repairs: %w: %w (reply: %.400q)",
-		ErrParse, parseErr, raw)
+	// exact text rather than only the parse failure. An empty reply also
+	// carries the stop_reason: `reply: ""` alone says nothing about whether
+	// the model hit max_tokens, refused, or returned only non-text blocks.
+	return Result{}, fmt.Errorf("extract: invalid JSON after 2 repairs: %w: %w (reply: %.400q%s)",
+		ErrParse, parseErr, raw, emptyReplyDetail(lastResp, raw))
+}
+
+// emptyReplyDetail describes why a reply had no text, for the error message.
+func emptyReplyDetail(msg *anthropic.Message, raw string) string {
+	if raw != "" || msg == nil {
+		return ""
+	}
+	kinds := make([]string, 0, len(msg.Content))
+	for _, block := range msg.Content {
+		kinds = append(kinds, string(block.Type))
+	}
+	return fmt.Sprintf(", stop_reason=%s, content_blocks=[%s]", msg.StopReason, strings.Join(kinds, ","))
 }
 
 // concatText joins every text content block in a response, in order.

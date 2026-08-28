@@ -1438,3 +1438,39 @@ disappears per repo as each is reindexed and records a commit.
 unrelated reason, `countsUnrecorded` could become a straight version check
 instead of an aggregate inference. The inference is exact today, but it is a
 property of the builder's aggregation, so it needs the comment that says so.
+
+## 2026-08-23 — Memory extraction: ordered model chain in `~/.scry/config.yaml`
+
+**Decision:** `memory.models` in `~/.scry/config.yaml` is an ordered list
+of extraction models (`model`, optional `base_url`, optional `api_key_env`).
+`extract.Chain` tries each in order and returns the first success; the
+combined error wraps `ErrParse` only when *every* model failed on content,
+so a transport failure anywhere still means "retry next sweep" rather than
+"skip forever". When the list is present it replaces `SCRY_MEMORY_MODEL` /
+`SCRY_MEMORY_BASE_URL` outright (the daemon logs that it is ignoring them);
+with no file, the env behaves exactly as before. Keys never live in the
+file — `api_key_env` names the variable, defaulting to the existing
+`SCRY_MEMORY_API_KEY` / `DEEPSEEK_API_KEY` lookup. This is the first thing
+to actually use the `config.yaml` decided on 2026-04-10; it is parsed with
+`gopkg.in/yaml.v3`, not viper — one section does not justify the dependency.
+
+**Context:** three dead-letters in a day, all `deepseek-v4-flash`: two
+empty replies (`reply: ""` even after both repair turns) and one invented
+entity type (`"model"`). Each cost a real fact. `deepseek-v4-pro` sits on
+the same endpoint with the same key, so a flash → pro chain rescues those
+episodes for a few cents without touching a second provider. Empty replies
+now also carry `stop_reason` and the content block types in the error,
+because `reply: ""` on its own said nothing about *why*.
+
+**Why replace rather than merge with env:** a file the user wrote on
+purpose should mean exactly what it says. Layering env on top ("env is the
+primary, config supplies fallbacks") makes the effective chain depend on
+which shell spawned the daemon — the exact ambiguity the file exists to
+remove.
+
+**What would change our minds:** a fallback that should *not* fire on every
+failure (e.g. only on empty replies, never on 4xx) — then `Chain` grows a
+predicate. Or per-model batch support beyond Anthropic — today only the
+primary is batched in `backfill`; the serial path runs the whole chain.
+
+

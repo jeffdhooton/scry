@@ -118,6 +118,21 @@ export SCRY_MEMORY_API_KEY=sk-…      # DeepSeek key by default
 | `SCRY_MEMORY_BASE_URL` | `https://api.deepseek.com/anthropic` | Any Messages-API-compatible endpoint. |
 | `SCRY_MEMORY_UI_ADDR` | `127.0.0.1:7279` | Live memory UI address; `off` disables it. Loopback is forced. |
 
+**Model chain (`~/.scry/config.yaml`).** A cheap model sometimes returns nothing usable — an empty reply, or an entity type it invented — and with a single model that episode is dead-lettered on the spot. `memory.models` is an ordered fallback chain: the first entry handles every episode, each later one only runs when the previous failed. When present it replaces `SCRY_MEMORY_MODEL` / `SCRY_MEMORY_BASE_URL` entirely (the daemon logs that it's ignoring them). Keys stay in the environment: `api_key_env` names the variable, defaulting to `SCRY_MEMORY_API_KEY` / `DEEPSEEK_API_KEY`.
+
+```yaml
+# ~/.scry/config.yaml
+memory:
+  models:
+    - model: deepseek-v4-flash            # primary — cheap
+    - model: deepseek-v4-pro              # fallback when flash returns nothing usable
+    # - model: claude-haiku-4-5           # cross-provider fallback: explicit opt-in only
+    #   base_url: https://api.anthropic.com
+    #   api_key_env: ANTHROPIC_API_KEY
+```
+
+`scry memory status` lists the live chain under `models`; each fallback is logged in `~/.scry/scryd.log` as `extraction on <a> failed (…) — falling back to <b>`. Restart the daemon after editing the file. A malformed file makes extraction dormant (loudly, in the log) rather than crashing the daemon.
+
 Extraction defaults to DeepSeek, not Anthropic, on purpose: the sweep runs unattended over every transcript on the machine, so the default has to be the cheap provider. `ANTHROPIC_API_KEY` is deliberately **not** consulted — reaching Anthropic requires naming it in `SCRY_MEMORY_BASE_URL` (and then `SCRY_MEMORY_MODEL` is mandatory). The Message Batches API (50% discount, used by `backfill`) is Anthropic-only; against any other endpoint backfill silently falls back to serial extraction.
 
 ```bash

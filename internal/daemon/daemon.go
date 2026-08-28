@@ -15,10 +15,12 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/config"
 	"github.com/jeffdhooton/scry/internal/git"
 	scryhttp "github.com/jeffdhooton/scry/internal/http"
 	httpstore "github.com/jeffdhooton/scry/internal/http/store"
@@ -93,28 +95,40 @@ func (d *Daemon) memoryStore() (*memstore.Store, error) {
 }
 
 // buildMemoryExtractor constructs the daemon's extract.Extractor from
-// environment (see extract.ProviderFromEnv). A nil return means the memory
-// domain is dormant — memory.remember still stores episodes but never
-// resolves them into facts. Both a missing key and an unusable provider
-// config go dormant rather than failing the daemon's startup; the CLI
-// surfaces the same misconfiguration loudly, which is where it gets noticed.
-func buildMemoryExtractor() extract.Extractor {
-	p := extract.ProviderFromEnv()
+// ~/.scry/config.yaml (memory.models) falling back to the environment (see
+// extract.ResolveProviders). A nil return means the memory domain is
+// dormant — memory.remember still stores episodes but never resolves them
+// into facts. A missing key, an unusable provider config, and a malformed
+// config file all go dormant rather than failing the daemon's startup; the
+// CLI surfaces the same misconfiguration loudly, which is where it gets
+// noticed.
+func buildMemoryExtractor(scryHome string) extract.Extractor {
+	cfg, err := config.Load(scryHome)
+	if err != nil {
+		log.Printf("memory: extraction DORMANT — %v. Episodes will be stored "+
+			"but never resolved into facts. Fix the file and restart the daemon.", err)
+		return nil
+	}
+	ps := extract.ResolveProviders(cfg)
 	// Dormancy must be loud. A daemon restarted without the key went quietly
 	// dormant for a whole day: episodes kept being stored and never resolved
 	// into facts, and nothing said so until someone went looking.
-	if p.APIKey == "" {
+	if ps.Dormant() {
 		log.Printf("memory: extraction DORMANT — no API key in the environment. " +
 			"Episodes will be stored but never resolved into facts. Set the " +
 			"provider key and restart the daemon.")
 		return nil
 	}
-	if err := p.Validate(); err != nil {
+	if err := ps.Validate(); err != nil {
 		log.Printf("memory: extraction DORMANT — unusable provider config: %v. "+
 			"Episodes will be stored but never resolved into facts.", err)
 		return nil
 	}
-	return extract.NewHaiku(p)
+	log.Printf("memory: extraction chain (%s): %s", ps.Source, strings.Join(ps.Models(), " -> "))
+	if ps.Source == "config.yaml" && (os.Getenv("SCRY_MEMORY_MODEL") != "" || os.Getenv("SCRY_MEMORY_BASE_URL") != "") {
+		log.Printf("memory: ignoring SCRY_MEMORY_MODEL / SCRY_MEMORY_BASE_URL — memory.models in %s takes precedence", config.Path(scryHome))
+	}
+	return extract.NewExtractor(ps)
 }
 
 // New constructs a Daemon for the given layout. It does NOT start anything;
@@ -127,7 +141,7 @@ func New(layout Layout) *Daemon {
 		schemaRegistry: NewSchemaRegistry(),
 		graphRegistry:  NewGraphRegistry(),
 		server:         rpc.NewServer(),
-		memExtractor:   buildMemoryExtractor(),
+		memExtractor:   buildMemoryExtractor(layout.Home),
 	}
 	d.watcher = NewWatcher(layout.Home, d.registry)
 	d.watcher.SetPostReindex(d.rebuildGraphAsync)

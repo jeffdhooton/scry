@@ -153,3 +153,26 @@ func TestHaikuHonorsBaseURL(t *testing.T) {
 		t.Errorf("EpisodeSummary = %q, want s", res.EpisodeSummary)
 	}
 }
+
+// TestHaikuEmptyReplyReportsStopReason: an empty text reply is the failure
+// that used to show up as `reply: ""` with nothing else to go on. The
+// stop_reason is the one fact the response carries about why, so it has to
+// survive into the error.
+func TestHaikuEmptyReplyReportsStopReason(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"m","type":"message","role":"assistant","model":"x",` +
+			`"content":[],"stop_reason":"max_tokens","usage":{"input_tokens":1,"output_tokens":1}}`))
+	}))
+	defer srv.Close()
+
+	h := NewHaiku(Provider{APIKey: "k", Model: "x", BaseURL: srv.URL})
+	_, err := h.Extract(context.Background(), distill.RawEpisode{Text: "hello", OccurredAt: time.Now()}, nil)
+
+	if err == nil {
+		t.Fatal("Extract() error = nil, want a parse failure for an empty reply")
+	}
+	if !strings.Contains(err.Error(), "stop_reason=max_tokens") {
+		t.Errorf("error = %q, want it to carry stop_reason=max_tokens", err)
+	}
+}
