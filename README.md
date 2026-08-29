@@ -117,6 +117,7 @@ export SCRY_MEMORY_API_KEY=sk-…      # DeepSeek key by default
 | `SCRY_MEMORY_MODEL` | `deepseek-v4-flash` | Model id. **Required** if you set a custom base URL. |
 | `SCRY_MEMORY_BASE_URL` | `https://api.deepseek.com/anthropic` | Any Messages-API-compatible endpoint. |
 | `SCRY_MEMORY_UI_ADDR` | `127.0.0.1:7279` | Live memory UI address; `off` disables it. Loopback is forced. |
+| `SCRY_MEMORY_SOCKET` | local daemon | Unix socket for a shared memory daemon. Memory CLI verbs and the `memory` MCP profile use it; other domains stay local. |
 
 **Model chain (`~/.scry/config.yaml`).** A cheap model sometimes returns nothing usable — an empty reply, or an entity type it invented — and with a single model that episode is dead-lettered on the spot. `memory.models` is an ordered fallback chain: the first entry handles every episode, each later one only runs when the previous failed. When present it replaces `SCRY_MEMORY_MODEL` / `SCRY_MEMORY_BASE_URL` entirely (the daemon logs that it's ignoring them). Keys stay in the environment: `api_key_env` names the variable, defaulting to `SCRY_MEMORY_API_KEY` / `DEEPSEEK_API_KEY`.
 
@@ -373,6 +374,14 @@ All tools use the `scry_` prefix. Registered as a single MCP server via `scry se
 | **HTTP** | `scry_requests`, `scry_request`, `scry_http_status` |
 | **Graph** | `scry_graph_query`, `scry_graph_path`, `scry_graph_report` |
 | **Memory** | `scry_recall`, `scry_remember`, `scry_episodes`, `scry_memory_path` |
+
+`scry mcp --profile memory` advertises and accepts only the four memory tools.
+This is intended for a shared memory authority launched over SSH from another
+machine. `scry mcp --profile local` exposes every domain except memory, keeping
+code, git, schema, HTTP, graph, and room queries on the caller's machine.
+Point `SCRY_MEMORY_SOCKET` at an SSH `StreamLocalForward` of the authority's
+`~/.scry/scryd.sock` to route memory CLI commands and the memory MCP profile
+there without making the daemon listen on the network.
 
 The memory tools only return data once the [memory domain is enabled](#5-optional-enable-the-memory-domain); until then they answer from an empty graph.
 

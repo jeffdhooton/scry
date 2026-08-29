@@ -15,6 +15,8 @@ import (
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
 
+const memorySocketEnv = "SCRY_MEMORY_SOCKET"
+
 func daemonCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "daemon",
@@ -89,6 +91,22 @@ func dialDaemon() (*rpc.Client, error) {
 	c, err := rpc.Dial(layout.SocketPath)
 	if err != nil {
 		return nil, fmt.Errorf("dial daemon: %w", err)
+	}
+	return c, nil
+}
+
+// dialMemoryDaemon returns the configured shared-memory daemon when
+// SCRY_MEMORY_SOCKET names a Unix socket (typically an SSH StreamLocalForward
+// to an always-on machine). Without the variable, memory stays local for
+// backwards compatibility.
+func dialMemoryDaemon() (*rpc.Client, error) {
+	path := os.Getenv(memorySocketEnv)
+	if path == "" {
+		return dialDaemon()
+	}
+	c, err := rpc.Dial(path)
+	if err != nil {
+		return nil, fmt.Errorf("dial shared memory daemon via %s=%q: %w", memorySocketEnv, path, err)
 	}
 	return c, nil
 }
@@ -186,6 +204,18 @@ func pingSocket(path string) bool {
 // the result, close the connection.
 func callDaemon(ctx context.Context, method string, params, out any) error {
 	c, err := dialDaemon()
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	return c.Call(ctx, method, params, out)
+}
+
+// callMemoryDaemon is the memory-domain counterpart to callDaemon. It keeps
+// code/git/schema/HTTP/room calls on the local daemon while allowing every
+// memory CLI verb—including sweep and orient—to use one remote authority.
+func callMemoryDaemon(ctx context.Context, method string, params, out any) error {
+	c, err := dialMemoryDaemon()
 	if err != nil {
 		return err
 	}

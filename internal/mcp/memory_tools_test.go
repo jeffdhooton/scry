@@ -98,6 +98,76 @@ func TestToolsListIncludesMemoryTools(t *testing.T) {
 	}
 }
 
+func TestMemoryProfileListsOnlyMemoryTools(t *testing.T) {
+	s := NewWithProfile(func() (Dialer, error) { return &fakeMemoryDialer{}, nil }, ToolProfileMemory)
+	var out bytes.Buffer
+	in := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}` + "\n")
+	if err := s.Serve(context.Background(), in, &out); err != nil {
+		t.Fatalf("Serve: %v", err)
+	}
+
+	var resp struct {
+		Result struct {
+			Tools []tool `json:"tools"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v\nraw: %s", err, out.String())
+	}
+	if len(resp.Result.Tools) != len(memoryToolDefinitions) {
+		t.Fatalf("memory profile listed %d tools, want %d", len(resp.Result.Tools), len(memoryToolDefinitions))
+	}
+	for _, td := range resp.Result.Tools {
+		if !s.toolAllowed(td.Name) {
+			t.Errorf("memory profile unexpectedly listed %q", td.Name)
+		}
+	}
+}
+
+func TestLocalProfileExcludesMemoryTools(t *testing.T) {
+	s := NewWithProfile(func() (Dialer, error) { return &fakeMemoryDialer{}, nil }, ToolProfileLocal)
+	for _, td := range memoryToolDefinitions {
+		if s.toolAllowed(td.Name) {
+			t.Errorf("local profile allowed memory tool %q", td.Name)
+		}
+	}
+	if !s.toolAllowed("scry_refs") || !s.toolAllowed("scry_room_list") {
+		t.Fatal("local profile should retain code and room tools")
+	}
+}
+
+func TestMemoryProfileRejectsNonMemoryCallBeforeDial(t *testing.T) {
+	dialed := false
+	s := NewWithProfile(func() (Dialer, error) {
+		dialed = true
+		return &fakeMemoryDialer{}, nil
+	}, ToolProfileMemory)
+
+	var out bytes.Buffer
+	in := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"scry_refs","arguments":{"symbol":"main"}}}` + "\n")
+	if err := s.Serve(context.Background(), in, &out); err != nil {
+		t.Fatalf("Serve: %v", err)
+	}
+	if dialed {
+		t.Fatal("disallowed tool call reached the daemon dialer")
+	}
+	if !strings.Contains(out.String(), `unavailable in the memory MCP profile`) {
+		t.Fatalf("unexpected response: %s", out.String())
+	}
+}
+
+func TestParseToolProfile(t *testing.T) {
+	for _, raw := range []string{"all", "local", "memory"} {
+		got, err := ParseToolProfile(raw)
+		if err != nil || string(got) != raw {
+			t.Errorf("ParseToolProfile(%q) = %q, %v", raw, got, err)
+		}
+	}
+	if _, err := ParseToolProfile("remote"); err == nil {
+		t.Fatal("ParseToolProfile(remote) unexpectedly succeeded")
+	}
+}
+
 // TestCallMemoryQueryForwardsRecall mirrors the git-tools dispatch shape:
 // arg parse -> RPC name + params. scry_recall stands in for all four since
 // they share callMemoryQuery.

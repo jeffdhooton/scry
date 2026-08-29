@@ -94,13 +94,13 @@ var _ ingest.Daemon = daemonClient{}
 
 func (daemonClient) Glossary(ctx context.Context, limit int) ([]string, error) {
 	var result []string
-	err := callDaemon(ctx, "memory.glossary", &daemon.MemoryGlossaryParams{Limit: limit}, &result)
+	err := callMemoryDaemon(ctx, "memory.glossary", &daemon.MemoryGlossaryParams{Limit: limit}, &result)
 	return result, err
 }
 
 func (daemonClient) Commit(ctx context.Context, ep memstore.Episode, cwd string, res extract.Result) (resolve.Stats, error) {
 	var stats resolve.Stats
-	err := callDaemon(ctx, "memory.commit", &daemon.MemoryCommitParams{
+	err := callMemoryDaemon(ctx, "memory.commit", &daemon.MemoryCommitParams{
 		Episode: ep, Cwd: cwd, Result: res,
 	}, &stats)
 	return stats, err
@@ -108,7 +108,7 @@ func (daemonClient) Commit(ctx context.Context, ep memstore.Episode, cwd string,
 
 func (daemonClient) GetCursor(ctx context.Context, path string) (memstore.Cursor, bool, error) {
 	var result daemon.MemoryCursorGetResult
-	err := callDaemon(ctx, "memory.cursor.get", &daemon.MemoryCursorGetParams{Path: path}, &result)
+	err := callMemoryDaemon(ctx, "memory.cursor.get", &daemon.MemoryCursorGetParams{Path: path}, &result)
 	return result.Cursor, result.Found, err
 }
 
@@ -117,7 +117,7 @@ func (daemonClient) PutCursor(ctx context.Context, c memstore.Cursor) error {
 	// struct) — see handleMemoryCursorPut, which unmarshals raw straight
 	// into a memstore.Cursor.
 	var result map[string]any
-	return callDaemon(ctx, "memory.cursor.put", &c, &result)
+	return callMemoryDaemon(ctx, "memory.cursor.put", &c, &result)
 }
 
 // HasEpisodes reports which of ids are NOT yet committed to the store — see
@@ -125,7 +125,7 @@ func (daemonClient) PutCursor(ctx context.Context, c memstore.Cursor) error {
 // extraction on episodes a previous run already ingested.
 func (daemonClient) HasEpisodes(ctx context.Context, ids []string) ([]string, error) {
 	var result daemon.MemoryHasEpisodesResult
-	err := callDaemon(ctx, "memory.hasEpisodes", &daemon.MemoryHasEpisodesParams{IDs: ids}, &result)
+	err := callMemoryDaemon(ctx, "memory.hasEpisodes", &daemon.MemoryHasEpisodesParams{IDs: ids}, &result)
 	return result.Missing, err
 }
 
@@ -187,7 +187,7 @@ description can only be corrected on purpose. This is how.`,
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			var out map[string]any
-			if err := callDaemon(ctx, "memory.describe",
+			if err := callMemoryDaemon(ctx, "memory.describe",
 				map[string]any{"slug": args[0], "description": args[1]}, &out); err != nil {
 				return err
 			}
@@ -221,7 +221,7 @@ Defaults to a dry run — this edits recorded history, so read it first.`,
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer cancel()
 			var rep resolve.HygieneReport
-			if err := callDaemon(ctx, "memory.hygiene",
+			if err := callMemoryDaemon(ctx, "memory.hygiene",
 				map[string]any{"dry_run": !apply}, &rep); err != nil {
 				return err
 			}
@@ -720,7 +720,7 @@ func memoryOrientCmd() *cobra.Command {
 			var result struct {
 				Markdown string `json:"markdown"`
 			}
-			if err := callDaemon(ctx, "memory.orient", &daemon.MemoryOrientParams{
+			if err := callMemoryDaemon(ctx, "memory.orient", &daemon.MemoryOrientParams{
 				Cwd: cwd, Budget: budget,
 			}, &result); err != nil {
 				return err
@@ -748,7 +748,7 @@ func memoryRecallCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			var result any
-			if err := callDaemon(ctx, "memory.recall", &daemon.MemoryRecallParams{
+			if err := callMemoryDaemon(ctx, "memory.recall", &daemon.MemoryRecallParams{
 				Query: args[0], AsOf: asOf, Limit: limit,
 			}, &result); err != nil {
 				return err
@@ -777,7 +777,7 @@ func memoryRememberCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 			var result daemon.MemoryRememberResult
-			if err := callDaemon(ctx, "memory.remember", &daemon.MemoryRememberParams{
+			if err := callMemoryDaemon(ctx, "memory.remember", &daemon.MemoryRememberParams{
 				Fact: args[0], Entities: entities,
 			}, &result); err != nil {
 				return err
@@ -804,7 +804,7 @@ func memoryEntitiesCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			var result any
-			if err := callDaemon(ctx, "memory.entities", &daemon.MemoryEntitiesParams{
+			if err := callMemoryDaemon(ctx, "memory.entities", &daemon.MemoryEntitiesParams{
 				Type: typ,
 			}, &result); err != nil {
 				return err
@@ -828,7 +828,7 @@ func memoryFactsCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			var result any
-			if err := callDaemon(ctx, "memory.facts", &daemon.MemoryFactsParams{
+			if err := callMemoryDaemon(ctx, "memory.facts", &daemon.MemoryFactsParams{
 				Slug: args[0], IncludeInvalid: all,
 			}, &result); err != nil {
 				return err
@@ -850,7 +850,7 @@ func memoryInvalidateCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			var result any
-			if err := callDaemon(ctx, "memory.invalidate", &daemon.MemoryInvalidateParams{
+			if err := callMemoryDaemon(ctx, "memory.invalidate", &daemon.MemoryInvalidateParams{
 				Src: args[0], Relation: args[1], Dst: args[2],
 			}, &result); err != nil {
 				return err
@@ -870,7 +870,7 @@ func memoryStatusCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			var result daemon.MemoryStatusResult
-			if err := callDaemon(ctx, "memory.status", nil, &result); err != nil {
+			if err := callMemoryDaemon(ctx, "memory.status", nil, &result); err != nil {
 				return err
 			}
 			pretty, _ := cmd.Flags().GetBool("pretty")
@@ -906,7 +906,7 @@ disable with "off") for whenever a one-off file isn't wanted.`,
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 			var export daemon.MemoryExportResult
-			if err := callDaemon(ctx, "memory.export", nil, &export); err != nil {
+			if err := callMemoryDaemon(ctx, "memory.export", nil, &export); err != nil {
 				return err
 			}
 

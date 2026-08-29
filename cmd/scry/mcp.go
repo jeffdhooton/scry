@@ -20,7 +20,7 @@ import (
 // Intended to be launched by a Claude Code mcpServers entry. Not meant to be
 // run interactively.
 func mcpCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "mcp",
 		Short: "Run as an MCP stdio server (launched by Claude Code)",
 		Long: `Speaks the Model Context Protocol on stdin/stdout so Claude Code
@@ -29,6 +29,12 @@ call if it isn't already running.
 
 Not meant to be run interactively. Configure via 'scry setup'.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			profileName, _ := cmd.Flags().GetString("profile")
+			profile, err := mcp.ParseToolProfile(profileName)
+			if err != nil {
+				return err
+			}
+
 			// Respect SIGTERM / SIGINT so Claude Code can shut the server
 			// down cleanly when it restarts or quits.
 			ctx, cancel := context.WithCancel(context.Background())
@@ -42,16 +48,24 @@ Not meant to be run interactively. Configure via 'scry setup'.`,
 			}()
 
 			dial := func() (mcp.Dialer, error) {
-				c, err := dialDaemon()
+				var c *rpc.Client
+				var err error
+				if profile == mcp.ToolProfileMemory {
+					c, err = dialMemoryDaemon()
+				} else {
+					c, err = dialDaemon()
+				}
 				if err != nil {
 					return nil, err
 				}
 				return &mcpDialer{c: c}, nil
 			}
-			srv := mcp.New(dial)
+			srv := mcp.NewWithProfile(dial, profile)
 			return srv.Serve(ctx, os.Stdin, os.Stdout)
 		},
 	}
+	cmd.Flags().String("profile", string(mcp.ToolProfileAll), "tool profile: all, local (exclude memory), or memory")
+	return cmd
 }
 
 // mcpDialer adapts *rpc.Client to the mcp.Dialer interface. The interface is

@@ -59,10 +59,34 @@ type Dialer interface {
 // are cheap enough that pooling isn't worth the complexity.
 type DialFunc func() (Dialer, error)
 
+// ToolProfile selects which domain tools an MCP process advertises and
+// accepts. Profiles let one scry daemon remain the local code-intelligence
+// authority while a second, SSH-launched MCP process exposes only the memory
+// graph from another machine.
+type ToolProfile string
+
+const (
+	ToolProfileAll    ToolProfile = "all"
+	ToolProfileLocal  ToolProfile = "local"
+	ToolProfileMemory ToolProfile = "memory"
+)
+
+// ParseToolProfile validates a user-facing --profile value.
+func ParseToolProfile(raw string) (ToolProfile, error) {
+	profile := ToolProfile(raw)
+	switch profile {
+	case ToolProfileAll, ToolProfileLocal, ToolProfileMemory:
+		return profile, nil
+	default:
+		return "", fmt.Errorf("invalid MCP tool profile %q (want all, local, or memory)", raw)
+	}
+}
+
 // Server is a long-running MCP stdio server. Serve blocks until the input
 // reader is closed.
 type Server struct {
-	dial DialFunc
+	dial    DialFunc
+	profile ToolProfile
 
 	// mu serializes writes to the output stream so partial writes from
 	// concurrent goroutines can't interleave. Reads are already serialized
@@ -73,7 +97,13 @@ type Server struct {
 
 // New constructs an unconnected MCP server. Call Serve to run it.
 func New(dial DialFunc) *Server {
-	return &Server{dial: dial}
+	return NewWithProfile(dial, ToolProfileAll)
+}
+
+// NewWithProfile constructs an MCP server restricted to profile. The caller
+// must pass a value produced by ParseToolProfile (or one of the constants).
+func NewWithProfile(dial DialFunc, profile ToolProfile) *Server {
+	return &Server{dial: dial, profile: profile}
 }
 
 // Serve runs the read-dispatch-write loop until ctx is cancelled or the
@@ -217,11 +247,18 @@ func (s *Server) handleInitialize(req request) {
 			},
 		},
 		"serverInfo": map[string]any{
-			"name":    "scry",
+			"name":    s.serverName(),
 			"version": "0.1.0",
 		},
 	}
 	s.writeResult(req.ID, result)
+}
+
+func (s *Server) serverName() string {
+	if s.profile == ToolProfileMemory {
+		return "scry-memory"
+	}
+	return "scry"
 }
 
 // ---------------- tools/list ----------------
@@ -338,7 +375,33 @@ func (s *Server) handleToolsList(req request) {
 	all = append(all, graphToolDefinitions...)
 	all = append(all, memoryToolDefinitions...)
 	all = append(all, roomToolDefinitions...)
-	s.writeResult(req.ID, map[string]any{"tools": all})
+
+	selected := make([]tool, 0, len(all))
+	for _, td := range all {
+		if s.toolAllowed(td.Name) {
+			selected = append(selected, td)
+		}
+	}
+	s.writeResult(req.ID, map[string]any{"tools": selected})
+}
+
+func (s *Server) toolAllowed(name string) bool {
+	isMemory := false
+	for _, td := range memoryToolDefinitions {
+		if td.Name == name {
+			isMemory = true
+			break
+		}
+	}
+
+	switch s.profile {
+	case ToolProfileMemory:
+		return isMemory
+	case ToolProfileLocal:
+		return !isMemory
+	default:
+		return true
+	}
 }
 
 // ---------------- tools/call ----------------
@@ -357,6 +420,10 @@ func (s *Server) handleToolsCall(ctx context.Context, req request) {
 	var p toolsCallParams
 	if err := json.Unmarshal(req.Params, &p); err != nil {
 		s.writeError(req.ID, -32602, "invalid params: "+err.Error(), nil)
+		return
+	}
+	if !s.toolAllowed(p.Name) {
+		s.writeToolError(req.ID, fmt.Sprintf("tool %q is unavailable in the %s MCP profile", p.Name, s.profile))
 		return
 	}
 
