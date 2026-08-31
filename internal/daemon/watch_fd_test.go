@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -193,5 +194,79 @@ func TestWatcherEvictionReleasesDescriptors(t *testing.T) {
 	}
 	if w.budget.used() != 0 {
 		t.Fatalf("eviction leaked %d of budget", w.budget.used())
+	}
+}
+
+// buildArtifactRepo creates a repo whose real source sits beside the build
+// output an Electron/Xcode project leaves behind: a release/ tree containing a
+// .app bundle, plus Pods/ and DerivedData/. Every one of these is generated,
+// is regenerated wholesale by the next build, and is worthless to index.
+func buildArtifactRepo(t *testing.T, filesPerDir int) string {
+	t.Helper()
+	root := t.TempDir()
+	dirs := []string{
+		"src/components",
+		"release/mac-arm64/Build.app/Contents/Frameworks/Electron",
+		"release/mac-arm64/Build.app/Contents/Resources",
+		"Pods/Alamofire",
+		"DerivedData/Build/Products",
+	}
+	for _, d := range dirs {
+		full := filepath.Join(root, filepath.FromSlash(d))
+		if err := os.MkdirAll(full, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		for f := range filesPerDir {
+			p := filepath.Join(full, fmt.Sprintf("file%03d.ts", f))
+			if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	return root
+}
+
+// TestWatcherSkipsBuildArtifacts is the regression test for watch starvation.
+//
+// The skip list matched exact directory names only, so `release/` was walked
+// and a `.app` bundle -- which neither matches a skip name nor begins with a
+// dot -- was descended into entirely. On the kqueue backends that costs one
+// descriptor per file, and a single Build.app/Contents/Frameworks/Electron
+// held 467 of them. The budget is shared, so build output for one repo starves
+// live source in every other repo: 13 of 124 repos were actually watched.
+func TestWatcherSkipsBuildArtifacts(t *testing.T) {
+	repo := buildArtifactRepo(t, 60)
+
+	fsw, err := fsnotify.NewWatcher()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fsw.Close()
+
+	budget := newFDBudget(100000)
+	addRepoToWatcher(fsw, repo, budget, 100000)
+
+	for _, p := range fsw.WatchList() {
+		rel, err := filepath.Rel(repo, p)
+		if err != nil {
+			t.Fatalf("rel %s: %v", p, err)
+		}
+		for _, banned := range []string{"release", "Pods", "DerivedData", ".app"} {
+			if strings.Contains(rel, banned) {
+				t.Errorf("watching build artifact %q (matched %q); it should have been skipped", rel, banned)
+			}
+		}
+	}
+
+	// The real source tree must still be watched, or the fix is just a
+	// blanket refusal to watch anything.
+	watchingSrc := false
+	for _, p := range fsw.WatchList() {
+		if strings.Contains(p, filepath.FromSlash("src/components")) {
+			watchingSrc = true
+		}
+	}
+	if !watchingSrc {
+		t.Error("src/components is real source and must still be watched")
 	}
 }

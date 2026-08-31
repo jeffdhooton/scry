@@ -342,12 +342,22 @@ func addRepoToWatcher(fsw *fsnotify.Watcher, repoPath string, budget *fdBudget, 
 		}
 		name := d.Name()
 		if path != repoPath {
-			if skip[name] {
+			// Case-folded because macOS is case-insensitive by default, so
+			// Xcode's Build/ and a Makefile's build/ are the same directory
+			// and must skip alike.
+			if skip[strings.ToLower(name)] {
 				return filepath.SkipDir
 			}
 			// Anything starting with a '.' is hidden infrastructure
 			// (.git, .vscode, .next, .turbo, .idea, .gradle, .pnpm-store ...).
 			if len(name) > 0 && name[0] == '.' {
+				return filepath.SkipDir
+			}
+			// Bundles are opaque build output whose name ends in the marker
+			// rather than starting with a dot, so neither rule above catches
+			// them. One Build.app/Contents/Frameworks/Electron held 467
+			// descriptors, starving live source in every other repo.
+			if isSkippedBundle(name) {
 				return filepath.SkipDir
 			}
 		}
@@ -415,7 +425,44 @@ func repoSkipDirs() map[string]bool {
 		".venv":       true,
 		// Generated assets
 		"generated": true,
+		// Desktop/mobile build output. electron-builder writes release/,
+		// Xcode writes DerivedData/, CocoaPods vendors Pods/. All are
+		// regenerated wholesale by the next build.
+		"release":     true,
+		"releases":    true,
+		"deriveddata": true,
+		"pods":        true,
+		"artifacts":   true,
 	}
+}
+
+// repoSkipDirSuffixes are directory-name suffixes that mark an opaque bundle.
+//
+// These are directories only by accident of how macOS packages a binary: the
+// contents are generated, change wholesale on every build, and hold no source
+// worth watching. They need their own rule because a name like "Build.app"
+// matches no entry in repoSkipDirs and does not begin with a dot.
+func repoSkipDirSuffixes() []string {
+	return []string{
+		".app",
+		".framework",
+		".xcarchive",
+		".dSYM",
+		".bundle",
+		".appex",
+	}
+}
+
+// isSkippedBundle reports whether name ends in a bundle suffix. The comparison
+// is case-folded for the same reason repoSkipDirs is.
+func isSkippedBundle(name string) bool {
+	lower := strings.ToLower(name)
+	for _, suffix := range repoSkipDirSuffixes() {
+		if strings.HasSuffix(lower, strings.ToLower(suffix)) {
+			return true
+		}
+	}
+	return false
 }
 
 // maxDeferredEventPaths caps how many distinct paths the run loop remembers
