@@ -13,9 +13,18 @@ import (
 
 	"github.com/jeffdhooton/scry/internal/daemon"
 	"github.com/jeffdhooton/scry/internal/rpc"
+
+	"github.com/jeffdhooton/scry/internal/logrotate"
 )
 
 const memorySocketEnv = "SCRY_MEMORY_SOCKET"
+
+const (
+	// The daemon only rotates at start, so this is a per-lifetime
+	// ceiling rather than a hard bound.
+	maxDaemonLogBytes    = 32 << 20
+	daemonLogGenerations = 3
+)
 
 func daemonCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -144,8 +153,10 @@ func spawnDetachedDaemon() error {
 	}
 	layout := daemon.LayoutFor(home)
 
-	// Daemon log goes to ~/.scry/scryd.log per docs/DECISIONS.md.
-	logFile, err := os.OpenFile(layout.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	// Daemon log goes to ~/.scry/scryd.log per docs/DECISIONS.md. The child
+	// inherits this handle for its whole life, so rotation can only happen
+	// here, at start. One unrotated lifetime reached 296 MB.
+	logFile, err := logrotate.OpenAppend(layout.LogPath, maxDaemonLogBytes, daemonLogGenerations, 0o600)
 	if err != nil {
 		return fmt.Errorf("open daemon log: %w", err)
 	}

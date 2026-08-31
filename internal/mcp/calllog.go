@@ -6,6 +6,15 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/jeffdhooton/scry/internal/logrotate"
+)
+
+const (
+	// One line per MCP call, so this fills at the pace the agent works.
+	// 16 MB is weeks of history and small enough to grep.
+	maxCallLogBytes    = 16 << 20
+	callLogGenerations = 3
 )
 
 type callLogEntry struct {
@@ -26,7 +35,12 @@ func logCall(entry callLogEntry) {
 	dir := filepath.Join(home, ".scry", "logs")
 	_ = os.MkdirAll(dir, 0o755)
 
-	f, err := os.OpenFile(filepath.Join(dir, "mcp-calls.jsonl"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	f, err := logrotate.OpenAppend(
+		filepath.Join(dir, "mcp-calls.jsonl"),
+		maxCallLogBytes,
+		callLogGenerations,
+		0o644,
+	)
 	if err != nil {
 		return
 	}
