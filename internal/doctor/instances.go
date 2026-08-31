@@ -130,10 +130,16 @@ func evalMemoryUIHealth(canonical int, addr string, p uiProbe) Check {
 		c.Status = StatusSkip
 		c.Detail = "daemon not running"
 	case p.Err != nil:
-		c.Status = StatusFail
-		c.Detail = fmt.Sprintf("daemon pid %d is running but nothing answers on %s — the daemon could not bind the UI port, so another process (possibly an orphan daemon) holds it: %v",
+		// Nothing answered. That is all this probe establishes. The daemon
+		// reads SCRY_MEMORY_UI_ADDR from its own environment, which a launch
+		// agent often sets to "off", and doctor only sees its own — so a
+		// deliberately disabled UI is indistinguishable from a failed bind.
+		// Claiming an orphan holds the port sent readers hunting a process
+		// that was not there.
+		c.Status = StatusWarn
+		c.Detail = fmt.Sprintf("daemon pid %d is running but nothing answers on %s; the UI is either disabled (SCRY_MEMORY_UI_ADDR=off in the daemon's environment, which doctor cannot read) or failed to bind: %v",
 			canonical, addr, p.Err)
-		c.Remedy = fmt.Sprintf("lsof -nP -iTCP:%s -sTCP:LISTEN", portOf(addr))
+		c.Remedy = fmt.Sprintf("check the daemon's own environment, then `lsof -nP -iTCP:%s -sTCP:LISTEN` — no listener means it is disabled, not stolen", portOf(addr))
 	case p.StatusCode != http.StatusOK:
 		c.Status = StatusFail
 		c.Detail = fmt.Sprintf("memory UI at %s returned HTTP %d", addr, p.StatusCode)

@@ -76,7 +76,13 @@ func TestEvalMemoryUIHealth(t *testing.T) {
 		{"served by orphan", 43409, uiProbe{StatusCode: 200, PID: 51773, MemoryOK: false, MemoryError: "Cannot acquire directory lock"}, StatusFail, []string{"51773", "43409"}},
 		{"ui cannot open store", 43409, uiProbe{StatusCode: 200, PID: 43409, MemoryOK: false, MemoryError: "Cannot acquire directory lock"}, StatusFail, []string{"directory lock"}},
 		{"non-200", 43409, uiProbe{StatusCode: 500}, StatusFail, []string{"500"}},
-		{"daemon up but nothing on the port", 43409, uiProbe{Err: errors.New("connection refused")}, StatusFail, []string{"7279"}},
+		// Silence proves only that nothing answered. The daemon reads
+		// SCRY_MEMORY_UI_ADDR from its own environment -- a launch agent
+		// commonly sets it to "off" -- and doctor sees only its own, so it
+		// cannot tell a disabled UI from a stolen port. Reporting a failure
+		// with an invented cause sent the reader hunting an orphan daemon
+		// that did not exist.
+		{"daemon up but nothing on the port", 43409, uiProbe{Err: errors.New("connection refused")}, StatusWarn, []string{"7279", "SCRY_MEMORY_UI_ADDR"}},
 		{"no daemon", 0, uiProbe{Err: errors.New("connection refused")}, StatusSkip, nil},
 	}
 	for _, tc := range cases {
