@@ -72,6 +72,11 @@ var allowedEntityTypes = map[string]bool{
 	"concept":  true,
 }
 
+// fallbackEntityType is where an entity type the model invented lands. It is
+// the most general bucket in allowedEntityTypes, so it never asserts
+// something specific that the extraction did not actually establish.
+const fallbackEntityType = "concept"
+
 // ParseResult unmarshals raw model output into a Result. It tolerates a
 // ```json ... ``` (or bare ``` ... ```) fence around the JSON object, and
 // validates the parsed structure: episode_summary must be non-empty, every
@@ -129,10 +134,19 @@ func parseResultStrict(text string) (Result, error) {
 		return Result{}, fmt.Errorf("extract: episode_summary is required and must be non-empty")
 	}
 
+	// An invented entity type used to fail the whole parse, which cost the
+	// entire fact: a sentence naming an AI model reliably produced type
+	// "model", every step of the chain agreed, and the write was dropped
+	// rather than stored under a slightly wrong label. The type is a coarse
+	// bucket, so a wrong bucket is far cheaper than a lost memory. Unknown
+	// types fold into "concept" and the parse continues.
 	for i, e := range loose.Entities {
 		typ, _ := e["type"].(string)
-		if !allowedEntityTypes[typ] {
-			return Result{}, fmt.Errorf("extract: entities[%d] has unknown type %q (want one of project|service|machine|tool|person|decision|runbook|concept)", i, typ)
+		if allowedEntityTypes[typ] {
+			continue
+		}
+		if i < len(result.Entities) {
+			result.Entities[i].Type = fallbackEntityType
 		}
 	}
 

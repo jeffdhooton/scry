@@ -104,18 +104,31 @@ func TestParseResult(t *testing.T) {
 		}
 	})
 
-	t.Run("unknown entity type returns error naming the type", func(t *testing.T) {
+	// Rejecting the whole result cost the entire fact. A sentence naming an
+	// AI model reliably produced type "model", every step of the chain
+	// agreed, and the write was dropped rather than stored under a slightly
+	// wrong label.
+	t.Run("unknown entity type folds into concept instead of failing", func(t *testing.T) {
 		raw := `{
 			"episode_summary": "ok",
-			"entities": [{"name": "x", "type": "spaceship", "description": "d"}],
+			"entities": [
+				{"name": "x", "type": "spaceship", "description": "d"},
+				{"name": "y", "type": "machine", "description": "d"}
+			],
 			"facts": []
 		}`
-		_, err := ParseResult(raw)
-		if err == nil {
-			t.Fatal("ParseResult() error = nil, want error")
+		got, err := ParseResult(raw)
+		if err != nil {
+			t.Fatalf("ParseResult() error = %v, want the fact kept", err)
 		}
-		if !strings.Contains(err.Error(), "spaceship") {
-			t.Errorf("error = %v, want mention of the bad type %q", err, "spaceship")
+		if len(got.Entities) != 2 {
+			t.Fatalf("got %d entities, want 2", len(got.Entities))
+		}
+		if got.Entities[0].Type != "concept" {
+			t.Errorf("invented type = %q, want %q", got.Entities[0].Type, "concept")
+		}
+		if got.Entities[1].Type != "machine" {
+			t.Errorf("valid type = %q, want it left alone", got.Entities[1].Type)
 		}
 	})
 
