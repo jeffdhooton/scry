@@ -100,8 +100,12 @@ func TestBuildBatchRequests(t *testing.T) {
 		if req.Params.Model != anthropic.Model("claude-haiku-4-5") {
 			t.Errorf("reqs[%d].Params.Model = %q, want claude-haiku-4-5", i, req.Params.Model)
 		}
-		if req.Params.MaxTokens != 8000 {
-			t.Errorf("reqs[%d].Params.MaxTokens = %d, want 8000", i, req.Params.MaxTokens)
+		// Batch and single-shot extraction share one budget on purpose: a
+		// fact that survives one path and is dropped by the other is the
+		// worst outcome.
+		if req.Params.MaxTokens != extractionMaxTokens {
+			t.Errorf("reqs[%d].Params.MaxTokens = %d, want %d",
+				i, req.Params.MaxTokens, extractionMaxTokens)
 		}
 
 		wantSystem, wantUserMsg := buildMessages(ep, glossary)

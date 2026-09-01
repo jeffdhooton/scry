@@ -165,7 +165,7 @@ func buildBatchRequests(eps []distill.RawEpisode, glossary []string, model strin
 			CustomID: ep.ID,
 			Params: anthropic.MessageBatchNewParamsRequestParams{
 				Model:     anthropic.Model(model),
-				MaxTokens: 8000,
+				MaxTokens: extractionMaxTokens,
 				System:    system,
 				Messages:  []anthropic.MessageParam{userMsg},
 			},

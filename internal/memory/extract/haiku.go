@@ -11,6 +11,28 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 )
 
+// extractionMaxTokens is the output budget for one extraction call.
+//
+// The default extractor is a reasoning model and reasoning is charged against
+// this same budget, so at 8000 a long episode could spend the whole allowance
+// thinking and return no text -- stop_reason "max_tokens", content blocks
+// [thinking] -- which parses as nothing and lost the memory write outright.
+//
+// The ceiling cannot simply be raised: the SDK refuses a non-streaming
+// request whose budget implies more than ten minutes of work. So extraction
+// turns thinking off instead (see Extract) and keeps a budget sized for the
+// JSON answer plus room to spare.
+const extractionMaxTokens = 16000
+
+// retryMaxTokens is what a truncated reply is retried with. Buying room is
+// the only response that can help; a correction prompt cannot, because the
+// model never produced anything to correct.
+//
+// It sits just under the SDK's non-streaming ceiling. That client requires
+// streaming once 1h * max_tokens / 128000 exceeds ten minutes, which puts the
+// hard limit at 21333 tokens for a request that is not streamed.
+const retryMaxTokens = 21000
+
 // Haiku is an Extractor speaking the Anthropic Messages wire format. The
 // system prompt (stable) and glossary block (volatile) are sent as separate
 // system blocks so the stable prefix stays cacheable across calls. The name
@@ -62,14 +84,34 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 
 	params := anthropic.MessageNewParams{
 		Model:     anthropic.Model(h.model),
-		MaxTokens: 8000,
+		MaxTokens: extractionMaxTokens,
 		System:    system,
 		Messages:  []anthropic.MessageParam{userMsg},
+		// Extraction is a structured-output task against a fixed schema, so
+		// chain-of-thought buys nothing and costs the whole budget when the
+		// model decides to deliberate. Providers that ignore this field are
+		// still covered by the truncation retry below.
+		Thinking: anthropic.ThinkingConfigParamUnion{
+			OfDisabled: &anthropic.ThinkingConfigDisabledParam{},
+		},
 	}
 
 	resp, err := h.client.Messages.New(ctx, params)
 	if err != nil {
 		return Result{}, fmt.Errorf("extract: haiku request failed: %w", err)
+	}
+
+	// A reply that ran out of budget before emitting any text is not a
+	// malformed answer, it is an absent one. The repair prompts below ask the
+	// model to fix JSON it never wrote, so they burn both attempts and lose
+	// the fact. Buy room and ask again instead.
+	if truncatedBeforeText(resp) {
+		params.MaxTokens = retryMaxTokens
+		wider, werr := h.client.Messages.New(ctx, params)
+		if werr != nil {
+			return Result{}, fmt.Errorf("extract: haiku wider-budget request failed: %w", werr)
+		}
+		resp = wider
 	}
 
 	lastResp := resp
@@ -113,6 +155,15 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 	// the model hit max_tokens, refused, or returned only non-text blocks.
 	return Result{}, fmt.Errorf("extract: invalid JSON after 2 repairs: %w: %w (reply: %.400q%s)",
 		ErrParse, parseErr, raw, emptyReplyDetail(lastResp, raw))
+}
+
+// truncatedBeforeText reports whether a reply hit its output ceiling without
+// producing any text. That is the shape a reasoning model returns when
+// deliberation consumed the whole budget.
+func truncatedBeforeText(msg *anthropic.Message) bool {
+	return msg != nil &&
+		string(msg.StopReason) == "max_tokens" &&
+		concatText(msg) == ""
 }
 
 // emptyReplyDetail describes why a reply had no text, for the error message.
