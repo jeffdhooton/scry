@@ -97,6 +97,16 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 	}
 
 	resp, err := h.client.Messages.New(ctx, params)
+	if err != nil && rejectsDisabledThinking(err) {
+		// Some models cannot turn reasoning off and reject the request
+		// outright rather than ignoring the field. Z.ai answers GLM-5.3-Flash
+		// with "[1210] This model always engages in thinking and cannot be
+		// disabled". Saving budget is an optimisation; losing every memory
+		// write to it is not a trade worth making, so drop the field and
+		// pay for the reasoning.
+		params.Thinking = anthropic.ThinkingConfigParamUnion{}
+		resp, err = h.client.Messages.New(ctx, params)
+	}
 	if err != nil {
 		return Result{}, fmt.Errorf("extract: haiku request failed: %w", err)
 	}
@@ -155,6 +165,22 @@ func (h *Haiku) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 	// the model hit max_tokens, refused, or returned only non-text blocks.
 	return Result{}, fmt.Errorf("extract: invalid JSON after 2 repairs: %w: %w (reply: %.400q%s)",
 		ErrParse, parseErr, raw, emptyReplyDetail(lastResp, raw))
+}
+
+// rejectsDisabledThinking reports whether err is a provider refusing to turn
+// reasoning off, as opposed to any other bad request. The match is on the
+// message rather than a status code, because a 400 alone says nothing about
+// which field the provider objected to.
+func rejectsDisabledThinking(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	if !strings.Contains(msg, "thinking") {
+		return false
+	}
+	return strings.Contains(msg, "cannot be disabled") ||
+		strings.Contains(msg, "always engages")
 }
 
 // truncatedBeforeText reports whether a reply hit its output ceiling without
