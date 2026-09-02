@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -246,8 +247,9 @@ func TestRelocateFactMovesKeyAndMergesOnCollision(t *testing.T) {
 	if about, _ := s.FactsAbout("a", true); len(about) != 1 {
 		t.Errorf("adj index not moved: %d", len(about))
 	}
-	// Collision: another fact lands on the same key and merges.
-	other := Fact{Src: "c", Relation: "uses_flip", Dst: "d", Fact: "dup", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e2"}}
+	// Collision: another fact lands on the same key and both survive, the
+	// newcomer shifted by a nanosecond, each with its own text.
+	other := Fact{Src: "c", Relation: "uses_flip", Dst: "d", Fact: "the other sentence", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e2"}}
 	_ = s.PutFact(other)
 	target := other
 	target.Src, target.Dst, target.Relation = "b", "a", "uses"
@@ -255,14 +257,23 @@ func TestRelocateFactMovesKeyAndMergesOnCollision(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, _ = s.FactsFrom("b", true)
-	if len(got) != 1 || got[0].Confidence != 0.9 || len(got[0].Episodes) != 2 {
-		t.Errorf("merge on collision = %+v", got)
+	if len(got) != 2 {
+		t.Fatalf("collision must keep both facts, got %+v", got)
+	}
+	texts := got[0].Fact + "|" + got[1].Fact
+	if !strings.Contains(texts, "b uses a") || !strings.Contains(texts, "the other sentence") {
+		t.Errorf("a sentence was lost on collision: %q", texts)
+	}
+	if got[0].ValidFrom.Equal(got[1].ValidFrom) {
+		t.Error("colliding facts must have distinct keys")
 	}
 	// Edge → attribute relocation drops the reverse index.
-	attr := got[0]
-	attr.Dst, attr.Value = "", "in-progress"
-	if err := s.RelocateFact(got[0], attr); err != nil {
-		t.Fatal(err)
+	for _, f := range got {
+		attr := f
+		attr.Dst, attr.Value = "", "in-progress"
+		if err := s.RelocateFact(f, attr); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if about, _ := s.FactsAbout("a", true); len(about) != 0 {
 		t.Errorf("adj index must be gone after an attribute relocation: %+v", about)

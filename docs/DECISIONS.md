@@ -1863,8 +1863,10 @@ remembering it twice.
 **Decision:** `scry memory migrate` applies the three rules above to the
 existing store. Relations are rewritten by relocating each fact to its
 new key (the same operation `mergeFact` already used for ValidFrom), with
-provenance, validity, confidence, and the raw relation preserved, merging
-on collision. Value entities have their facts converted to attributes and
+provenance, validity, confidence, and the raw relation preserved. When two
+facts land on one key (two raw verbs from one episode that map to the same
+canonical), the newcomer is shifted by a nanosecond so both keep their own
+sentence and validity; nothing is merged away. Value entities have their facts converted to attributes and
 are then deleted; facts between two values are invalidated, not deleted.
 Hygiene v2 drops reference-word aliases, splits aliases away from
 entities of another type or that are another entity's own name (moving

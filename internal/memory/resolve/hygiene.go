@@ -347,15 +347,16 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			return rep, err
 		}
 		for _, e := range entities {
-			if err := st.ClaimAlias(e.Name, e.Slug); err != nil {
-				return rep, err
-			}
-		}
-		for _, e := range entities {
 			for _, a := range e.Aliases {
 				if err := st.ClaimAlias(a, e.Slug); err != nil {
 					return rep, err
 				}
+			}
+		}
+		// Names last, so an entity's own name always resolves to itself.
+		for _, e := range entities {
+			if err := st.ClaimAlias(e.Name, e.Slug); err != nil {
+				return rep, err
 			}
 		}
 	}

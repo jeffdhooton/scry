@@ -16,7 +16,7 @@ func TestSplitCompoundSymbol(t *testing.T) {
 		{"Auth::user()", "Auth", "user"},
 		{"$user->name", "$user", "name"},
 		{"client.Connect", "client", "Connect"},
-		{"a::b::c", "a::b", "c"},        // rightmost split
+		{"a::b::c", "a::b", "c"},                   // rightmost split
 		{"Auth::user->name", "Auth::user", "name"}, // chain → last op
 		{"plainIdent", "", ""},
 		{"", "", ""},
@@ -81,7 +81,9 @@ func TestFilterResultByContainer(t *testing.T) {
 	if result.Total != 1 || len(result.Matches) != 1 {
 		t.Errorf("filtered total/len = %d/%d, want 1/1", result.Total, len(result.Matches))
 	}
-	var m struct{ SymbolID string `json:"symbol_id"` }
+	var m struct {
+		SymbolID string `json:"symbol_id"`
+	}
 	_ = json.Unmarshal(result.Matches[0], &m)
 	if !containsAny(m.SymbolID, "/Facades/DB#") {
 		t.Errorf("kept wrong match: %s", m.SymbolID)

@@ -15,6 +15,8 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 	"github.com/jeffdhooton/scry/internal/memory/migrate"
 	"github.com/jeffdhooton/scry/internal/memory/queue"
+	"github.com/jeffdhooton/scry/internal/memory/search"
+	"github.com/jeffdhooton/scry/internal/memory/store"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
@@ -31,6 +33,54 @@ type glossaryCache struct {
 	lines      []string
 	at         time.Time
 	refreshing bool
+}
+
+// memoryIndex returns the search index, building it from the store on
+// first use and subscribing to store writes so it stays current. Building
+// takes about a second for 30k facts; the first recall after a restart
+// pays it.
+func (d *Daemon) memoryIndex() (*search.Index, error) {
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	d.memIndexOnce.Do(func() {
+		start := time.Now()
+		ix, err := search.Build(st)
+		if err != nil {
+			log.Printf("memory: search index build failed: %v", err)
+			d.memIndexErr = err
+			return
+		}
+		d.memIndex = ix
+		names := &sync.Map{}
+		st.SetObserver(func(ev store.Event) {
+			switch ev.Kind {
+			case "entity":
+				if ev.Op == "delete" {
+					ix.Remove("en:" + ev.Slug)
+					names.Delete(ev.Slug)
+					return
+				}
+				names.Store(ev.Entity.Slug, ev.Entity.Name)
+				ix.Upsert(search.EntityDoc(ev.Entity))
+			case "fact":
+				if ev.Op == "delete" {
+					ix.Remove(search.FactKey(ev.Fact))
+					return
+				}
+				lookup := map[string]string{}
+				for _, slug := range []string{ev.Fact.Src, ev.Fact.Dst} {
+					if n, ok := names.Load(slug); ok {
+						lookup[slug] = n.(string)
+					}
+				}
+				ix.Upsert(search.FactDoc(ev.Fact, lookup))
+			}
+		})
+		log.Printf("memory: search index built: %d documents in %s", ix.Len(), time.Since(start).Round(time.Millisecond))
+	})
+	return d.memIndex, d.memIndexErr
 }
 
 // startMemoryWorker builds and runs the queue worker for the lifetime of
@@ -55,6 +105,11 @@ func (d *Daemon) startMemoryWorker(ctx context.Context) {
 		}
 		if ctx.Err() != nil {
 			return
+		}
+		// Warm the search index off the request path, so the first recall
+		// after a restart does not pay for the build.
+		if _, err := d.memoryIndex(); err != nil {
+			log.Printf("memory: index warm-up: %v", err)
 		}
 		w := queue.New(queue.Options{
 			Store:     st,

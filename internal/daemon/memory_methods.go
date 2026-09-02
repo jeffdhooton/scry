@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -23,7 +24,6 @@ import (
 // limit.
 const (
 	defaultGlossaryLimit = 200
-	defaultRecallLimit   = 5
 	defaultEpisodesLimit = 10
 )
 
@@ -120,8 +120,10 @@ func (d *Daemon) handleMemoryGlossary(_ context.Context, raw json.RawMessage) (a
 
 // --- memory.recall ---
 
-// MemoryRecallParams is a fuzzy entity search, optionally as-of a point in
-// time. AsOf is RFC3339; empty means "current".
+// MemoryRecallParams is a ranked fact search, optionally as-of a point in
+// time. AsOf is RFC3339; empty means "current". Limit is the maximum
+// number of facts (default recall.DefaultFactLimit); the payload is capped
+// at recall.MaxPayloadBytes regardless.
 type MemoryRecallParams struct {
 	Query string `json:"query"`
 	AsOf  string `json:"as_of,omitempty"`
@@ -144,23 +146,20 @@ func (d *Daemon) handleMemoryRecall(_ context.Context, raw json.RawMessage) (any
 		}
 		asOf = &t
 	}
-	limit := p.Limit
-	if limit <= 0 {
-		limit = defaultRecallLimit
-	}
-
 	st, err := d.memoryStore()
 	if err != nil {
 		return nil, err
 	}
-	hits, err := recall.Query(st, p.Query, asOf, limit)
+	ix, err := d.memoryIndex()
+	if err != nil {
+		log.Printf("memory: recall without index: %v", err)
+		ix = nil
+	}
+	res, err := recall.Recall(st, ix, p.Query, asOf, p.Limit)
 	if err != nil {
 		return nil, err
 	}
-	if hits == nil {
-		hits = []recall.EntityHit{}
-	}
-	return hits, nil
+	return res, nil
 }
 
 // --- memory.path ---

@@ -861,9 +861,10 @@ func (s *Store) ClaimAlias(name, slug string) error {
 
 // RelocateFact moves a fact from its current key to the key implied by
 // updated (a new relation, endpoints, or value), keeping text, validity,
-// confidence, and provenance. If a fact already exists at the target key,
-// the two are merged: provenance is unioned and the higher confidence and
-// the earlier invalidation (if any) win. The old key is deleted either way.
+// confidence, provenance, and raw relation. If a fact already exists at the
+// target key, updated is shifted forward by one nanosecond (repeatedly)
+// until its key is free, so both facts survive with their own text and
+// their own validity. The old key is deleted either way.
 func (s *Store) RelocateFact(old, updated Fact) error {
 	oldKey := factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom)
 	newKey := factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
@@ -871,35 +872,16 @@ func (s *Store) RelocateFact(old, updated Fact) error {
 		return s.PutFact(updated)
 	}
 	err := s.db.Update(func(txn *badger.Txn) error {
-		if item, err := txn.Get(newKey); err == nil {
-			var existing Fact
-			if err := item.Value(func(val []byte) error { return json.Unmarshal(val, &existing) }); err != nil {
+		for {
+			_, err := txn.Get(newKey)
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				break
+			}
+			if err != nil {
 				return err
 			}
-			for _, e := range updated.Episodes {
-				found := false
-				for _, x := range existing.Episodes {
-					if x == e {
-						found = true
-						break
-					}
-				}
-				if !found {
-					existing.Episodes = append(existing.Episodes, e)
-				}
-			}
-			if updated.Confidence > existing.Confidence {
-				existing.Confidence = updated.Confidence
-			}
-			if existing.InvalidAt == nil && updated.InvalidAt != nil {
-				existing.InvalidAt = updated.InvalidAt
-			}
-			if existing.RawRelation == "" {
-				existing.RawRelation = updated.RawRelation
-			}
-			updated = existing
-		} else if !errors.Is(err, badger.ErrKeyNotFound) {
-			return err
+			updated.ValidFrom = updated.ValidFrom.Add(time.Nanosecond)
+			newKey = factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
 		}
 		if err := txn.Delete(oldKey); err != nil {
 			return err

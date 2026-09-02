@@ -116,10 +116,10 @@ func TestMemoryCommitThenRecallRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal recall result: %v", err)
 	}
-	var hits []struct {
-		Entity struct {
+	var hits struct {
+		Entities []struct {
 			Slug string `json:"slug"`
-		} `json:"entity"`
+		} `json:"entities"`
 		Facts []struct {
 			Relation string `json:"relation"`
 		} `json:"facts"`
@@ -127,11 +127,11 @@ func TestMemoryCommitThenRecallRoundtrip(t *testing.T) {
 	if err := json.Unmarshal(b, &hits); err != nil {
 		t.Fatalf("unmarshal recall result: %v", err)
 	}
-	if len(hits) != 1 || hits[0].Entity.Slug != "book-system" {
+	if len(hits.Entities) == 0 || hits.Entities[0].Slug != "book-system" {
 		t.Fatalf("recall hits = %+v, want one hit for book-system", hits)
 	}
-	if len(hits[0].Facts) != 1 || hits[0].Facts[0].Relation != "deployed_on" {
-		t.Fatalf("recall facts = %+v, want one deployed_on fact", hits[0].Facts)
+	if len(hits.Facts) != 1 || hits.Facts[0].Relation != "deployed_on" {
+		t.Fatalf("recall facts = %+v, want one deployed_on fact", hits.Facts)
 	}
 }
 
@@ -161,15 +161,15 @@ func TestMemoryRecallFindsCommittedEntity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal recall result: %v", err)
 	}
-	var hits []struct {
-		Entity struct {
+	var hits struct {
+		Entities []struct {
 			Slug string `json:"slug"`
-		} `json:"entity"`
+		} `json:"entities"`
 	}
 	if err := json.Unmarshal(b, &hits); err != nil {
 		t.Fatalf("unmarshal recall result: %v", err)
 	}
-	if len(hits) != 1 || hits[0].Entity.Slug != "hermes-mini" {
+	if len(hits.Entities) == 0 || hits.Entities[0].Slug != "hermes-mini" {
 		t.Fatalf("recall hits = %+v, want one hit for hermes-mini", hits)
 	}
 }

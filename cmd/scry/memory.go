@@ -19,6 +19,7 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/extract"
 	"github.com/jeffdhooton/scry/internal/memory/ingest"
 	"github.com/jeffdhooton/scry/internal/memory/migrate"
+	"github.com/jeffdhooton/scry/internal/memory/recall"
 	"github.com/jeffdhooton/scry/internal/memory/resolve"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/memory/sweep"
@@ -80,7 +81,7 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd())
 	return cmd
 }
 
@@ -98,9 +99,10 @@ type, facts reattached to the entity their text names, self-loops
 invalidated.
 
 Defaults to a dry run that prints the report. --apply takes a Badger
-backup into ~/.scry/backups first and then writes. Runs inside the
-daemon that owns the store; --dir runs offline against a store directory
-instead (the daemon must not hold it).`,
+backup first (into ~/.scry/backups via the daemon, or into <dir>/../backups
+with --dir) and then writes. Runs inside the daemon that owns the store;
+--dir runs offline against a store directory instead (the daemon must not
+hold it).`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apply, _ := cmd.Flags().GetBool("apply")
@@ -147,6 +149,60 @@ instead (the daemon must not hold it).`,
 	}
 	cmd.Flags().Bool("apply", false, "write the changes after taking a backup (default is a dry run)")
 	cmd.Flags().String("dir", "", "run offline against this store directory instead of the daemon")
+	return cmd
+}
+
+// --- bench ---
+
+func memoryBenchCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bench",
+		Short: "Score recall against a questions file: is the answering fact in the top N?",
+		Long: `Reads a JSON array of {"question", "expect"} items, where expect names the
+answering fact by src/relation/dst/value, a fact_substring, or an episode
+id, runs each question through recall, and reports how many answers landed
+in the top N along with payload sizes. Runs against the daemon by default;
+--dir runs offline against a store directory with a fresh index.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			top, _ := cmd.Flags().GetInt("top")
+			dir, _ := cmd.Flags().GetString("dir")
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			qs, err := recall.LoadQuestions(file)
+			if err != nil {
+				return err
+			}
+			var rec recall.Recaller
+			if dir != "" {
+				st, err := memstore.Open(dir)
+				if err != nil {
+					return fmt.Errorf("open %s: %w", dir, err)
+				}
+				defer st.Close()
+				if rec, err = recall.OfflineRecaller(st); err != nil {
+					return err
+				}
+			} else {
+				rec = func(q string) (recall.Result, error) {
+					ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+					defer cancel()
+					var res recall.Result
+					err := callMemoryDaemon(ctx, "memory.recall", &daemon.MemoryRecallParams{Query: q, Limit: top}, &res)
+					return res, err
+				}
+			}
+			res, err := recall.Bench(qs, rec, top)
+			if err != nil {
+				return err
+			}
+			return printJSON(res, pretty)
+		},
+	}
+	cmd.Flags().String("file", "", "questions JSON file (required)")
+	cmd.Flags().Int("top", recall.DefaultFactLimit, "the answer must be within the first N facts")
+	cmd.Flags().String("dir", "", "run offline against this store directory")
+	_ = cmd.MarkFlagRequired("file")
 	return cmd
 }
 
@@ -954,7 +1010,7 @@ func memoryOrientCmd() *cobra.Command {
 func memoryRecallCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "recall <query>",
-		Short: "Fuzzy entity search, optionally as-of a point in time",
+		Short: "Ranked fact search: the facts that answer a question, optionally as-of a point in time",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			asOf, _ := cmd.Flags().GetString("as-of")
@@ -973,7 +1029,7 @@ func memoryRecallCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().String("as-of", "", "RFC3339 timestamp; empty means current")
-	cmd.Flags().Int("limit", 5, "max results")
+	cmd.Flags().Int("limit", recall.DefaultFactLimit, "max facts (the payload is capped at 24 KB regardless)")
 	return cmd
 }
 

@@ -26,6 +26,7 @@ import (
 	httpstore "github.com/jeffdhooton/scry/internal/http/store"
 	"github.com/jeffdhooton/scry/internal/memory/extract"
 	"github.com/jeffdhooton/scry/internal/memory/queue"
+	"github.com/jeffdhooton/scry/internal/memory/search"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	roomstore "github.com/jeffdhooton/scry/internal/room/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
@@ -80,6 +81,9 @@ type Daemon struct {
 	memQueue     *queue.Worker
 	memQueueWG   sync.WaitGroup
 	memGlossary  glossaryCache
+	memIndexOnce sync.Once
+	memIndex     *search.Index
+	memIndexErr  error
 
 	memUIMu  sync.Mutex
 	memUISrv *http.Server
