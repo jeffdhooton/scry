@@ -223,7 +223,9 @@ func TestKickWakesTheLoop(t *testing.T) {
 
 func TestItemTimeoutRetriesWithMoreRoomThenParks(t *testing.T) {
 	st := openTemp(t)
-	_ = st.PutPending(pending("s1", "x"))
+	slow := pending("s1", "x")
+	slow.Source = "claude-session"
+	_ = st.PutPending(slow)
 	fx := &fakeExtractor{delay: time.Second}
 	w := New(Options{Store: st, Extractor: fx, Poll: 10 * time.Millisecond, ItemTimeout: 30 * time.Millisecond})
 	w.backoff = func(int) time.Duration { return 0 }
@@ -320,5 +322,28 @@ func TestOrderIsManualFirstThenRoundRobinBySource(t *testing.T) {
 	want := "m1 m2 c3 k1 o1 c2 c1"
 	if strings.Join(ids, " ") != want {
 		t.Errorf("order = %q, want %q", strings.Join(ids, " "), want)
+	}
+}
+
+func TestManualItemsNeverParkOnTimeoutAndHaveTheirOwnSlots(t *testing.T) {
+	st := openTemp(t)
+	// Fill every general slot with transcript items against a hung provider.
+	for i := range 3 {
+		p := pending(fmt.Sprintf("t%d", i), "long transcript")
+		p.Source = "claude-session"
+		_ = st.PutPending(p)
+	}
+	_ = st.PutPending(pending("m1", "a fact"))
+	hung := &fakeExtractor{delay: 10 * time.Second}
+	w := New(Options{Store: st, Extractor: hung, Workers: 3, Poll: 10 * time.Millisecond, ItemTimeout: 20 * time.Millisecond})
+	w.backoff = func(int) time.Duration { return 0 }
+	runFor(t, w, 2*time.Second)
+	if !waitUntil(t, 2*time.Second, func() bool { p, _ := st.GetPending("m1"); return p.Attempts >= 4 }) {
+		p, _ := st.GetPending("m1")
+		t.Fatalf("manual item did not get attempts while general slots were hung: %+v", p)
+	}
+	p, _ := st.GetPending("m1")
+	if p.Parked {
+		t.Errorf("manual item parked on timeout: %+v", p)
 	}
 }

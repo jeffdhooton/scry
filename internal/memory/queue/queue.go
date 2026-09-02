@@ -26,12 +26,18 @@ const (
 	// MaxParseAttempts is how many times an episode may fail on content
 	// (extract.ErrParse from every model in the chain) before it is parked.
 	MaxParseAttempts = 3
-	// MaxTimeoutAttempts is how many times an episode may run past its
-	// (escalating) deadline before it is parked. A reasoning model on a
-	// 16 KB transcript slice can take minutes; one that never finishes in
-	// three tries with a tripled deadline is too long for the chain, and
-	// retrying it forever would starve everything behind it.
+	// MaxTimeoutAttempts is how many times a transcript episode may run
+	// past its (escalating) deadline before it is parked. A reasoning model
+	// on a 16 KB transcript slice can take minutes; one that never finishes
+	// in three tries with a tripled deadline is too long for the chain, and
+	// retrying it forever would starve everything behind it. Manual items
+	// are never parked on a timeout: their text is a sentence, so a timeout
+	// is always the provider's fault, and an agent is waiting for them.
 	MaxTimeoutAttempts = 3
+	// manualWorkers are slots reserved for manual episodes, so twenty
+	// remembers made during an outage never wait behind transcript slices
+	// that are holding every general slot against a hung upstream.
+	manualWorkers = 2
 
 	defaultWorkers     = 24
 	defaultItemTimeout = 6 * time.Minute
@@ -72,9 +78,11 @@ type Options struct {
 	// Glossary supplies the known-entity lines for extraction. It may be
 	// nil. It should be cheap: it runs on every item.
 	Glossary func() []string
-	// Workers is the number of items extracted concurrently (default 4).
+	// Workers is the number of transcript items extracted concurrently
+	// (default 24); manual items have manualWorkers slots of their own.
 	Workers int
-	// ItemTimeout bounds one item's extraction (default 4m).
+	// ItemTimeout bounds one item's first attempt (default 6m); later
+	// attempts get 2x and 3x.
 	ItemTimeout time.Duration
 	// Poll is how often the loop looks for ready items when nothing kicks
 	// it and no item completes (default 30s). Completions and enqueues
@@ -123,11 +131,12 @@ func (w *Worker) Kick() {
 // broken store read is logged and retried on the next tick.
 func (w *Worker) Run(ctx context.Context) {
 	sem := make(chan struct{}, w.o.Workers)
+	manualSem := make(chan struct{}, manualWorkers)
 	var wg sync.WaitGroup
 	ticker := time.NewTicker(w.o.Poll)
 	defer ticker.Stop()
 	for {
-		w.dispatch(ctx, sem, &wg)
+		w.dispatch(ctx, sem, manualSem, &wg)
 		select {
 		case <-ctx.Done():
 			wg.Wait()
@@ -145,8 +154,8 @@ func (w *Worker) Run(ctx context.Context) {
 // are taken round-robin across sources, oldest first within a source, so
 // a handful of Kimi or OpenCode episodes never waits behind thousands of
 // Claude ones.
-func (w *Worker) dispatch(ctx context.Context, sem chan struct{}, wg *sync.WaitGroup) {
-	if len(sem) == cap(sem) {
+func (w *Worker) dispatch(ctx context.Context, sem, manualSem chan struct{}, wg *sync.WaitGroup) {
+	if len(sem) == cap(sem) && len(manualSem) == cap(manualSem) {
 		return // every slot busy; listing the queue would be wasted work
 	}
 	items, err := w.o.Store.Pending(0)
@@ -159,35 +168,42 @@ func (w *Worker) dispatch(ctx context.Context, sem chan struct{}, wg *sync.WaitG
 		if p.Parked || p.NextAttempt.After(now) {
 			continue
 		}
+		slot := sem
+		if p.Source == "manual" {
+			slot = manualSem
+		}
 		w.mu.Lock()
 		if w.inflight[p.ID] {
 			w.mu.Unlock()
 			continue
 		}
 		select {
-		case sem <- struct{}{}:
+		case slot <- struct{}{}:
 		default:
 			w.mu.Unlock()
-			return // every slot busy; the next tick picks up the rest
+			if slot == sem {
+				continue // general slots busy; a manual item further on may still fit
+			}
+			continue
 		}
 		w.inflight[p.ID] = true
 		w.mu.Unlock()
 
 		wg.Add(1)
-		go func(p store.PendingEpisode) {
+		go func(p store.PendingEpisode, slot chan struct{}) {
 			defer wg.Done()
 			defer func() {
 				w.mu.Lock()
 				delete(w.inflight, p.ID)
 				w.mu.Unlock()
-				<-sem
+				<-slot
 				select {
 				case w.done <- struct{}{}:
 				default:
 				}
 			}()
 			w.process(ctx, p)
-		}(p)
+		}(p, slot)
 	}
 }
 
@@ -289,10 +305,11 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 		p.ID, p.Source, stats.FactsAdded, stats.EntitiesCreated, p.Attempts+1)
 }
 
-// fail records one failed attempt. Parse failures count toward parking;
-// everything else — a timeout, a refused connection, a 5xx, a store error
-// — is retried indefinitely, because none of those say anything about the
-// episode itself.
+// fail records one failed attempt. Parse failures count toward parking,
+// and so do timeouts on transcript episodes (too long for the chain).
+// Everything else — a refused connection, a 5xx, a store error, and any
+// failure on a manual item that is not a parse failure — is retried
+// indefinitely, because none of those say anything about the episode.
 func (w *Worker) fail(p store.PendingEpisode, cause error) {
 	p.Attempts++
 	p.LastError = truncate(cause.Error(), 500)
@@ -303,7 +320,7 @@ func (w *Worker) fail(p store.PendingEpisode, cause error) {
 		p.Parked = true
 		w.o.Logf("memory queue: PARKED %s after %d unparseable replies: %v — replay with `scry memory queue retry %s`",
 			p.ID, p.Attempts, cause, p.ID)
-	case timeout && p.Attempts >= MaxTimeoutAttempts:
+	case timeout && p.Source != "manual" && p.Attempts >= MaxTimeoutAttempts:
 		p.Parked = true
 		w.o.Logf("memory queue: PARKED %s after %d timeouts (last deadline %s): too long for the chain — replay with `scry memory queue retry %s`",
 			p.ID, p.Attempts, itemDeadline(w.o.ItemTimeout, p.Attempts-1), p.ID)

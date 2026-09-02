@@ -100,6 +100,7 @@ func (c *Chain) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 	var (
 		failures  []string
 		allParse  = true
+		timedOut  bool
 		lastCause error
 	)
 	tried := 0
@@ -121,6 +122,9 @@ func (c *Chain) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 		if !errors.Is(err, ErrParse) {
 			allParse = false
 		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			timedOut = true
+		}
 		if refusedOnBillingOrAuth(err) {
 			c.coolDown(i)
 			log.Printf("memory: %s refused on billing/auth (%v) — skipping it for %s", s.Name, err, CooldownPeriod)
@@ -139,6 +143,11 @@ func (c *Chain) Extract(ctx context.Context, ep distill.RawEpisode, glossary []s
 	joined := strings.Join(failures, "; ")
 	if allParse {
 		return Result{}, fmt.Errorf("extract: all %d models failed: %w: %s", len(c.steps), ErrParse, joined)
+	}
+	if timedOut {
+		// A timeout anywhere in the chain must stay visible to the queue,
+		// which counts timeouts separately from other transport failures.
+		return Result{}, fmt.Errorf("extract: all %d models failed: %w: %s", len(c.steps), context.DeadlineExceeded, joined)
 	}
 	return Result{}, fmt.Errorf("extract: all %d models failed: %s", len(c.steps), joined)
 }
