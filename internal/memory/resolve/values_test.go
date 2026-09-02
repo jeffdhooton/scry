@@ -12,7 +12,7 @@ func TestIsValueName(t *testing.T) {
 		"2026-09-02", "2026-09-02T12:00:00Z", "12:30", "08:00 AM",
 		"in-progress", "In Progress", "in_progress", "done", "partial", "passed", "broken", "healthy", "not-started",
 		"needs-work", "spec-compliant", "interviewphase", "status: done", "state=passing", "true", "n/a",
-		"", "  ", "\"done\"",
+		"", "  ", "\"done\"", "halo:13306", "0.0.0.0:8787", "jclaws-mac-mini.tail6e45c2.ts.net:10000", "192.168.1.254", "http://localhost:3000/health",
 	}
 	for _, v := range values {
 		if !IsValueName(v) {

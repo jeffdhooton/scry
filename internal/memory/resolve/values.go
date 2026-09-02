@@ -29,6 +29,10 @@ var (
 	dateRE = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}(?:[t ]\d{2}:\d{2}(?::\d{2})?z?)?$|^\d{1,2}/\d{1,2}/\d{2,4}$`)
 	// timeRE: "12:30", "08:00 AM".
 	timeRE = regexp.MustCompile(`^\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?$`)
+	// endpointRE: "halo:13306", "0.0.0.0:8787", "host.tail6e45c2.ts.net:10000",
+	// "192.168.1.254", "http://localhost:3000". Addresses locate a thing;
+	// they are not the thing.
+	endpointRE = regexp.MustCompile(`^(?:https?://)?[a-z0-9.-]+:\d{2,5}(?:/.*)?$|^\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?$|^(?:https?://)?[a-z0-9-]+(?:\.[a-z0-9-]+)+/[^\s]*$`)
 )
 
 // trunkBranches are branch names with no slash.
@@ -81,7 +85,7 @@ func IsValueName(name string) bool {
 	if trunkBranches[n] || branchRE.MatchString(n) {
 		return true
 	}
-	if bareNumberOrMeasureRE.MatchString(n) || versionRE.MatchString(n) || hexRE.MatchString(n) || dateRE.MatchString(n) || timeRE.MatchString(n) {
+	if bareNumberOrMeasureRE.MatchString(n) || versionRE.MatchString(n) || hexRE.MatchString(n) || dateRE.MatchString(n) || timeRE.MatchString(n) || endpointRE.MatchString(n) {
 		return true
 	}
 	return false

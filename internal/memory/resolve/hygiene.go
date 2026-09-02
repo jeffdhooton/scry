@@ -125,25 +125,17 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 		texts := textsOf(e.Slug)
 		best, bestMentions := "", 0
 		for slug, nt := range nameTokens {
-			// The other name may add at most one token ("Mac mini" for
-			// "mini"); anything longer is a different, more specific thing.
-			if slug == e.Slug || len(nt) > len(at)+1 || TypesCompatible(bySlug[slug].Type, e.Type) {
+			if slug == e.Slug {
 				continue
 			}
-			ok := true
-			for t := range at {
-				if !nt[t] {
-					ok = false
-					break
-				}
-			}
-			if !ok {
+			compatible := TypesCompatible(bySlug[slug].Type, e.Type)
+			if !aliasNamesOther(at, nt, compatible) {
 				continue
 			}
 			// Among candidates, the one this entity's own facts actually
-			// talk about: "Mac mini" appears in hermes-ops facts, a GPT
-			// model called "-mini" does not.
-			if m := mentions(bySlug[slug].Name, texts); m > bestMentions {
+			// talk about; a candidate nobody mentions still wins over none.
+			m := mentions(bySlug[slug].Name, texts)
+			if best == "" || m > bestMentions {
 				best, bestMentions = slug, m
 			}
 		}
@@ -168,19 +160,46 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			owners[norm] = append(owners[norm], e.Slug)
 		}
 	}
-	// keeper decides which of several owners keeps a shared alias, seen
-	// from entity e: the one whose own name it is; else the one whose name
-	// e's own facts mention most ("Mac mini" for "mini" on hermes-ops, not
-	// a GPT model that also answers to "mini"); else one sharing a token
-	// with it; else the highest degree.
-	keeper := func(norm string, slugs []string, e store.Entity) string {
-		if s, ok := realSlugs[store.Slugify(norm)]; ok && s != "" {
-			return store.Slugify(norm)
+	// keeper decides, once per alias, which owner keeps it: the entity
+	// whose own name it is; else, among owners whose name shares a token
+	// with it ("Mac mini" for "mini"), the highest degree; else the highest
+	// degree. Every other owner of an incompatible type loses it.
+	keeperCache := map[string]string{}
+	keeper := func(norm string, slugs []string) string {
+		if k, ok := keeperCache[norm]; ok {
+			return k
 		}
+		k := ""
+		if s, ok := realSlugs[store.Slugify(norm)]; ok && s != "" {
+			k = store.Slugify(norm)
+		} else {
+			best, bestDeg := "", -1
+			for _, s := range slugs {
+				if sharesToken(norm, bySlug[s].Name) {
+					if d := degree(s); d > bestDeg {
+						best, bestDeg = s, d
+					}
+				}
+			}
+			if best == "" {
+				for _, s := range slugs {
+					if d := degree(s); d > bestDeg {
+						best, bestDeg = s, d
+					}
+				}
+			}
+			k = best
+		}
+		keeperCache[norm] = k
+		return k
+	}
+	// target picks where a losing entity's facts go: the co-owner its own
+	// facts mention most, else the keeper.
+	target := func(norm string, slugs []string, e store.Entity) string {
 		texts := textsOf(e.Slug)
 		best, bestMentions := "", 0
 		for _, s := range slugs {
-			if s == e.Slug {
+			if s == e.Slug || TypesCompatible(bySlug[s].Type, e.Type) {
 				continue
 			}
 			if m := mentions(bySlug[s].Name, texts); m > bestMentions {
@@ -190,18 +209,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 		if best != "" {
 			return best
 		}
-		for _, s := range slugs {
-			if sharesToken(norm, bySlug[s].Name) {
-				return s
-			}
-		}
-		bestDeg := -1
-		for _, s := range slugs {
-			if d := degree(s); d > bestDeg {
-				best, bestDeg = s, d
-			}
-		}
-		return best
+		return keeper(norm, slugs)
 	}
 
 	now := time.Now()
@@ -235,8 +243,8 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			if !split {
 				for _, o := range owners[norm] {
 					if o != e.Slug && !TypesCompatible(bySlug[o].Type, e.Type) {
-						if k := keeper(norm, owners[norm], e); k != e.Slug {
-							split, other = true, k
+						if keeper(norm, owners[norm]) != e.Slug {
+							split, other = true, target(norm, owners[norm], e)
 						}
 						break
 					}
@@ -246,6 +254,14 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 				if o := subsetOwner(a, e); o != "" {
 					split, other = true, o
 				}
+			}
+			if !split && machineLeak(a, e) {
+				// Hardware named on a non-machine, with no machine to hand
+				// the facts to: the alias goes, the facts stay.
+				rep.AliasesDropped++
+				rep.DroppedAliasList = append(rep.DroppedAliasList, e.Slug+": "+a+" (machine noun)")
+				changed = true
+				continue
 			}
 			if split {
 				// Facts move across a type boundary (a machine's facts on a
@@ -454,4 +470,28 @@ func truncateText(s string, n int) string {
 		return s
 	}
 	return s[:n] + "…"
+}
+
+// aliasNamesOther reports whether an alias (tokens at) plainly names the
+// entity whose name has tokens nt. Across a type boundary the name may add
+// at most one token to the alias ("Mac mini" for "mini"). For the same
+// type the alias must embed the other's whole multi-token name
+// ("box2-gpt-oss-120b" embeds "gpt-oss-120b") or be a two-plus-token tail
+// of it ("oss-120b" in "gpt-oss-120b").
+func aliasNamesOther(at, nt map[string]bool, compatible bool) bool {
+	subset := func(a, b map[string]bool) bool {
+		for t := range a {
+			if !b[t] {
+				return false
+			}
+		}
+		return true
+	}
+	if !compatible {
+		return len(nt) <= len(at)+1 && subset(at, nt)
+	}
+	if len(nt) >= 2 && len(nt) < len(at)+2 && subset(nt, at) {
+		return true
+	}
+	return len(at) >= 2 && len(nt) == len(at)+1 && subset(at, nt)
 }

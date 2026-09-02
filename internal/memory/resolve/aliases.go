@@ -253,3 +253,26 @@ func itoa(n int) string {
 	}
 	return strings.TrimLeft(strings.Repeat("0", 0)+string(rune('0'+n/10))+string(rune('0'+n%10)), "0")
 }
+
+// machineNouns name hardware. An alias built around one of them on an
+// entity that is not a machine ("hermes-mini" on the ops project, "Hermes
+// box") is the machine's name leaking onto the project.
+var machineNouns = map[string]bool{
+	"mini": true, "box": true, "machine": true, "host": true, "laptop": true, "desktop": true,
+	"server": true, "node": true, "mac": true, "workstation": true, "vm": true, "instance": true,
+	"macbook": true, "imac": true, "studio": true, "pi": true, "nas": true,
+}
+
+// machineLeak reports whether alias names hardware while e is not a
+// machine.
+func machineLeak(alias string, e store.Entity) bool {
+	if e.Type == "machine" || e.Type == "" || e.Type == "concept" {
+		return false
+	}
+	for t := range tokensOf(alias) {
+		if machineNouns[t] {
+			return true
+		}
+	}
+	return false
+}

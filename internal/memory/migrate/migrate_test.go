@@ -178,7 +178,7 @@ func TestRunAppliesEveryRule(t *testing.T) {
 		t.Errorf("hermes-ops lost its own alias: %v", ops.Aliases)
 	}
 	if _, ok := facts["scry deployed_on mac-mini"]; !ok {
-		t.Errorf("fact mentioning the Mac mini not reattached to the machine: %v", keys(facts))
+		t.Errorf("fact mentioning the Mac mini not reattached to the machine: %v\ndropped: %v\nreattached: %v", keys(facts), rep.Hygiene.DroppedAliasList, rep.Hygiene.Reattachments)
 	}
 	if _, ok := facts["scry deployed_on hermes-ops"]; !ok {
 		t.Errorf("fact about hermes-ops itself must stay: %v", keys(facts))
