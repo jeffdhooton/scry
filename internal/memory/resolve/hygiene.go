@@ -1,8 +1,6 @@
 package resolve
 
 import (
-	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -137,6 +135,12 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 	subsetOwner := func(alias string, e store.Entity) string {
 		at := tokensOf(alias)
 		if len(at) == 0 || !hasSpecificToken(alias) {
+			return ""
+		}
+		// The entity's own name in another spelling ("safe-ai" on safeai,
+		// "deepresearch/agent.py" on deepresearch-agent-py) is nobody
+		// else's.
+		if c := compact(alias); c == compact(e.Slug) || c == compact(e.Name) {
 			return ""
 		}
 		// Another entity's whole name plus that entity's kind words names
@@ -381,7 +385,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 				changed = true
 				continue
 			}
-			if _, statErr := os.Stat(filepath.Join(r, ".git")); statErr != nil {
+			if !isWorkspacePath(r) {
 				rep.RepoRefsDropped++
 				changed = true
 				continue
@@ -611,5 +615,7 @@ func subsetOf(a, b map[string]bool) bool {
 // compact removes separators so "halo-1", "halo_1", and "halo1" compare
 // equal.
 func compact(s string) string {
-	return strings.NewReplacer("-", "", "_", "", " ", "", ".", "").Replace(strings.ToLower(s))
+	return nonAlnumRE.ReplaceAllString(strings.ToLower(s), "")
 }
+
+var nonAlnumRE = regexp.MustCompile(`[^a-z0-9]+`)

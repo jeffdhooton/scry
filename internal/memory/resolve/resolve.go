@@ -23,8 +23,6 @@ package resolve
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -64,6 +62,19 @@ type Stats struct {
 // Apply is idempotent: if ep has already been ingested (st.HasEpisode), it
 // returns a zero Stats and nil error without writing anything.
 func Apply(st *store.Store, ep store.Episode, cwd string, res extract.Result, exclusive map[string]bool) (Stats, error) {
+	return ApplyWith(st, ep, cwd, res, exclusive, ApplyOptions{})
+}
+
+// ApplyOptions tunes Apply.
+type ApplyOptions struct {
+	// Force re-applies an episode the store already holds: facts merge onto
+	// their current triples and entities refresh (repo refs, aliases). It
+	// repairs episodes resolved under an older rule set.
+	Force bool
+}
+
+// ApplyWith is Apply with options.
+func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result, exclusive map[string]bool, o ApplyOptions) (Stats, error) {
 	var stats Stats
 
 	// Rule 1: idempotency.
@@ -71,7 +82,7 @@ func Apply(st *store.Store, ep store.Episode, cwd string, res extract.Result, ex
 	if err != nil {
 		return Stats{}, err
 	}
-	if has {
+	if has && !o.Force {
 		return Stats{}, nil
 	}
 
@@ -592,17 +603,18 @@ func clampInvalidAt(at, validFrom time.Time) time.Time {
 
 // isWorkspacePath reports whether cwd looks like a user workspace path
 // worth recording as a RepoRef, as opposed to "", "/", or scratch/system
-// paths such as "/tmp/...".
+// paths such as "/tmp/...". Whether the path is a repository is attested
+// by the distiller on the machine that has it (RawEpisode.CwdIsRepo); the
+// daemon resolving the episode may be on another machine, so it cannot
+// stat the path and must not try.
 func isWorkspacePath(cwd string) bool {
 	if cwd == "" || !strings.HasPrefix(cwd, "/Users/") {
 		return false
 	}
-	// A repo ref must be an actual repository that still exists. Without
-	// this, every session's cwd accumulated onto whatever entity it happened
-	// to mention — one entity ended up claiming four unrelated repos, which
-	// makes it useless for answering "where does this live?".
-	if _, err := os.Stat(filepath.Join(cwd, ".git")); err != nil {
-		return false
+	for _, bad := range []string{"/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/", "/Library/Caches/"} {
+		if strings.Contains(cwd, bad) {
+			return false
+		}
 	}
 	return true
 }

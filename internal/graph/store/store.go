@@ -51,13 +51,13 @@ type CommunityRecord struct {
 }
 
 type GraphReport struct {
-	NodeCount       int              `json:"node_count"`
-	EdgeCount       int              `json:"edge_count"`
-	CommunityCount  int              `json:"community_count"`
-	GodNodes        []GodNode        `json:"god_nodes"`
-	SurprisingEdges []SurprisingEdge `json:"surprising_edges"`
-	Communities     []CommunityRecord `json:"communities"`
-	SuggestedQueries []string        `json:"suggested_queries"`
+	NodeCount        int               `json:"node_count"`
+	EdgeCount        int               `json:"edge_count"`
+	CommunityCount   int               `json:"community_count"`
+	GodNodes         []GodNode         `json:"god_nodes"`
+	SurprisingEdges  []SurprisingEdge  `json:"surprising_edges"`
+	Communities      []CommunityRecord `json:"communities"`
+	SuggestedQueries []string          `json:"suggested_queries"`
 }
 
 type GodNode struct {
@@ -85,8 +85,8 @@ func Open(dir string) (*Store, error) {
 	return &Store{db: db}, nil
 }
 
-func (s *Store) Close() error  { return s.db.Close() }
-func (s *Store) Reset() error  { return s.db.DropAll() }
+func (s *Store) Close() error { return s.db.Close() }
+func (s *Store) Reset() error { return s.db.DropAll() }
 
 func (s *Store) SetMeta(key string, value any) error {
 	b, err := json.Marshal(value)

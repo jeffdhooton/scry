@@ -187,7 +187,7 @@ func (i *Introspector) getIndexes() (map[string][]schema.IndexRecord, error) {
 	for rows.Next() {
 		var (
 			tableName, indexName, colName, indexType string
-			seqInIndex, nonUnique                   int
+			seqInIndex, nonUnique                    int
 		)
 		if err := rows.Scan(&tableName, &indexName, &seqInIndex, &colName, &nonUnique, &indexType); err != nil {
 			return nil, err

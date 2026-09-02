@@ -295,10 +295,14 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 		// drops the specifics the agent chose to write down.
 		summary = p.Text
 	}
-	stats, err := resolve.Apply(w.o.Store, store.Episode{
+	cwd := ""
+	if p.CwdIsRepo {
+		cwd = p.Cwd // attested as a repository by the machine that has it
+	}
+	stats, err := resolve.ApplyWith(w.o.Store, store.Episode{
 		ID: p.ID, Source: p.Source, SourceRef: p.SourceRef, Summary: summary,
 		OccurredAt: p.OccurredAt, IngestedAt: time.Now(),
-	}, p.Cwd, res, resolve.DefaultExclusive)
+	}, cwd, res, resolve.DefaultExclusive, resolve.ApplyOptions{Force: p.Force})
 	if err != nil {
 		w.fail(p, fmt.Errorf("resolve: %w", err))
 		return

@@ -18,13 +18,13 @@ func TestJoinCoverageToSymbols(t *testing.T) {
 	}
 
 	ranges := []CoveredRange{
-		{File: "pkg/handler.go", Line: 12, EndLine: 14, Count: 3},  // inside handleRequest
-		{File: "pkg/handler.go", Line: 22, EndLine: 24, Count: 1},  // also inside handleRequest
-		{File: "pkg/handler.go", Line: 35, EndLine: 35, Count: 2},  // inside handleError
-		{File: "pkg/handler.go", Line: 50, EndLine: 50, Count: 1},  // outside any function
-		{File: "internal/db.go", Line: 7, EndLine: 10, Count: 5},   // inside query
-		{File: "internal/db.go", Line: 7, EndLine: 10, Count: 0},   // not actually executed
-		{File: "missing.go", Line: 1, EndLine: 1, Count: 1},        // file not in index
+		{File: "pkg/handler.go", Line: 12, EndLine: 14, Count: 3}, // inside handleRequest
+		{File: "pkg/handler.go", Line: 22, EndLine: 24, Count: 1}, // also inside handleRequest
+		{File: "pkg/handler.go", Line: 35, EndLine: 35, Count: 2}, // inside handleError
+		{File: "pkg/handler.go", Line: 50, EndLine: 50, Count: 1}, // outside any function
+		{File: "internal/db.go", Line: 7, EndLine: 10, Count: 5},  // inside query
+		{File: "internal/db.go", Line: 7, EndLine: 10, Count: 0},  // not actually executed
+		{File: "missing.go", Line: 1, EndLine: 1, Count: 1},       // file not in index
 	}
 
 	records := joinCoverageToSymbols(ranges, defIdx)

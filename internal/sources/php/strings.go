@@ -67,8 +67,8 @@ var stringRefSpecs = []stringRefSpec{
 
 // StringRefStats summarizes what RunStringRefWalker emitted.
 type StringRefStats struct {
-	FilesScanned   int
-	ViewRefsTotal  int
+	FilesScanned    int
+	ViewRefsTotal   int
 	ConfigRefsTotal int
 }
 
@@ -96,11 +96,11 @@ func RunStringRefWalker(repoRoot string, st *store.Store) (StringRefStats, error
 	symbols := map[string]string{} // "view:users.show" -> symbol id
 
 	skipDirs := map[string]bool{
-		"vendor":       true,
-		"node_modules": true,
-		".git":         true,
-		"storage":      true,
-		"public":       true,
+		"vendor":          true,
+		"node_modules":    true,
+		".git":            true,
+		"storage":         true,
+		"public":          true,
 		"bootstrap/cache": true,
 	}
 

@@ -11,10 +11,10 @@ import (
 
 // Result is the JSON shape returned by the CLI.
 type Result struct {
-	Symbol    string       `json:"symbol"`
-	Matches   []SymbolHit  `json:"matches"`
-	Total     int          `json:"total"`
-	ElapsedMs int64        `json:"elapsed_ms"`
+	Symbol    string      `json:"symbol"`
+	Matches   []SymbolHit `json:"matches"`
+	Total     int         `json:"total"`
+	ElapsedMs int64       `json:"elapsed_ms"`
 }
 
 // SymbolHit groups every occurrence under one resolved symbol id. A name like

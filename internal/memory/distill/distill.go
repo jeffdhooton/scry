@@ -12,7 +12,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -26,6 +29,32 @@ type RawEpisode struct {
 	Text       string    `json:"text"`          // distilled, redacted conversational text
 	OccurredAt time.Time `json:"occurred_at"`   //
 	Cwd        string    `json:"cwd,omitempty"` // session working directory, "" if unknown
+	// CwdIsRepo is attested by the distiller on the machine where Cwd
+	// exists: true when Cwd/.git is there. The daemon that resolves the
+	// episode may run on another machine, where the path cannot be
+	// checked, so the flag travels with the episode.
+	CwdIsRepo bool `json:"cwd_is_repo,omitempty"`
+}
+
+// cwdRepoCache remembers stat results per directory for one process.
+var (
+	cwdRepoMu    sync.Mutex
+	cwdRepoCache = map[string]bool{}
+)
+
+// CwdIsRepo reports whether dir contains a .git entry on this machine.
+func CwdIsRepo(dir string) bool {
+	if dir == "" {
+		return false
+	}
+	cwdRepoMu.Lock()
+	defer cwdRepoMu.Unlock()
+	if v, ok := cwdRepoCache[dir]; ok {
+		return v
+	}
+	_, err := os.Stat(filepath.Join(dir, ".git"))
+	cwdRepoCache[dir] = err == nil
+	return err == nil
 }
 
 // maxEpisodeChars bounds the size of a single episode's Text (~4k tokens).
@@ -115,6 +144,7 @@ func chunkTurns(source, path string, turns []turn) []RawEpisode {
 			Text:       Redact(sb.String()),
 			OccurredAt: turns[i].ts,
 			Cwd:        turns[i].cwd,
+			CwdIsRepo:  CwdIsRepo(turns[i].cwd),
 		})
 
 		if j >= n {

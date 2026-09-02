@@ -511,7 +511,7 @@ func (d *Daemon) handleMemoryRemember(_ context.Context, raw json.RawMessage) (a
 		Text:       redactedFact,
 		OccurredAt: now,
 	}
-	queued, err := enqueueEpisode(st, ep, p.Entities, now)
+	queued, err := enqueueEpisode(st, ep, p.Entities, now, false)
 	if err != nil {
 		return nil, err
 	}
