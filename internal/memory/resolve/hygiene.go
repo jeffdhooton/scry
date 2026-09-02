@@ -226,9 +226,33 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			return k
 		}
 		k := ""
-		if s, ok := realSlugs[store.Slugify(norm)]; ok && s != "" {
-			k = store.Slugify(norm)
-		} else {
+		if s := nameOf(norm); s != "" {
+			k = s
+		}
+		// An owner whose own name plus its kind words compose the alias is
+		// the thing the alias names ("Hermes agent" is the service Hermes,
+		// not the project hermes-ops, whatever their degrees).
+		if k == "" {
+			at := tokensOf(norm)
+			for _, s := range slugs {
+				nt := tokensOf(bySlug[s].Name)
+				if len(nt) == 0 || !subsetOf(nt, at) {
+					continue
+				}
+				extrasOK := true
+				for t := range at {
+					if !nt[t] && !kindWords[bySlug[s].Type][t] {
+						extrasOK = false
+						break
+					}
+				}
+				if extrasOK {
+					k = s
+					break
+				}
+			}
+		}
+		if k == "" {
 			best, bestDeg := "", -1
 			for _, s := range slugs {
 				if sharesToken(norm, bySlug[s].Name) {
@@ -268,6 +292,10 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 		return keeper(norm, slugs)
 	}
 
+	// grants are aliases split off one entity that name another: the
+	// other gets them, so "Hermes agent" still resolves after it leaves
+	// hermes-ops.
+	grants := map[string][]string{}
 	now := time.Now()
 	for _, e := range entities {
 		rep.EntitiesScanned++
@@ -337,6 +365,9 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 				}
 				rep.AliasesSplit++
 				rep.DroppedAliasList = append(rep.DroppedAliasList, e.Slug+": "+a+" → "+other)
+				if other != "" && other != e.Slug && store.Normalize(a) != store.Normalize(bySlug[other].Name) && !neverAlias(a) && !machineLeak(a, bySlug[other]) {
+					grants[other] = append(grants[other], a)
+				}
 				changed = true
 				continue
 			}
@@ -374,6 +405,20 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 		e.RepoRefs = keptRefs
 		if err := st.PutEntity(e); err != nil {
 			return rep, err
+		}
+	}
+
+	// Hand split aliases to the entities they name.
+	if !dryRun {
+		for slug, names := range grants {
+			e, err := st.GetEntity(slug)
+			if err != nil {
+				continue
+			}
+			e.Aliases = unionStrings(e.Aliases, names)
+			if err := st.PutEntity(e); err != nil {
+				return rep, err
+			}
 		}
 	}
 
@@ -551,6 +596,16 @@ func aliasNamesOther(at, nt map[string]bool, compatible bool) bool {
 		return true
 	}
 	return len(at) >= 2 && len(nt) == len(at)+1 && subset(at, nt)
+}
+
+// subsetOf reports whether every token of a is in b.
+func subsetOf(a, b map[string]bool) bool {
+	for t := range a {
+		if !b[t] {
+			return false
+		}
+	}
+	return true
 }
 
 // compact removes separators so "halo-1", "halo_1", and "halo1" compare

@@ -193,6 +193,12 @@ func TestRunAppliesEveryRule(t *testing.T) {
 	if slug, _, _ := st.ResolveAlias("Hermes"); slug != "hermes" {
 		t.Errorf("Hermes resolves to %q", slug)
 	}
+	if slug, _, _ := st.ResolveAlias("Hermes agent"); slug != "hermes" {
+		t.Errorf("a split alias must be granted to the entity it names: Hermes agent → %q", slug)
+	}
+	if slug, _, _ := st.ResolveAlias("halo1"); slug != "halo-1" {
+		t.Errorf("halo1 → %q", slug)
+	}
 	qwen, _ := st.GetEntity("qwen")
 	if contains(qwen.Aliases, "gpt-oss-120b") {
 		t.Errorf("qwen still carries gpt-oss-120b: %v", qwen.Aliases)
