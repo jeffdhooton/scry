@@ -299,3 +299,26 @@ func (o *orderRecorder) Extract(ctx context.Context, ep distill.RawEpisode, g []
 	o.mu.Unlock()
 	return o.inner.Extract(ctx, ep, g)
 }
+
+func TestOrderIsManualFirstThenRoundRobinBySource(t *testing.T) {
+	base := time.Date(2026, 9, 2, 0, 0, 0, 0, time.UTC)
+	mk := func(id, src string, age int) store.PendingEpisode {
+		return store.PendingEpisode{ID: id, Source: src, EnqueuedAt: base.Add(time.Duration(age) * time.Second), NextAttempt: base}
+	}
+	items := []store.PendingEpisode{
+		mk("c1", "claude-session", 1), mk("c2", "claude-session", 2), mk("c3", "claude-session", 3),
+		mk("k1", "kimi-session", 50), mk("o1", "opencode-session", 60),
+		mk("m2", "manual", 90), mk("m1", "manual", 80),
+		{ID: "parked", Source: "manual", Parked: true, EnqueuedAt: base, NextAttempt: base},
+		{ID: "later", Source: "kimi-session", EnqueuedAt: base, NextAttempt: base.Add(time.Hour)},
+	}
+	got := order(items, base.Add(10*time.Minute))
+	ids := make([]string, len(got))
+	for i, p := range got {
+		ids[i] = p.ID
+	}
+	want := "m1 m2 c1 k1 o1 c2 c3"
+	if strings.Join(ids, " ") != want {
+		t.Errorf("order = %q, want %q", strings.Join(ids, " "), want)
+	}
+}

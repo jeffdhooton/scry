@@ -33,7 +33,7 @@ const (
 	// retrying it forever would starve everything behind it.
 	MaxTimeoutAttempts = 3
 
-	defaultWorkers     = 8
+	defaultWorkers     = 12
 	defaultItemTimeout = 5 * time.Minute
 	defaultPoll        = 30 * time.Second
 	backoffBase        = 30 * time.Second
@@ -141,8 +141,10 @@ func (w *Worker) Run(ctx context.Context) {
 
 // dispatch claims every ready item that fits in the free worker slots.
 // Manual episodes (scry_remember) go first: an agent is waiting on those,
-// while a sweep backlog of transcript slices is nobody's blocker. Within a
-// class, oldest first.
+// while a sweep backlog of transcript slices is nobody's blocker. The rest
+// are taken round-robin across sources, oldest first within a source, so
+// a handful of Kimi or OpenCode episodes never waits behind thousands of
+// Claude ones.
 func (w *Worker) dispatch(ctx context.Context, sem chan struct{}, wg *sync.WaitGroup) {
 	if len(sem) == cap(sem) {
 		return // every slot busy; listing the queue would be wasted work
@@ -152,15 +154,8 @@ func (w *Worker) dispatch(ctx context.Context, sem chan struct{}, wg *sync.WaitG
 		w.o.Logf("memory queue: list pending: %v", err)
 		return
 	}
-	sort.SliceStable(items, func(i, j int) bool {
-		mi, mj := items[i].Source == "manual", items[j].Source == "manual"
-		if mi != mj {
-			return mi
-		}
-		return items[i].EnqueuedAt.Before(items[j].EnqueuedAt)
-	})
 	now := time.Now()
-	for _, p := range items {
+	for _, p := range order(items, now) {
 		if p.Parked || p.NextAttempt.After(now) {
 			continue
 		}
@@ -194,6 +189,50 @@ func (w *Worker) dispatch(ctx context.Context, sem chan struct{}, wg *sync.WaitG
 			w.process(ctx, p)
 		}(p)
 	}
+}
+
+// order returns the ready items in dispatch order: manual first (oldest
+// first), then one item per source in turn, oldest first within a source.
+func order(items []store.PendingEpisode, now time.Time) []store.PendingEpisode {
+	var manual []store.PendingEpisode
+	bySource := map[string][]store.PendingEpisode{}
+	var sources []string
+	for _, p := range items {
+		if p.Parked || p.NextAttempt.After(now) {
+			continue
+		}
+		if p.Source == "manual" {
+			manual = append(manual, p)
+			continue
+		}
+		if _, ok := bySource[p.Source]; !ok {
+			sources = append(sources, p.Source)
+		}
+		bySource[p.Source] = append(bySource[p.Source], p)
+	}
+	byAge := func(a []store.PendingEpisode) {
+		sort.SliceStable(a, func(i, j int) bool { return a[i].EnqueuedAt.Before(a[j].EnqueuedAt) })
+	}
+	byAge(manual)
+	sort.Strings(sources)
+	for _, s := range sources {
+		byAge(bySource[s])
+	}
+	out := append([]store.PendingEpisode{}, manual...)
+	for {
+		took := false
+		for _, s := range sources {
+			if q := bySource[s]; len(q) > 0 {
+				out = append(out, q[0])
+				bySource[s] = q[1:]
+				took = true
+			}
+		}
+		if !took {
+			break
+		}
+	}
+	return out
 }
 
 // process extracts one item and either resolves it or records the failure
