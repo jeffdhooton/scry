@@ -83,8 +83,41 @@ func neverAlias(alias string) bool {
 	if referenceWords[n] || isDeterminerPhrase(n) {
 		return true
 	}
-	if isEphemeralName(n) || isGenericAlias(n) || IsValueName(n) {
+	if isEphemeralName(n) || isGenericAlias(n) || isGenericEntityName(n) || IsValueName(n) {
 		return true
+	}
+	return false
+}
+
+// commonNouns are words that name a kind of thing, not a thing. An alias
+// made only of these ("migration", "design spec", "the switch") can be a
+// token-subset of dozens of entity names and must never pick one.
+var commonNouns = map[string]bool{
+	"migration": true, "migrations": true, "file": true, "files": true, "script": true, "scripts": true,
+	"table": true, "tables": true, "model": true, "models": true, "page": true, "pages": true,
+	"route": true, "routes": true, "service": true, "services": true, "app": true, "apps": true,
+	"api": true, "apis": true, "doc": true, "docs": true, "document": true, "test": true, "tests": true,
+	"spec": true, "specs": true, "plan": true, "plans": true, "design": true, "engine": true,
+	"agent": true, "agents": true, "box": true, "machine": true, "server": true, "client": true,
+	"tool": true, "tools": true, "library": true, "package": true, "module": true, "component": true,
+	"feature": true, "features": true, "fix": true, "bug": true, "issue": true, "task": true, "tasks": true,
+	"project": true, "repo": true, "repository": true, "branch": true, "commit": true, "release": true,
+	"config": true, "configuration": true, "setting": true, "settings": true, "switch": true, "router": true,
+	"network": true, "system": true, "process": true, "job": true, "run": true, "runs": true, "loop": true,
+	"report": true, "audit": true, "review": true, "phase": true, "step": true, "wave": true, "round": true,
+	"mobile": true, "web": true, "site": true, "dashboard": true, "gateway": true, "worker": true,
+	"the": true, "and": true, "new": true, "old": true, "main": true, "core": true, "base": true,
+	"data": true, "memory": true, "storage": true, "store": true, "cache": true, "queue": true, "log": true, "logs": true,
+	"campaign": true, "wireframe": true, "canvas": true, "sheet": true, "token": true, "tokens": true,
+}
+
+// hasSpecificToken reports whether at least one token of alias is not a
+// common noun.
+func hasSpecificToken(alias string) bool {
+	for t := range tokensOf(alias) {
+		if !commonNouns[t] {
+			return true
+		}
 	}
 	return false
 }

@@ -15,7 +15,9 @@ import (
 var (
 	// bareNumberOrMeasureRE: "51", "3.5", "46 GiB", "51b", "12GB", "3.5s",
 	// "40%", "1,024 rows", "51b-active-parameters", "46-gib-spare-memory".
-	bareNumberOrMeasureRE = regexp.MustCompile(`^[~≈<>]?[$€£]?\d[\d.,_]*$|^[~≈<>]?[$€£]?\d[\d.,_]*[\s-]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|us|ns|s|sec|secs|seconds?|m|min|mins|minutes?|h|hr|hrs|hours?|d|days?|w|weeks?|%|x|k|m|b|bn|rows?|tokens?|params?|parameters?|cores?|threads?|gpus?|cpus?|nodes?|files?|lines?|fps|rps|qps|tps|req/s|mtok|usd|eur)(?:[\s-][a-z][a-z-]*)*$`)
+	bareNumberOrMeasureRE = regexp.MustCompile(`^[~≈<>]?[$€£]?\d[\d.,_]*$` +
+		`|^[~≈<>]?[$€£]?\d[\d.,_]*[\s-]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|us|ns|s|sec|secs|seconds?|m|min|mins|minutes?|h|hr|hrs|hours?|d|days?|w|weeks?|%|x|k|m|b|bn|rows?|tokens?|params?|parameters?|cores?|threads?|gpus?|cpus?|nodes?|files?|lines?|fps|rps|qps|tps|req/s|mtok|usd|eur)$` +
+		`|^[~≈<>]?[$€£]?\d[\d.,_]*[\s-]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|%|params?|parameters?|cores?|threads?|gpus?|cpus?|mtok|k|m|b|bn|x)(?:[\s-][a-z][a-z-]*)*$`)
 	// versionRE: "v2", "v1.2.3", "1.2.3", "2026.09", "1.2.3-rc1", "go1.23".
 	versionRE = regexp.MustCompile(`^(?:v|go|python|node|php|ruby|java|rust)?\d+(?:\.\d+){1,3}(?:[-+][a-z0-9.]+)?$|^v\d+$`)
 	// branchRE: git branch shapes: "feat/x", "fix/123-thing", "release/1.2",

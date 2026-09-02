@@ -24,7 +24,7 @@ func TestIsValueName(t *testing.T) {
 		"0030-price-books", "0001-add-embedding-metadata.sql", "PR #87", "Jeff", "codex-reviewer",
 		"GLM-5.3-Flash", "deepseek-v4-flash", "Z_AI_API_KEY", "com.jhoot.scryd", "ai.jermes.scryd",
 		"memory-book", "Operations suite", "10 GbE switch", "3Dconnexion", "Halo box", "2fa-service",
-		"main.go", "main-branch-policy", "release-notes", "status-page", "open-webui", "docket-wave-35",
+		"main.go", "main-branch-policy", "01 Token Sheet.dc.html", "10 Days That Shook My World", "3 nodes cluster design", "release-notes", "status-page", "open-webui", "docket-wave-35",
 		"go", "python", "node", "T-Mobile 5G",
 	}
 	for _, v := range identities {

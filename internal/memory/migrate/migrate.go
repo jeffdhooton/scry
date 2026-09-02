@@ -7,6 +7,7 @@ package migrate
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"time"
 
@@ -39,7 +40,10 @@ type Report struct {
 	ValueFactsDropped   int      `json:"value_facts_dropped"` // both endpoints values: invalidated
 	ValueEntitiesSample []string `json:"value_entities_sample,omitempty"`
 
-	Hygiene resolve.HygieneReport `json:"hygiene"`
+	Hygiene       resolve.HygieneReport `json:"hygiene"`
+	HygienePasses int                   `json:"hygiene_passes"`
+	// ValueFactsSample lists the first conversions, for reading a dry run.
+	ValueFactsSample []string `json:"value_facts_sample,omitempty"`
 
 	NonCanonicalAfter  int      `json:"non_canonical_after"`
 	ValueEntitiesAfter int      `json:"value_entities_after"`
@@ -79,13 +83,34 @@ func Run(st *store.Store, o Options) (Report, error) {
 	logf("migrate: values: %d entities retired, %d facts converted, %d dropped",
 		rep.ValueEntities, rep.ValueFactsConverted, rep.ValueFactsDropped)
 
-	hyg, err := resolve.Hygiene(st, o.DryRun)
-	if err != nil {
-		return rep, fmt.Errorf("migrate: hygiene: %w", err)
+	// Hygiene converges rather than completes in one pass: a fact moved
+	// onto an entity can make one of that entity's aliases newly splittable.
+	// Three passes have always been enough; a dry run gets one.
+	for pass := 1; pass <= 3; pass++ {
+		hyg, err := resolve.Hygiene(st, o.DryRun)
+		if err != nil {
+			return rep, fmt.Errorf("migrate: hygiene pass %d: %w", pass, err)
+		}
+		logf("migrate: hygiene pass %d: %d aliases dropped, %d split, %d facts reattached, %d self-loops, %d cross-type collisions left",
+			pass, hyg.AliasesDropped, hyg.AliasesSplit, hyg.FactsReattached, hyg.SelfLoopsInvalidated, hyg.CrossTypeCollisions)
+		if pass == 1 {
+			rep.Hygiene = hyg
+		} else {
+			rep.Hygiene.AliasesDropped += hyg.AliasesDropped
+			rep.Hygiene.AliasesSplit += hyg.AliasesSplit
+			rep.Hygiene.FactsReattached += hyg.FactsReattached
+			rep.Hygiene.SelfLoopsInvalidated += hyg.SelfLoopsInvalidated
+			rep.Hygiene.EntitiesChanged += hyg.EntitiesChanged
+			rep.Hygiene.DroppedAliasList = append(rep.Hygiene.DroppedAliasList, hyg.DroppedAliasList...)
+			rep.Hygiene.Reattachments = append(rep.Hygiene.Reattachments, hyg.Reattachments...)
+			rep.Hygiene.CrossTypeCollisions = hyg.CrossTypeCollisions
+			rep.Hygiene.Conflated = hyg.Conflated
+		}
+		rep.HygienePasses = pass
+		if o.DryRun || hyg.AliasesDropped+hyg.AliasesSplit+hyg.FactsReattached+hyg.SelfLoopsInvalidated == 0 {
+			break
+		}
 	}
-	rep.Hygiene = hyg
-	logf("migrate: hygiene: %d aliases dropped, %d split, %d facts reattached, %d self-loops, %d cross-type collisions left",
-		hyg.AliasesDropped, hyg.AliasesSplit, hyg.FactsReattached, hyg.SelfLoopsInvalidated, hyg.CrossTypeCollisions)
 
 	if !o.DryRun {
 		if err := audit(st, &rep); err != nil {
@@ -145,7 +170,7 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 	values := map[string]store.Entity{}
 	for _, e := range entities {
 		bySlug[e.Slug] = e
-		if resolve.IsValueName(e.Name) || resolve.IsValueName(e.Slug) {
+		if resolve.IsValueName(e.Name) || pureNumberOrHex(e.Slug) {
 			values[e.Slug] = e
 		}
 	}
@@ -195,6 +220,11 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 			updated.Dst = ""
 			updated.Value = dstVal.Name
 		default: // status edge to a real entity
+			if _, ok := bySlug[f.Src]; !ok {
+				// The source was retired by an earlier pass (a value entity
+				// whose edges are already invalidated); nothing to convert.
+				continue
+			}
 			updated.Dst = ""
 			updated.Value = bySlug[f.Dst].Name
 			if updated.Value == "" {
@@ -202,6 +232,9 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 			}
 		}
 		rep.ValueFactsConverted++
+		if len(rep.ValueFactsSample) < 30 {
+			rep.ValueFactsSample = append(rep.ValueFactsSample, f.Src+" -["+f.Relation+"]-> "+f.Dst+" ⇒ value "+updated.Value)
+		}
 		if dryRun {
 			continue
 		}
@@ -242,3 +275,10 @@ func audit(st *store.Store, rep *Report) error {
 	}
 	return nil
 }
+
+var pureNumberOrHexRE = regexp.MustCompile(`^\d+$|^[0-9a-f]{7,40}$`)
+
+// pureNumberOrHex catches entities whose name slugified to a bare number
+// or a commit hash ("#140" → "140") even when the name itself has a prefix
+// the value detector does not know.
+func pureNumberOrHex(slug string) bool { return pureNumberOrHexRE.MatchString(slug) }
