@@ -1770,3 +1770,110 @@ writes sessions to means the pipeline stopped. Overnight this can fail
 honestly; a failing check that is sometimes loud beats one that is never
 loud. The `memory.socket` config key exists so the shared-store location
 has a home outside every MCP host's private env.
+
+
+## 2026-09-02 — A closed relation vocabulary of 39 names, mapped in code
+
+**Decision:** every stored fact's relation is one of the 39 names in
+`resolve.Canonical` (`internal/memory/resolve/vocab.go`). `resolve.Map`
+turns the model's verb into one of them: an exact synonym table built from
+the 5,595 relation names observed in the live store, then rules for
+negation prefixes (`does_not_use` → `lacks`), tense prefixes (`now_uses`),
+`has_<noun>` (issue nouns → `has_issue`, measurement nouns → `status`,
+else `contains`), trailing `_by` (passive voice: map the verb and swap the
+endpoints), trailing prepositions (`deployed_to`), and finally a verb
+stem table. Anything left lands on `related_to`. Inverse forms swap src
+and dst (`used_by` → `uses` flipped). The raw relation is kept on the
+fact as `raw_relation`. The extraction prompt was not changed.
+
+**Context:** audit finding 4. 5,586 distinct relations across 27k facts,
+the top 40 covering 51%. A path over that vocabulary meant nothing and a
+query for what runs where had to guess between `deployed_on`,
+`installed_on`, `exists_on`, `hosted_on`, and `running_on`. On the live
+distribution the mapper types 94% of facts; 5.7% fall back.
+
+**Why code and not prompt wording:** the model is allowed to be sloppy;
+the resolver is not. A table with tests is inspectable and versionable;
+a prompt is neither, and changing it invalidates the prompt cache.
+
+**Why 39 and not 20:** below about 35 the merges became lies —
+`monitors` folding into `documents`, `notifies` into `provides`. The
+ceiling in the test is 40.
+
+**What would change our minds:** a recall benchmark showing that a
+relation the mapper folds is one agents ask about by name. Then it gets
+its own entry, as long as the count stays under 40.
+
+
+## 2026-09-02 — Values are attributes, never nodes
+
+**Decision:** a fact whose target is a value — a status word, a number or
+measurement, a version, a date, a git branch, a commit hash
+(`resolve.IsValueName`) — is stored as an attribute fact: `Dst` empty,
+`Value` set, the key's dst slot `~<value-slug>`, no reverse index. The
+`status` relation is always an attribute. A fact whose source is a value
+and whose target is an entity is turned around; one between two values is
+dropped and counted. Attribute facts never create entities and path
+traversal ignores them.
+
+**Context:** audit finding 5. `main` (the git branch) had 374 facts,
+`in-progress` had 241 and had collected "voice-of-customer" as an alias,
+`51b-active-parameters` and `46-gib-spare-memory` were nodes.
+
+**Why attributes and not dropping the facts:** "scry status is
+in-progress" and "gpt-oss-120b has 51B active parameters" are worth
+knowing; only the node was wrong. Fact-level search finds them by text.
+
+**Why `~` in the key slot:** a slug is `[a-z0-9-]`, so an attribute key can
+never collide with an edge key, and two different values on the same
+(src, relation, valid_from) stay distinct.
+
+
+## 2026-09-02 — Alias admission needs evidence and matching types
+
+**Decision:** `resolve.AdmitAlias` decides whether an alias may be added
+to an entity. Rejected outright: run artifacts, role words, values,
+pronouns, and determiner phrases ("the machine"). Rejected always: an
+alias owned by an entity of an incompatible type (`concept` is a
+wildcard). Admitted at once: an unclaimed alias that shares a token with
+the entity's name, aliases, or description. Otherwise — the alias is
+another entity's name or alias, or shares nothing with the entity — it
+is admitted only after two independent episodes have attested it
+(`att:<slug>:<alias>` keys). A name that reaches an entity only through
+an alias and names a different type gets its own entity. Concept stubs
+upgrade to the first real type that mentions them.
+
+**Context:** audit finding 5 and the live store: hermes-ops (project)
+carried "Hermes", "mini", "Mac Mini", "the machine", "box", the Halo box,
+and 120 more; the Qwen model carried gpt-oss-120b; the Jeff entity carried
+"Claude", "codex", "you", "I". Every one came from a single episode.
+
+**Why two episodes and not one with a confidence threshold:** the model's
+confidence is uninformative (26,091 of 27,346 facts sit at 0.9 or
+above). Independent repetition is the only evidence the store has.
+
+**What would change our minds:** a legitimate alias that never repeats.
+The description rule covers the common case (an entity described as "the
+loop engine" admits "loop engine"); a human can always add an alias by
+remembering it twice.
+
+
+## 2026-09-02 — Migration relocates facts under a backup, never deletes text
+
+**Decision:** `scry memory migrate` applies the three rules above to the
+existing store. Relations are rewritten by relocating each fact to its
+new key (the same operation `mergeFact` already used for ValidFrom), with
+provenance, validity, confidence, and the raw relation preserved, merging
+on collision. Value entities have their facts converted to attributes and
+are then deleted; facts between two values are invalidated, not deleted.
+Hygiene v2 drops reference-word aliases, splits aliases away from
+entities of another type or that are another entity's own name (moving
+current facts whose text names the other entity), invalidates
+self-loops, and re-points every `al:` key at its keeper. A backup is
+taken first; a dry run is the default; a second run is a no-op.
+
+**Why relocate rather than invalidate-and-recreate:** a relation rename
+is the same logical fact under a corrected label. Invalidating it and
+adding a copy would double the fact count and make as-of queries return
+both. The house rule protects fact *content* and provenance; both survive
+a relocation, and the backup covers the rest.
