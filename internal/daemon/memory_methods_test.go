@@ -184,7 +184,7 @@ func TestMemoryGlossaryContainsCommittedEntity(t *testing.T) {
 		Result: extract.Result{
 			EpisodeSummary: "seed",
 			Entities: []extract.Ent{
-				{Name: "book-system", Type: "service", Aliases: []string{"the book pipeline"}},
+				{Name: "book-system", Type: "service", Aliases: []string{"book pipeline"}},
 			},
 		},
 	}
@@ -200,7 +200,7 @@ func TestMemoryGlossaryContainsCommittedEntity(t *testing.T) {
 	if !ok {
 		t.Fatalf("handleMemoryGlossary result type = %T, want []string", res)
 	}
-	want := "book-system: the book pipeline"
+	want := "book-system: book pipeline"
 	found := false
 	for _, l := range lines {
 		if l == want {
@@ -563,7 +563,7 @@ func TestMemoryFactsAndEpisodesResolveAlias(t *testing.T) {
 		Result: extract.Result{
 			EpisodeSummary: "book-system deployed to hermes-mini",
 			Entities: []extract.Ent{
-				{Name: "book-system", Type: "service", Aliases: []string{"bs"}},
+				{Name: "book-system", Type: "service", Aliases: []string{"book-sys"}},
 				{Name: "hermes-mini", Type: "machine"},
 			},
 			Facts: []extract.Fct{
@@ -575,18 +575,18 @@ func TestMemoryFactsAndEpisodesResolveAlias(t *testing.T) {
 		t.Fatalf("handleMemoryCommit: %v", err)
 	}
 
-	factsRes, err := d.handleMemoryFacts(ctx, mustJSON(t, MemoryFactsParams{Slug: "bs"}))
+	factsRes, err := d.handleMemoryFacts(ctx, mustJSON(t, MemoryFactsParams{Slug: "book-sys"}))
 	if err != nil {
-		t.Fatalf("handleMemoryFacts(alias %q): %v", "bs", err)
+		t.Fatalf("handleMemoryFacts(alias %q): %v", "book-sys", err)
 	}
 	facts := factsRes.([]memstore.Fact)
 	if len(facts) != 1 {
 		t.Fatalf("facts via alias = %d, want 1", len(facts))
 	}
 
-	episodesRes, err := d.handleMemoryEpisodes(ctx, mustJSON(t, MemoryEpisodesParams{Entity: "bs"}))
+	episodesRes, err := d.handleMemoryEpisodes(ctx, mustJSON(t, MemoryEpisodesParams{Entity: "book-sys"}))
 	if err != nil {
-		t.Fatalf("handleMemoryEpisodes(alias %q): %v", "bs", err)
+		t.Fatalf("handleMemoryEpisodes(alias %q): %v", "book-sys", err)
 	}
 	eps := episodesRes.([]memstore.Episode)
 	if len(eps) != 1 {

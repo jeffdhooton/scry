@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"fmt"
 	"errors"
 	"testing"
 	"time"
@@ -195,5 +196,32 @@ func TestAttributeFactsHaveNoReverseIndexAndDistinctKeys(t *testing.T) {
 	}
 	if IsAttrDst("scry") || !IsAttrDst(AttrDst("x")) {
 		t.Error("IsAttrDst wrong")
+	}
+}
+
+func TestAttestAliasCountsDistinctEpisodes(t *testing.T) {
+	s := openTemp(t)
+	n, err := s.AttestAlias("hermes-ops", "mini", "ep1")
+	if err != nil || n != 1 {
+		t.Fatalf("first attestation = %d, %v", n, err)
+	}
+	if n, _ = s.AttestAlias("hermes-ops", "mini", "ep1"); n != 1 {
+		t.Errorf("same episode twice counted %d", n)
+	}
+	if n, _ = s.AttestAlias("hermes-ops", "mini", "ep2"); n != 2 {
+		t.Errorf("second episode = %d, want 2", n)
+	}
+	eps, _ := s.AliasAttestations("hermes-ops", "mini")
+	if len(eps) != 2 {
+		t.Errorf("attestations = %v", eps)
+	}
+	if eps, _ := s.AliasAttestations("nobody", "x"); len(eps) != 0 {
+		t.Errorf("missing = %v", eps)
+	}
+	for i := range 20 {
+		_, _ = s.AttestAlias("a", "b", fmt.Sprintf("e%d", i))
+	}
+	if eps, _ := s.AliasAttestations("a", "b"); len(eps) > maxAttestations {
+		t.Errorf("attestation list not capped: %d", len(eps))
 	}
 }

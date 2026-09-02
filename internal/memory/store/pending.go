@@ -215,3 +215,62 @@ func (s *Store) GetMetaJSON(key string, out any) (found bool, err error) {
 	})
 	return found, err
 }
+
+// --- Alias attestations ---
+
+// prefixAttest keys the episodes that have claimed a given alias for a
+// given entity: att:<slug>:<normalized alias> → JSON list of episode ids.
+// An alias that would merge two existing entities is only admitted once
+// two independent episodes have attested it.
+const prefixAttest = "att:"
+
+// maxAttestations bounds the list; two is the threshold, the rest is
+// evidence for a human reading the store.
+const maxAttestations = 8
+
+// AttestAlias records that episodeID claimed alias norm for slug and
+// returns the number of distinct episodes that have done so.
+func (s *Store) AttestAlias(slug, norm, episodeID string) (int, error) {
+	key := []byte(prefixAttest + slug + ":" + norm)
+	var eps []string
+	err := s.db.Update(func(txn *badger.Txn) error {
+		item, err := txn.Get(key)
+		if err == nil {
+			if err := item.Value(func(val []byte) error { return json.Unmarshal(val, &eps) }); err != nil {
+				return err
+			}
+		} else if !errors.Is(err, badger.ErrKeyNotFound) {
+			return err
+		}
+		for _, e := range eps {
+			if e == episodeID {
+				return nil
+			}
+		}
+		if len(eps) < maxAttestations {
+			eps = append(eps, episodeID)
+		}
+		b, err := json.Marshal(eps)
+		if err != nil {
+			return err
+		}
+		return txn.Set(key, b)
+	})
+	return len(eps), err
+}
+
+// AliasAttestations lists the episodes that claimed alias norm for slug.
+func (s *Store) AliasAttestations(slug, norm string) ([]string, error) {
+	var eps []string
+	err := s.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(prefixAttest + slug + ":" + norm))
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		return item.Value(func(val []byte) error { return json.Unmarshal(val, &eps) })
+	})
+	return eps, err
+}

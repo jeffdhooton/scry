@@ -113,6 +113,16 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	if found && isGenericAlias(ent.Name) {
 		found = false
 	}
+	// A name that reaches an entity only through an alias, and names a
+	// different kind of thing, is a different thing. "Mac mini" (machine)
+	// must not merge into hermes-ops (project) because the project once
+	// collected "mini" as an alias.
+	if found && slug != store.Slugify(ent.Name) {
+		owner, gerr := st.GetEntity(slug)
+		if gerr == nil && !TypesCompatible(owner.Type, ent.Type) {
+			found = false
+		}
+	}
 	if !found {
 		slug = store.Slugify(ent.Name)
 	}
@@ -132,10 +142,14 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 			Name:        ent.Name,
 			Type:        ent.Type,
 			Description: ent.Description,
-			Aliases:     keepDurable(ent.Aliases),
 			CreatedAt:   ep.OccurredAt,
 			LastSeen:    ep.OccurredAt,
 		}
+		aliases, err := admitAliases(st, e, keepDurable(ent.Aliases), ep.ID)
+		if err != nil {
+			return err
+		}
+		e.Aliases = aliases
 		if isWorkspacePath(cwd) {
 			e.RepoRefs = []string{cwd}
 		}
@@ -147,7 +161,18 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	}
 
 	// Merge onto the existing entity.
-	existing.Aliases = unionStrings(existing.Aliases, keepDurable(ent.Aliases))
+	admitted, err := admitAliases(st, existing, keepDurable(ent.Aliases), ep.ID)
+	if err != nil {
+		return err
+	}
+	existing.Aliases = unionStrings(existing.Aliases, admitted)
+	// A stub created from a fact endpoint is typed "concept" because nothing
+	// knew better. The first mention that does know upgrades it.
+	if existing.Type == "" || existing.Type == "concept" {
+		if ent.Type != "" && ent.Type != "concept" {
+			existing.Type = ent.Type
+		}
+	}
 	// Fill the description, never replace it. Last-writer-wins let a
 	// throwaway session in a scratch directory overwrite a real project's
 	// description with an observation about the scratch directory. An
