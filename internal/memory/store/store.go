@@ -806,7 +806,22 @@ func Slugify(name string) string {
 // returns the number of bytes written. It runs against the live database,
 // so the daemon can take one before a migration without stopping.
 func (s *Store) Backup(w io.Writer) (uint64, error) {
-	return s.db.Backup(w, 0)
+	cw := &countingWriter{w: w}
+	if _, err := s.db.Backup(cw, 0); err != nil {
+		return cw.n, err
+	}
+	return cw.n, nil
+}
+
+type countingWriter struct {
+	w io.Writer
+	n uint64
+}
+
+func (c *countingWriter) Write(p []byte) (int, error) {
+	n, err := c.w.Write(p)
+	c.n += uint64(n)
+	return n, err
 }
 
 // Restore wipes the store and loads a Backup stream into it. It is meant
