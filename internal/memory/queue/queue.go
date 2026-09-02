@@ -36,8 +36,10 @@ const (
 	MaxTimeoutAttempts = 3
 	// manualWorkers are slots reserved for manual episodes, so twenty
 	// remembers made during an outage never wait behind transcript slices
-	// that are holding every general slot against a hung upstream.
-	manualWorkers = 4
+	// that are holding every general slot against a hung upstream. GLM
+	// takes 80-130 s even on a one-sentence fact (measured 2026-09-02), so
+	// eight slots clear twenty remembers in about four minutes.
+	manualWorkers = 8
 
 	defaultWorkers     = 24
 	defaultItemTimeout = 6 * time.Minute

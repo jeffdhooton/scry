@@ -284,8 +284,11 @@ func TestManualEpisodesJumpTheBacklog(t *testing.T) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if order[0] != "manual-1" {
-		t.Errorf("first processed = %q, want the manual episode ahead of the backlog: %v", order[0], order[:3])
+	// The manual item and the first transcript item are claimed in the same
+	// dispatch pass (reserved slot vs general slot), so either may record
+	// first; the manual one must not be behind the backlog.
+	if order[0] != "manual-1" && order[1] != "manual-1" {
+		t.Errorf("manual episode not at the front: %v", order[:3])
 	}
 }
 
