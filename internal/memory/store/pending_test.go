@@ -225,3 +225,68 @@ func TestAttestAliasCountsDistinctEpisodes(t *testing.T) {
 		t.Errorf("attestation list not capped: %d", len(eps))
 	}
 }
+
+func TestRelocateFactMovesKeyAndMergesOnCollision(t *testing.T) {
+	s := openTemp(t)
+	now := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	old := Fact{Src: "a", Relation: "used_by", Dst: "b", Fact: "b uses a", ValidFrom: now, Confidence: 0.5, Episodes: []string{"e1"}}
+	_ = s.PutFact(old)
+	updated := old
+	updated.Src, updated.Dst, updated.Relation, updated.RawRelation = "b", "a", "uses", "used_by"
+	if err := s.RelocateFact(old, updated); err != nil {
+		t.Fatal(err)
+	}
+	if from, _ := s.FactsFrom("a", true); len(from) != 0 {
+		t.Errorf("old key still present: %+v", from)
+	}
+	got, _ := s.FactsFrom("b", true)
+	if len(got) != 1 || got[0].Relation != "uses" || got[0].RawRelation != "used_by" {
+		t.Fatalf("relocated = %+v", got)
+	}
+	if about, _ := s.FactsAbout("a", true); len(about) != 1 {
+		t.Errorf("adj index not moved: %d", len(about))
+	}
+	// Collision: another fact lands on the same key and merges.
+	other := Fact{Src: "c", Relation: "uses_flip", Dst: "d", Fact: "dup", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e2"}}
+	_ = s.PutFact(other)
+	target := other
+	target.Src, target.Dst, target.Relation = "b", "a", "uses"
+	if err := s.RelocateFact(other, target); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = s.FactsFrom("b", true)
+	if len(got) != 1 || got[0].Confidence != 0.9 || len(got[0].Episodes) != 2 {
+		t.Errorf("merge on collision = %+v", got)
+	}
+	// Edge → attribute relocation drops the reverse index.
+	attr := got[0]
+	attr.Dst, attr.Value = "", "in-progress"
+	if err := s.RelocateFact(got[0], attr); err != nil {
+		t.Fatal(err)
+	}
+	if about, _ := s.FactsAbout("a", true); len(about) != 0 {
+		t.Errorf("adj index must be gone after an attribute relocation: %+v", about)
+	}
+}
+
+func TestDeleteEntityAndClaimAlias(t *testing.T) {
+	s := openTemp(t)
+	_ = s.PutEntity(Entity{Slug: "main", Name: "main", Type: "concept", Aliases: []string{"trunk"}})
+	_ = s.PutEntity(Entity{Slug: "other", Name: "other", Type: "project"})
+	if err := s.DeleteEntity("main"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GetEntity("main"); !errors.Is(err, ErrNotFound) {
+		t.Error("entity still present")
+	}
+	if _, ok, _ := s.ResolveAlias("trunk"); ok {
+		t.Error("alias index still points at the deleted entity")
+	}
+	if err := s.DeleteEntity("main"); err != nil {
+		t.Errorf("deleting twice must be fine: %v", err)
+	}
+	_ = s.ClaimAlias("shared name", "other")
+	if slug, ok, _ := s.ResolveAlias("Shared Name"); !ok || slug != "other" {
+		t.Errorf("ClaimAlias = %q %v", slug, ok)
+	}
+}

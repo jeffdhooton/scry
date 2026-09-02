@@ -793,3 +793,103 @@ func (s *Store) Restore(r io.Reader) error {
 	}
 	return s.ensureSchema()
 }
+
+// DeleteEntity removes the entity record and every al: key that points at
+// it. Facts are untouched: a migration that retires an entity relocates or
+// invalidates its facts first. Deleting a missing entity is not an error.
+func (s *Store) DeleteEntity(slug string) error {
+	return s.db.Update(func(txn *badger.Txn) error {
+		prev, err := getEntityTxn(txn, slug)
+		if errors.Is(err, ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		for norm := range normalizedNameSet(prev.Name, prev.Aliases) {
+			if err := deleteAliasIfOwnedBy(txn, norm, slug); err != nil {
+				return err
+			}
+		}
+		if err := deleteAliasIfOwnedBy(txn, Normalize(slug), slug); err != nil {
+			return err
+		}
+		return txn.Delete([]byte(prefixEntity + slug))
+	})
+}
+
+// ClaimAlias points al:<Normalize(name)> at slug unconditionally. Hygiene
+// uses it after deciding which of several entities keeps a shared alias.
+func (s *Store) ClaimAlias(name, slug string) error {
+	norm := Normalize(name)
+	if norm == "" {
+		return nil
+	}
+	return s.db.Update(func(txn *badger.Txn) error {
+		return txn.Set([]byte(prefixAlias+norm), []byte(slug))
+	})
+}
+
+// RelocateFact moves a fact from its current key to the key implied by
+// updated (a new relation, endpoints, or value), keeping text, validity,
+// confidence, and provenance. If a fact already exists at the target key,
+// the two are merged: provenance is unioned and the higher confidence and
+// the earlier invalidation (if any) win. The old key is deleted either way.
+func (s *Store) RelocateFact(old, updated Fact) error {
+	oldKey := factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom)
+	newKey := factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
+	if string(oldKey) == string(newKey) {
+		return s.PutFact(updated)
+	}
+	return s.db.Update(func(txn *badger.Txn) error {
+		if item, err := txn.Get(newKey); err == nil {
+			var existing Fact
+			if err := item.Value(func(val []byte) error { return json.Unmarshal(val, &existing) }); err != nil {
+				return err
+			}
+			for _, e := range updated.Episodes {
+				found := false
+				for _, x := range existing.Episodes {
+					if x == e {
+						found = true
+						break
+					}
+				}
+				if !found {
+					existing.Episodes = append(existing.Episodes, e)
+				}
+			}
+			if updated.Confidence > existing.Confidence {
+				existing.Confidence = updated.Confidence
+			}
+			if existing.InvalidAt == nil && updated.InvalidAt != nil {
+				existing.InvalidAt = updated.InvalidAt
+			}
+			if existing.RawRelation == "" {
+				existing.RawRelation = updated.RawRelation
+			}
+			updated = existing
+		} else if !errors.Is(err, badger.ErrKeyNotFound) {
+			return err
+		}
+		if err := txn.Delete(oldKey); err != nil {
+			return err
+		}
+		if old.Dst != "" {
+			if err := txn.Delete(adjKey(old.Dst, old.Src, old.Relation, old.ValidFrom)); err != nil {
+				return err
+			}
+		}
+		b, err := json.Marshal(updated)
+		if err != nil {
+			return err
+		}
+		if err := txn.Set(newKey, b); err != nil {
+			return err
+		}
+		if updated.Dst == "" {
+			return nil
+		}
+		return txn.Set(adjKey(updated.Dst, updated.Src, updated.Relation, updated.ValidFrom), nil)
+	})
+}

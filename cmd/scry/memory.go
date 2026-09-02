@@ -18,6 +18,7 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 	"github.com/jeffdhooton/scry/internal/memory/extract"
 	"github.com/jeffdhooton/scry/internal/memory/ingest"
+	"github.com/jeffdhooton/scry/internal/memory/migrate"
 	"github.com/jeffdhooton/scry/internal/memory/resolve"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/memory/sweep"
@@ -79,7 +80,73 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd())
+	return cmd
+}
+
+// --- migrate ---
+
+func memoryMigrateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "migrate",
+		Short: "Apply the current resolver rules to the whole store (closed vocabulary, values as attributes, alias hygiene)",
+		Long: `Rewrites every fact's relation onto the closed vocabulary, turns facts
+whose endpoint is a value (a status word, a measurement, a branch name)
+into attributes and retires those entities, and runs alias hygiene:
+reference words dropped, aliases split away from entities of another
+type, facts reattached to the entity their text names, self-loops
+invalidated.
+
+Defaults to a dry run that prints the report. --apply takes a Badger
+backup into ~/.scry/backups first and then writes. Runs inside the
+daemon that owns the store; --dir runs offline against a store directory
+instead (the daemon must not hold it).`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apply, _ := cmd.Flags().GetBool("apply")
+			dir, _ := cmd.Flags().GetString("dir")
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			if dir != "" {
+				st, err := memstore.Open(dir)
+				if err != nil {
+					return fmt.Errorf("open %s (is a daemon holding it?): %w", dir, err)
+				}
+				defer st.Close()
+				rep, err := migrate.Run(st, migrate.Options{
+					DryRun: !apply,
+					Backup: func() (string, error) {
+						path := filepath.Join(filepath.Dir(dir), "backups", "memory-pre-migrate-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
+						if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+							return "", err
+						}
+						f, err := os.Create(path)
+						if err != nil {
+							return "", err
+						}
+						if _, err := st.Backup(f); err != nil {
+							f.Close()
+							return "", err
+						}
+						return path, f.Close()
+					},
+					Logf: func(format string, a ...any) { fmt.Fprintf(os.Stderr, format+"\n", a...) },
+				})
+				if err != nil {
+					return err
+				}
+				return printJSON(rep, pretty)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
+			defer cancel()
+			var rep migrate.Report
+			if err := callMemoryDaemon(ctx, "memory.migrate", &daemon.MemoryMigrateParams{DryRun: !apply}, &rep); err != nil {
+				return err
+			}
+			return printJSON(rep, pretty)
+		},
+	}
+	cmd.Flags().Bool("apply", false, "write the changes after taking a backup (default is a dry run)")
+	cmd.Flags().String("dir", "", "run offline against this store directory instead of the daemon")
 	return cmd
 }
 
@@ -375,10 +442,14 @@ Defaults to a dry run — this edits recorded history, so read it first.`,
 				mode = "applied"
 			}
 			fmt.Printf("memory hygiene (%s)\n", mode)
-			fmt.Printf("  entities scanned:  %d\n", rep.EntitiesScanned)
-			fmt.Printf("  entities changed:  %d\n", rep.EntitiesChanged)
-			fmt.Printf("  aliases dropped:   %d\n", rep.AliasesDropped)
-			fmt.Printf("  repo refs dropped: %d\n", rep.RepoRefsDropped)
+			fmt.Printf("  entities scanned:       %d\n", rep.EntitiesScanned)
+			fmt.Printf("  entities changed:       %d\n", rep.EntitiesChanged)
+			fmt.Printf("  aliases dropped:        %d\n", rep.AliasesDropped)
+			fmt.Printf("  aliases split:          %d\n", rep.AliasesSplit)
+			fmt.Printf("  facts reattached:       %d\n", rep.FactsReattached)
+			fmt.Printf("  self-loops invalidated: %d\n", rep.SelfLoopsInvalidated)
+			fmt.Printf("  repo refs dropped:      %d\n", rep.RepoRefsDropped)
+			fmt.Printf("  cross-type collisions:  %d\n", rep.CrossTypeCollisions)
 			if len(rep.Conflated) > 0 {
 				fmt.Printf("\n  %d entities carry another entity's name as an alias — the same\n"+
 					"  thing recorded twice, or two things fused into one. Reported only:\n"+

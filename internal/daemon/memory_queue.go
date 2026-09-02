@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
+	"github.com/jeffdhooton/scry/internal/memory/migrate"
 	"github.com/jeffdhooton/scry/internal/memory/queue"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
@@ -387,4 +388,47 @@ func (d *Daemon) handleMemoryBackup(_ context.Context, raw json.RawMessage) (any
 	}
 	log.Printf("memory: backup written to %s (%d bytes)", path, n)
 	return &MemoryBackupResult{Path: path, Bytes: n}, nil
+}
+
+// --- memory.migrate ---
+
+// MemoryMigrateParams: DryRun reports without writing (the default from
+// the CLI).
+type MemoryMigrateParams struct {
+	DryRun bool `json:"dry_run"`
+}
+
+// handleMemoryMigrate applies the resolver's current rules to the store:
+// closed vocabulary, values as attributes, alias hygiene. A backup is
+// taken first unless it is a dry run.
+func (d *Daemon) handleMemoryMigrate(_ context.Context, raw json.RawMessage) (any, error) {
+	var p MemoryMigrateParams
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: err.Error()}
+		}
+	}
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	rep, err := migrate.Run(st, migrate.Options{
+		DryRun: p.DryRun,
+		Backup: func() (string, error) {
+			res, err := d.handleMemoryBackup(context.Background(), nil)
+			if err != nil {
+				return "", err
+			}
+			return res.(*MemoryBackupResult).Path, nil
+		},
+		Logf: log.Printf,
+	})
+	if err != nil {
+		return nil, err
+	}
+	// The glossary and any cached view of the graph are stale now.
+	d.memGlossary.mu.Lock()
+	d.memGlossary.at = time.Time{}
+	d.memGlossary.mu.Unlock()
+	return rep, nil
 }
