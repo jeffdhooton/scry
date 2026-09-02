@@ -10,13 +10,13 @@ import (
 var memoryToolDefinitions = []tool{
 	{
 		Name:        "scry_recall",
-		Description: "Global cross-session memory: entities (projects, services, machines, people, decisions) with time-stamped facts extracted from past Claude/Codex sessions and loom runs. Use FIRST when the user references a project, machine, or decision not defined in the current context (e.g. 'set this up on hermes'). Returns matched entities, their current facts, and provenance.",
+		Description: "Global cross-session memory: time-stamped facts about projects, services, machines, people, and decisions, extracted from past Claude, Codex, Kimi, and OpenCode sessions. Ask a question or name a thing ('why did we switch off deepseek', 'scry deploy mini'). Returns the facts that answer it, ranked (default 20, always under 24 KB), the entities they touch, and the episodes they came from. Use FIRST when the user references a project, machine, or decision not defined in the current context.",
 		InputSchema: mustMarshal(map[string]any{
 			"type": "object",
 			"properties": map[string]any{
 				"query": map[string]any{"type": "string", "description": "Free-text search — entity name, alias, or topic."},
 				"as_of": map[string]any{"type": "string", "description": "RFC3339 timestamp. Return facts as they stood at this point in time instead of current. Omit for current state."},
-				"limit": map[string]any{"type": "integer", "description": "Max entities to return (default 5)."},
+				"limit": map[string]any{"type": "integer", "description": "Max facts to return (default 20; the payload is capped at 24 KB regardless)."},
 			},
 			"required": []string{"query"},
 		}),
@@ -47,7 +47,7 @@ var memoryToolDefinitions = []tool{
 	},
 	{
 		Name:        "scry_remember",
-		Description: "Store a durable fact in global memory (e.g. a decision, a deploy, a preference with lasting relevance). Use instead of only stating it in prose when the fact should survive this session.",
+		Description: "Store a durable fact in global memory (e.g. a decision, a deploy, a preference with lasting relevance). Use instead of only stating it in prose when the fact should survive this session. Returns immediately once the fact is queued; extraction into graph facts happens in the background and survives provider outages, so never retry a successful call.",
 		InputSchema: mustMarshal(map[string]any{
 			"type": "object",
 			"properties": map[string]any{
@@ -129,5 +129,7 @@ func (s *Server) callMemoryQuery(ctx context.Context, id json.RawMessage, toolNa
 	}
 
 	logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: toolName, LatencyMs: time.Since(start).Milliseconds()})
-	s.writeToolResult(id, prettyJSON(raw), false)
+	// Compact, not indented: recall's 24 KB cap is measured on the compact
+	// form, and indentation would add 10-15% on top of it.
+	s.writeToolResult(id, string(raw), false)
 }

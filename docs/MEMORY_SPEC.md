@@ -203,4 +203,6 @@ scry memory status                                       # cursors, counts, dorm
 - **Mini/multi-machine:** Hermes sessions on the mini generate their own transcripts. Later: sweep-over-ssh or a mini-local scry pushing episode JSON. Nothing in the schema blocks it (episodes already carry source refs).
 - **Loom pre-DISCOVER recall:** loom querying `scry memory recall` before its DISCOVER phase — the cross-run learning loop closed from the consumer side.
 - **Cross-graph native joins:** memory entity ↔ code node paths inside `scry_graph_path`.
-- **Embedding-assisted recall** if alias matching proves too brittle for fuzzy queries.
+- **Embedding-assisted recall** if alias matching proves too brittle for fuzzy queries. *2026-09-02: fact-level lexical search (BM25) landed instead; see `docs/DECISIONS.md`. Embeddings stay deferred.*
+
+*2026-09-02: the "Mini/multi-machine" seam closed with the shared memory socket (2026-08-28) and daemon-side extraction (2026-09-02); the mini runs its own sweep into the same store.*

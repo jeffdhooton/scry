@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jeffdhooton/scry/internal/config"
 	"github.com/jeffdhooton/scry/internal/daemon"
 	"github.com/jeffdhooton/scry/internal/rpc"
 
@@ -109,15 +110,37 @@ func dialDaemon() (*rpc.Client, error) {
 // to an always-on machine). Without the variable, memory stays local for
 // backwards compatibility.
 func dialMemoryDaemon() (*rpc.Client, error) {
-	path := os.Getenv(memorySocketEnv)
+	path, source := memorySocket()
 	if path == "" {
 		return dialDaemon()
 	}
 	c, err := rpc.Dial(path)
 	if err != nil {
-		return nil, fmt.Errorf("dial shared memory daemon via %s=%q: %w", memorySocketEnv, path, err)
+		return nil, fmt.Errorf("dial shared memory daemon via %s=%q: %w", source, path, err)
 	}
 	return c, nil
+}
+
+// memorySocket resolves where the shared memory store is served: the
+// SCRY_MEMORY_SOCKET environment variable first, then memory.socket in
+// ~/.scry/config.yaml. Empty means the local daemon. The second return
+// names the source for error messages.
+func memorySocket() (path, source string) {
+	if p := os.Getenv(memorySocketEnv); p != "" {
+		return p, memorySocketEnv
+	}
+	home, err := scryHome()
+	if err != nil {
+		return "", ""
+	}
+	cfg, err := config.Load(home)
+	if err != nil {
+		return "", ""
+	}
+	if p := cfg.MemorySocket(); p != "" {
+		return p, "config.yaml memory.socket"
+	}
+	return "", ""
 }
 
 // spawnDaemon starts the daemon. When a LaunchAgent supervises the daemon it

@@ -18,6 +18,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/memory/distill"
 	"github.com/jeffdhooton/scry/internal/memory/ingest"
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
@@ -30,7 +31,31 @@ import (
 // boundary precisely.
 const DefaultActiveWindow = 5 * time.Minute
 
-// Roots names the three places the sweep looks for memory sources. Each
+// PerFileTimeout bounds the daemon round trips for one candidate. Before
+// this, a whole sweep shared one 30-minute context: once a run of failures
+// burned the budget, every remaining cursor lookup died instantly with an
+// i/o timeout on the deadline-bound connection, and the log filled with
+// hundreds of identical lines. A per-candidate deadline keeps one bad file
+// from poisoning the rest.
+var PerFileTimeout = 2 * time.Minute
+
+// Reporter is implemented by daemons that record when a sweep finished and
+// what it found (memory.sweepReport). It is optional so tests and older
+// daemons still work without it.
+type Reporter interface {
+	SweepReport(ctx context.Context, r Report) error
+}
+
+// Report is what Run tells the daemon at the end of a pass.
+type Report struct {
+	Host          string `json:"host,omitempty"`
+	FilesScanned  int    `json:"files_scanned"`
+	FilesIngested int    `json:"files_ingested"`
+	Episodes      int    `json:"episodes"`
+	Errors        int    `json:"errors"`
+}
+
+// Roots names the places the sweep looks for memory sources. Each
 // field is independently defaulted (via DefaultRoots) when empty, so
 // callers can override just the one root they need — tests always override
 // every field with temp-dir paths and must never touch the real home
@@ -46,6 +71,13 @@ type Roots struct {
 	// LoomRuns is a directory whose immediate subdirectories are each one
 	// loom run, e.g. $HOME/.loom/runs.
 	LoomRuns string
+	// KimiGlob matches Kimi Code agent wire logs, e.g.
+	// $HOME/.kimi-code/sessions/*/*/agents/*/wire.jsonl.
+	KimiGlob string
+	// OpenCodeDB is OpenCode's SQLite database, e.g.
+	// $HOME/.local/share/opencode/opencode.db. Each session in it is one
+	// candidate.
+	OpenCodeDB string
 }
 
 // DefaultRoots returns the real, machine-wide default roots, rooted at the
@@ -57,6 +89,8 @@ func DefaultRoots() Roots {
 		ClaudeGlob: filepath.Join(home, ".claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(home, ".codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   filepath.Join(home, ".loom", "runs"),
+		KimiGlob:   filepath.Join(home, ".kimi-code", "sessions", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(home, ".local", "share", "opencode", "opencode.db"),
 	}
 }
 
@@ -73,6 +107,12 @@ func (r Roots) withDefaults() Roots {
 	if r.LoomRuns == "" {
 		r.LoomRuns = d.LoomRuns
 	}
+	if r.KimiGlob == "" {
+		r.KimiGlob = d.KimiGlob
+	}
+	if r.OpenCodeDB == "" {
+		r.OpenCodeDB = d.OpenCodeDB
+	}
 	return r
 }
 
@@ -87,15 +127,16 @@ type Result struct {
 }
 
 // Run scans every root, compares each candidate against its stored cursor,
-// and ingests whatever changed via ingest.File.
+// and ingests whatever changed via ingest.File (distill + enqueue; the
+// daemon extracts).
 //
-// o supplies only Extractor and Daemon; o.Source and o.Path are ignored —
-// Run sets both per candidate as it walks the roots. Files with mtime
+// o supplies only Daemon; o.Source and o.Path are ignored — Run sets both
+// per candidate as it walks the roots. Each candidate gets its own context
+// bounded by PerFileTimeout, derived from ctx. Files with mtime
 // within activeWindow of time.Now() are skipped entirely (neither ingested
 // nor counted unchanged) since they may still be mid-write. When dryRun is
 // true, Run reports what would be ingested (FilesIngested counts
-// candidates) without constructing/calling the extractor or committing
-// anything, and cursors are left untouched.
+// candidates) without enqueueing anything, and cursors are left untouched.
 //
 // Files/dirs are processed in sorted path order within each root (claude,
 // then codex, then loom) for determinism. A per-file error is appended to
@@ -132,19 +173,59 @@ func Run(ctx context.Context, roots Roots, o ingest.Options, activeWindow time.D
 		loomDirs = nil
 	}
 
+	kimiFiles, err := filepath.Glob(roots.KimiGlob)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", roots.KimiGlob, err))
+		kimiFiles = nil
+	}
+	sort.Strings(kimiFiles)
+
+	openCodeSessions, err := distill.OpenCodeSessions(roots.OpenCodeDB)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", roots.OpenCodeDB, err))
+		openCodeSessions = nil
+	}
+
 	now := time.Now()
 
 	for _, path := range claudeFiles {
-		sweepFile(ctx, &result, o, "claude", path, now, activeWindow, dryRun)
+		perFile(ctx, func(fctx context.Context) { sweepFile(fctx, &result, o, "claude", path, now, activeWindow, dryRun) })
 	}
 	for _, path := range codexFiles {
-		sweepFile(ctx, &result, o, "codex", path, now, activeWindow, dryRun)
+		perFile(ctx, func(fctx context.Context) { sweepFile(fctx, &result, o, "codex", path, now, activeWindow, dryRun) })
 	}
 	for _, dir := range loomDirs {
-		sweepLoomDir(ctx, &result, o, dir, now, activeWindow, dryRun)
+		perFile(ctx, func(fctx context.Context) { sweepLoomDir(fctx, &result, o, dir, now, activeWindow, dryRun) })
+	}
+	for _, path := range kimiFiles {
+		perFile(ctx, func(fctx context.Context) { sweepFile(fctx, &result, o, "kimi", path, now, activeWindow, dryRun) })
+	}
+	for _, sess := range openCodeSessions {
+		perFile(ctx, func(fctx context.Context) {
+			sweepOpenCodeSession(fctx, &result, o, roots.OpenCodeDB, sess, now, activeWindow, dryRun)
+		})
+	}
+
+	if rep, ok := o.Daemon.(Reporter); ok && !dryRun {
+		host, _ := os.Hostname()
+		perFile(ctx, func(fctx context.Context) {
+			if err := rep.SweepReport(fctx, Report{
+				Host: host, FilesScanned: result.FilesScanned, FilesIngested: result.FilesIngested,
+				Episodes: result.Episodes, Errors: len(result.Errors),
+			}); err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("sweep report: %v", err))
+			}
+		})
 	}
 
 	return result, nil
+}
+
+// perFile runs fn under a fresh PerFileTimeout-bounded child of ctx.
+func perFile(ctx context.Context, fn func(context.Context)) {
+	fctx, cancel := context.WithTimeout(ctx, PerFileTimeout)
+	defer cancel()
+	fn(fctx)
 }
 
 // Candidates lists every claude, codex, and loom candidate across roots that
@@ -283,10 +364,9 @@ func sweepFile(ctx context.Context, result *Result, o ingest.Options, source, pa
 	}
 
 	sum, err := ingest.File(ctx, ingest.Options{
-		Source:    source,
-		Path:      path,
-		Extractor: o.Extractor,
-		Daemon:    o.Daemon,
+		Source: source,
+		Path:   path,
+		Daemon: o.Daemon,
 	})
 	if err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", path, err))
@@ -333,16 +413,51 @@ func sweepLoomDir(ctx context.Context, result *Result, o ingest.Options, dir str
 	}
 
 	sum, err := ingest.File(ctx, ingest.Options{
-		Source:    "loom",
-		Path:      dir,
-		Extractor: o.Extractor,
-		Daemon:    o.Daemon,
+		Source: "loom",
+		Path:   dir,
+		Daemon: o.Daemon,
 	})
 	if err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", dir, err))
 		return
 	}
 
+	result.FilesIngested++
+	result.Episodes += sum.EpisodesIngested
+}
+
+// sweepOpenCodeSession handles one OpenCode session: a wholesale candidate
+// whose change detection is the session's time_updated column, compared
+// against the cursor's ModTime. The active window applies to that same
+// timestamp, since a session still being driven keeps updating it.
+func sweepOpenCodeSession(ctx context.Context, result *Result, o ingest.Options, dbPath string, sess distill.OpenCodeSession, now time.Time, activeWindow time.Duration, dryRun bool) {
+	result.FilesScanned++
+	ref := distill.OpenCodeRef(dbPath, sess.ID)
+
+	if now.Sub(sess.TimeUpdated) < activeWindow {
+		result.FilesSkippedActive++
+		return
+	}
+
+	cursor, found, err := o.Daemon.GetCursor(ctx, ref)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: get cursor: %v", ref, err))
+		return
+	}
+	if found && cursor.ModTime.Equal(sess.TimeUpdated) {
+		result.FilesUnchanged++
+		return
+	}
+	if dryRun {
+		result.FilesIngested++
+		return
+	}
+
+	sum, err := ingest.File(ctx, ingest.Options{Source: "opencode", Path: ref, Daemon: o.Daemon})
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", ref, err))
+		return
+	}
 	result.FilesIngested++
 	result.Episodes += sum.EpisodesIngested
 }

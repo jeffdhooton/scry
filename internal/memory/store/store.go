@@ -10,9 +10,11 @@
 //	ep:<id>                                            → Episode
 //	en:<slug>                                          → Entity
 //	al:<normalized-name>                               → slug (raw string)
-//	fa:<src>:<relation>:<dst>:<validfrom-unixnano>      → Fact
-//	adj:<dst>:<src>:<relation>:<validfrom-unixnano>     → empty (reverse index for FactsAbout)
+//	fa:<src>:<relation>:<dst>:<validfrom-unixnano>      → Fact (dst is "~<value-slug>" for an attribute fact)
+//	adj:<dst>:<src>:<relation>:<validfrom-unixnano>     → empty (reverse index for FactsAbout; edges only)
 //	cur:<sha256(path)>                                  → Cursor
+//	pq:<id>                                             → PendingEpisode (see pending.go)
+//	meta:<key>                                          → timestamps and reports (see pending.go)
 //
 // All values are JSON (except al: values, which are raw slug strings, and
 // adj: values, which are empty). Schema version 1.
@@ -24,9 +26,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
@@ -80,15 +84,48 @@ type Entity struct {
 // Dst) triple may have multiple Facts, one per ValidFrom — invalidating a
 // fact sets InvalidAt rather than deleting it, preserving history.
 type Fact struct {
-	Src        string     `json:"src"`
-	Relation   string     `json:"relation"`
-	Dst        string     `json:"dst"`
-	Fact       string     `json:"fact"` // one-sentence natural language
-	ValidFrom  time.Time  `json:"valid_from"`
-	InvalidAt  *time.Time `json:"invalid_at,omitempty"` // nil = current
-	Confidence float64    `json:"confidence"`
-	Episodes   []string   `json:"episodes"` // provenance episode IDs
+	Src      string `json:"src"`
+	Relation string `json:"relation"`
+	// Dst is the target entity slug. It is empty for an attribute fact,
+	// whose target is a Value (a status word, a measurement, a branch name)
+	// rather than an entity: values are never nodes.
+	Dst string `json:"dst"`
+	// Value is the literal target of an attribute fact ("in-progress",
+	// "46 GiB"). Exactly one of Dst and Value is set.
+	Value string `json:"value,omitempty"`
+	// RawRelation is the relation as the extraction model wrote it, before
+	// the resolver mapped it onto the closed vocabulary. Empty when they
+	// agree.
+	RawRelation string     `json:"raw_relation,omitempty"`
+	Fact        string     `json:"fact"` // one-sentence natural language
+	ValidFrom   time.Time  `json:"valid_from"`
+	InvalidAt   *time.Time `json:"invalid_at,omitempty"` // nil = current
+	Confidence  float64    `json:"confidence"`
+	Episodes    []string   `json:"episodes"` // provenance episode IDs
 }
+
+// attrPrefix marks the dst slot of an attribute fact's key. "~" cannot
+// appear in a slug, so an attribute key never collides with an edge key.
+const attrPrefix = "~"
+
+// AttrDst returns the key slot for an attribute value.
+func AttrDst(value string) string { return attrPrefix + Slugify(value) }
+
+// IsAttrDst reports whether a key slot names a value rather than an entity.
+func IsAttrDst(slot string) bool { return strings.HasPrefix(slot, attrPrefix) }
+
+// KeyDst returns what goes in the fact key's dst slot: the entity slug for
+// an edge, AttrDst(Value) for an attribute fact. Pass this, not f.Dst, to
+// InvalidateFact and DeleteFact.
+func (f Fact) KeyDst() string {
+	if f.Dst != "" {
+		return f.Dst
+	}
+	return AttrDst(f.Value)
+}
+
+// IsAttribute reports whether f targets a value rather than an entity.
+func (f Fact) IsAttribute() bool { return f.Dst == "" }
 
 // Cursor tracks ingestion progress through one source file, so re-runs can
 // resume from where they left off.
@@ -102,6 +139,9 @@ type Cursor struct {
 // Store is an open BadgerDB-backed handle on the global memory store.
 type Store struct {
 	db *badger.DB
+
+	obsMu    sync.RWMutex
+	observer func(Event)
 }
 
 // Open opens (creating if necessary) the store at dir. If the on-disk schema
@@ -174,9 +214,13 @@ func (s *Store) PutEpisode(e Episode) error {
 	if err != nil {
 		return err
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
+	err = s.db.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixEpisode+e.ID), b)
 	})
+	if err == nil {
+		s.notify(Event{Kind: "episode", Op: "put", Episode: e})
+	}
+	return err
 }
 
 func (s *Store) GetEpisode(id string) (Episode, error) {
@@ -253,7 +297,7 @@ func (s *Store) PutEntity(e Entity) error {
 		return err
 	}
 	newNorms := normalizedNameSet(e.Name, e.Aliases)
-	return s.db.Update(func(txn *badger.Txn) error {
+	err = s.db.Update(func(txn *badger.Txn) error {
 		prev, err := getEntityTxn(txn, e.Slug)
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
@@ -279,6 +323,10 @@ func (s *Store) PutEntity(e Entity) error {
 		}
 		return nil
 	})
+	if err == nil {
+		s.notify(Event{Kind: "entity", Op: "put", Entity: e})
+	}
+	return err
 }
 
 // normalizedNameSet returns the set of non-empty Normalize()d forms of name
@@ -432,17 +480,30 @@ func adjKey(dst, src, relation string, validFrom time.Time) []byte {
 	return []byte(fmt.Sprintf("%s%s:%s:%s:%d", prefixAdj, dst, src, relation, validFrom.UnixNano()))
 }
 
+// PutFact writes f under its key and, for an edge, the adj: reverse index.
+// An attribute fact has no reverse index: a value is not a node anyone
+// traverses to.
 func (s *Store) PutFact(f Fact) error {
+	if f.Dst == "" && f.Value == "" {
+		return fmt.Errorf("memory: fact %s -[%s]-> has neither dst nor value", f.Src, f.Relation)
+	}
 	b, err := json.Marshal(f)
 	if err != nil {
 		return err
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
-		if err := txn.Set(factKey(f.Src, f.Relation, f.Dst, f.ValidFrom), b); err != nil {
+	err = s.db.Update(func(txn *badger.Txn) error {
+		if err := txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b); err != nil {
 			return err
+		}
+		if f.Dst == "" {
+			return nil
 		}
 		return txn.Set(adjKey(f.Dst, f.Src, f.Relation, f.ValidFrom), nil)
 	})
+	if err == nil {
+		s.notify(Event{Kind: "fact", Op: "put", Fact: f})
+	}
+	return err
 }
 
 // FactsFrom returns every fact with Src == slug.
@@ -485,7 +546,7 @@ func (s *Store) FactsAbout(slug string, includeInvalid bool) ([]Fact, error) {
 	}
 	seen := make(map[string]bool, len(facts))
 	for _, f := range facts {
-		seen[string(factKey(f.Src, f.Relation, f.Dst, f.ValidFrom))] = true
+		seen[string(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom))] = true
 	}
 
 	pb := []byte(prefixAdj + slug + ":")
@@ -562,10 +623,12 @@ func (s *Store) AllFacts() ([]Fact, error) {
 }
 
 // InvalidateFact locates the exact fact identified by (src, relation, dst,
-// validFrom) and sets its InvalidAt timestamp.
+// validFrom) and sets its InvalidAt timestamp. dst is the key slot: the
+// entity slug for an edge, Fact.KeyDst() for an attribute fact.
 func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Time) error {
 	key := factKey(src, relation, dst, validFrom)
-	return s.db.Update(func(txn *badger.Txn) error {
+	var updated Fact
+	err := s.db.Update(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return ErrNotFound
@@ -585,8 +648,16 @@ func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Tim
 		if err != nil {
 			return err
 		}
-		return txn.Set(key, b)
+		if err := txn.Set(key, b); err != nil {
+			return err
+		}
+		updated = f
+		return nil
 	})
+	if err == nil {
+		s.notify(Event{Kind: "fact", Op: "invalidate", Fact: updated})
+	}
+	return err
 }
 
 // DeleteFact removes the exact fact identified by (src, relation, dst,
@@ -598,7 +669,7 @@ func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Tim
 // ErrNotFound if no such fact exists.
 func (s *Store) DeleteFact(src, relation, dst string, validFrom time.Time) error {
 	key := factKey(src, relation, dst, validFrom)
-	return s.db.Update(func(txn *badger.Txn) error {
+	err := s.db.Update(func(txn *badger.Txn) error {
 		if _, err := txn.Get(key); err != nil {
 			if errors.Is(err, badger.ErrKeyNotFound) {
 				return ErrNotFound
@@ -608,8 +679,15 @@ func (s *Store) DeleteFact(src, relation, dst string, validFrom time.Time) error
 		if err := txn.Delete(key); err != nil {
 			return err
 		}
+		if IsAttrDst(dst) {
+			return nil
+		}
 		return txn.Delete(adjKey(dst, src, relation, validFrom))
 	})
+	if err == nil {
+		s.notify(Event{Kind: "fact", Op: "delete", Fact: Fact{Src: src, Relation: relation, Dst: dst, ValidFrom: validFrom}})
+	}
+	return err
 }
 
 // --- Cursors ---
@@ -720,4 +798,149 @@ var nonSlugRE = regexp.MustCompile(`[^a-z0-9-]`)
 // Slugify is Normalize followed by stripping any rune outside [a-z0-9-].
 func Slugify(name string) string {
 	return nonSlugRE.ReplaceAllString(Normalize(name), "")
+}
+
+// --- Backup / restore ---
+
+// Backup streams every key in the store to w in Badger's backup format and
+// returns the number of bytes written. It runs against the live database,
+// so the daemon can take one before a migration without stopping.
+func (s *Store) Backup(w io.Writer) (uint64, error) {
+	return s.db.Backup(w, 0)
+}
+
+// Restore wipes the store and loads a Backup stream into it. It is meant
+// for an offline store (daemon stopped) opened directly by the CLI; the
+// schema marker is re-checked afterwards so a restored store from the same
+// schema version opens cleanly.
+func (s *Store) Restore(r io.Reader) error {
+	if err := s.db.DropAll(); err != nil {
+		return fmt.Errorf("wipe before restore: %w", err)
+	}
+	if err := s.db.Load(r, 16); err != nil {
+		return fmt.Errorf("load backup: %w", err)
+	}
+	return s.ensureSchema()
+}
+
+// DeleteEntity removes the entity record and every al: key that points at
+// it. Facts are untouched: a migration that retires an entity relocates or
+// invalidates its facts first. Deleting a missing entity is not an error.
+func (s *Store) DeleteEntity(slug string) error {
+	err := s.db.Update(func(txn *badger.Txn) error {
+		prev, err := getEntityTxn(txn, slug)
+		if errors.Is(err, ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		for norm := range normalizedNameSet(prev.Name, prev.Aliases) {
+			if err := deleteAliasIfOwnedBy(txn, norm, slug); err != nil {
+				return err
+			}
+		}
+		if err := deleteAliasIfOwnedBy(txn, Normalize(slug), slug); err != nil {
+			return err
+		}
+		return txn.Delete([]byte(prefixEntity + slug))
+	})
+	if err == nil {
+		s.notify(Event{Kind: "entity", Op: "delete", Slug: slug})
+	}
+	return err
+}
+
+// ClaimAlias points al:<Normalize(name)> at slug unconditionally. Hygiene
+// uses it after deciding which of several entities keeps a shared alias.
+func (s *Store) ClaimAlias(name, slug string) error {
+	norm := Normalize(name)
+	if norm == "" {
+		return nil
+	}
+	return s.db.Update(func(txn *badger.Txn) error {
+		return txn.Set([]byte(prefixAlias+norm), []byte(slug))
+	})
+}
+
+// RelocateFact moves a fact from its current key to the key implied by
+// updated (a new relation, endpoints, or value), keeping text, validity,
+// confidence, provenance, and raw relation. If a fact already exists at the
+// target key, updated is shifted forward by one nanosecond (repeatedly)
+// until its key is free, so both facts survive with their own text and
+// their own validity. The old key is deleted either way.
+func (s *Store) RelocateFact(old, updated Fact) error {
+	oldKey := factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom)
+	newKey := factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
+	if string(oldKey) == string(newKey) {
+		return s.PutFact(updated)
+	}
+	err := s.db.Update(func(txn *badger.Txn) error {
+		for {
+			_, err := txn.Get(newKey)
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				break
+			}
+			if err != nil {
+				return err
+			}
+			updated.ValidFrom = updated.ValidFrom.Add(time.Nanosecond)
+			newKey = factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
+		}
+		if err := txn.Delete(oldKey); err != nil {
+			return err
+		}
+		if old.Dst != "" {
+			if err := txn.Delete(adjKey(old.Dst, old.Src, old.Relation, old.ValidFrom)); err != nil {
+				return err
+			}
+		}
+		b, err := json.Marshal(updated)
+		if err != nil {
+			return err
+		}
+		if err := txn.Set(newKey, b); err != nil {
+			return err
+		}
+		if updated.Dst == "" {
+			return nil
+		}
+		return txn.Set(adjKey(updated.Dst, updated.Src, updated.Relation, updated.ValidFrom), nil)
+	})
+	if err == nil {
+		s.notify(Event{Kind: "fact", Op: "delete", Fact: old})
+		s.notify(Event{Kind: "fact", Op: "put", Fact: updated})
+	}
+	return err
+}
+
+// --- Observer ---
+
+// Event describes one write to the store, for a subscriber such as the
+// search index that mirrors facts and entities in memory.
+type Event struct {
+	Kind    string  // "fact" | "entity" | "episode"
+	Op      string  // "put" | "delete" | "invalidate"
+	Fact    Fact    // for Kind "fact"
+	Entity  Entity  // for Kind "entity"
+	Episode Episode // for Kind "episode"
+	Slug    string  // for entity deletes
+}
+
+// SetObserver registers fn to be called after every fact or entity write.
+// The call happens outside the Badger transaction, after it commits. Pass
+// nil to unsubscribe.
+func (s *Store) SetObserver(fn func(Event)) {
+	s.obsMu.Lock()
+	s.observer = fn
+	s.obsMu.Unlock()
+}
+
+func (s *Store) notify(ev Event) {
+	s.obsMu.RLock()
+	fn := s.observer
+	s.obsMu.RUnlock()
+	if fn != nil {
+		fn(ev)
+	}
 }

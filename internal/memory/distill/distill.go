@@ -20,12 +20,12 @@ import (
 // to be handed to an LLM-based extractor. Text is plain conversational
 // text with tool_use breadcrumbs; tool_result bodies are never included.
 type RawEpisode struct {
-	ID         string // sha256 hex of SourceRef
-	Source     string // "claude-session" etc.
-	SourceRef  string // "<path>#<startByte>-<endByte>"
-	Text       string // distilled, redacted conversational text
-	OccurredAt time.Time
-	Cwd        string // session working directory, "" if unknown
+	ID         string    `json:"id"`            // sha256 hex of SourceRef
+	Source     string    `json:"source"`        // "claude-session" etc.
+	SourceRef  string    `json:"source_ref"`    // "<path>#<startByte>-<endByte>"
+	Text       string    `json:"text"`          // distilled, redacted conversational text
+	OccurredAt time.Time `json:"occurred_at"`   //
+	Cwd        string    `json:"cwd,omitempty"` // session working directory, "" if unknown
 }
 
 // maxEpisodeChars bounds the size of a single episode's Text (~4k tokens).

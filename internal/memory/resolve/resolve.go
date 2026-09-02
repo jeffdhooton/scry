@@ -49,6 +49,10 @@ type Stats struct {
 	FactsAdded       int
 	FactsInvalidated int
 	FactsMerged      int
+	// FactsRejected counts facts dropped because both endpoints were
+	// values (a number related to a status word says nothing about any
+	// entity).
+	FactsRejected int
 }
 
 // Apply resolves res into st's entities and facts, attributing everything to
@@ -95,8 +99,9 @@ func Apply(st *store.Store, ep store.Episode, cwd string, res extract.Result, ex
 // resolveEntity implements Rule 2 for a single extracted entity.
 func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, stats *Stats) error {
 	// A run artifact is not an identity. Storing one pollutes recall forever
-	// and can never be usefully recalled later.
-	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) {
+	// and can never be usefully recalled later. Neither is a value: "main",
+	// "in-progress", and "46 GiB" describe things, they are not things.
+	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || IsValueName(ent.Name) {
 		return nil
 	}
 	slug, found, err := st.ResolveAlias(ent.Name)
@@ -107,6 +112,16 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	// runaway-merge path. Give it its own slug and let it stand alone.
 	if found && isGenericAlias(ent.Name) {
 		found = false
+	}
+	// A name that reaches an entity only through an alias, and names a
+	// different kind of thing, is a different thing. "Mac mini" (machine)
+	// must not merge into hermes-ops (project) because the project once
+	// collected "mini" as an alias.
+	if found && slug != store.Slugify(ent.Name) {
+		owner, gerr := st.GetEntity(slug)
+		if gerr == nil && !TypesCompatible(owner.Type, ent.Type) {
+			found = false
+		}
 	}
 	if !found {
 		slug = store.Slugify(ent.Name)
@@ -127,10 +142,14 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 			Name:        ent.Name,
 			Type:        ent.Type,
 			Description: ent.Description,
-			Aliases:     keepDurable(ent.Aliases),
 			CreatedAt:   ep.OccurredAt,
 			LastSeen:    ep.OccurredAt,
 		}
+		aliases, err := admitAliases(st, e, keepDurable(ent.Aliases), ep.ID)
+		if err != nil {
+			return err
+		}
+		e.Aliases = aliases
 		if isWorkspacePath(cwd) {
 			e.RepoRefs = []string{cwd}
 		}
@@ -142,7 +161,18 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	}
 
 	// Merge onto the existing entity.
-	existing.Aliases = unionStrings(existing.Aliases, keepDurable(ent.Aliases))
+	admitted, err := admitAliases(st, existing, keepDurable(ent.Aliases), ep.ID)
+	if err != nil {
+		return err
+	}
+	existing.Aliases = unionStrings(existing.Aliases, admitted)
+	// A stub created from a fact endpoint is typed "concept" because nothing
+	// knew better. The first mention that does know upgrades it.
+	if existing.Type == "" || existing.Type == "concept" {
+		if ent.Type != "" && ent.Type != "concept" {
+			existing.Type = ent.Type
+		}
+	}
 	// Fill the description, never replace it. Last-writer-wins let a
 	// throwaway session in a scratch directory overwrite a real project's
 	// description with an observation about the scratch directory. An
@@ -170,9 +200,19 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 // resolution, carried between resolveFacts' phases.
 type resolvedFact struct {
 	fct       extract.Fct
-	src, dst  string
+	src, dst  string // dst is "" for an attribute fact
+	value     string // set for an attribute fact
+	rawRel    string // the model's relation when it differs from fct.Relation
 	validFrom time.Time
 	merged    bool
+}
+
+// keyDst is the store key slot for the fact's target.
+func (rf resolvedFact) keyDst() string {
+	if rf.dst != "" {
+		return rf.dst
+	}
+	return store.AttrDst(rf.value)
 }
 
 // resolveFacts implements Rules 3-6 for a whole episode's facts, in two
@@ -203,26 +243,59 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 	// is created for their src/dst, so a garbage relation costs nothing.
 	resolved := make([]resolvedFact, 0, len(facts))
 	for _, fct := range facts {
-		relation := normalizeRelation(fct.Relation)
-		if relation == "" {
+		raw := normalizeRelation(fct.Relation)
+		if raw == "" {
 			continue
 		}
+		// The vocabulary is closed: the model's verb is mapped onto one of
+		// the canonical relations, swapping endpoints when the raw form was
+		// the inverse ("used_by" is "uses" the other way round).
+		relation, flip := Map(raw)
+		if flip {
+			fct.Src, fct.Dst = fct.Dst, fct.Src
+		}
 		fct.Relation = relation
+		rawRel := ""
+		if raw != relation {
+			rawRel = raw
+		}
 
+		// Values are never nodes. A fact whose target is a value becomes an
+		// attribute of its source; a fact whose source is a value and whose
+		// target is an entity is turned around; a fact between two values
+		// is about nothing and is dropped.
+		srcIsValue := IsValueName(fct.Src)
+		dstIsValue := relation == RelStatus || IsValueName(fct.Dst)
+		switch {
+		case srcIsValue && dstIsValue:
+			stats.FactsRejected++
+			continue
+		case srcIsValue:
+			fct.Src, fct.Dst = fct.Dst, fct.Src
+			dstIsValue = true
+		}
+
+		// Both endpoints are resolved (stubs created) before either can
+		// veto the fact: an unresolvable src must not stop a valid dst from
+		// existing.
 		srcSlug, err := ensureEntitySlug(st, ep, fct.Src, stats)
 		if err != nil {
 			return err
 		}
-		dstSlug, err := ensureEntitySlug(st, ep, fct.Dst, stats)
-		if err != nil {
-			return err
+		rf := resolvedFact{fct: fct, src: srcSlug, rawRel: rawRel, validFrom: parseValidFrom(fct.ValidFrom, ep.OccurredAt)}
+		if dstIsValue {
+			rf.value = strings.TrimSpace(fct.Dst)
+		} else {
+			dstSlug, err := ensureEntitySlug(st, ep, fct.Dst, stats)
+			if err != nil {
+				return err
+			}
+			rf.dst = dstSlug
 		}
-		resolved = append(resolved, resolvedFact{
-			fct:       fct,
-			src:       srcSlug,
-			dst:       dstSlug,
-			validFrom: parseValidFrom(fct.ValidFrom, ep.OccurredAt),
-		})
+		if rf.src == "" || (rf.dst == "" && rf.value == "") {
+			continue
+		}
+		resolved = append(resolved, rf)
 	}
 
 	// Phase A — Rule 4: merge onto any pre-existing current fact with the
@@ -230,10 +303,7 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 	// invalidations run.
 	for i := range resolved {
 		rf := &resolved[i]
-		if rf.src == "" || rf.dst == "" {
-			continue
-		}
-		current, err := currentFact(st, rf.src, rf.fct.Relation, rf.dst)
+		current, err := currentFact(st, rf.src, rf.fct.Relation, rf.keyDst())
 		if err != nil {
 			return err
 		}
@@ -263,24 +333,18 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 			continue
 		}
 
-		// Rule 6 (exclusive invalidation + add) only applies to facts not
-		// already merged in Phase A.
-		if rf.src == "" || rf.dst == "" {
-			continue
-		}
-
 		// Rule 6: exclusive relations invalidate any current fact with the
-		// same (src, relation) but a different dst before the new one is
-		// added.
+		// same (src, relation) but a different target — entity or value —
+		// before the new one is added.
 		if exclusive[rf.fct.Relation] {
 			currents, err := st.FactsFrom(rf.src, false)
 			if err != nil {
 				return err
 			}
 			for _, f := range currents {
-				if f.Relation == rf.fct.Relation && f.Dst != rf.dst {
+				if f.Relation == rf.fct.Relation && f.KeyDst() != rf.keyDst() {
 					at := clampInvalidAt(ep.OccurredAt, f.ValidFrom)
-					if err := st.InvalidateFact(f.Src, f.Relation, f.Dst, f.ValidFrom, at); err != nil {
+					if err := st.InvalidateFact(f.Src, f.Relation, f.KeyDst(), f.ValidFrom, at); err != nil {
 						return err
 					}
 					stats.FactsInvalidated++
@@ -289,13 +353,15 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		}
 
 		newFact := store.Fact{
-			Src:        rf.src,
-			Relation:   rf.fct.Relation,
-			Dst:        rf.dst,
-			Fact:       rf.fct.Fact,
-			ValidFrom:  rf.validFrom,
-			Confidence: rf.fct.Confidence,
-			Episodes:   []string{ep.ID},
+			Src:         rf.src,
+			Relation:    rf.fct.Relation,
+			Dst:         rf.dst,
+			Value:       rf.value,
+			RawRelation: rf.rawRel,
+			Fact:        rf.fct.Fact,
+			ValidFrom:   rf.validFrom,
+			Confidence:  rf.fct.Confidence,
+			Episodes:    []string{ep.ID},
 		}
 		if err := st.PutFact(newFact); err != nil {
 			return err
@@ -329,7 +395,7 @@ func mergeFact(st *store.Store, ep store.Episode, current store.Fact, incomingVa
 	if incomingValidFrom.Before(current.ValidFrom) {
 		oldValidFrom := current.ValidFrom
 		current.ValidFrom = incomingValidFrom
-		if err := st.DeleteFact(current.Src, current.Relation, current.Dst, oldValidFrom); err != nil {
+		if err := st.DeleteFact(current.Src, current.Relation, current.KeyDst(), oldValidFrom); err != nil {
 			return err
 		}
 	}
@@ -352,24 +418,41 @@ func mergeFact(st *store.Store, ep store.Episode, current store.Fact, incomingVa
 // relation normalizes to empty is skipped outright, same as a fact whose
 // own relation does.
 func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stats *Stats) error {
-	relation := normalizeRelation(ref.Relation)
-	if relation == "" {
+	raw := normalizeRelation(ref.Relation)
+	if raw == "" {
 		return nil
 	}
+	relation, flip := Map(raw)
+	src, dst := ref.Src, ref.Dst
+	if flip {
+		src, dst = dst, src
+	}
+	if IsValueName(src) && !IsValueName(dst) && relation != RelStatus {
+		src, dst = dst, src
+	}
 
-	srcSlug, err := resolveSlugOnly(st, ref.Src)
+	srcSlug, err := resolveSlugOnly(st, src)
 	if err != nil {
 		return err
 	}
-	dstSlug, err := resolveSlugOnly(st, ref.Dst)
-	if err != nil {
-		return err
-	}
-	if srcSlug == "" || dstSlug == "" {
+	if srcSlug == "" {
 		return nil
 	}
+	var keyDst string
+	if relation == RelStatus || IsValueName(dst) {
+		keyDst = store.AttrDst(dst)
+	} else {
+		dstSlug, err := resolveSlugOnly(st, dst)
+		if err != nil {
+			return err
+		}
+		if dstSlug == "" {
+			return nil
+		}
+		keyDst = dstSlug
+	}
 
-	current, err := currentFact(st, srcSlug, relation, dstSlug)
+	current, err := currentFact(st, srcSlug, relation, keyDst)
 	if err != nil {
 		return err
 	}
@@ -377,7 +460,7 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stat
 		return nil
 	}
 	at := clampInvalidAt(ep.OccurredAt, current.ValidFrom)
-	if err := st.InvalidateFact(srcSlug, relation, dstSlug, current.ValidFrom, at); err != nil {
+	if err := st.InvalidateFact(srcSlug, relation, keyDst, current.ValidFrom, at); err != nil {
 		return err
 	}
 	stats.FactsInvalidated++
@@ -433,14 +516,15 @@ func resolveSlugOnly(st *store.Store, name string) (string, error) {
 }
 
 // currentFact returns the current (non-invalidated) fact with the given
-// (src, relation, dst) triple, or nil if none exists.
-func currentFact(st *store.Store, src, relation, dst string) (*store.Fact, error) {
+// (src, relation, key dst) triple, or nil if none exists. keyDst is an
+// entity slug or store.AttrDst(value).
+func currentFact(st *store.Store, src, relation, keyDst string) (*store.Fact, error) {
 	facts, err := st.FactsFrom(src, false)
 	if err != nil {
 		return nil, err
 	}
 	for i := range facts {
-		if facts[i].Relation == relation && facts[i].Dst == dst {
+		if facts[i].Relation == relation && facts[i].KeyDst() == keyDst {
 			return &facts[i], nil
 		}
 	}
@@ -656,7 +740,7 @@ func isGenericAlias(name string) bool {
 func keepDurable(names []string) []string {
 	out := make([]string, 0, len(names))
 	for _, n := range names {
-		if isEphemeralName(n) || isGenericAlias(n) {
+		if isEphemeralName(n) || isGenericAlias(n) || IsValueName(n) {
 			continue
 		}
 		out = append(out, n)

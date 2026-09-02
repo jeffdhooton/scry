@@ -9,103 +9,66 @@ import (
 	"testing"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
-	"github.com/jeffdhooton/scry/internal/memory/extract"
-	"github.com/jeffdhooton/scry/internal/memory/resolve"
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
-const (
-	claudeFixture = "../distill/testdata/claude_session.jsonl"
-	loomFixture   = "../distill/testdata/loom_run"
-	seedFixture   = "../distill/testdata/seed_memory.md"
+var (
+	claudeFixture = filepath.Join("..", "distill", "testdata", "claude_session.jsonl")
+	loomFixture   = filepath.Join("..", "distill", "testdata", "loom_run")
+	seedFixture   = filepath.Join("..", "distill", "testdata", "seed_memory.md")
 )
 
-// fakeExtractor is a minimal in-memory Extractor for these tests, following
-// the pattern in internal/memory/extract's own tests. errForID lets a
-// specific episode fail extraction (with an extract.ErrParse-wrapping error,
-// the one classification File must skip-and-continue past) without failing
-// every episode. errAtCall/errAtCallErr lets the Nth call (1-indexed,
-// regardless of episode ID) fail with an arbitrary error, for exercising
-// non-parse (e.g. context) failures mid-file.
-type fakeExtractor struct {
-	err      error
-	errForID map[string]bool
-
-	errAtCall    int // 1-indexed call number; 0 = never
-	errAtCallErr error
-
-	calls []distill.RawEpisode
-}
-
-func (f *fakeExtractor) Extract(ctx context.Context, ep distill.RawEpisode, glossary []string) (extract.Result, error) {
-	f.calls = append(f.calls, ep)
-	callNum := len(f.calls)
-	if f.errAtCall != 0 && callNum == f.errAtCall {
-		return extract.Result{}, f.errAtCallErr
-	}
-	if f.err != nil {
-		return extract.Result{}, f.err
-	}
-	if f.errForID != nil && f.errForID[ep.ID] {
-		return extract.Result{}, fmt.Errorf("fake parse error: %w", extract.ErrParse)
-	}
-	return extract.Result{EpisodeSummary: "summary for " + ep.ID}, nil
-}
-
-// commitCall records one call to fakeDaemon.Commit.
-type commitCall struct {
-	ep  store.Episode
-	cwd string
-	res extract.Result
-}
-
-// fakeDaemon implements ingest.Daemon, recording every call so tests can
-// assert on call counts and arguments.
+// fakeDaemon implements Daemon, recording every enqueued episode and every
+// cursor write. known marks episode IDs the daemon reports as already
+// known; failCall makes the Nth Enqueue call (1-indexed) fail.
 type fakeDaemon struct {
-	glossary      []string
-	glossaryCalls int
-
-	commits    []commitCall
-	commitErr  error // if set, every Commit call after commitErrAfter fails
-	failCommit int   // 1-indexed: Commit call number that should fail; 0 = never
-
-	cursors map[string]store.Cursor
+	enqueued  []distill.RawEpisode
+	batches   []int
+	known     map[string]bool
+	failCall  int
+	failErr   error
+	cursors   map[string]store.Cursor
+	cursorErr error
 }
 
 func newFakeDaemon() *fakeDaemon {
-	return &fakeDaemon{cursors: map[string]store.Cursor{}}
+	return &fakeDaemon{cursors: map[string]store.Cursor{}, known: map[string]bool{}}
 }
 
-func (d *fakeDaemon) Glossary(ctx context.Context, limit int) ([]string, error) {
-	d.glossaryCalls++
-	if limit != 200 {
-		return nil, errors.New("unexpected glossary limit")
+func (d *fakeDaemon) Enqueue(_ context.Context, eps []distill.RawEpisode) (int, int, error) {
+	d.batches = append(d.batches, len(eps))
+	if d.failCall != 0 && len(d.batches) == d.failCall {
+		return 0, 0, d.failErr
 	}
-	return d.glossary, nil
-}
-
-func (d *fakeDaemon) Commit(ctx context.Context, ep store.Episode, cwd string, res extract.Result) (resolve.Stats, error) {
-	callNum := len(d.commits) + 1
-	if d.failCommit != 0 && callNum == d.failCommit {
-		return resolve.Stats{}, d.commitErr
+	var queued, known int
+	for _, ep := range eps {
+		if d.known[ep.ID] {
+			known++
+			continue
+		}
+		d.known[ep.ID] = true
+		d.enqueued = append(d.enqueued, ep)
+		queued++
 	}
-	d.commits = append(d.commits, commitCall{ep: ep, cwd: cwd, res: res})
-	return resolve.Stats{FactsAdded: 1}, nil
+	return queued, known, nil
 }
 
-func (d *fakeDaemon) GetCursor(ctx context.Context, path string) (store.Cursor, bool, error) {
+func (d *fakeDaemon) GetCursor(_ context.Context, path string) (store.Cursor, bool, error) {
+	if d.cursorErr != nil {
+		return store.Cursor{}, false, d.cursorErr
+	}
 	c, ok := d.cursors[path]
 	return c, ok, nil
 }
 
-func (d *fakeDaemon) PutCursor(ctx context.Context, c store.Cursor) error {
+func (d *fakeDaemon) PutCursor(_ context.Context, c store.Cursor) error {
 	d.cursors[c.Path] = c
 	return nil
 }
 
 var _ Daemon = (*fakeDaemon)(nil)
 
-func TestFile_ClaudeSource(t *testing.T) {
+func TestFile_ClaudeSourceEnqueuesAndAdvancesCursor(t *testing.T) {
 	wantEpisodes, wantOffset, err := distill.ClaudeSession(claudeFixture, 0)
 	if err != nil {
 		t.Fatalf("distill.ClaudeSession: %v", err)
@@ -113,292 +76,128 @@ func TestFile_ClaudeSource(t *testing.T) {
 	if len(wantEpisodes) == 0 {
 		t.Fatal("fixture produced 0 episodes; test needs at least 1")
 	}
-
-	info, err := os.Stat(claudeFixture)
-	if err != nil {
-		t.Fatalf("stat fixture: %v", err)
-	}
+	info, _ := os.Stat(claudeFixture)
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
-
-	sum, err := File(context.Background(), Options{
-		Source:    "claude",
-		Path:      claudeFixture,
-		Extractor: extractor,
-		Daemon:    daemon,
-	})
+	sum, err := File(context.Background(), Options{Source: "claude", Path: claudeFixture, Daemon: daemon})
 	if err != nil {
 		t.Fatalf("File() error = %v", err)
 	}
-
-	if daemon.glossaryCalls != 1 {
-		t.Errorf("glossaryCalls = %d, want 1", daemon.glossaryCalls)
+	if sum.EpisodesIngested != len(wantEpisodes) || sum.EpisodesSkipped != 0 {
+		t.Errorf("summary = %+v, want %d ingested, 0 skipped", sum, len(wantEpisodes))
 	}
-	if len(daemon.commits) != len(wantEpisodes) {
-		t.Errorf("commits = %d, want %d (one per episode)", len(daemon.commits), len(wantEpisodes))
-	}
-	if sum.EpisodesIngested != len(wantEpisodes) {
-		t.Errorf("EpisodesIngested = %d, want %d", sum.EpisodesIngested, len(wantEpisodes))
-	}
-	if sum.EpisodesSkipped != 0 {
-		t.Errorf("EpisodesSkipped = %d, want 0", sum.EpisodesSkipped)
-	}
-
-	// Each commit's episode must carry the extraction's summary and the
-	// distilled episode's identity fields; cwd is passed separately.
-	for i, c := range daemon.commits {
+	for i, got := range daemon.enqueued {
 		want := wantEpisodes[i]
-		if c.ep.ID != want.ID {
-			t.Errorf("commit %d ID = %q, want %q", i, c.ep.ID, want.ID)
-		}
-		if c.ep.Source != want.Source {
-			t.Errorf("commit %d Source = %q, want %q", i, c.ep.Source, want.Source)
-		}
-		if c.ep.SourceRef != want.SourceRef {
-			t.Errorf("commit %d SourceRef = %q, want %q", i, c.ep.SourceRef, want.SourceRef)
-		}
-		if c.ep.Summary != "summary for "+want.ID {
-			t.Errorf("commit %d Summary = %q, want extractor's episode_summary", i, c.ep.Summary)
-		}
-		if c.ep.IngestedAt.IsZero() {
-			t.Errorf("commit %d IngestedAt not set", i)
-		}
-		if c.cwd != want.Cwd {
-			t.Errorf("commit %d cwd = %q, want %q", i, c.cwd, want.Cwd)
+		if got.ID != want.ID || got.Source != want.Source || got.SourceRef != want.SourceRef || got.Cwd != want.Cwd || got.Text == "" {
+			t.Errorf("enqueued %d = %+v, want %+v", i, got, want)
 		}
 	}
-
-	// Cursor advanced to file size (byte offset resume).
 	cursor, found := daemon.cursors[claudeFixture]
 	if !found {
 		t.Fatal("cursor not stored")
 	}
-	if cursor.ProcessedBytes != wantOffset {
-		t.Errorf("cursor.ProcessedBytes = %d, want %d", cursor.ProcessedBytes, wantOffset)
-	}
-	if cursor.Size != info.Size() {
-		t.Errorf("cursor.Size = %d, want %d", cursor.Size, info.Size())
-	}
-	if cursor.Path != claudeFixture {
-		t.Errorf("cursor.Path = %q, want %q", cursor.Path, claudeFixture)
+	if cursor.ProcessedBytes != wantOffset || cursor.Size != info.Size() || cursor.Path != claudeFixture {
+		t.Errorf("cursor = %+v, want offset %d size %d", cursor, wantOffset, info.Size())
 	}
 
-	// Second run: cursor already at EOF, so distillation should find
-	// nothing new to ingest.
-	sum2, err := File(context.Background(), Options{
-		Source:    "claude",
-		Path:      claudeFixture,
-		Extractor: extractor,
-		Daemon:    daemon,
-	})
+	// Second run: cursor at EOF, nothing to enqueue.
+	sum2, err := File(context.Background(), Options{Source: "claude", Path: claudeFixture, Daemon: daemon})
 	if err != nil {
 		t.Fatalf("second File() error = %v", err)
 	}
-	if sum2.EpisodesIngested != 0 {
-		t.Errorf("second run EpisodesIngested = %d, want 0", sum2.EpisodesIngested)
-	}
-	if len(daemon.commits) != len(wantEpisodes) {
-		t.Errorf("second run added commits: total = %d, want unchanged %d", len(daemon.commits), len(wantEpisodes))
-	}
-	if daemon.glossaryCalls != 2 {
-		t.Errorf("glossaryCalls after second run = %d, want 2 (once per File call)", daemon.glossaryCalls)
+	if sum2.EpisodesIngested != 0 || len(daemon.enqueued) != len(wantEpisodes) {
+		t.Errorf("second run ingested %d, total enqueued %d", sum2.EpisodesIngested, len(daemon.enqueued))
 	}
 }
 
-func TestFile_LoomSource(t *testing.T) {
-	info, err := os.Stat(loomFixture)
-	if err != nil {
-		t.Fatalf("stat fixture dir: %v", err)
+func TestFile_LoomAndSeedRecordModTimeCursors(t *testing.T) {
+	for _, tc := range []struct{ source, path string }{{"loom", loomFixture}, {"seed", seedFixture}} {
+		info, err := os.Stat(tc.path)
+		if err != nil {
+			t.Fatalf("stat %s: %v", tc.path, err)
+		}
+		daemon := newFakeDaemon()
+		sum, err := File(context.Background(), Options{Source: tc.source, Path: tc.path, Daemon: daemon})
+		if err != nil {
+			t.Fatalf("%s: File() error = %v", tc.source, err)
+		}
+		if sum.EpisodesIngested != 1 || len(daemon.enqueued) != 1 {
+			t.Errorf("%s: ingested %d, enqueued %d; want 1 and 1", tc.source, sum.EpisodesIngested, len(daemon.enqueued))
+		}
+		cursor, found := daemon.cursors[tc.path]
+		if !found || cursor.ProcessedBytes != 0 || !cursor.ModTime.Equal(info.ModTime()) {
+			t.Errorf("%s: cursor = %+v found=%v, want mtime %v", tc.source, cursor, found, info.ModTime())
+		}
 	}
+}
 
+func TestFile_KnownEpisodesCountAsSkippedAndCursorStillAdvances(t *testing.T) {
+	wantEpisodes, _, _ := distill.ClaudeSession(claudeFixture, 0)
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
+	daemon.known[wantEpisodes[0].ID] = true
 
-	sum, err := File(context.Background(), Options{
-		Source:    "loom",
-		Path:      loomFixture,
-		Extractor: extractor,
-		Daemon:    daemon,
-	})
+	sum, err := File(context.Background(), Options{Source: "claude", Path: claudeFixture, Daemon: daemon})
 	if err != nil {
 		t.Fatalf("File() error = %v", err)
 	}
-
-	if daemon.glossaryCalls != 1 {
-		t.Errorf("glossaryCalls = %d, want 1", daemon.glossaryCalls)
+	if sum.EpisodesSkipped != 1 || sum.EpisodesIngested != len(wantEpisodes)-1 {
+		t.Errorf("summary = %+v", sum)
 	}
-	if len(daemon.commits) != 1 {
-		t.Fatalf("commits = %d, want 1 (loom run is always exactly one episode)", len(daemon.commits))
-	}
-	if sum.EpisodesIngested != 1 {
-		t.Errorf("EpisodesIngested = %d, want 1", sum.EpisodesIngested)
-	}
-
-	cursor, found := daemon.cursors[loomFixture]
-	if !found {
-		t.Fatal("cursor not stored")
-	}
-	if cursor.ProcessedBytes != 0 {
-		t.Errorf("cursor.ProcessedBytes = %d, want 0", cursor.ProcessedBytes)
-	}
-	if !cursor.ModTime.Equal(info.ModTime()) {
-		t.Errorf("cursor.ModTime = %v, want dir mtime %v", cursor.ModTime, info.ModTime())
+	if c, found := daemon.cursors[claudeFixture]; !found || c.ProcessedBytes == 0 {
+		t.Error("cursor must advance when the daemon already knew an episode")
 	}
 }
 
-func TestFile_SeedSource(t *testing.T) {
-	info, err := os.Stat(seedFixture)
-	if err != nil {
-		t.Fatalf("stat fixture: %v", err)
-	}
-
+func TestFile_EnqueueErrorAbortsWithoutAdvancingCursor(t *testing.T) {
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
+	daemon.failCall = 1
+	daemon.failErr = errors.New("dial unix: connection refused")
 
-	sum, err := File(context.Background(), Options{
-		Source:    "seed",
-		Path:      seedFixture,
-		Extractor: extractor,
-		Daemon:    daemon,
-	})
-	if err != nil {
-		t.Fatalf("File() error = %v", err)
-	}
-	if len(daemon.commits) != 1 {
-		t.Fatalf("commits = %d, want 1 (seed file is always exactly one episode)", len(daemon.commits))
-	}
-	if sum.EpisodesIngested != 1 {
-		t.Errorf("EpisodesIngested = %d, want 1", sum.EpisodesIngested)
-	}
-
-	cursor, found := daemon.cursors[seedFixture]
-	if !found {
-		t.Fatal("cursor not stored")
-	}
-	if cursor.ProcessedBytes != 0 {
-		t.Errorf("cursor.ProcessedBytes = %d, want 0", cursor.ProcessedBytes)
-	}
-	if !cursor.ModTime.Equal(info.ModTime()) {
-		t.Errorf("cursor.ModTime = %v, want file mtime %v", cursor.ModTime, info.ModTime())
-	}
-}
-
-// TestFile_ExtractionErrorSkipsEpisodeButContinues covers the one
-// skip-and-continue classification: a content-level parse failure
-// (extract.ErrParse) on a single episode. Everything else must abort (see
-// TestIngestOffset_NonParseExtractionErrorAbortsWithoutAdvancingCursor).
-func TestFile_ExtractionErrorSkipsEpisodeButContinues(t *testing.T) {
-	wantEpisodes, _, err := distill.ClaudeSession(claudeFixture, 0)
-	if err != nil {
-		t.Fatalf("distill.ClaudeSession: %v", err)
-	}
-	if len(wantEpisodes) == 0 {
-		t.Fatal("fixture produced 0 episodes; test needs at least 1")
-	}
-
-	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{errForID: map[string]bool{wantEpisodes[0].ID: true}}
-
-	sum, err := File(context.Background(), Options{
-		Source:    "claude",
-		Path:      claudeFixture,
-		Extractor: extractor,
-		Daemon:    daemon,
-	})
-	if err != nil {
-		t.Fatalf("File() error = %v, want nil (extraction errors are skipped, not fatal)", err)
-	}
-	if sum.EpisodesSkipped != 1 {
-		t.Errorf("EpisodesSkipped = %d, want 1", sum.EpisodesSkipped)
-	}
-	if sum.EpisodesIngested != len(wantEpisodes)-1 {
-		t.Errorf("EpisodesIngested = %d, want %d", sum.EpisodesIngested, len(wantEpisodes)-1)
-	}
-	// Cursor should still advance: the file was fully consumed, only one
-	// episode's extraction failed.
-	cursor, found := daemon.cursors[claudeFixture]
-	if !found {
-		t.Fatal("cursor not stored")
-	}
-	if cursor.ProcessedBytes == 0 {
-		t.Errorf("cursor.ProcessedBytes = 0, want file consumed despite the skipped episode")
-	}
-}
-
-func TestFile_CommitErrorAbortsWithoutAdvancingCursor(t *testing.T) {
-	wantEpisodes, _, err := distill.ClaudeSession(claudeFixture, 0)
-	if err != nil {
-		t.Fatalf("distill.ClaudeSession: %v", err)
-	}
-	if len(wantEpisodes) == 0 {
-		t.Fatal("fixture produced 0 episodes; test needs at least 1")
-	}
-
-	daemon := newFakeDaemon()
-	daemon.failCommit = 1
-	daemon.commitErr = errors.New("boom")
-	extractor := &fakeExtractor{}
-
-	_, err = File(context.Background(), Options{
-		Source:    "claude",
-		Path:      claudeFixture,
-		Extractor: extractor,
-		Daemon:    daemon,
-	})
-	if err == nil {
-		t.Fatal("File() error = nil, want error from failed commit")
+	_, err := File(context.Background(), Options{Source: "claude", Path: claudeFixture, Daemon: daemon})
+	if err == nil || !errors.Is(err, daemon.failErr) {
+		t.Fatalf("File() error = %v, want the enqueue failure", err)
 	}
 	if _, found := daemon.cursors[claudeFixture]; found {
-		t.Error("cursor was stored despite a commit error; must not advance on failure")
+		t.Error("cursor was stored despite an enqueue error; must not advance on failure")
 	}
 }
 
-// TestIngestOffset_NonParseExtractionErrorAbortsWithoutAdvancingCursor covers
-// F1: a transient/non-content extraction failure (context.DeadlineExceeded
-// here, standing in for any transport-ish failure) on episode 2 of 3 must
-// abort the whole call — mirroring the commit-error abort path — instead of
-// being counted as skippable, which would advance the cursor past the two
-// unprocessed episodes and permanently hide them from future sweeps.
-func TestIngestOffset_NonParseExtractionErrorAbortsWithoutAdvancingCursor(t *testing.T) {
-	episodes := []distill.RawEpisode{
-		{ID: "ep-1", Text: "one"},
-		{ID: "ep-2", Text: "two"},
-		{ID: "ep-3", Text: "three"},
+func TestEnqueue_BatchesAndStopsAtFirstFailure(t *testing.T) {
+	episodes := make([]distill.RawEpisode, 0, 120)
+	for i := range 120 {
+		episodes = append(episodes, distill.RawEpisode{ID: fmt.Sprintf("ep-%03d", i), Text: "x"})
 	}
-	distillFn := func(path string, offset int64) ([]distill.RawEpisode, int64, error) {
-		return episodes, 999, nil
-	}
-
-	tmp := filepath.Join(t.TempDir(), "fake.jsonl")
-	if err := os.WriteFile(tmp, []byte("x"), 0o644); err != nil {
-		t.Fatalf("write fixture: %v", err)
-	}
-
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{errAtCall: 2, errAtCallErr: context.DeadlineExceeded}
+	sum, err := Enqueue(context.Background(), daemon, episodes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum.EpisodesIngested != 120 || len(daemon.batches) != 3 || daemon.batches[0] != EnqueueBatch || daemon.batches[2] != 20 {
+		t.Errorf("sum = %+v batches = %v", sum, daemon.batches)
+	}
 
-	sum, err := ingestOffset(context.Background(), Options{
-		Path:      tmp,
-		Extractor: extractor,
-		Daemon:    daemon,
-	}, distillFn)
-	if err == nil {
-		t.Fatal("ingestOffset() error = nil, want error from the non-parse extraction failure on episode 2")
-	}
+	failing := newFakeDaemon()
+	failing.failCall = 2
+	failing.failErr = context.DeadlineExceeded
+	sum, err = Enqueue(context.Background(), failing, episodes)
 	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Errorf("ingestOffset() error = %v, want it to wrap context.DeadlineExceeded", err)
+		t.Fatalf("err = %v, want deadline exceeded", err)
 	}
-	if _, found := daemon.cursors[tmp]; found {
-		t.Error("cursor was stored despite the abort; must not advance past unprocessed episodes")
+	if sum.EpisodesIngested != EnqueueBatch || len(failing.batches) != 2 {
+		t.Errorf("after failure: sum = %+v batches = %v (must stop at the failed batch)", sum, failing.batches)
 	}
-	if len(daemon.commits) != 1 {
-		t.Errorf("commits = %d, want 1 (only episode 1, committed before the abort)", len(daemon.commits))
+}
+
+func TestFile_UnknownSource(t *testing.T) {
+	if _, err := File(context.Background(), Options{Source: "gemini", Path: "x", Daemon: newFakeDaemon()}); err == nil {
+		t.Fatal("unknown source must be rejected")
 	}
-	if sum.EpisodesIngested != 1 {
-		t.Errorf("EpisodesIngested = %d, want 1", sum.EpisodesIngested)
-	}
-	if sum.EpisodesSkipped != 0 {
-		t.Errorf("EpisodesSkipped = %d, want 0 (a non-parse error aborts, it doesn't skip)", sum.EpisodesSkipped)
+}
+
+func TestFile_CursorErrorIsReported(t *testing.T) {
+	daemon := newFakeDaemon()
+	daemon.cursorErr = errors.New("i/o timeout")
+	if _, err := File(context.Background(), Options{Source: "claude", Path: claudeFixture, Daemon: daemon}); err == nil {
+		t.Fatal("cursor lookup failure must surface")
 	}
 }

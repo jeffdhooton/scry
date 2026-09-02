@@ -18,6 +18,8 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 	"github.com/jeffdhooton/scry/internal/memory/extract"
 	"github.com/jeffdhooton/scry/internal/memory/ingest"
+	"github.com/jeffdhooton/scry/internal/memory/migrate"
+	"github.com/jeffdhooton/scry/internal/memory/recall"
 	"github.com/jeffdhooton/scry/internal/memory/resolve"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/memory/sweep"
@@ -79,7 +81,264 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd())
+	return cmd
+}
+
+// --- migrate ---
+
+func memoryMigrateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "migrate",
+		Short: "Apply the current resolver rules to the whole store (closed vocabulary, values as attributes, alias hygiene)",
+		Long: `Rewrites every fact's relation onto the closed vocabulary, turns facts
+whose endpoint is a value (a status word, a measurement, a branch name)
+into attributes and retires those entities, and runs alias hygiene:
+reference words dropped, aliases split away from entities of another
+type, facts reattached to the entity their text names, self-loops
+invalidated.
+
+Defaults to a dry run that prints the report. --apply takes a Badger
+backup first (into ~/.scry/backups via the daemon, or into <dir>/../backups
+with --dir) and then writes. Runs inside the daemon that owns the store;
+--dir runs offline against a store directory instead (the daemon must not
+hold it).`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apply, _ := cmd.Flags().GetBool("apply")
+			dir, _ := cmd.Flags().GetString("dir")
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			if dir != "" {
+				st, err := memstore.Open(dir)
+				if err != nil {
+					return fmt.Errorf("open %s (is a daemon holding it?): %w", dir, err)
+				}
+				defer st.Close()
+				rep, err := migrate.Run(st, migrate.Options{
+					DryRun: !apply,
+					Backup: func() (string, error) {
+						path := filepath.Join(filepath.Dir(dir), "backups", "memory-pre-migrate-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
+						if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+							return "", err
+						}
+						f, err := os.Create(path)
+						if err != nil {
+							return "", err
+						}
+						if _, err := st.Backup(f); err != nil {
+							f.Close()
+							return "", err
+						}
+						return path, f.Close()
+					},
+					Logf: func(format string, a ...any) { fmt.Fprintf(os.Stderr, format+"\n", a...) },
+				})
+				if err != nil {
+					return err
+				}
+				return printJSON(rep, pretty)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
+			defer cancel()
+			var rep migrate.Report
+			if err := callMemoryDaemon(ctx, "memory.migrate", &daemon.MemoryMigrateParams{DryRun: !apply}, &rep); err != nil {
+				return err
+			}
+			return printJSON(rep, pretty)
+		},
+	}
+	cmd.Flags().Bool("apply", false, "write the changes after taking a backup (default is a dry run)")
+	cmd.Flags().String("dir", "", "run offline against this store directory instead of the daemon")
+	return cmd
+}
+
+// --- bench ---
+
+func memoryBenchCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bench",
+		Short: "Score recall against a questions file: is the answering fact in the top N?",
+		Long: `Reads a JSON array of {"question", "expect"} items, where expect names the
+answering fact by src/relation/dst/value, a fact_substring, or an episode
+id, runs each question through recall, and reports how many answers landed
+in the top N along with payload sizes. Runs against the daemon by default;
+--dir runs offline against a store directory with a fresh index.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			top, _ := cmd.Flags().GetInt("top")
+			dir, _ := cmd.Flags().GetString("dir")
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			qs, err := recall.LoadQuestions(file)
+			if err != nil {
+				return err
+			}
+			var rec recall.Recaller
+			if dir != "" {
+				st, err := memstore.Open(dir)
+				if err != nil {
+					return fmt.Errorf("open %s: %w", dir, err)
+				}
+				defer st.Close()
+				if rec, err = recall.OfflineRecaller(st); err != nil {
+					return err
+				}
+			} else {
+				rec = func(q string) (recall.Result, error) {
+					ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+					defer cancel()
+					var res recall.Result
+					err := callMemoryDaemon(ctx, "memory.recall", &daemon.MemoryRecallParams{Query: q, Limit: top}, &res)
+					return res, err
+				}
+			}
+			res, err := recall.Bench(qs, rec, top)
+			if err != nil {
+				return err
+			}
+			return printJSON(res, pretty)
+		},
+	}
+	cmd.Flags().String("file", "", "questions JSON file (required)")
+	cmd.Flags().Int("top", recall.DefaultFactLimit, "the answer must be within the first N facts")
+	cmd.Flags().String("dir", "", "run offline against this store directory")
+	_ = cmd.MarkFlagRequired("file")
+	return cmd
+}
+
+// --- backup / restore ---
+
+func memoryBackupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "backup",
+		Short: "Stream the live memory store to a Badger backup file on the daemon's machine",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out, _ := cmd.Flags().GetString("out")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			var result daemon.MemoryBackupResult
+			if err := callMemoryDaemon(ctx, "memory.backup", &daemon.MemoryBackupParams{Path: out}, &result); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
+		},
+	}
+	cmd.Flags().String("out", "", "destination path on the daemon's machine (default ~/.scry/backups/memory-<utc>.badger)")
+	return cmd
+}
+
+func memoryRestoreCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "restore",
+		Short: "Wipe the local memory store and load a backup into it (daemon must be stopped)",
+		Long: `Opens ~/.scry/memory directly, drops everything, and loads the backup file.
+The daemon holds the store's lock while it runs, so stop it first
+(launchctl bootout, or kill the scry start --foreground process) and
+start it again afterwards.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			from, _ := cmd.Flags().GetString("from")
+			dir, _ := cmd.Flags().GetString("dir")
+			if dir == "" {
+				home, err := scryHome()
+				if err != nil {
+					return err
+				}
+				dir = filepath.Join(home, "memory")
+			}
+			f, err := os.Open(from)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			st, err := memstore.Open(dir)
+			if err != nil {
+				return fmt.Errorf("open %s (is the daemon stopped?): %w", dir, err)
+			}
+			defer st.Close()
+
+			// The store about to be wiped is itself backed up first, so a
+			// restore from the wrong file is reversible.
+			home, err := scryHome()
+			if err != nil {
+				return err
+			}
+			pre := filepath.Join(home, "backups", "memory-pre-restore-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
+			if err := os.MkdirAll(filepath.Dir(pre), 0o755); err != nil {
+				return err
+			}
+			pf, err := os.Create(pre)
+			if err != nil {
+				return err
+			}
+			if _, err := st.Backup(pf); err != nil {
+				pf.Close()
+				return fmt.Errorf("backup before restore: %w", err)
+			}
+			if err := pf.Close(); err != nil {
+				return err
+			}
+
+			if err := st.Restore(f); err != nil {
+				return err
+			}
+			episodes, entities, facts, _ := st.Counts()
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(map[string]any{
+				"restored_from": from, "dir": dir, "previous_store_backup": pre,
+				"episodes": episodes, "entities": entities, "facts": facts,
+			}, pretty)
+		},
+	}
+	cmd.Flags().String("from", "", "backup file written by `scry memory backup` (required)")
+	cmd.Flags().String("dir", "", "store directory (default ~/.scry/memory)")
+	_ = cmd.MarkFlagRequired("from")
+	return cmd
+}
+
+// --- queue ---
+
+func memoryQueueCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "queue",
+		Short: "Show episodes waiting for extraction at the daemon",
+		Long: `Every memory write (scry_remember, the sweep, ingest) lands in the daemon's
+queue first and is extracted in the background. This lists what is waiting:
+ready items, items backing off after a transport failure, and parked items
+the models could not parse after three tries.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			var result daemon.MemoryQueueResult
+			if err := callMemoryDaemon(ctx, "memory.queue", nil, &result); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
+		},
+	}
+	cmd.AddCommand(&cobra.Command{
+		Use:   "retry [episode-id]",
+		Short: "Replay a parked or backing-off item now (all of them without an id)",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			var p daemon.MemoryQueueRetryParams
+			if len(args) == 1 {
+				p.ID = args[0]
+			}
+			var result map[string]int
+			if err := callMemoryDaemon(ctx, "memory.queue.retry", &p, &result); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
+		},
+	})
 	return cmd
 }
 
@@ -91,6 +350,20 @@ it.`,
 type daemonClient struct{}
 
 var _ ingest.Daemon = daemonClient{}
+
+func (daemonClient) Enqueue(ctx context.Context, eps []distill.RawEpisode) (int, int, error) {
+	var result daemon.MemoryEnqueueResult
+	err := callMemoryDaemon(ctx, "memory.enqueue", &daemon.MemoryEnqueueParams{Episodes: eps}, &result)
+	return result.Queued, result.Known, err
+}
+
+func (daemonClient) SweepReport(ctx context.Context, r sweep.Report) error {
+	var result map[string]any
+	return callMemoryDaemon(ctx, "memory.sweepReport", &daemon.MemorySweepReport{
+		Host: r.Host, FilesScanned: r.FilesScanned, FilesIngested: r.FilesIngested,
+		Episodes: r.Episodes, Errors: r.Errors,
+	}, &result)
+}
 
 func (daemonClient) Glossary(ctx context.Context, limit int) ([]string, error) {
 	var result []string
@@ -134,30 +407,24 @@ func (daemonClient) HasEpisodes(ctx context.Context, ids []string) ([]string, er
 func memoryIngestCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ingest",
-		Short: "Distill, extract, and commit one transcript/run/seed source",
+		Short: "Distill one transcript/run/seed source and queue it for extraction at the daemon",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			source, _ := cmd.Flags().GetString("source")
 			switch source {
-			case "claude", "codex", "loom", "seed":
+			case "claude", "codex", "kimi", "opencode", "loom", "seed":
 			default:
-				return fmt.Errorf("--source must be one of claude|codex|loom|seed, got %q", source)
+				return fmt.Errorf("--source must be one of claude|codex|kimi|opencode|loom|seed, got %q", source)
 			}
 			path, _ := cmd.Flags().GetString("path")
-
-			_, extractor, err := memoryExtractor()
-			if err != nil || extractor == nil {
-				return err
-			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
 
 			sum, err := ingest.File(ctx, ingest.Options{
-				Source:    source,
-				Path:      path,
-				Extractor: extractor,
-				Daemon:    daemonClient{},
+				Source: source,
+				Path:   path,
+				Daemon: daemonClient{},
 			})
 			if err != nil {
 				return err
@@ -166,8 +433,8 @@ func memoryIngestCmd() *cobra.Command {
 			return printJSON(sum, pretty)
 		},
 	}
-	cmd.Flags().String("source", "", "source type: claude|codex|loom|seed (required)")
-	cmd.Flags().String("path", "", "path to the transcript file, run directory, or seed markdown file (required)")
+	cmd.Flags().String("source", "", "source type: claude|codex|kimi|opencode|loom|seed (required)")
+	cmd.Flags().String("path", "", "path to the transcript file, run directory, or seed markdown file; for opencode, opencode:<db>:<session id> (required)")
 	_ = cmd.MarkFlagRequired("source")
 	_ = cmd.MarkFlagRequired("path")
 	return cmd
@@ -231,10 +498,14 @@ Defaults to a dry run — this edits recorded history, so read it first.`,
 				mode = "applied"
 			}
 			fmt.Printf("memory hygiene (%s)\n", mode)
-			fmt.Printf("  entities scanned:  %d\n", rep.EntitiesScanned)
-			fmt.Printf("  entities changed:  %d\n", rep.EntitiesChanged)
-			fmt.Printf("  aliases dropped:   %d\n", rep.AliasesDropped)
-			fmt.Printf("  repo refs dropped: %d\n", rep.RepoRefsDropped)
+			fmt.Printf("  entities scanned:       %d\n", rep.EntitiesScanned)
+			fmt.Printf("  entities changed:       %d\n", rep.EntitiesChanged)
+			fmt.Printf("  aliases dropped:        %d\n", rep.AliasesDropped)
+			fmt.Printf("  aliases split:          %d\n", rep.AliasesSplit)
+			fmt.Printf("  facts reattached:       %d\n", rep.FactsReattached)
+			fmt.Printf("  self-loops invalidated: %d\n", rep.SelfLoopsInvalidated)
+			fmt.Printf("  repo refs dropped:      %d\n", rep.RepoRefsDropped)
+			fmt.Printf("  cross-type collisions:  %d\n", rep.CrossTypeCollisions)
 			if len(rep.Conflated) > 0 {
 				fmt.Printf("\n  %d entities carry another entity's name as an alias — the same\n"+
 					"  thing recorded twice, or two things fused into one. Reported only:\n"+
@@ -274,22 +545,19 @@ Defaults to a dry run — this edits recorded history, so read it first.`,
 func memorySweepCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sweep",
-		Short: "Scan default roots (Claude/Codex transcripts, loom runs) for new episodes and ingest deltas",
+		Short: "Scan default roots (Claude/Codex/Kimi/OpenCode transcripts, loom runs) and queue new episodes at the daemon",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
-
-			_, extractor, err := memoryExtractor()
-			if err != nil || extractor == nil {
-				return err
+			if d, _ := cmd.Flags().GetDuration("per-file-timeout"); d > 0 {
+				sweep.PerFileTimeout = d
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 			defer cancel()
 
 			result, err := sweep.Run(ctx, sweep.Roots{}, ingest.Options{
-				Extractor: extractor,
-				Daemon:    daemonClient{},
+				Daemon: daemonClient{},
 			}, sweep.DefaultActiveWindow, dryRun)
 			if err != nil {
 				return err
@@ -298,7 +566,8 @@ func memorySweepCmd() *cobra.Command {
 			return printJSON(result, pretty)
 		},
 	}
-	cmd.Flags().Bool("dry-run", false, "report what would be ingested without extracting or committing anything")
+	cmd.Flags().Bool("dry-run", false, "report what would be ingested without queueing anything")
+	cmd.Flags().Duration("per-file-timeout", sweep.PerFileTimeout, "deadline for one candidate's daemon round trips")
 	return cmd
 }
 
@@ -367,6 +636,8 @@ func memoryBackfillCmd() *cobra.Command {
 type backfillDaemon interface {
 	ingest.Daemon
 	HasEpisodes(ctx context.Context, ids []string) ([]string, error)
+	Glossary(ctx context.Context, limit int) ([]string, error)
+	Commit(ctx context.Context, ep memstore.Episode, cwd string, res extract.Result) (resolve.Stats, error)
 }
 
 // backfillConfig bundles what runBackfill needs beyond ctx/flags.
@@ -739,7 +1010,7 @@ func memoryOrientCmd() *cobra.Command {
 func memoryRecallCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "recall <query>",
-		Short: "Fuzzy entity search, optionally as-of a point in time",
+		Short: "Ranked fact search: the facts that answer a question, optionally as-of a point in time",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			asOf, _ := cmd.Flags().GetString("as-of")
@@ -758,14 +1029,14 @@ func memoryRecallCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().String("as-of", "", "RFC3339 timestamp; empty means current")
-	cmd.Flags().Int("limit", 5, "max results")
+	cmd.Flags().Int("limit", recall.DefaultFactLimit, "max facts (the payload is capped at 24 KB regardless)")
 	return cmd
 }
 
 func memoryRememberCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "remember <fact>",
-		Short: "Store a durable fact in global memory",
+		Short: "Store a durable fact in global memory (queued; extracted in the background)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			entities, _ := cmd.Flags().GetStringArray("entity")
@@ -783,7 +1054,7 @@ func memoryRememberCmd() *cobra.Command {
 				return err
 			}
 			if result.Dormant {
-				fmt.Fprintln(os.Stderr, "memory: daemon is dormant (no API key in its environment) — fact stored as episode only, no graph facts extracted")
+				fmt.Fprintln(os.Stderr, "memory: daemon is dormant (no API key in its environment) — the fact is queued and will be extracted once a key is configured")
 			}
 			pretty, _ := cmd.Flags().GetBool("pretty")
 			return printJSON(result, pretty)

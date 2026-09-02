@@ -1,0 +1,9 @@
+[
+ {"question": "hermes deploy", "expect": {"entity": "hermes-ops"}, "note": "audit probe: matched childscribe-laravel via alias 'deploy'; intended hermes-ops"},
+ {"question": "Z_AI_API_KEY", "expect": {"fact_substring": "Z_AI_API_KEY"}, "note": "audit probe: matched Jeff via alias 'key'; intended the key itself"},
+ {"question": "memory", "expect": {"entity": "scry"}, "note": "audit probe: scry's memory domain"},
+ {"question": "scry", "expect": {"entity": "scry"}, "note": "audit probe"},
+ {"question": "why did we switch off deepseek", "expect": {"fact_substring": "402"}, "note": "audit probe: matched a Qwen entity and a 10GbE switch; intended the 402 Insufficient Balance decision"},
+ {"question": "cockpit", "expect": {"entity": "cockpit"}, "note": "audit probe: the good case"},
+ {"question": "GLM-5.3-Flash", "expect": {"entity": "glm-53-flash"}, "note": "audit probe: also matched childscribe-engine-core"}
+]

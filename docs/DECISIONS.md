@@ -1688,3 +1688,228 @@ alternative — leaving it — is exactly the orphan this fixes.
 with a different discovery; or a daemon shutdown that legitimately needs
 longer than 10s, which would raise `TermGrace` rather than remove
 escalation.
+
+
+## 2026-09-02 — Memory writes queue at the daemon; the daemon runs extraction
+
+**Decision:** every memory write lands in a durable pending queue (`pq:`
+keys in the memory store) and is extracted by a worker pool inside the
+daemon that owns the store. `memory.remember` returns as soon as the
+episode is queued, in milliseconds. The sweep and `scry memory ingest`
+distill on the client and call `memory.enqueue`; they never touch a
+provider. Transport failures retry with a backoff capped at two minutes;
+an episode no model can parse after three tries is parked on disk and
+replayed with `scry memory queue retry`. A model that answers 401/402/403
+is skipped for fifteen minutes. Episode ids for remembers derive from the
+fact text and the UTC day.
+
+**Context:** `docs/MEMORY_AUDIT_2026-09-02.md`, findings 1 and 2. A
+remember ran 40 to 600 seconds because the provider reasons before
+answering; Codex's tool timeout is 60 seconds, so the agent saw a failure
+while the daemon finished the write, and a retry stored a second episode.
+When extraction failed for any non-parse reason the fact was gone. The
+laptop sweep extracted client-side with the laptop's own config, which
+still named a DeepSeek chain that had returned 402 for a day: 44 sweeps,
+zero files ingested, 12,696 lines of 402 noise, and 380 socket timeouts
+because one 30-minute context served the whole run.
+
+**Why the daemon and not the client:** one process per store means one
+config to keep correct (the mini's), one place keys have to exist, and a
+laptop that needs no provider credentials at all. It also lets the store
+know when ingestion last happened, which is what `scry doctor` needs.
+
+**Why a queue and not a background goroutine per call:** the queue is the
+durability. A goroutine dies with the daemon; a `pq:` record does not. It
+also gives the outage story: the provider comes back, the worker drains.
+
+**Why the schema version stays at 1:** a bump wipes the store. `pq:` (and
+`att:`, which the alias-attestation work adds) are additive prefixes an
+older binary ignores; `meta:` already existed.
+
+**Known limits:** Badger runs without `SyncWrites`, so a queued write is
+durable against a daemon crash but not against power loss in the same
+second; the same has always been true of facts. `scry memory backfill` is
+the one attended command that still extracts on the client, because it
+uses the Anthropic batch API when pointed at Anthropic; the unattended
+paths (sweep, ingest, remember) all go through the daemon.
+
+**What would change our minds:** a second store owner (two daemons writing
+one Badger dir is impossible anyway), or a provider so fast that inline
+extraction is faster than the round trip to the queue. Neither is near.
+
+
+## 2026-09-02 — OpenCode is read through the sqlite3 CLI
+
+**Decision:** the OpenCode distiller shells out to `sqlite3 -json
+-readonly` rather than linking a SQLite driver. Kimi Code's `wire.jsonl`
+event log is parsed directly, like the Claude and Codex transcripts.
+
+**Context:** OpenCode moved its sessions into a WAL-mode SQLite database.
+The pure-Go driver (`modernc.org/sqlite`) is the sanctioned choice if scry
+ever links SQLite, but it adds a large dependency and a minute of compile
+time to read eleven rows every half hour. `sqlite3` ships with macOS and
+nearly every Linux distribution, handles WAL correctly, and keeps the
+binary CGO-free and small. A missing `sqlite3` is a per-root sweep error,
+not a crash.
+
+**What would change our minds:** scry needing SQLite for anything on the
+hot path, or a machine without `sqlite3` in daily use.
+
+
+## 2026-09-02 — Doctor fails when memory has not ingested for six hours
+
+**Decision:** `scry doctor` dials the memory daemon (`SCRY_MEMORY_SOCKET`,
+then `memory.socket` in `config.yaml`, then the local socket) and reads
+`memory.status`. It fails on a dormant chain, a stopped queue worker, or a
+last-ingest timestamp older than six hours; it warns on a sweep older than
+two hours or a parked queue item.
+
+**Context:** laptop ingestion was dead for a day and nothing said so. The
+threshold is the goal file's; six quiet hours on a machine every agent
+writes sessions to means the pipeline stopped. Overnight this can fail
+honestly; a failing check that is sometimes loud beats one that is never
+loud. The `memory.socket` config key exists so the shared-store location
+has a home outside every MCP host's private env.
+
+
+## 2026-09-02 — A closed relation vocabulary of 39 names, mapped in code
+
+**Decision:** every stored fact's relation is one of the 39 names in
+`resolve.Canonical` (`internal/memory/resolve/vocab.go`). `resolve.Map`
+turns the model's verb into one of them: an exact synonym table built from
+the 5,595 relation names observed in the live store, then rules for
+negation prefixes (`does_not_use` → `lacks`), tense prefixes (`now_uses`),
+`has_<noun>` (issue nouns → `has_issue`, measurement nouns → `status`,
+else `contains`), trailing `_by` (passive voice: map the verb and swap the
+endpoints), trailing prepositions (`deployed_to`), and finally a verb
+stem table. Anything left lands on `related_to`. Inverse forms swap src
+and dst (`used_by` → `uses` flipped). The raw relation is kept on the
+fact as `raw_relation`. The extraction prompt was not changed.
+
+**Context:** audit finding 4. 5,586 distinct relations across 27k facts,
+the top 40 covering 51%. A path over that vocabulary meant nothing and a
+query for what runs where had to guess between `deployed_on`,
+`installed_on`, `exists_on`, `hosted_on`, and `running_on`. On the live
+distribution the mapper types 94% of facts; 5.7% fall back.
+
+**Why code and not prompt wording:** the model is allowed to be sloppy;
+the resolver is not. A table with tests is inspectable and versionable;
+a prompt is neither, and changing it invalidates the prompt cache.
+
+**Why 39 and not 20:** below about 35 the merges became lies —
+`monitors` folding into `documents`, `notifies` into `provides`. The
+ceiling in the test is 40.
+
+**What would change our minds:** a recall benchmark showing that a
+relation the mapper folds is one agents ask about by name. Then it gets
+its own entry, as long as the count stays under 40.
+
+
+## 2026-09-02 — Values are attributes, never nodes
+
+**Decision:** a fact whose target is a value — a status word, a number or
+measurement, a version, a date, a git branch, a commit hash
+(`resolve.IsValueName`) — is stored as an attribute fact: `Dst` empty,
+`Value` set, the key's dst slot `~<value-slug>`, no reverse index. The
+`status` relation is always an attribute. A fact whose source is a value
+and whose target is an entity is turned around; one between two values is
+dropped and counted. Attribute facts never create entities and path
+traversal ignores them.
+
+**Context:** audit finding 5. `main` (the git branch) had 374 facts,
+`in-progress` had 241 and had collected "voice-of-customer" as an alias,
+`51b-active-parameters` and `46-gib-spare-memory` were nodes.
+
+**Why attributes and not dropping the facts:** "scry status is
+in-progress" and "gpt-oss-120b has 51B active parameters" are worth
+knowing; only the node was wrong. Fact-level search finds them by text.
+
+**Why `~` in the key slot:** a slug is `[a-z0-9-]`, so an attribute key can
+never collide with an edge key, and two different values on the same
+(src, relation, valid_from) stay distinct.
+
+
+## 2026-09-02 — Alias admission needs evidence and matching types
+
+**Decision:** `resolve.AdmitAlias` decides whether an alias may be added
+to an entity. Rejected outright: run artifacts, role words, values,
+pronouns, and determiner phrases ("the machine"). Rejected always: an
+alias owned by an entity of an incompatible type (`concept` is a
+wildcard). Admitted at once: an unclaimed alias that shares a token with
+the entity's name, aliases, or description. Otherwise — the alias is
+another entity's name or alias, or shares nothing with the entity — it
+is admitted only after two independent episodes have attested it
+(`att:<slug>:<alias>` keys). A name that reaches an entity only through
+an alias and names a different type gets its own entity. Concept stubs
+upgrade to the first real type that mentions them.
+
+**Context:** audit finding 5 and the live store: hermes-ops (project)
+carried "Hermes", "mini", "Mac Mini", "the machine", "box", the Halo box,
+and 120 more; the Qwen model carried gpt-oss-120b; the Jeff entity carried
+"Claude", "codex", "you", "I". Every one came from a single episode.
+
+**Why two episodes and not one with a confidence threshold:** the model's
+confidence is uninformative (26,091 of 27,346 facts sit at 0.9 or
+above). Independent repetition is the only evidence the store has.
+
+**What would change our minds:** a legitimate alias that never repeats.
+The description rule covers the common case (an entity described as "the
+loop engine" admits "loop engine"); a human can always add an alias by
+remembering it twice.
+
+
+## 2026-09-02 — Migration relocates facts under a backup, never deletes text
+
+**Decision:** `scry memory migrate` applies the three rules above to the
+existing store. Relations are rewritten by relocating each fact to its
+new key (the same operation `mergeFact` already used for ValidFrom), with
+provenance, validity, confidence, and the raw relation preserved. When two
+facts land on one key (two raw verbs from one episode that map to the same
+canonical), the newcomer is shifted by a nanosecond so both keep their own
+sentence and validity; nothing is merged away. Value entities have their facts converted to attributes and
+are then deleted; facts between two values are invalidated, not deleted.
+Hygiene v2 drops reference-word aliases, splits aliases away from
+entities of another type or that are another entity's own name (moving
+current facts whose text names the other entity), invalidates
+self-loops, and re-points every `al:` key at its keeper. A backup is
+taken first; a dry run is the default; a second run is a no-op.
+
+**Why relocate rather than invalidate-and-recreate:** a relation rename
+is the same logical fact under a corrected label. Invalidating it and
+adding a copy would double the fact count and make as-of queries return
+both. The house rule protects fact *content* and provenance; both survive
+a relocation, and the backup covers the rest.
+
+
+## 2026-09-02 — Recall ranks facts, not entities, and caps its payload
+
+**Decision:** `memory.recall` finds facts by BM25 over fact sentences and
+entity names (`internal/memory/search`, in-memory, rebuilt from the store
+at daemon start and kept current through a store observer), boosts facts
+that touch an entity the query names, adds a small recency term, returns
+twenty facts by default, and trims the serialized result to 24 KB —
+episodes first, then trailing facts. Entities come back as headers with a
+fact count. `limit` is a fact limit. The MEMORY_SPEC's deferral of
+fact-level search is un-deferred by this; its deferral of embeddings
+stands.
+
+**Context:** audit finding 3. The old recall matched entities by substring
+and returned every current fact on the top five: "hermes deploy" returned
+3,434 facts and 1.18 MB because `deploy` was an alias of
+childscribe-laravel; "Z_AI_API_KEY" returned 1,864 facts because `key` was
+an alias of Jeff. MCP hosts truncated the result and the agent saw an
+arbitrary slice.
+
+**Why BM25 and not embeddings:** the house rules allow local embeddings
+but forbid hosted ones, and a local model is a new binary dependency for
+a corpus of 30k short sentences that lexical ranking handles. On the
+migrated store copy the seven audit probes each return under 24 KB with
+the intended entity's fact in the top five. Embeddings become worth it
+when the benchmark shows paraphrase misses that no synonym rule fixes.
+
+**Why in memory and not on disk:** 30k documents build in about a second;
+persisting the index would add a key layout to keep in step with the
+store for no gain.
+
+**What would change our minds:** a store an order of magnitude larger,
+or a benchmark miss pattern that is semantic rather than lexical.

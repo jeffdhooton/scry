@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 )
@@ -118,5 +119,69 @@ func TestNewExtractorBuildsOneStepPerProvider(t *testing.T) {
 	}
 	if got := ch.Names(); strings.Join(got, ",") != "deepseek-v4-flash,deepseek-v4-pro" {
 		t.Errorf("Names() = %v", got)
+	}
+}
+
+func TestChainCoolsDownAStepThatRefusesOnBilling(t *testing.T) {
+	primary := &countingExtractor{err: errors.New(`extract: haiku request failed: POST "https://api.deepseek.com/anthropic/v1/messages": 402 Payment Required {"error":{"message":"Insufficient Balance"}}`)}
+	fallback := &countingExtractor{res: Result{EpisodeSummary: "from fallback"}}
+	ch := NewChain(Step{"deepseek", primary}, Step{"glm", fallback})
+	now := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+	ch.now = func() time.Time { return now }
+
+	for range 3 {
+		res, err := ch.Extract(context.Background(), distill.RawEpisode{}, nil)
+		if err != nil || res.EpisodeSummary != "from fallback" {
+			t.Fatalf("Extract() = %+v, %v", res, err)
+		}
+	}
+	if primary.calls != 1 {
+		t.Errorf("primary called %d times, want 1 (cooling down after the 402)", primary.calls)
+	}
+
+	now = now.Add(CooldownPeriod + time.Second)
+	_, _ = ch.Extract(context.Background(), distill.RawEpisode{}, nil)
+	if primary.calls != 2 {
+		t.Errorf("primary called %d times after the cooldown elapsed, want 2", primary.calls)
+	}
+}
+
+func TestChainAllStepsCoolingIsATransportFailure(t *testing.T) {
+	refused := errors.New("401 Unauthorized: invalid api key")
+	a := &countingExtractor{err: refused}
+	b := &countingExtractor{err: refused}
+	ch := NewChain(Step{"a", a}, Step{"b", b})
+
+	_, err := ch.Extract(context.Background(), distill.RawEpisode{}, nil)
+	if err == nil || errors.Is(err, ErrParse) {
+		t.Fatalf("first Extract() err = %v, want a non-parse failure", err)
+	}
+	_, err = ch.Extract(context.Background(), distill.RawEpisode{}, nil)
+	if err == nil || errors.Is(err, ErrParse) || !strings.Contains(err.Error(), "cooling") {
+		t.Fatalf("second Extract() err = %v, want a cooling-down transport error", err)
+	}
+	if a.calls != 1 || b.calls != 1 {
+		t.Errorf("calls = %d, %d; want 1, 1", a.calls, b.calls)
+	}
+}
+
+func TestRefusedOnBillingOrAuth(t *testing.T) {
+	cases := map[string]bool{
+		"402 Payment Required":                         true,
+		"Insufficient Balance":                         true,
+		"403 Forbidden":                                true,
+		"401 Unauthorized":                             true,
+		"authentication_error: invalid x-api-key":      true,
+		"extract: invalid JSON after 2 repairs":        false,
+		"500 Internal Server Error":                    false,
+		"context deadline exceeded":                    false,
+		"episode 4021 references 4031":                 false,
+		"[1210] This model always engages in thinking": false,
+		"429 Too Many Requests":                        false,
+	}
+	for msg, want := range cases {
+		if got := refusedOnBillingOrAuth(errors.New(msg)); got != want {
+			t.Errorf("refusedOnBillingOrAuth(%q) = %v, want %v", msg, got, want)
+		}
 	}
 }

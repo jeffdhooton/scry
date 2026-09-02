@@ -130,7 +130,7 @@ type SchemaRelationsParams struct {
 }
 
 type SchemaRelationsResult struct {
-	Table    string                   `json:"table"`
+	Table    string                    `json:"table"`
 	Outgoing []schema.ForeignKeyRecord `json:"outgoing"`
 	Incoming []schema.ForeignKeyRecord `json:"incoming"`
 }
@@ -198,9 +198,9 @@ type SchemaSearchResult struct {
 }
 
 type SearchMatch struct {
-	Type   string `json:"type"`
-	Name   string `json:"name"`
-	Table  string `json:"table,omitempty"`
+	Type  string `json:"type"`
+	Name  string `json:"name"`
+	Table string `json:"table,omitempty"`
 }
 
 func (d *Daemon) handleSchemaSearch(_ context.Context, raw json.RawMessage) (any, error) {

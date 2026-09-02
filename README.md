@@ -101,11 +101,11 @@ After the first index, a per-repo fsnotify watcher keeps it fresh (300ms debounc
 
 ### 5. Optional: enable the memory domain
 
-The memory domain is a *global* (not per-repo) episodic graph built from your past Claude Code / Codex transcripts and loom runs: entities (projects, machines, people, decisions) with time-stamped facts. It's what makes "set this up on hermes" resolvable in a fresh session.
+The memory domain is a *global* (not per-repo) episodic graph built from your past Claude Code, Codex, Kimi Code, and OpenCode transcripts and loom runs: entities (projects, machines, people, decisions) with time-stamped facts. It's what makes "set this up on hermes" resolvable in a fresh session.
 
-**It is opt-in and dormant by default.** With no API key set, every memory command prints `memory: dormant (no SCRY_MEMORY_API_KEY / DEEPSEEK_API_KEY)` and exits 0 — nothing is extracted, nothing is billed.
+**It is opt-in and dormant by default.** With no API key in the *daemon's* environment, extraction is dormant: writes still queue (`scry memory queue` shows them) and are extracted once a key is configured and the daemon restarted — nothing is billed until then. The sweep and `scry memory ingest` never talk to a model themselves; they distill on the client and hand episodes to the daemon that owns the store, so only that daemon needs a key.
 
-To turn it on, export a key:
+To turn it on, export a key where the daemon runs:
 
 ```bash
 export SCRY_MEMORY_API_KEY=sk-…      # DeepSeek key by default
@@ -137,12 +137,19 @@ memory:
 Extraction defaults to DeepSeek, not Anthropic, on purpose: the sweep runs unattended over every transcript on the machine, so the default has to be the cheap provider. `ANTHROPIC_API_KEY` is deliberately **not** consulted — reaching Anthropic requires naming it in `SCRY_MEMORY_BASE_URL` (and then `SCRY_MEMORY_MODEL` is mandatory). The Message Batches API (50% discount, used by `backfill`) is Anthropic-only; against any other endpoint backfill silently falls back to serial extraction.
 
 ```bash
-scry memory sweep --dry-run   # what would be ingested, without extracting or paying
-scry memory sweep             # scan transcript roots, ingest new episodes
-scry memory backfill --since 2026-01-01   # one-time historical pass
-scry memory status            # counts, cursors, dormancy
+scry memory sweep --dry-run   # what would be queued, without touching the daemon
+scry memory sweep             # scan transcript roots, queue new episodes at the daemon
+scry memory backfill --since 2026-01-01   # one-time historical pass (extracts client-side)
+scry memory status            # counts, chain, queue depth, last ingest/sweep/extraction
+scry memory queue             # what is waiting for extraction, and why
+scry memory recall "why did we switch off deepseek"   # ranked facts, under 24 KB
 scry memory browse            # searchable HTML graph, opened in your browser
+scry memory backup            # Badger backup into ~/.scry/backups on the daemon's machine
+scry memory migrate           # dry-run the resolver rules over the whole store; --apply after a backup
+scry memory bench --file docs/memory-bench/probes.json   # is the answering fact in the top N?
 ```
+
+Recall ranks facts (BM25 over fact text and entity names, boosted toward entities the query names) and returns twenty by default with a hard 24 KB cap, so an MCP host never truncates it. `scry doctor` has a Memory section that fails when the chain is dormant, the queue worker is down, or nothing has been queued for six hours.
 
 While the daemon runs it also serves a live, always-fresh version of that UI at **http://127.0.0.1:7279**.
 
@@ -160,10 +167,8 @@ While the daemon runs it also serves a live, always-fresh version of that UI at 
     <string>memory</string>
     <string>sweep</string>
   </array>
-  <key>EnvironmentVariables</key>
-  <dict><key>SCRY_MEMORY_API_KEY</key><string>sk-…</string></dict>
   <key>StartInterval</key><integer>1800</integer>
-  <key>StandardErrorPath</key><string>/tmp/scry-memory-sweep.err</string>
+  <key>StandardErrorPath</key><string>/Users/YOU/.scry/logs/memory-sweep.log</string>
 </dict>
 </plist>
 ```
@@ -172,7 +177,9 @@ While the daemon runs it also serves a live, always-fresh version of that UI at 
 launchctl load ~/Library/LaunchAgents/com.user.scry-memory-sweep.plist
 ```
 
-On Linux, a crontab line does the same job: `*/30 * * * * SCRY_MEMORY_API_KEY=sk-… /home/you/.local/bin/scry memory sweep >/dev/null 2>&1`. See [`docs/MEMORY_SPEC.md`](docs/MEMORY_SPEC.md) for the full design.
+The sweep needs no API key: extraction happens in the daemon. On Linux, a crontab line does the same job: `*/30 * * * * /home/you/.local/bin/scry memory sweep >/dev/null 2>&1`. See [`docs/MEMORY_SPEC.md`](docs/MEMORY_SPEC.md) for the original design and [`docs/MEMORY_OPS.md`](docs/MEMORY_OPS.md) for how it is deployed across two machines.
+
+**Shared store on another machine.** Set `memory.socket` in `~/.scry/config.yaml` (or `SCRY_MEMORY_SOCKET`) to the Unix socket of the daemon that owns the store — an SSH forward works — and every memory client on this machine, including `scry doctor`, uses it.
 
 ### 6. Verify
 

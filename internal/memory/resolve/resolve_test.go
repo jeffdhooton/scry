@@ -393,7 +393,15 @@ func TestApply_Supersedes(t *testing.T) {
 		t.Fatalf("expected FactsInvalidated=1, got %+v", stats2)
 	}
 
-	facts := mustFacts(t, st, "book-system")
+	// "replaces" is the inverse of the canonical replaced_by, so the fact
+	// was stored as authorclaw -[replaced_by]-> book-system and the hint,
+	// mapped the same way, still finds it.
+	var facts []store.Fact
+	for _, f := range mustFacts(t, st, "authorclaw") {
+		if f.Relation == RelReplacedBy {
+			facts = append(facts, f)
+		}
+	}
 	if len(facts) != 1 {
 		t.Fatalf("expected the superseded fact still present (invalidated, not deleted): %+v", facts)
 	}

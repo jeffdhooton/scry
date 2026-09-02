@@ -32,10 +32,10 @@ type GitInitParams struct {
 }
 
 type GitInitResult struct {
-	Repo      string          `json:"repo"`
-	Status    string          `json:"status"`
-	Stats     gitindex.Stats  `json:"stats"`
-	ElapsedMs int64           `json:"elapsed_ms"`
+	Repo      string         `json:"repo"`
+	Status    string         `json:"status"`
+	Stats     gitindex.Stats `json:"stats"`
+	ElapsedMs int64          `json:"elapsed_ms"`
 }
 
 func (d *Daemon) handleGitInit(ctx context.Context, raw json.RawMessage) (any, error) {
