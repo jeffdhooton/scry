@@ -29,6 +29,9 @@ type Question struct {
 
 // Expect names the answering fact.
 type Expect struct {
+	// Entity matches a fact whose src OR dst is this slug: "a fact from
+	// the intended entity", the audit's probe criterion.
+	Entity        string `json:"entity,omitempty"`
 	Src           string `json:"src,omitempty"`
 	Relation      string `json:"relation,omitempty"`
 	Dst           string `json:"dst,omitempty"`
@@ -39,6 +42,9 @@ type Expect struct {
 
 // Matches reports whether h is the fact e describes.
 func (e Expect) Matches(h FactHit) bool {
+	if e.Entity != "" && !strings.EqualFold(e.Entity, h.Src) && !strings.EqualFold(e.Entity, h.Dst) {
+		return false
+	}
 	if e.Src != "" && !strings.EqualFold(e.Src, h.Src) {
 		return false
 	}
@@ -66,7 +72,7 @@ func (e Expect) Matches(h FactHit) bool {
 			return false
 		}
 	}
-	return e.Src != "" || e.Relation != "" || e.Dst != "" || e.Value != "" || e.FactSubstring != "" || e.Episode != ""
+	return e.Entity != "" || e.Src != "" || e.Relation != "" || e.Dst != "" || e.Value != "" || e.FactSubstring != "" || e.Episode != ""
 }
 
 // Miss records a question whose answer was not in the top N.
@@ -163,7 +169,11 @@ func LoadQuestions(path string) ([]Question, error) {
 		if strings.TrimSpace(q.Question) == "" {
 			return nil, fmt.Errorf("bench: question %d is empty", i)
 		}
-		if !q.Expect.Matches(FactHit{Src: q.Expect.Src, Relation: q.Expect.Relation, Dst: q.Expect.Dst, Value: q.Expect.Value, Fact: q.Expect.FactSubstring, Episodes: []string{q.Expect.Episode}}) {
+		probe := FactHit{Src: q.Expect.Src, Relation: q.Expect.Relation, Dst: q.Expect.Dst, Value: q.Expect.Value, Fact: q.Expect.FactSubstring, Episodes: []string{q.Expect.Episode}}
+		if q.Expect.Entity != "" && probe.Src == "" {
+			probe.Src = q.Expect.Entity
+		}
+		if !q.Expect.Matches(probe) {
 			return nil, fmt.Errorf("bench: question %d (%q) names no answering fact", i, q.Question)
 		}
 	}

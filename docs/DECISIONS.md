@@ -1879,3 +1879,37 @@ is the same logical fact under a corrected label. Invalidating it and
 adding a copy would double the fact count and make as-of queries return
 both. The house rule protects fact *content* and provenance; both survive
 a relocation, and the backup covers the rest.
+
+
+## 2026-09-02 — Recall ranks facts, not entities, and caps its payload
+
+**Decision:** `memory.recall` finds facts by BM25 over fact sentences and
+entity names (`internal/memory/search`, in-memory, rebuilt from the store
+at daemon start and kept current through a store observer), boosts facts
+that touch an entity the query names, adds a small recency term, returns
+twenty facts by default, and trims the serialized result to 24 KB —
+episodes first, then trailing facts. Entities come back as headers with a
+fact count. `limit` is a fact limit. The MEMORY_SPEC's deferral of
+fact-level search is un-deferred by this; its deferral of embeddings
+stands.
+
+**Context:** audit finding 3. The old recall matched entities by substring
+and returned every current fact on the top five: "hermes deploy" returned
+3,434 facts and 1.18 MB because `deploy` was an alias of
+childscribe-laravel; "Z_AI_API_KEY" returned 1,864 facts because `key` was
+an alias of Jeff. MCP hosts truncated the result and the agent saw an
+arbitrary slice.
+
+**Why BM25 and not embeddings:** the house rules allow local embeddings
+but forbid hosted ones, and a local model is a new binary dependency for
+a corpus of 30k short sentences that lexical ranking handles. On the
+migrated store copy the seven audit probes each return under 24 KB with
+the intended entity's fact in the top five. Embeddings become worth it
+when the benchmark shows paraphrase misses that no synonym rule fixes.
+
+**Why in memory and not on disk:** 30k documents build in about a second;
+persisting the index would add a key layout to keep in step with the
+store for no gain.
+
+**What would change our minds:** a store an order of magnitude larger,
+or a benchmark miss pattern that is semantic rather than lexical.
