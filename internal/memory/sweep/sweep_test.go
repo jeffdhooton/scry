@@ -11,9 +11,7 @@ import (
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
-	"github.com/jeffdhooton/scry/internal/memory/extract"
 	"github.com/jeffdhooton/scry/internal/memory/ingest"
-	"github.com/jeffdhooton/scry/internal/memory/resolve"
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
@@ -25,45 +23,50 @@ const (
 
 // --- fakes: same pattern as internal/memory/ingest's tests ---
 
-type fakeExtractor struct {
-	calls []distill.RawEpisode
-}
-
-func (f *fakeExtractor) Extract(ctx context.Context, ep distill.RawEpisode, glossary []string) (extract.Result, error) {
-	f.calls = append(f.calls, ep)
-	return extract.Result{EpisodeSummary: "summary for " + ep.ID}, nil
-}
-
 type fakeDaemon struct {
-	glossary      []string
-	glossaryCalls int
-
-	commits int
-
-	cursors map[string]store.Cursor
+	enqueued []distill.RawEpisode
+	known    map[string]bool
+	cursors  map[string]store.Cursor
+	reports  []Report
+	// blockCursorFor makes GetCursor on that path wait until ctx is done,
+	// standing in for a daemon round trip that hangs.
+	blockCursorFor string
 }
 
 func newFakeDaemon() *fakeDaemon {
-	return &fakeDaemon{cursors: map[string]store.Cursor{}}
+	return &fakeDaemon{cursors: map[string]store.Cursor{}, known: map[string]bool{}}
 }
 
-func (d *fakeDaemon) Glossary(ctx context.Context, limit int) ([]string, error) {
-	d.glossaryCalls++
-	return d.glossary, nil
-}
-
-func (d *fakeDaemon) Commit(ctx context.Context, ep store.Episode, cwd string, res extract.Result) (resolve.Stats, error) {
-	d.commits++
-	return resolve.Stats{FactsAdded: 1}, nil
+func (d *fakeDaemon) Enqueue(_ context.Context, eps []distill.RawEpisode) (int, int, error) {
+	var queued, known int
+	for _, ep := range eps {
+		if d.known[ep.ID] {
+			known++
+			continue
+		}
+		d.known[ep.ID] = true
+		d.enqueued = append(d.enqueued, ep)
+		queued++
+	}
+	return queued, known, nil
 }
 
 func (d *fakeDaemon) GetCursor(ctx context.Context, path string) (store.Cursor, bool, error) {
+	if d.blockCursorFor != "" && path == d.blockCursorFor {
+		<-ctx.Done()
+		return store.Cursor{}, false, ctx.Err()
+	}
 	c, ok := d.cursors[path]
 	return c, ok, nil
 }
 
 func (d *fakeDaemon) PutCursor(ctx context.Context, c store.Cursor) error {
 	d.cursors[c.Path] = c
+	return nil
+}
+
+func (d *fakeDaemon) SweepReport(_ context.Context, r Report) error {
+	d.reports = append(d.reports, r)
 	return nil
 }
 
@@ -182,11 +185,9 @@ func TestRun_FreshSweepIngestsAllRoots(t *testing.T) {
 	wantEpisodes := claudeN + codexN + 1 // +1 for the single loom episode
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	result, err := Run(context.Background(), tr.roots, ingest.Options{
-		Extractor: extractor,
-		Daemon:    daemon,
+		Daemon: daemon,
 	}, time.Minute, false)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -211,11 +212,8 @@ func TestRun_FreshSweepIngestsAllRoots(t *testing.T) {
 		t.Errorf("Errors = %v, want none", result.Errors)
 	}
 
-	if daemon.glossaryCalls != 3 {
-		t.Errorf("glossaryCalls = %d, want 3 (one per ingest.File call)", daemon.glossaryCalls)
-	}
-	if daemon.commits != wantEpisodes {
-		t.Errorf("commits = %d, want %d", daemon.commits, wantEpisodes)
+	if len(daemon.enqueued) != wantEpisodes {
+		t.Errorf("commits = %d, want %d", len(daemon.enqueued), wantEpisodes)
 	}
 	if len(daemon.cursors) != 3 {
 		t.Errorf("cursors stored = %d, want 3", len(daemon.cursors))
@@ -230,18 +228,17 @@ func TestRun_FreshSweepIngestsAllRoots(t *testing.T) {
 func TestRun_SecondSweepAllUnchanged(t *testing.T) {
 	tr := newTestRoots(t)
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	if _, err := Run(context.Background(), tr.roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false); err != nil {
 		t.Fatalf("first Run() error = %v", err)
 	}
-	callsAfterFirst := len(extractor.calls)
-	commitsAfterFirst := daemon.commits
+	callsAfterFirst := len(daemon.enqueued)
+	commitsAfterFirst := len(daemon.enqueued)
 
 	result, err := Run(context.Background(), tr.roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false)
 	if err != nil {
 		t.Fatalf("second Run() error = %v", err)
@@ -256,11 +253,11 @@ func TestRun_SecondSweepAllUnchanged(t *testing.T) {
 	if result.Episodes != 0 {
 		t.Errorf("Episodes = %d, want 0", result.Episodes)
 	}
-	if len(extractor.calls) != callsAfterFirst {
-		t.Errorf("extractor.calls grew from %d to %d on an unchanged sweep", callsAfterFirst, len(extractor.calls))
+	if len(daemon.enqueued) != callsAfterFirst {
+		t.Errorf("daemon.enqueued grew from %d to %d on an unchanged sweep", callsAfterFirst, len(daemon.enqueued))
 	}
-	if daemon.commits != commitsAfterFirst {
-		t.Errorf("commits grew from %d to %d on an unchanged sweep", commitsAfterFirst, daemon.commits)
+	if len(daemon.enqueued) != commitsAfterFirst {
+		t.Errorf("commits grew from %d to %d on an unchanged sweep", commitsAfterFirst, len(daemon.enqueued))
 	}
 }
 
@@ -302,15 +299,14 @@ func TestRun_AppendedDeltaOnlyIngestsNewContent(t *testing.T) {
 	}
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	if _, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false); err != nil {
 		t.Fatalf("first Run() error = %v", err)
 	}
-	if len(extractor.calls) != 1 {
-		t.Fatalf("after round 1, extractor.calls = %d, want 1", len(extractor.calls))
+	if len(daemon.enqueued) != 1 {
+		t.Fatalf("after round 1, daemon.enqueued = %d, want 1", len(daemon.enqueued))
 	}
 	cursorAfterRound1, found := daemon.cursors[path]
 	if !found {
@@ -334,7 +330,7 @@ func TestRun_AppendedDeltaOnlyIngestsNewContent(t *testing.T) {
 	backdate(t, path, old.Add(time.Minute)) // still outside activeWindow, but a distinct mtime
 
 	result, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false)
 	if err != nil {
 		t.Fatalf("second Run() error = %v", err)
@@ -349,8 +345,8 @@ func TestRun_AppendedDeltaOnlyIngestsNewContent(t *testing.T) {
 	// The prior offset was the resume point: the fake daemon's cursor store
 	// carried cursorAfterRound1.ProcessedBytes into this run, and only the
 	// delta was distilled from it — not the whole file over again.
-	if len(extractor.calls) != 2 {
-		t.Fatalf("after round 2, extractor.calls = %d, want 2 total (1 old + 1 new)", len(extractor.calls))
+	if len(daemon.enqueued) != 2 {
+		t.Fatalf("after round 2, daemon.enqueued = %d, want 2 total (1 old + 1 new)", len(daemon.enqueued))
 	}
 
 	cursorAfterRound2 := daemon.cursors[path]
@@ -381,10 +377,9 @@ func TestRun_TruncatedFileReingestsFromZero(t *testing.T) {
 	}
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	if _, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false); err != nil {
 		t.Fatalf("first Run() error = %v", err)
 	}
@@ -392,7 +387,7 @@ func TestRun_TruncatedFileReingestsFromZero(t *testing.T) {
 	if cursorAfterRound1.ProcessedBytes != int64(len(round1)) {
 		t.Fatalf("cursor.ProcessedBytes after round 1 = %d, want %d", cursorAfterRound1.ProcessedBytes, len(round1))
 	}
-	callsAfterRound1 := len(extractor.calls)
+	callsAfterRound1 := len(daemon.enqueued)
 
 	// Simulate truncation/rotation: the file is replaced wholesale by
 	// something shorter than what was already processed (e.g. log
@@ -407,7 +402,7 @@ func TestRun_TruncatedFileReingestsFromZero(t *testing.T) {
 	backdate(t, path, old.Add(time.Hour)) // distinct mtime, still outside activeWindow
 
 	result, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false)
 	if err != nil {
 		t.Fatalf("second Run() error = %v", err)
@@ -419,8 +414,8 @@ func TestRun_TruncatedFileReingestsFromZero(t *testing.T) {
 	if len(result.Errors) != 0 {
 		t.Errorf("Errors = %v, want none", result.Errors)
 	}
-	if len(extractor.calls) != callsAfterRound1+1 {
-		t.Errorf("extractor.calls = %d, want %d (round2 re-parsed fresh from offset 0)", len(extractor.calls), callsAfterRound1+1)
+	if len(daemon.enqueued) != callsAfterRound1+1 {
+		t.Errorf("daemon.enqueued = %d, want %d (round2 re-parsed fresh from offset 0)", len(daemon.enqueued), callsAfterRound1+1)
 	}
 
 	cursorAfterRound2 := daemon.cursors[path]
@@ -443,14 +438,13 @@ func TestRun_TouchWithoutAppendCountsUnchanged(t *testing.T) {
 	}
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	if _, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false); err != nil {
 		t.Fatalf("first Run() error = %v", err)
 	}
-	callsAfterFirst := len(extractor.calls)
+	callsAfterFirst := len(daemon.enqueued)
 	cursorAfterFirst := daemon.cursors[path]
 
 	// Touch the file (new mtime, identical size/content) without appending
@@ -458,7 +452,7 @@ func TestRun_TouchWithoutAppendCountsUnchanged(t *testing.T) {
 	backdate(t, path, old.Add(30*time.Minute))
 
 	result, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false)
 	if err != nil {
 		t.Fatalf("second Run() error = %v", err)
@@ -470,8 +464,8 @@ func TestRun_TouchWithoutAppendCountsUnchanged(t *testing.T) {
 	if result.FilesIngested != 0 {
 		t.Errorf("FilesIngested = %d, want 0", result.FilesIngested)
 	}
-	if len(extractor.calls) != callsAfterFirst {
-		t.Errorf("extractor.calls = %d, want unchanged at %d", len(extractor.calls), callsAfterFirst)
+	if len(daemon.enqueued) != callsAfterFirst {
+		t.Errorf("daemon.enqueued = %d, want unchanged at %d", len(daemon.enqueued), callsAfterFirst)
 	}
 	if daemon.cursors[path] != cursorAfterFirst {
 		t.Errorf("cursor mutated on a touch-only change: got %+v, want unchanged %+v", daemon.cursors[path], cursorAfterFirst)
@@ -492,10 +486,9 @@ func TestRun_ActiveWindowSkipsRecentFile(t *testing.T) {
 	}
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	result, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, DefaultActiveWindow, false)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -507,8 +500,8 @@ func TestRun_ActiveWindowSkipsRecentFile(t *testing.T) {
 	if result.FilesIngested != 0 {
 		t.Errorf("FilesIngested = %d, want 0", result.FilesIngested)
 	}
-	if len(extractor.calls) != 0 {
-		t.Errorf("extractor.calls = %d, want 0 (active file must not be ingested)", len(extractor.calls))
+	if len(daemon.enqueued) != 0 {
+		t.Errorf("daemon.enqueued = %d, want 0 (active file must not be ingested)", len(daemon.enqueued))
 	}
 	if len(daemon.cursors) != 0 {
 		t.Errorf("cursors stored = %d, want 0", len(daemon.cursors))
@@ -538,10 +531,9 @@ func TestRun_UnreadableFileErrorsButContinues(t *testing.T) {
 	}
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	result, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -594,10 +586,9 @@ func TestRun_UnreadableLoomRootErrorsButOtherRootsStillSweep(t *testing.T) {
 	}
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	result, err := Run(context.Background(), roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false)
 	if err != nil {
 		t.Fatalf("Run() error = %v, want nil (a root-listing failure must not abort the sweep)", err)
@@ -624,10 +615,9 @@ func TestRun_DryRunMakesNoExtractorCallsOrCursorWrites(t *testing.T) {
 	_ = codexN
 
 	daemon := newFakeDaemon()
-	extractor := &fakeExtractor{}
 
 	result, err := Run(context.Background(), tr.roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, true)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -639,14 +629,11 @@ func TestRun_DryRunMakesNoExtractorCallsOrCursorWrites(t *testing.T) {
 	if result.Episodes != 0 {
 		t.Errorf("Episodes = %d, want 0 (dry-run never actually ingests)", result.Episodes)
 	}
-	if len(extractor.calls) != 0 {
-		t.Errorf("extractor.calls = %d, want 0", len(extractor.calls))
+	if len(daemon.enqueued) != 0 {
+		t.Errorf("daemon.enqueued = %d, want 0", len(daemon.enqueued))
 	}
-	if daemon.commits != 0 {
-		t.Errorf("commits = %d, want 0", daemon.commits)
-	}
-	if daemon.glossaryCalls != 0 {
-		t.Errorf("glossaryCalls = %d, want 0", daemon.glossaryCalls)
+	if len(daemon.enqueued) != 0 {
+		t.Errorf("commits = %d, want 0", len(daemon.enqueued))
 	}
 	if len(daemon.cursors) != 0 {
 		t.Errorf("cursors stored = %d, want 0 (dry-run must not advance cursors)", len(daemon.cursors))
@@ -655,7 +642,7 @@ func TestRun_DryRunMakesNoExtractorCallsOrCursorWrites(t *testing.T) {
 	// A real (non-dry) run afterward must behave exactly as if the dry-run
 	// never happened: nothing was skipped as "unchanged".
 	result2, err := Run(context.Background(), tr.roots, ingest.Options{
-		Extractor: extractor, Daemon: daemon,
+		Daemon: daemon,
 	}, time.Minute, false)
 	if err != nil {
 		t.Fatalf("follow-up Run() error = %v", err)
@@ -755,5 +742,59 @@ func TestRoots_WithDefaultsOnlyFillsEmptyFields(t *testing.T) {
 	}
 	if filled.LoomRuns != DefaultRoots().LoomRuns {
 		t.Errorf("LoomRuns not defaulted: got %q", filled.LoomRuns)
+	}
+}
+
+// A daemon round trip that hangs on one candidate must not consume the
+// whole sweep's budget: every other candidate still gets a fresh deadline.
+func TestRun_PerFileTimeoutIsolatesAHungCandidate(t *testing.T) {
+	tr := newTestRoots(t)
+	old := PerFileTimeout
+	PerFileTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { PerFileTimeout = old })
+
+	daemon := newFakeDaemon()
+	daemon.blockCursorFor = tr.claudePath
+
+	start := time.Now()
+	result, err := Run(context.Background(), tr.roots, ingest.Options{Daemon: daemon}, time.Minute, false)
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if time.Since(start) > 2*time.Second {
+		t.Errorf("sweep took %s; the hung candidate must be cut off by PerFileTimeout", time.Since(start))
+	}
+	if len(result.Errors) != 1 || !strings.Contains(result.Errors[0], tr.claudePath) {
+		t.Errorf("Errors = %v, want exactly one for the hung claude file", result.Errors)
+	}
+	if result.FilesIngested != 2 {
+		t.Errorf("FilesIngested = %d, want 2 (codex and loom still ingested)", result.FilesIngested)
+	}
+	if _, ok := daemon.cursors[tr.claudePath]; ok {
+		t.Error("hung candidate's cursor must not advance")
+	}
+}
+
+func TestRun_ReportsToTheDaemonOnce(t *testing.T) {
+	tr := newTestRoots(t)
+	daemon := newFakeDaemon()
+	result, err := Run(context.Background(), tr.roots, ingest.Options{Daemon: daemon}, time.Minute, false)
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if len(daemon.reports) != 1 {
+		t.Fatalf("reports = %d, want 1", len(daemon.reports))
+	}
+	r := daemon.reports[0]
+	if r.FilesScanned != result.FilesScanned || r.FilesIngested != result.FilesIngested || r.Episodes != result.Episodes || r.Host == "" {
+		t.Errorf("report = %+v, result = %+v", r, result)
+	}
+
+	dry := newFakeDaemon()
+	if _, err := Run(context.Background(), tr.roots, ingest.Options{Daemon: dry}, time.Minute, true); err != nil {
+		t.Fatal(err)
+	}
+	if len(dry.reports) != 0 {
+		t.Error("a dry run must not report")
 	}
 }

@@ -92,6 +92,20 @@ type daemonClient struct{}
 
 var _ ingest.Daemon = daemonClient{}
 
+func (daemonClient) Enqueue(ctx context.Context, eps []distill.RawEpisode) (int, int, error) {
+	var result daemon.MemoryEnqueueResult
+	err := callMemoryDaemon(ctx, "memory.enqueue", &daemon.MemoryEnqueueParams{Episodes: eps}, &result)
+	return result.Queued, result.Known, err
+}
+
+func (daemonClient) SweepReport(ctx context.Context, r sweep.Report) error {
+	var result map[string]any
+	return callMemoryDaemon(ctx, "memory.sweepReport", &daemon.MemorySweepReport{
+		Host: r.Host, FilesScanned: r.FilesScanned, FilesIngested: r.FilesIngested,
+		Episodes: r.Episodes, Errors: r.Errors,
+	}, &result)
+}
+
 func (daemonClient) Glossary(ctx context.Context, limit int) ([]string, error) {
 	var result []string
 	err := callMemoryDaemon(ctx, "memory.glossary", &daemon.MemoryGlossaryParams{Limit: limit}, &result)
@@ -134,7 +148,7 @@ func (daemonClient) HasEpisodes(ctx context.Context, ids []string) ([]string, er
 func memoryIngestCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ingest",
-		Short: "Distill, extract, and commit one transcript/run/seed source",
+		Short: "Distill one transcript/run/seed source and queue it for extraction at the daemon",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			source, _ := cmd.Flags().GetString("source")
@@ -145,19 +159,13 @@ func memoryIngestCmd() *cobra.Command {
 			}
 			path, _ := cmd.Flags().GetString("path")
 
-			_, extractor, err := memoryExtractor()
-			if err != nil || extractor == nil {
-				return err
-			}
-
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
 
 			sum, err := ingest.File(ctx, ingest.Options{
-				Source:    source,
-				Path:      path,
-				Extractor: extractor,
-				Daemon:    daemonClient{},
+				Source: source,
+				Path:   path,
+				Daemon: daemonClient{},
 			})
 			if err != nil {
 				return err
@@ -274,22 +282,19 @@ Defaults to a dry run — this edits recorded history, so read it first.`,
 func memorySweepCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sweep",
-		Short: "Scan default roots (Claude/Codex transcripts, loom runs) for new episodes and ingest deltas",
+		Short: "Scan default roots (Claude/Codex/Kimi/OpenCode transcripts, loom runs) and queue new episodes at the daemon",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
-
-			_, extractor, err := memoryExtractor()
-			if err != nil || extractor == nil {
-				return err
+			if d, _ := cmd.Flags().GetDuration("per-file-timeout"); d > 0 {
+				sweep.PerFileTimeout = d
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 			defer cancel()
 
 			result, err := sweep.Run(ctx, sweep.Roots{}, ingest.Options{
-				Extractor: extractor,
-				Daemon:    daemonClient{},
+				Daemon: daemonClient{},
 			}, sweep.DefaultActiveWindow, dryRun)
 			if err != nil {
 				return err
@@ -298,7 +303,8 @@ func memorySweepCmd() *cobra.Command {
 			return printJSON(result, pretty)
 		},
 	}
-	cmd.Flags().Bool("dry-run", false, "report what would be ingested without extracting or committing anything")
+	cmd.Flags().Bool("dry-run", false, "report what would be ingested without queueing anything")
+	cmd.Flags().Duration("per-file-timeout", sweep.PerFileTimeout, "deadline for one candidate's daemon round trips")
 	return cmd
 }
 
@@ -367,6 +373,8 @@ func memoryBackfillCmd() *cobra.Command {
 type backfillDaemon interface {
 	ingest.Daemon
 	HasEpisodes(ctx context.Context, ids []string) ([]string, error)
+	Glossary(ctx context.Context, limit int) ([]string, error)
+	Commit(ctx context.Context, ep memstore.Episode, cwd string, res extract.Result) (resolve.Stats, error)
 }
 
 // backfillConfig bundles what runBackfill needs beyond ctx/flags.

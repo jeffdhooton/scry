@@ -1,86 +1,64 @@
-// Package ingest is the CLI-side ingest pipeline: it distills a source
-// (a Claude Code or Codex CLI transcript, a loom run directory, or a
-// hand-authored seed markdown file), extracts a knowledge graph from each
-// resulting episode via an LLM, and commits the result to the daemon's
-// memory store, advancing a cursor so re-runs make forward progress instead
-// of reprocessing what's already been ingested.
+// Package ingest is the client-side half of memory ingestion: it distills
+// a source (a Claude Code, Codex, Kimi, or OpenCode transcript, a loom run
+// directory, or a hand-authored seed markdown file) into redacted
+// episodes, hands them to the daemon's queue, and advances a cursor so
+// re-runs make forward progress instead of reprocessing what is done.
 //
-// The package depends only on small interfaces (Daemon, extract.Extractor)
-// so it is testable without a running daemon or network access — cmd/scry
-// supplies the real implementations (a daemonClient wrapping callDaemon, and
-// extract.NewHaiku).
+// Extraction is not this package's job any more. The daemon that owns the
+// store runs the model chain (internal/memory/queue), so the sweep on a
+// laptop needs no API key and no provider config, and a provider outage
+// defers writes instead of failing the sweep.
+//
+// The package depends only on the small Daemon interface so it is testable
+// without a running daemon — cmd/scry supplies the real implementation (a
+// daemonClient wrapping callMemoryDaemon).
 package ingest
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/jeffdhooton/scry/internal/memory/distill"
-	"github.com/jeffdhooton/scry/internal/memory/extract"
-	"github.com/jeffdhooton/scry/internal/memory/resolve"
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
-// glossaryLimit is the number of "slug: aliases" lines fetched once per File
-// call, mirroring the daemon's own default (see defaultGlossaryLimit in
-// internal/daemon/memory_methods.go).
-const glossaryLimit = 200
+// EnqueueBatch bounds how many episodes ride in one memory.enqueue call so
+// a long transcript does not turn into a single multi-megabyte request.
+const EnqueueBatch = 50
 
-// Daemon is the small set of memory-domain RPCs File needs. Implemented in
-// cmd/scry by a daemonClient wrapping callDaemon; faked in tests.
+// Daemon is the set of memory-domain RPCs File needs. Implemented in
+// cmd/scry by daemonClient; faked in tests.
 type Daemon interface {
-	Glossary(ctx context.Context, limit int) ([]string, error)
-	Commit(ctx context.Context, ep store.Episode, cwd string, res extract.Result) (resolve.Stats, error)
+	// Enqueue hands distilled episodes to the daemon's queue. It reports
+	// how many were newly queued and how many the daemon already knew
+	// (queued earlier, or already resolved into the store).
+	Enqueue(ctx context.Context, episodes []distill.RawEpisode) (queued, known int, err error)
 	GetCursor(ctx context.Context, path string) (store.Cursor, bool, error)
 	PutCursor(ctx context.Context, c store.Cursor) error
 }
 
-// Options configures a single File ingest call.
+// Options configures a single File call.
 type Options struct {
-	Source    string // "claude" | "codex" | "loom" | "seed"
-	Path      string
-	Extractor extract.Extractor
-	Daemon    Daemon
+	Source string // "claude" | "codex" | "kimi" | "opencode" | "loom" | "seed"
+	Path   string
+	Daemon Daemon
 }
 
 // Summary reports what one File call did.
 type Summary struct {
-	EpisodesIngested int
-	EpisodesSkipped  int
-	Stats            resolve.Stats
+	EpisodesIngested int // newly queued at the daemon
+	EpisodesSkipped  int // already known to the daemon
 }
 
-// add accumulates stats from one successful commit into the running Summary.
-func (s *Summary) add(stats resolve.Stats) {
-	s.EpisodesIngested++
-	s.Stats.EntitiesCreated += stats.EntitiesCreated
-	s.Stats.EntitiesUpdated += stats.EntitiesUpdated
-	s.Stats.FactsAdded += stats.FactsAdded
-	s.Stats.FactsInvalidated += stats.FactsInvalidated
-	s.Stats.FactsMerged += stats.FactsMerged
-}
-
-// offsetDistillFunc is the shape shared by distill.ClaudeSession and
-// distill.CodexRollout.
+// offsetDistillFunc is the shape shared by the byte-offset-resume
+// distillers (distill.ClaudeSession, distill.CodexRollout, distill.KimiWire).
 type offsetDistillFunc func(path string, offset int64) ([]distill.RawEpisode, int64, error)
 
-// File ingests one transcript/run/seed path from its cursor offset (episodic
-// sources: claude, codex) or wholesale (loom, seed). It returns per-file
-// stats and advances the cursor on success.
-//
-// Extraction errors are classified: a content-level parse failure (the
-// model's output never became valid JSON even after Extract's own retry,
-// wrapped in extract.ErrParse) is non-fatal — that one episode is skipped
-// (counted in Summary.EpisodesSkipped) and ingestion continues with the
-// next one. Every other extraction error — a canceled/deadline-exceeded
-// context, a request that never got a response, or anything else not
-// wrapping extract.ErrParse — aborts the whole call immediately, exactly
-// like a commit error: the error is returned and the cursor is NOT
-// advanced, so a retry picks back up from the last successfully-committed
-// episode instead of silently treating the unprocessed remainder as done.
+// File ingests one source path from its cursor offset (episodic sources) or
+// wholesale (loom, seed, opencode). It returns per-file counts and advances
+// the cursor only once every episode has been accepted by the daemon, so a
+// failed enqueue leaves the cursor where it was and the next run retries.
 func File(ctx context.Context, o Options) (Summary, error) {
 	switch o.Source {
 	case "claude":
@@ -104,10 +82,9 @@ func File(ctx context.Context, o Options) (Summary, error) {
 	}
 }
 
-// ingestOffset handles the byte-offset-resume sources (claude, codex):
-// resume from the stored cursor's ProcessedBytes, distill only the new
-// bytes, commit each resulting episode, then advance the cursor to the new
-// offset — but only once every commit has succeeded.
+// ingestOffset handles the byte-offset-resume sources: resume from the
+// stored cursor's ProcessedBytes, distill only the new bytes, enqueue, then
+// advance the cursor to the new offset.
 func ingestOffset(ctx context.Context, o Options, distillFn offsetDistillFunc) (Summary, error) {
 	cursor, found, err := o.Daemon.GetCursor(ctx, o.Path)
 	if err != nil {
@@ -128,7 +105,7 @@ func ingestOffset(ctx context.Context, o Options, distillFn offsetDistillFunc) (
 		return Summary{}, fmt.Errorf("ingest: stat %s: %w", o.Path, err)
 	}
 
-	sum, err := commitEpisodes(ctx, o, episodes)
+	sum, err := Enqueue(ctx, o.Daemon, episodes)
 	if err != nil {
 		return sum, err
 	}
@@ -145,17 +122,15 @@ func ingestOffset(ctx context.Context, o Options, distillFn offsetDistillFunc) (
 }
 
 // ingestWholesale handles the always-read-in-full sources (loom, seed):
-// distill everything, commit it, then record a cursor keyed on the path with
-// ProcessedBytes 0 and ModTime set to the path's own mtime (a directory's
-// mtime for loom, a file's mtime for seed). Change detection based on that
-// mtime is Task 9's job (sweep) — File here only records it.
+// distill everything, enqueue it, then record a cursor keyed on the path
+// with ModTime set to the path's own mtime so the sweep can detect change.
 func ingestWholesale(ctx context.Context, o Options, distillFn func() ([]distill.RawEpisode, error)) (Summary, error) {
 	episodes, err := distillFn()
 	if err != nil {
 		return Summary{}, fmt.Errorf("ingest: distill %s: %w", o.Path, err)
 	}
 
-	sum, err := commitEpisodes(ctx, o, episodes)
+	sum, err := Enqueue(ctx, o.Daemon, episodes)
 	if err != nil {
 		return sum, err
 	}
@@ -165,60 +140,27 @@ func ingestWholesale(ctx context.Context, o Options, distillFn func() ([]distill
 		return sum, fmt.Errorf("ingest: stat %s: %w", o.Path, err)
 	}
 	if err := o.Daemon.PutCursor(ctx, store.Cursor{
-		Path:           o.Path,
-		Size:           0,
-		ModTime:        info.ModTime(),
-		ProcessedBytes: 0,
+		Path:    o.Path,
+		ModTime: info.ModTime(),
 	}); err != nil {
 		return sum, fmt.Errorf("ingest: put cursor: %w", err)
 	}
 	return sum, nil
 }
 
-// commitEpisodes fetches the glossary once, then extracts and commits each
-// episode in order. A content-level parse failure (extract.ErrParse) skips
-// just that episode; every other extraction failure — context errors and
-// transport-ish failures alike — aborts immediately, same as a commit
-// failure, returning the stats accumulated so far alongside the error so the
-// caller does NOT advance the cursor past unprocessed episodes.
-func commitEpisodes(ctx context.Context, o Options, episodes []distill.RawEpisode) (Summary, error) {
+// Enqueue sends episodes to the daemon in batches of EnqueueBatch. A
+// failed batch aborts with the counts so far; the caller must not advance
+// its cursor past that point.
+func Enqueue(ctx context.Context, d Daemon, episodes []distill.RawEpisode) (Summary, error) {
 	var sum Summary
-
-	glossary, err := o.Daemon.Glossary(ctx, glossaryLimit)
-	if err != nil {
-		return sum, fmt.Errorf("ingest: glossary: %w", err)
-	}
-
-	for _, ep := range episodes {
-		res, err := o.Extractor.Extract(ctx, ep, glossary)
+	for start := 0; start < len(episodes); start += EnqueueBatch {
+		end := min(start+EnqueueBatch, len(episodes))
+		queued, known, err := d.Enqueue(ctx, episodes[start:end])
 		if err != nil {
-			if errors.Is(err, extract.ErrParse) {
-				sum.EpisodesSkipped++
-				continue
-			}
-			// Context errors (ctx.Err() non-nil, including
-			// context.DeadlineExceeded/Canceled) and any other
-			// transport-ish or unclassified failure: stop processing this
-			// file's remaining episodes entirely rather than skipping past
-			// them, so they aren't permanently hidden from the next sweep.
-			return sum, fmt.Errorf("ingest: extract episode %s: %w", ep.ID, err)
+			return sum, fmt.Errorf("ingest: enqueue episodes %d-%d: %w", start, end, err)
 		}
-
-		storeEp := store.Episode{
-			ID:         ep.ID,
-			Source:     ep.Source,
-			SourceRef:  ep.SourceRef,
-			Summary:    res.EpisodeSummary,
-			OccurredAt: ep.OccurredAt,
-			IngestedAt: time.Now(),
-		}
-
-		stats, err := o.Daemon.Commit(ctx, storeEp, ep.Cwd, res)
-		if err != nil {
-			return sum, fmt.Errorf("ingest: commit episode %s: %w", ep.ID, err)
-		}
-		sum.add(stats)
+		sum.EpisodesIngested += queued
+		sum.EpisodesSkipped += known
 	}
-
 	return sum, nil
 }
