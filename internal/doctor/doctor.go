@@ -16,10 +16,11 @@
 //     Report verbatim so a calling script can act on individual check IDs
 //     or statuses.
 //
-// Checks are grouped into four categories so the output stays scannable:
+// Checks are grouped into categories so the output stays scannable:
 // environment (what machine am I running on), daemon (is scry itself
-// alive), indexers (do the per-language tools work), and claude (is the
-// Claude Code integration wired up).
+// alive), memory (is the shared memory store ingesting), indexers (do the
+// per-language tools work), and claude (is the Claude Code integration
+// wired up).
 package doctor
 
 import (
@@ -129,6 +130,9 @@ func Run(opts Options) (*Report, error) {
 	r.add(checkDaemonWatch(opts.ScryHome, opts.Timeout))
 	r.add(checkDaemonInstances(opts.ScryHome, opts.Timeout))
 	r.add(checkMemoryUIHealth(opts.ScryHome, opts.Timeout))
+	for _, c := range checkMemory(opts.ScryHome, opts.Timeout) {
+		r.add(c)
+	}
 	r.add(checkPHPInterpreter(opts.Timeout))
 	r.add(checkScipTypescript(opts.ScryHome))
 	r.add(checkScipGo(opts.ScryHome))

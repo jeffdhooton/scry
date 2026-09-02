@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -29,6 +30,28 @@ type Memory struct {
 	// failed. When present it replaces SCRY_MEMORY_MODEL / SCRY_MEMORY_BASE_URL
 	// entirely.
 	Models []Model `yaml:"models"`
+	// Socket is the Unix socket of the daemon that owns the shared memory
+	// store, when it is not this machine's own daemon (an SSH forward to
+	// the Mac mini, say). Every memory client on the machine — the sweep,
+	// `scry memory ...`, `scry doctor` — dials it. The SCRY_MEMORY_SOCKET
+	// environment variable still wins when set, so MCP hosts that pass
+	// their own env keep working. A leading "~" expands to the home dir.
+	Socket string `yaml:"socket"`
+}
+
+// MemorySocket returns the configured shared-memory socket path with "~"
+// expanded, or "" when memory is served by the local daemon.
+func (c Config) MemorySocket() string {
+	p := strings.TrimSpace(c.Memory.Socket)
+	if p == "" {
+		return ""
+	}
+	if strings.HasPrefix(p, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			p = filepath.Join(home, p[2:])
+		}
+	}
+	return p
 }
 
 // Model is one entry in the extraction chain.

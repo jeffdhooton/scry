@@ -73,3 +73,19 @@ func write(t *testing.T, home, body string) {
 		t.Fatal(err)
 	}
 }
+
+func TestMemorySocketExpandsHome(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	write(t, home, "memory:\n  socket: ~/.scry/shared-memory.sock\n")
+	cfg, err := Load(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := cfg.MemorySocket(), filepath.Join(home, ".scry", "shared-memory.sock"); got != want {
+		t.Errorf("MemorySocket() = %q, want %q", got, want)
+	}
+	if (Config{}).MemorySocket() != "" {
+		t.Error("empty config must yield no socket")
+	}
+}
