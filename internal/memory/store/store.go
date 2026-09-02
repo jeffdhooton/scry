@@ -30,6 +30,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
@@ -138,6 +139,9 @@ type Cursor struct {
 // Store is an open BadgerDB-backed handle on the global memory store.
 type Store struct {
 	db *badger.DB
+
+	obsMu    sync.RWMutex
+	observer func(Event)
 }
 
 // Open opens (creating if necessary) the store at dir. If the on-disk schema
@@ -289,7 +293,7 @@ func (s *Store) PutEntity(e Entity) error {
 		return err
 	}
 	newNorms := normalizedNameSet(e.Name, e.Aliases)
-	return s.db.Update(func(txn *badger.Txn) error {
+	err = s.db.Update(func(txn *badger.Txn) error {
 		prev, err := getEntityTxn(txn, e.Slug)
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
@@ -315,6 +319,10 @@ func (s *Store) PutEntity(e Entity) error {
 		}
 		return nil
 	})
+	if err == nil {
+		s.notify(Event{Kind: "entity", Op: "put", Entity: e})
+	}
+	return err
 }
 
 // normalizedNameSet returns the set of non-empty Normalize()d forms of name
@@ -479,7 +487,7 @@ func (s *Store) PutFact(f Fact) error {
 	if err != nil {
 		return err
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
+	err = s.db.Update(func(txn *badger.Txn) error {
 		if err := txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b); err != nil {
 			return err
 		}
@@ -488,6 +496,10 @@ func (s *Store) PutFact(f Fact) error {
 		}
 		return txn.Set(adjKey(f.Dst, f.Src, f.Relation, f.ValidFrom), nil)
 	})
+	if err == nil {
+		s.notify(Event{Kind: "fact", Op: "put", Fact: f})
+	}
+	return err
 }
 
 // FactsFrom returns every fact with Src == slug.
@@ -611,7 +623,8 @@ func (s *Store) AllFacts() ([]Fact, error) {
 // entity slug for an edge, Fact.KeyDst() for an attribute fact.
 func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Time) error {
 	key := factKey(src, relation, dst, validFrom)
-	return s.db.Update(func(txn *badger.Txn) error {
+	var updated Fact
+	err := s.db.Update(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return ErrNotFound
@@ -631,8 +644,16 @@ func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Tim
 		if err != nil {
 			return err
 		}
-		return txn.Set(key, b)
+		if err := txn.Set(key, b); err != nil {
+			return err
+		}
+		updated = f
+		return nil
 	})
+	if err == nil {
+		s.notify(Event{Kind: "fact", Op: "invalidate", Fact: updated})
+	}
+	return err
 }
 
 // DeleteFact removes the exact fact identified by (src, relation, dst,
@@ -644,7 +665,7 @@ func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Tim
 // ErrNotFound if no such fact exists.
 func (s *Store) DeleteFact(src, relation, dst string, validFrom time.Time) error {
 	key := factKey(src, relation, dst, validFrom)
-	return s.db.Update(func(txn *badger.Txn) error {
+	err := s.db.Update(func(txn *badger.Txn) error {
 		if _, err := txn.Get(key); err != nil {
 			if errors.Is(err, badger.ErrKeyNotFound) {
 				return ErrNotFound
@@ -659,6 +680,10 @@ func (s *Store) DeleteFact(src, relation, dst string, validFrom time.Time) error
 		}
 		return txn.Delete(adjKey(dst, src, relation, validFrom))
 	})
+	if err == nil {
+		s.notify(Event{Kind: "fact", Op: "delete", Fact: Fact{Src: src, Relation: relation, Dst: dst, ValidFrom: validFrom}})
+	}
+	return err
 }
 
 // --- Cursors ---
@@ -798,7 +823,7 @@ func (s *Store) Restore(r io.Reader) error {
 // it. Facts are untouched: a migration that retires an entity relocates or
 // invalidates its facts first. Deleting a missing entity is not an error.
 func (s *Store) DeleteEntity(slug string) error {
-	return s.db.Update(func(txn *badger.Txn) error {
+	err := s.db.Update(func(txn *badger.Txn) error {
 		prev, err := getEntityTxn(txn, slug)
 		if errors.Is(err, ErrNotFound) {
 			return nil
@@ -816,6 +841,10 @@ func (s *Store) DeleteEntity(slug string) error {
 		}
 		return txn.Delete([]byte(prefixEntity + slug))
 	})
+	if err == nil {
+		s.notify(Event{Kind: "entity", Op: "delete", Slug: slug})
+	}
+	return err
 }
 
 // ClaimAlias points al:<Normalize(name)> at slug unconditionally. Hygiene
@@ -841,7 +870,7 @@ func (s *Store) RelocateFact(old, updated Fact) error {
 	if string(oldKey) == string(newKey) {
 		return s.PutFact(updated)
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
+	err := s.db.Update(func(txn *badger.Txn) error {
 		if item, err := txn.Get(newKey); err == nil {
 			var existing Fact
 			if err := item.Value(func(val []byte) error { return json.Unmarshal(val, &existing) }); err != nil {
@@ -892,4 +921,39 @@ func (s *Store) RelocateFact(old, updated Fact) error {
 		}
 		return txn.Set(adjKey(updated.Dst, updated.Src, updated.Relation, updated.ValidFrom), nil)
 	})
+	if err == nil {
+		s.notify(Event{Kind: "fact", Op: "delete", Fact: old})
+		s.notify(Event{Kind: "fact", Op: "put", Fact: updated})
+	}
+	return err
+}
+
+// --- Observer ---
+
+// Event describes one write to the store, for a subscriber such as the
+// search index that mirrors facts and entities in memory.
+type Event struct {
+	Kind   string // "fact" | "entity"
+	Op     string // "put" | "delete" | "invalidate"
+	Fact   Fact   // for Kind "fact"
+	Entity Entity // for Kind "entity"
+	Slug   string // for entity deletes
+}
+
+// SetObserver registers fn to be called after every fact or entity write.
+// The call happens outside the Badger transaction, after it commits. Pass
+// nil to unsubscribe.
+func (s *Store) SetObserver(fn func(Event)) {
+	s.obsMu.Lock()
+	s.observer = fn
+	s.obsMu.Unlock()
+}
+
+func (s *Store) notify(ev Event) {
+	s.obsMu.RLock()
+	fn := s.observer
+	s.obsMu.RUnlock()
+	if fn != nil {
+		fn(ev)
+	}
 }

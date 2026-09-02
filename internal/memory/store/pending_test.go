@@ -2,8 +2,8 @@ package store
 
 import (
 	"bytes"
-	"fmt"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 )
