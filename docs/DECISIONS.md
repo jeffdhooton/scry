@@ -1913,3 +1913,50 @@ store for no gain.
 
 **What would change our minds:** a store an order of magnitude larger,
 or a benchmark miss pattern that is semantic rather than lexical.
+
+
+## 2026-09-02 — The distiller attests the repo; the daemon never stats a path
+
+**Decision:** `RawEpisode.CwdIsRepo` is set by the distiller on the machine
+where the session ran (`distill.CwdIsRepo` stats `<cwd>/.git` there) and
+travels with the episode through the queue. The resolver records a repo
+ref only when the flag is set; `isWorkspacePath` and hygiene no longer
+stat anything. `scry memory ingest --force` re-queues episodes the store
+already holds so they are re-applied under the current rules.
+
+**Context:** the shared store moved to the mini on 2026-08-28. From then on
+every laptop session's cwd was checked for a `.git` directory on the mini,
+where `/Users/jeff` does not exist, so no laptop-origin entity received a
+repo ref and `scry memory orient` in a laptop repo showed nothing from the
+Kimi, OpenCode, or Claude sessions that touched it. The grader for
+done-bar item 6 found it.
+
+**Why a flag and not a path map:** the fact to record is "this path was a
+repository when the session ran", and only the machine that ran it knows.
+A daemon-side allowlist of repo roots would go stale the day a repo is
+cloned.
+
+
+## 2026-09-02 — Kind words, spelling variants, and the alias keeper
+
+**Decision:** an alias that is another entity's name plus that entity's
+kind words ("Hermes agent" for the service Hermes, "Halo box" for the
+machine AMD Halo, "hermes-agent") names that entity: the write path refuses
+it on any other entity of an incompatible type and hygiene splits it off
+and grants it to the entity it names. Ownership lookups compare compact
+spellings ("halo1" is `halo-1`, "Bryan.Farney" is `bryan-farney`,
+"deepresearch/agent.py" is `deepresearch-agent-py`). A concept stub never
+takes a typed entity's own name. When several entities list one alias,
+the keeper is the one whose name and kind words compose it, else the one
+whose own name shares a token with it with the most facts. An entity's
+own name in another spelling is never split off it.
+
+**Context:** the item 5 grader watched the live write path put "hermes
+agent" back on hermes-ops minutes after the migration had moved it, via
+the shares-a-token shortcut, and showed spelling variants crossing types.
+A degree-based keeper handed "Hermes agent" to the busier project and the
+service and project traded it every pass.
+
+**Why kind words are per type:** "agent" makes a service, "box" makes a
+machine, "repo" makes a project. The lists are short and in code
+(`resolve.kindWords`), where a table test can hold them.
