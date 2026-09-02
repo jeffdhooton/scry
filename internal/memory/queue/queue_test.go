@@ -303,7 +303,7 @@ func (o *orderRecorder) Extract(ctx context.Context, ep distill.RawEpisode, g []
 func TestOrderIsManualFirstThenRoundRobinBySource(t *testing.T) {
 	base := time.Date(2026, 9, 2, 0, 0, 0, 0, time.UTC)
 	mk := func(id, src string, age int) store.PendingEpisode {
-		return store.PendingEpisode{ID: id, Source: src, EnqueuedAt: base.Add(time.Duration(age) * time.Second), NextAttempt: base}
+		return store.PendingEpisode{ID: id, Source: src, OccurredAt: base.Add(time.Duration(age) * time.Second), EnqueuedAt: base.Add(time.Duration(age) * time.Second), NextAttempt: base}
 	}
 	items := []store.PendingEpisode{
 		mk("c1", "claude-session", 1), mk("c2", "claude-session", 2), mk("c3", "claude-session", 3),
@@ -317,7 +317,7 @@ func TestOrderIsManualFirstThenRoundRobinBySource(t *testing.T) {
 	for i, p := range got {
 		ids[i] = p.ID
 	}
-	want := "m1 m2 c1 k1 o1 c2 c3"
+	want := "m1 m2 c3 k1 o1 c2 c1"
 	if strings.Join(ids, " ") != want {
 		t.Errorf("order = %q, want %q", strings.Join(ids, " "), want)
 	}

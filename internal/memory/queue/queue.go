@@ -33,8 +33,8 @@ const (
 	// retrying it forever would starve everything behind it.
 	MaxTimeoutAttempts = 3
 
-	defaultWorkers     = 12
-	defaultItemTimeout = 5 * time.Minute
+	defaultWorkers     = 24
+	defaultItemTimeout = 6 * time.Minute
 	defaultPoll        = 30 * time.Second
 	backoffBase        = 30 * time.Second
 	backoffCap         = 2 * time.Minute
@@ -192,7 +192,9 @@ func (w *Worker) dispatch(ctx context.Context, sem chan struct{}, wg *sync.WaitG
 }
 
 // order returns the ready items in dispatch order: manual first (oldest
-// first), then one item per source in turn, oldest first within a source.
+// first), then one item per source in turn, NEWEST first within a source:
+// a slice of today's session is worth more to the next recall than one
+// from last month, and a backlog drains from the present backwards.
 func order(items []store.PendingEpisode, now time.Time) []store.PendingEpisode {
 	var manual []store.PendingEpisode
 	bySource := map[string][]store.PendingEpisode{}
@@ -210,13 +212,16 @@ func order(items []store.PendingEpisode, now time.Time) []store.PendingEpisode {
 		}
 		bySource[p.Source] = append(bySource[p.Source], p)
 	}
-	byAge := func(a []store.PendingEpisode) {
-		sort.SliceStable(a, func(i, j int) bool { return a[i].EnqueuedAt.Before(a[j].EnqueuedAt) })
-	}
-	byAge(manual)
+	sort.SliceStable(manual, func(i, j int) bool { return manual[i].EnqueuedAt.Before(manual[j].EnqueuedAt) })
 	sort.Strings(sources)
 	for _, s := range sources {
-		byAge(bySource[s])
+		q := bySource[s]
+		sort.SliceStable(q, func(i, j int) bool {
+			if !q[i].OccurredAt.Equal(q[j].OccurredAt) {
+				return q[i].OccurredAt.After(q[j].OccurredAt)
+			}
+			return q[i].EnqueuedAt.Before(q[j].EnqueuedAt)
+		})
 	}
 	out := append([]store.PendingEpisode{}, manual...)
 	for {
