@@ -46,38 +46,35 @@ func (d *Daemon) memoryIndex() (*search.Index, error) {
 	}
 	d.memIndexOnce.Do(func() {
 		start := time.Now()
-		ix, err := search.Build(st)
-		if err != nil {
-			log.Printf("memory: search index build failed: %v", err)
-			d.memIndexErr = err
-			return
-		}
-		d.memIndex = ix
-		names := &sync.Map{}
+		ix := search.New()
+		// Subscribe before loading: a write that lands mid-build blocks on
+		// the index lock and applies after the snapshot, so nothing written
+		// during the build is missing until a restart.
 		st.SetObserver(func(ev store.Event) {
 			switch ev.Kind {
 			case "entity":
 				if ev.Op == "delete" {
-					ix.Remove("en:" + ev.Slug)
-					names.Delete(ev.Slug)
+					ix.RemoveEntity(ev.Slug)
 					return
 				}
-				names.Store(ev.Entity.Slug, ev.Entity.Name)
-				ix.Upsert(search.EntityDoc(ev.Entity))
+				ix.UpsertEntity(ev.Entity)
 			case "fact":
 				if ev.Op == "delete" {
 					ix.Remove(search.FactKey(ev.Fact))
 					return
 				}
-				lookup := map[string]string{}
-				for _, slug := range []string{ev.Fact.Src, ev.Fact.Dst} {
-					if n, ok := names.Load(slug); ok {
-						lookup[slug] = n.(string)
-					}
-				}
-				ix.Upsert(search.FactDoc(ev.Fact, lookup))
+				ix.UpsertFact(ev.Fact)
+			case "episode":
+				ix.UpsertEpisode(ev.Episode)
 			}
 		})
+		if err := ix.Load(st); err != nil {
+			log.Printf("memory: search index build failed: %v", err)
+			st.SetObserver(nil)
+			d.memIndexErr = err
+			return
+		}
+		d.memIndex = ix
 		log.Printf("memory: search index built: %d documents in %s", ix.Len(), time.Since(start).Round(time.Millisecond))
 	})
 	return d.memIndex, d.memIndexErr

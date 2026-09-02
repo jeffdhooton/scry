@@ -1,139 +1,19 @@
-// Package recall provides read-side queries over scry's memory graph: fuzzy
-// entity search, as-of time travel over facts, breadth-first fact-path
-// discovery between two entities, and a markdown orientation blurb meant to
-// be injected into agent sessions.
+// Package recall provides read-side queries over scry's memory graph:
+// ranked fact search (query.go), as-of time travel over facts,
+// breadth-first fact-path discovery between two entities, and a markdown
+// orientation blurb meant to be injected into agent sessions.
 package recall
 
 import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
-
-// EntityHit is one ranked result from Query: the matched entity, the facts
-// about it (current, or as-of a point in time), and a handful of the most
-// recent episodes those facts trace back to.
-type EntityHit struct {
-	Entity   store.Entity    `json:"entity"`
-	Facts    []store.Fact    `json:"facts"`              // current unless AsOf set
-	Episodes []store.Episode `json:"episodes,omitempty"` // most recent ≤5 referencing the entity
-}
-
-var tokenRE = regexp.MustCompile(`[^a-zA-Z0-9]+`)
-
-// tokenize lowercases q and splits it on runs of non-alphanumeric
-// characters, discarding tokens shorter than 3 characters.
-func tokenize(q string) []string {
-	parts := tokenRE.Split(strings.ToLower(q), -1)
-	toks := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if len(p) >= 3 {
-			toks = append(toks, p)
-		}
-	}
-	return toks
-}
-
-// matchTier reports whether entity e matches query q, and if so at which
-// rank tier: 0 for an exact normalized-query match against the entity's
-// name or an alias, 1 for a substring match against slug, name, or an
-// alias. The second return value is false when e is not a match at all.
-func matchTier(e store.Entity, q string) (tier int, hit bool) {
-	nq := store.Normalize(q)
-	normName := store.Normalize(e.Name)
-	normAliases := make([]string, len(e.Aliases))
-	for i, a := range e.Aliases {
-		normAliases[i] = store.Normalize(a)
-	}
-
-	if nq != "" && nq == normName {
-		return 0, true
-	}
-	for _, na := range normAliases {
-		if nq != "" && nq == na {
-			return 0, true
-		}
-	}
-
-	candidates := tokenize(q)
-	if nq != "" {
-		candidates = append(candidates, nq)
-	}
-	for _, c := range candidates {
-		if c == "" {
-			continue
-		}
-		if strings.Contains(e.Slug, c) || strings.Contains(normName, c) {
-			return 1, true
-		}
-		for _, na := range normAliases {
-			if strings.Contains(na, c) {
-				return 1, true
-			}
-		}
-	}
-	return 0, false
-}
-
-// Query searches entities by slug/name/alias substring or exact match
-// against q, ranks exact matches first (then substring matches, ties
-// broken by most-recent LastSeen), and returns up to limit hits. When asOf
-// is nil, each hit's Facts are the entity's current facts; when asOf is
-// set, Facts are whichever facts were valid at that point in time.
-func Query(st *store.Store, q string, asOf *time.Time, limit int) ([]EntityHit, error) {
-	entities, err := st.Entities()
-	if err != nil {
-		return nil, err
-	}
-
-	type ranked struct {
-		entity store.Entity
-		tier   int
-	}
-	var matches []ranked
-	for _, e := range entities {
-		tier, hit := matchTier(e, q)
-		if !hit {
-			continue
-		}
-		matches = append(matches, ranked{entity: e, tier: tier})
-	}
-
-	sort.SliceStable(matches, func(i, j int) bool {
-		if matches[i].tier != matches[j].tier {
-			return matches[i].tier < matches[j].tier
-		}
-		return matches[i].entity.LastSeen.After(matches[j].entity.LastSeen)
-	})
-
-	if limit > 0 && len(matches) > limit {
-		matches = matches[:limit]
-	}
-
-	hits := make([]EntityHit, 0, len(matches))
-	for _, m := range matches {
-		facts, err := st.FactsAbout(m.entity.Slug, true)
-		if err != nil {
-			return nil, err
-		}
-		facts = filterAsOf(facts, asOf)
-		sort.Slice(facts, func(i, j int) bool { return facts[i].ValidFrom.After(facts[j].ValidFrom) })
-
-		eps, err := collectEpisodes(st, facts, 5)
-		if err != nil {
-			return nil, err
-		}
-
-		hits = append(hits, EntityHit{Entity: m.entity, Facts: facts, Episodes: eps})
-	}
-	return hits, nil
-}
 
 // filterAsOf filters facts to those valid at asOf, or to current facts
 // (InvalidAt == nil) when asOf is nil.

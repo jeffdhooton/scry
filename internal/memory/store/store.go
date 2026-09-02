@@ -214,9 +214,13 @@ func (s *Store) PutEpisode(e Episode) error {
 	if err != nil {
 		return err
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
+	err = s.db.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixEpisode+e.ID), b)
 	})
+	if err == nil {
+		s.notify(Event{Kind: "episode", Op: "put", Episode: e})
+	}
+	return err
 }
 
 func (s *Store) GetEpisode(id string) (Episode, error) {
@@ -915,11 +919,12 @@ func (s *Store) RelocateFact(old, updated Fact) error {
 // Event describes one write to the store, for a subscriber such as the
 // search index that mirrors facts and entities in memory.
 type Event struct {
-	Kind   string // "fact" | "entity"
-	Op     string // "put" | "delete" | "invalidate"
-	Fact   Fact   // for Kind "fact"
-	Entity Entity // for Kind "entity"
-	Slug   string // for entity deletes
+	Kind    string  // "fact" | "entity" | "episode"
+	Op      string  // "put" | "delete" | "invalidate"
+	Fact    Fact    // for Kind "fact"
+	Entity  Entity  // for Kind "entity"
+	Episode Episode // for Kind "episode"
+	Slug    string  // for entity deletes
 }
 
 // SetObserver registers fn to be called after every fact or entity write.

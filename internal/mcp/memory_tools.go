@@ -129,5 +129,7 @@ func (s *Server) callMemoryQuery(ctx context.Context, id json.RawMessage, toolNa
 	}
 
 	logCall(callLogEntry{Timestamp: start.Format(time.RFC3339), Tool: toolName, LatencyMs: time.Since(start).Milliseconds()})
-	s.writeToolResult(id, prettyJSON(raw), false)
+	// Compact, not indented: recall's 24 KB cap is measured on the compact
+	// form, and indentation would add 10-15% on top of it.
+	s.writeToolResult(id, string(raw), false)
 }

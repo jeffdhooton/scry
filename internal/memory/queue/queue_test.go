@@ -73,11 +73,22 @@ func pending(id, text string) store.PendingEpisode {
 		OccurredAt: now, EnqueuedAt: now, NextAttempt: now}
 }
 
+// runFor runs w for at most d in the background and, at cleanup, stops it
+// and waits for Run to return before the store (registered earlier, so
+// cleaned up later) is closed. A worker that outlives its test panics on a
+// closed Badger handle.
 func runFor(t *testing.T, w *Worker, d time.Duration) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), d)
-	defer cancel()
-	w.Run(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		w.Run(ctx)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
 }
 
 func waitUntil(t *testing.T, timeout time.Duration, cond func() bool) bool {
@@ -100,7 +111,7 @@ func TestSuccessResolvesAndDeletesPending(t *testing.T) {
 	fx := &fakeExtractor{}
 	w := New(Options{Store: st, Extractor: fx, Glossary: func() []string { return []string{"scry: scry daemon"} },
 		Poll: 10 * time.Millisecond})
-	go runFor(t, w, 2*time.Second)
+	runFor(t, w, 2*time.Second)
 
 	if !waitUntil(t, 2*time.Second, func() bool { has, _ := st.HasPending("p1"); return !has }) {
 		t.Fatal("pending item never drained")
@@ -126,7 +137,7 @@ func TestManualEpisodeKeepsItsTextAsSummary(t *testing.T) {
 	st := openTemp(t)
 	_ = st.PutPending(pending("m1", "Jeff prefers zsh"))
 	w := New(Options{Store: st, Extractor: &fakeExtractor{}, Poll: 10 * time.Millisecond})
-	go runFor(t, w, time.Second)
+	runFor(t, w, time.Second)
 	waitUntil(t, time.Second, func() bool { has, _ := st.HasPending("m1"); return !has })
 	ep, err := st.GetEpisode("m1")
 	if err != nil {
@@ -143,7 +154,7 @@ func TestTransportFailureBacksOffWithoutParking(t *testing.T) {
 	fx := &fakeExtractor{errs: []error{errors.New("dial tcp: i/o timeout")}}
 	w := New(Options{Store: st, Extractor: fx, Poll: 10 * time.Millisecond})
 	w.backoff = func(int) time.Duration { return time.Hour }
-	go runFor(t, w, 300*time.Millisecond)
+	runFor(t, w, 300*time.Millisecond)
 	waitUntil(t, time.Second, func() bool { p, _ := st.GetPending("p1"); return p.Attempts == 1 })
 	p, err := st.GetPending("p1")
 	if err != nil {
@@ -164,7 +175,7 @@ func TestParseFailuresParkAfterMaxAttempts(t *testing.T) {
 	fx := &fakeExtractor{errs: []error{parse, parse, parse, nil}}
 	w := New(Options{Store: st, Extractor: fx, Poll: 10 * time.Millisecond})
 	w.backoff = func(int) time.Duration { return 0 }
-	go runFor(t, w, 2*time.Second)
+	runFor(t, w, 2*time.Second)
 	if !waitUntil(t, 2*time.Second, func() bool { p, _ := st.GetPending("p1"); return p.Parked }) {
 		t.Fatal("item never parked")
 	}
@@ -185,7 +196,7 @@ func TestProviderOutageThenRecoveryDrainsEverything(t *testing.T) {
 	fx := &fakeExtractor{failUntil: time.Now().Add(200 * time.Millisecond)}
 	w := New(Options{Store: st, Extractor: fx, Workers: 4, Poll: 10 * time.Millisecond})
 	w.backoff = func(int) time.Duration { return 50 * time.Millisecond }
-	go runFor(t, w, 5*time.Second)
+	runFor(t, w, 5*time.Second)
 	if !waitUntil(t, 5*time.Second, func() bool { r, b, p, _ := st.PendingCounts(time.Now()); return r+b+p == 0 }) {
 		r, b, p, _ := st.PendingCounts(time.Now())
 		t.Fatalf("queue not drained: ready %d backoff %d parked %d", r, b, p)
@@ -200,7 +211,7 @@ func TestKickWakesTheLoop(t *testing.T) {
 	st := openTemp(t)
 	fx := &fakeExtractor{}
 	w := New(Options{Store: st, Extractor: fx, Poll: time.Hour})
-	go runFor(t, w, time.Second)
+	runFor(t, w, time.Second)
 	time.Sleep(20 * time.Millisecond)
 	_ = st.PutPending(pending("k1", "x"))
 	w.Kick()
@@ -215,7 +226,7 @@ func TestItemTimeoutIsATransportFailure(t *testing.T) {
 	fx := &fakeExtractor{delay: time.Second}
 	w := New(Options{Store: st, Extractor: fx, Poll: 10 * time.Millisecond, ItemTimeout: 30 * time.Millisecond})
 	w.backoff = func(int) time.Duration { return time.Hour }
-	go runFor(t, w, 500*time.Millisecond)
+	runFor(t, w, 500*time.Millisecond)
 	waitUntil(t, time.Second, func() bool { p, _ := st.GetPending("s1"); return p.Attempts == 1 })
 	p, _ := st.GetPending("s1")
 	if p.Attempts != 1 || p.Parked {

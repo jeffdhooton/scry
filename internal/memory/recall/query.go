@@ -26,15 +26,101 @@ const (
 	// seen.
 	MaxPayloadBytes = 24 * 1024
 	// candidateFacts is how many BM25 hits are re-ranked.
-	candidateFacts = 200
+	candidateFacts = 1000
 	maxEntities    = 5
 	maxEpisodes    = 3
 	summaryChars   = 300
+	// Per-field bounds so twenty facts can never exceed the cap on their
+	// own: a sentence, a value, and a provenance list are each clipped.
+	factChars     = 1000
+	valueChars    = 200
+	maxProvenance = 5
+	queryChars    = 200
 	// entityBoost is added to a fact's score per query-named entity it
-	// touches; recencyBoost to a fact valid in the last thirty days.
-	entityBoost  = 0.5
-	recencyBoost = 0.15
+	// touches; recencyBoost to a fact valid in the last thirty days;
+	// episodeBoost to a fact produced by an episode whose summary the
+	// query matches, scaled by that episode's share of the best score.
+	entityBoost    = 0.5
+	recencyBoost   = 0.15
+	episodeBoost   = 2.0
+	maxEpisodeHits = 8
 )
+
+// synonyms expands a query token with the words the facts tend to use
+// instead. Small and domain-specific on purpose: a general thesaurus would
+// flood the query. Lexical, local, and inspectable.
+var synonyms = map[string][]string{
+	"ssh": {"login", "access", "tailscale", "user"}, "login": {"ssh", "user", "access"},
+	"tailnet": {"tailscale"}, "tailscale": {"tailnet"},
+	"box": {"machine", "host", "server", "mini", "halo"}, "boxes": {"machines", "hosts", "halo", "halo2"},
+	"machine": {"box", "host", "mini"}, "host": {"machine", "box", "server"},
+	"wired": {"cable", "link", "connected", "10gbe"}, "cable": {"wired", "link"}, "link": {"cable", "wired"},
+	"charges": {"cost", "spend", "billing", "api key", "balance"}, "cost": {"price", "spend", "charges", "cheap"},
+	"spend": {"cost", "charges", "budget", "credit"}, "billing": {"balance", "cost", "402"},
+	"container": {"docker", "compose"}, "containers": {"docker", "compose"}, "docker": {"container", "compose"},
+	"natively": {"launchd", "brew", "docker"},
+	"commit":   {"push", "merge", "main"}, "lands": {"merge", "push", "deploy"}, "landed": {"merged", "pushed"},
+	"provider": {"model", "api", "endpoint"}, "fallback": {"falls back", "fall back"}, "fall": {"fallback"},
+	"database": {"postgres", "mysql", "sqlite", "db"}, "databases": {"postgres", "mysql", "db"},
+	"object store": {"minio", "s3", "r2"}, "storage": {"store", "disk", "bucket"},
+	"recording": {"audio", "record", "retain", "persist"}, "recordings": {"audio", "files"}, "voice": {"audio", "speech"},
+	"watchdog": {"monitor", "guard", "cron", "kill"}, "runaway": {"watchdog", "limit", "cap"},
+	"ingestion": {"sweep", "ingest", "launchd"}, "drives": {"runs", "sweep", "launchd", "cron"},
+	"process": {"launchd", "job", "daemon"}, "pipeline": {"chain", "stages", "extraction"},
+	"cheap": {"flash", "cost"}, "thinking": {"reasoning", "pro"}, "stages": {"chain", "pipeline"},
+	"environments": {"sites", "forge", "deploys", "staging", "production"}, "web": {"site", "forge"},
+	"credentials": {"key", "token", "env"}, "secret": {"key", "token", "env"}, "password": {"keyring", "secret"},
+	"address": {"ip", "host", "url", "endpoint"}, "port": {"endpoint", "listen"},
+	"restart": {"kickstart", "launchctl"}, "schedule": {"cron", "launchd", "interval"},
+	"gpu": {"halo", "inference", "vram"}, "inference": {"model", "halo", "llm"},
+	"phone": {"mobile", "ios", "android", "expo"}, "mobile": {"phone", "expo", "app"},
+	"email": {"gmail", "gog", "mail"}, "calendar": {"gog", "gcal"},
+}
+
+// expand appends synonym words to q so the BM25 pass sees them. The
+// original words keep their full weight; synonyms only add candidates.
+func expand(q string) string {
+	lower := strings.ToLower(q)
+	var extra []string
+	seen := map[string]bool{}
+	for k, vs := range synonyms {
+		if !containsWord(lower, k) {
+			continue
+		}
+		for _, v := range vs {
+			if !seen[v] {
+				seen[v] = true
+				extra = append(extra, v)
+			}
+		}
+	}
+	if len(extra) == 0 {
+		return q
+	}
+	sort.Strings(extra)
+	return q + " " + strings.Join(extra, " ")
+}
+
+func containsWord(text, w string) bool {
+	i := strings.Index(text, w)
+	for i >= 0 {
+		before := i == 0 || !isWordChar(text[i-1])
+		after := i+len(w) >= len(text) || !isWordChar(text[i+len(w)])
+		if before && after {
+			return true
+		}
+		next := strings.Index(text[i+1:], w)
+		if next < 0 {
+			return false
+		}
+		i += 1 + next
+	}
+	return false
+}
+
+func isWordChar(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_'
+}
 
 // Result is a recall answer.
 type Result struct {
@@ -68,8 +154,11 @@ type FactHit struct {
 	ValidFrom  time.Time  `json:"valid_from"`
 	InvalidAt  *time.Time `json:"invalid_at,omitempty"`
 	Confidence float64    `json:"confidence"`
-	Episodes   []string   `json:"episodes,omitempty"`
-	Score      float64    `json:"score"`
+	// Episodes holds up to maxProvenance ids; EpisodeCount is the full
+	// number, since a long-lived fact can be restated by hundreds.
+	Episodes     []string `json:"episodes,omitempty"`
+	EpisodeCount int      `json:"episode_count,omitempty"`
+	Score        float64  `json:"score"`
 }
 
 // EpisodeHead is a provenance pointer with a short summary.
@@ -80,13 +169,14 @@ type EpisodeHead struct {
 	Summary    string    `json:"summary"`
 }
 
-// Recall runs the v2 query. ix may be nil, in which case it falls back to
-// the entity-substring path with the same output shape and cap.
+// Recall runs the v2 query. ix may be nil (the index failed to build), in
+// which case only facts on entities the query names directly are returned,
+// with the same output shape and cap.
 func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit int) (Result, error) {
 	if limit <= 0 {
 		limit = DefaultFactLimit
 	}
-	res := Result{Query: q, Entities: []EntityHead{}, Facts: []FactHit{}}
+	res := Result{Query: clip(q, queryChars), Entities: []EntityHead{}, Facts: []FactHit{}}
 
 	// Entities the query names directly: exact or alias match, or a BM25
 	// entity hit. Their facts get the boost.
@@ -113,7 +203,19 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 
 	var scored []FactHit
 	if ix != nil {
-		hits := ix.Search(q, []string{search.KindFact}, asOf, candidateFacts)
+		expanded := expand(q)
+		// Episodes whose summary matches: their facts get a boost scaled by
+		// the episode's share of the best episode score.
+		epScore := map[string]float64{}
+		best := 0.0
+		for _, h := range ix.Search(expanded, []string{search.KindEpisode}, nil, maxEpisodeHits) {
+			id := strings.TrimPrefix(h.Doc.Key, "ep:")
+			epScore[id] = h.Score
+			if h.Score > best {
+				best = h.Score
+			}
+		}
+		hits := ix.Search(expanded, []string{search.KindFact}, asOf, candidateFacts)
 		now := time.Now()
 		for _, h := range hits {
 			f := h.Doc.Fact
@@ -125,6 +227,15 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 			}
 			if now.Sub(f.ValidFrom) < 30*24*time.Hour {
 				s += recencyBoost
+			}
+			if best > 0 {
+				top := 0.0
+				for _, id := range f.Episodes {
+					if es := epScore[id]; es > top {
+						top = es
+					}
+				}
+				s += episodeBoost * top / best
 			}
 			scored = append(scored, toHit(f, s))
 		}
@@ -244,8 +355,9 @@ func capPayload(res *Result) []FactHit {
 		case len(res.Entities) > 1:
 			res.Entities = res.Entities[:len(res.Entities)-1]
 		default:
-			if len(res.Facts) == 1 && len(res.Facts[0].Fact) > 512 {
-				res.Facts[0].Fact = clip(res.Facts[0].Fact, 512)
+			if len(res.Facts) == 1 && len(res.Facts[0].Fact) > 256 {
+				res.Facts[0].Fact = clip(res.Facts[0].Fact, 256)
+				res.Facts[0].Episodes = nil
 				res.Truncated = true
 				continue
 			}
@@ -255,19 +367,28 @@ func capPayload(res *Result) []FactHit {
 }
 
 func toHit(f store.Fact, score float64) FactHit {
-	return FactHit{Src: f.Src, Relation: f.Relation, Dst: f.Dst, Value: f.Value, Fact: f.Fact,
-		ValidFrom: f.ValidFrom, InvalidAt: f.InvalidAt, Confidence: f.Confidence, Episodes: f.Episodes, Score: round3(score)}
+	eps := f.Episodes
+	if len(eps) > maxProvenance {
+		eps = eps[:maxProvenance]
+	}
+	return FactHit{Src: f.Src, Relation: f.Relation, Dst: f.Dst, Value: clip(f.Value, valueChars), Fact: clip(f.Fact, factChars),
+		ValidFrom: f.ValidFrom, InvalidAt: f.InvalidAt, Confidence: f.Confidence, Episodes: eps, EpisodeCount: len(f.Episodes), Score: round3(score)}
 }
 
 func hitKey(h FactHit) string {
 	return h.Src + "|" + h.Relation + "|" + h.Dst + "|" + h.Value + "|" + h.ValidFrom.UTC().Format(time.RFC3339Nano)
 }
 
+// clip bounds s to n runes, never splitting a multi-byte character.
 func clip(s string, n int) string {
 	if len(s) <= n {
 		return s
 	}
-	return s[:n-1] + "…"
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n-1]) + "…"
 }
 
 func round3(f float64) float64 { return float64(int(f*1000+0.5)) / 1000 }

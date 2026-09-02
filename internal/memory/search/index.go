@@ -24,9 +24,15 @@ import (
 
 // Kind says what a document is.
 const (
-	KindFact   = "fact"
-	KindEntity = "entity"
+	KindFact    = "fact"
+	KindEntity  = "entity"
+	KindEpisode = "episode"
 )
+
+// prefixWeight is the share of a full-token match a 4-character prefix
+// token earns: enough to bridge "tailnet" and "Tailscale" or "deploy" and
+// "deployment", not enough to outrank a real match.
+const prefixWeight = 0.4
 
 // Doc is one indexed item. For a fact, Key is the store key string and
 // Slugs holds the src (and dst) entity slugs; for an entity, Key is
@@ -66,37 +72,98 @@ type Index struct {
 	lengths  []int
 	totalLen int
 	live     int // docs not removed
+	dead     int // tombstoned slots since the last compaction
+	// names maps entity slugs to display names so a fact indexed later
+	// still carries "Mac mini" for mac-mini.
+	names map[string]string
 }
 
 // New returns an empty index.
 func New() *Index {
-	return &Index{byKey: map[string]int{}, postings: map[string][]posting{}}
+	return &Index{byKey: map[string]int{}, postings: map[string][]posting{}, names: map[string]string{}}
 }
 
-// Build indexes every fact and entity in st.
+// Build indexes every fact and entity in st into a new index. Callers that
+// need writes made during the build to land should subscribe the store's
+// observer to the index BEFORE calling Load; see Load.
 func Build(st *store.Store) (*Index, error) {
 	ix := New()
+	if err := ix.Load(st); err != nil {
+		return nil, err
+	}
+	return ix, nil
+}
+
+// Load fills ix from st. It holds the write lock for the duration, so an
+// observer that upserts concurrently blocks and then applies after the
+// snapshot: a write made mid-build is never lost, only deferred a second.
+func (ix *Index) Load(st *store.Store) error {
 	facts, err := st.AllFacts()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	entities, err := st.Entities()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	names := make(map[string]string, len(entities))
-	for _, e := range entities {
-		names[e.Slug] = e.Name
+	episodes, err := st.AllEpisodes()
+	if err != nil {
+		return err
 	}
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
+	for _, e := range entities {
+		ix.names[e.Slug] = e.Name
+	}
 	for _, f := range facts {
-		ix.upsertLocked(FactDoc(f, names))
+		ix.upsertLocked(FactDoc(f, ix.names))
 	}
 	for _, e := range entities {
 		ix.upsertLocked(EntityDoc(e))
 	}
-	return ix, nil
+	for _, ep := range episodes {
+		ix.upsertLocked(EpisodeDoc(ep))
+	}
+	return nil
+}
+
+// EpisodeDoc renders an episode summary as a document. Summaries are the
+// model's paraphrase of a session, so they carry words a fact sentence
+// leaves out; a query that hits one boosts the facts it produced.
+func EpisodeDoc(ep store.Episode) Doc {
+	return Doc{Kind: KindEpisode, Key: "ep:" + ep.ID, Text: ep.Summary + " " + ep.Source, ValidFrom: ep.OccurredAt}
+}
+
+// UpsertEpisode indexes ep.
+func (ix *Index) UpsertEpisode(ep store.Episode) {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	ix.upsertLocked(EpisodeDoc(ep))
+}
+
+// UpsertFact indexes f using the index's own name table.
+func (ix *Index) UpsertFact(f store.Fact) {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	ix.upsertLocked(FactDoc(f, ix.names))
+}
+
+// UpsertEntity indexes e and records its display name.
+func (ix *Index) UpsertEntity(e store.Entity) {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	ix.names[e.Slug] = e.Name
+	ix.upsertLocked(EntityDoc(e))
+}
+
+// RemoveEntity drops an entity document and its name.
+func (ix *Index) RemoveEntity(slug string) {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	delete(ix.names, slug)
+	if i, ok := ix.byKey["en:"+slug]; ok {
+		ix.removeLocked(i)
+	}
 }
 
 // FactDoc renders a fact as a document. names maps slugs to display names
@@ -176,8 +243,9 @@ func (ix *Index) Remove(key string) {
 }
 
 // removeLocked tombstones a document. Postings keep pointing at it and are
-// skipped at query time; the slot is never reused. Rebuild on restart
-// compacts.
+// skipped at query time. Once tombstones outnumber half the live documents
+// (and there are enough to matter) the index compacts itself, so a daemon
+// that runs for months does not scan a graveyard on every query.
 func (ix *Index) removeLocked(i int) {
 	d := ix.docs[i]
 	if d.Key == "" {
@@ -186,7 +254,38 @@ func (ix *Index) removeLocked(i int) {
 	delete(ix.byKey, d.Key)
 	ix.totalLen -= ix.lengths[i]
 	ix.live--
+	ix.dead++
 	ix.docs[i] = Doc{}
+	if ix.dead > 1000 && ix.dead > ix.live/2 {
+		ix.compactLocked()
+	}
+}
+
+// compactLocked rebuilds the arrays from live documents only.
+func (ix *Index) compactLocked() {
+	liveDocs := make([]Doc, 0, ix.live)
+	for _, d := range ix.docs {
+		if d.Key != "" {
+			liveDocs = append(liveDocs, d)
+		}
+	}
+	ix.docs = nil
+	ix.byKey = make(map[string]int, len(liveDocs))
+	ix.postings = map[string][]posting{}
+	ix.lengths = nil
+	ix.totalLen = 0
+	ix.live = 0
+	ix.dead = 0
+	for _, d := range liveDocs {
+		ix.upsertLocked(d)
+	}
+}
+
+// Dead reports the number of tombstoned slots, for tests.
+func (ix *Index) Dead() int {
+	ix.mu.RLock()
+	defer ix.mu.RUnlock()
+	return ix.dead
 }
 
 // Len is the number of live documents.
@@ -234,6 +333,10 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 			continue
 		}
 		idf := math.Log(1 + (float64(ix.live)-float64(df)+0.5)/(float64(df)+0.5))
+		weight := 1.0
+		if strings.HasPrefix(t, "^") {
+			weight = prefixWeight
+		}
 		for _, p := range pl {
 			d := ix.docs[p.doc]
 			if d.Key == "" {
@@ -241,7 +344,7 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 			}
 			tf := float64(p.tf)
 			norm := tf * (k1 + 1) / (tf + k1*(1-b+b*float64(ix.lengths[p.doc])/avg))
-			scores[p.doc] += idf * norm
+			scores[p.doc] += weight * idf * norm
 		}
 	}
 	hits := make([]Hit, 0, len(scores))
@@ -314,7 +417,14 @@ func Tokenize(s string) []string {
 			if len(p) < 2 || stopwords[p] {
 				continue
 			}
-			out = append(out, stem(p))
+			st := stem(p)
+			out = append(out, st)
+			// A 4-character prefix token bridges word forms and compounds
+			// that stemming misses ("tailnet"/"Tailscale", "record"/
+			// "recording"). Scored at prefixWeight.
+			if len(st) >= 6 {
+				out = append(out, "^"+st[:4])
+			}
 		}
 	}
 	return out

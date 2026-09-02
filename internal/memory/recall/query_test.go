@@ -153,3 +153,34 @@ func TestRecallReturnsEpisodesAndAttributes(t *testing.T) {
 		t.Errorf("attribute fact = %+v", res.Facts)
 	}
 }
+
+func TestRecallCapIsHardAgainstHostileInputs(t *testing.T) {
+	st, ix := seedRecall(t)
+	now := time.Now()
+	eps := make([]string, 400)
+	for i := range eps {
+		eps[i] = strings.Repeat("a", 60) + fmt.Sprintf("%04d", i)
+	}
+	huge := store.Fact{Src: "scry", Relation: "documents", Value: strings.Repeat("v", 30000), Fact: "hostile " + strings.Repeat("f", 40000), ValidFrom: now, Confidence: 0.9, Episodes: eps}
+	if err := st.PutFact(huge); err != nil {
+		t.Fatal(err)
+	}
+	ix.UpsertFact(huge)
+	for _, q := range []string{"hostile", strings.Repeat("q ", 60000), "scry"} {
+		res, err := Recall(st, ix, q, nil, 500)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := json.Marshal(res)
+		if len(b) > MaxPayloadBytes {
+			t.Errorf("query %.20q: payload %d > %d", q, len(b), MaxPayloadBytes)
+		}
+	}
+	res, _ := Recall(st, ix, "hostile", nil, 5)
+	if len(res.Facts) == 0 || res.Facts[0].EpisodeCount != 400 || len(res.Facts[0].Episodes) > maxProvenance {
+		t.Errorf("provenance not bounded: %+v", res.Facts)
+	}
+	if r := []rune(clip("héllo wörld", 6)); len(r) != 6 {
+		t.Errorf("clip must count runes: %q", string(r))
+	}
+}

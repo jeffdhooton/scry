@@ -11,12 +11,13 @@ import (
 
 func TestTokenize(t *testing.T) {
 	cases := map[string][]string{
-		"Why did we switch off DeepSeek?":    {"switch", "deepseek", "deep", "seek"},
-		"scry deployed_on mac-mini":          {"scry", "deployed-on", "deploy", "mac-mini", "mac", "mini"},
+		"Why did we switch off DeepSeek?":    {"switch", "^swit", "deepseek", "deep", "seek"},
+		"scry deployed_on mac-mini":          {"scry", "deployed-on", "deploy", "^depl", "mac-mini", "mac", "mini"},
 		"Z_AI_API_KEY":                       {"z-ai-api-key", "ai", "api", "key"},
-		"childscribeLaravel uses Laravel 13": {"childscribelaravel", "childscribe", "laravel", "use", "laravel", "13"},
-		"switches switched switching":        {"switch", "switch", "switch"},
+		"childscribeLaravel uses Laravel 13": {"childscribelaravel", "childscribe", "^chil", "laravel", "^lara", "use", "laravel", "^lara", "13"},
+		"switches switched switching":        {"switch", "^swit", "switch", "^swit", "switch", "^swit"},
 		"the and for":                        nil,
+		"tailnet Tailscale":                  {"tailnet", "^tail", "tailscale", "^tail"},
 	}
 	for in, want := range cases {
 		got := Tokenize(in)
@@ -133,5 +134,37 @@ func TestUpsertAndRemoveKeepTheIndexCurrent(t *testing.T) {
 	}
 	if hits := ix.Search("doctor watches tunnel", []string{KindFact}, nil, 1); len(hits) != 0 && hits[0].Doc.Key == FactKey(f) {
 		t.Error("removed fact still returned")
+	}
+}
+
+func TestCompactionKeepsResultsAndBoundsTombstones(t *testing.T) {
+	_, ix := seed(t)
+	base := ix.Len()
+	now := time.Now()
+	for i := range 3000 {
+		f := store.Fact{Src: "scry", Relation: "monitors", Dst: "mac-mini", Fact: "temporary fact number " + strings.Repeat("z", i%5), ValidFrom: now.Add(time.Duration(i) * time.Second)}
+		ix.UpsertFact(f)
+		ix.Remove(FactKey(f))
+	}
+	if ix.Len() != base {
+		t.Errorf("Len = %d, want %d", ix.Len(), base)
+	}
+	if ix.Dead() > 1100 {
+		t.Errorf("tombstones not compacted: %d", ix.Dead())
+	}
+	if hits := ix.Search("why did we switch off deepseek", []string{KindFact}, nil, 1); len(hits) == 0 || !strings.Contains(hits[0].Doc.Text, "402") {
+		t.Errorf("search broken after compaction: %+v", hits)
+	}
+	if hits := ix.Search("temporary fact", []string{KindFact}, nil, 1); len(hits) != 0 {
+		t.Errorf("removed docs returned after compaction: %+v", hits)
+	}
+}
+
+func TestUpsertFactUsesKnownNames(t *testing.T) {
+	_, ix := seed(t)
+	f := store.Fact{Src: "scry", Relation: "monitors", Dst: "mac-mini", Fact: "scry doctor watches the tunnel", ValidFrom: time.Now()}
+	ix.UpsertFact(f)
+	if hits := ix.Search("Mac mini tunnel", []string{KindFact}, nil, 1); len(hits) == 0 || hits[0].Doc.Key != FactKey(f) {
+		t.Errorf("fact indexed through UpsertFact must carry the entity display name: %+v", hits)
 	}
 }
