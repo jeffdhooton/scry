@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"sync"
 	"time"
 
@@ -25,13 +26,37 @@ const (
 	// MaxParseAttempts is how many times an episode may fail on content
 	// (extract.ErrParse from every model in the chain) before it is parked.
 	MaxParseAttempts = 3
+	// MaxTimeoutAttempts is how many times a transcript episode may run
+	// past its (escalating) deadline before it is parked. A reasoning model
+	// on a 16 KB transcript slice can take minutes; one that never finishes
+	// in three tries with a tripled deadline is too long for the chain, and
+	// retrying it forever would starve everything behind it. Manual items
+	// are never parked on a timeout: their text is a sentence, so a timeout
+	// is always the provider's fault, and an agent is waiting for them.
+	MaxTimeoutAttempts = 3
+	// manualWorkers are slots reserved for manual episodes, so twenty
+	// remembers made during an outage never wait behind transcript slices
+	// that are holding every general slot against a hung upstream. GLM
+	// takes 80-130 s even on a one-sentence fact (measured 2026-09-02), so
+	// eight slots clear twenty remembers in about four minutes.
+	manualWorkers = 8
 
-	defaultWorkers     = 4
-	defaultItemTimeout = 4 * time.Minute
-	defaultPoll        = 2 * time.Second
+	defaultWorkers     = 24
+	defaultItemTimeout = 6 * time.Minute
+	defaultPoll        = 30 * time.Second
 	backoffBase        = 30 * time.Second
 	backoffCap         = 2 * time.Minute
 )
+
+// itemDeadline grows with each attempt so a slow-but-finishing episode
+// gets room: 1x, 2x, 3x the base timeout.
+func itemDeadline(base time.Duration, attempts int) time.Duration {
+	mult := attempts + 1
+	if mult > 3 {
+		mult = 3
+	}
+	return base * time.Duration(mult)
+}
 
 // Backoff is the wait before attempt n+1: 30s, 1m, then 2m for good. The
 // cap is short on purpose. Twenty writes made during an outage must all
@@ -55,12 +80,15 @@ type Options struct {
 	// Glossary supplies the known-entity lines for extraction. It may be
 	// nil. It should be cheap: it runs on every item.
 	Glossary func() []string
-	// Workers is the number of items extracted concurrently (default 4).
+	// Workers is the number of transcript items extracted concurrently
+	// (default 24); manual items have manualWorkers slots of their own.
 	Workers int
-	// ItemTimeout bounds one item's extraction (default 4m).
+	// ItemTimeout bounds one item's first attempt (default 6m); later
+	// attempts get 2x and 3x.
 	ItemTimeout time.Duration
 	// Poll is how often the loop looks for ready items when nothing kicks
-	// it (default 2s).
+	// it and no item completes (default 30s). Completions and enqueues
+	// wake it immediately.
 	Poll time.Duration
 	Logf func(format string, args ...any)
 }
@@ -69,6 +97,7 @@ type Options struct {
 type Worker struct {
 	o       Options
 	kick    chan struct{}
+	done    chan struct{} // an item finished; a slot is free
 	backoff func(int) time.Duration
 
 	mu       sync.Mutex
@@ -89,7 +118,7 @@ func New(o Options) *Worker {
 	if o.Logf == nil {
 		o.Logf = log.Printf
 	}
-	return &Worker{o: o, kick: make(chan struct{}, 1), backoff: Backoff, inflight: map[string]bool{}}
+	return &Worker{o: o, kick: make(chan struct{}, 1), done: make(chan struct{}, 1), backoff: Backoff, inflight: map[string]bool{}}
 }
 
 // Kick wakes the loop early, after an enqueue.
@@ -104,30 +133,40 @@ func (w *Worker) Kick() {
 // broken store read is logged and retried on the next tick.
 func (w *Worker) Run(ctx context.Context) {
 	sem := make(chan struct{}, w.o.Workers)
+	manualSem := make(chan struct{}, manualWorkers)
 	var wg sync.WaitGroup
 	ticker := time.NewTicker(w.o.Poll)
 	defer ticker.Stop()
 	for {
-		w.dispatch(ctx, sem, &wg)
+		w.dispatch(ctx, sem, manualSem, &wg)
 		select {
 		case <-ctx.Done():
 			wg.Wait()
 			return
 		case <-ticker.C:
 		case <-w.kick:
+		case <-w.done:
 		}
 	}
 }
 
 // dispatch claims every ready item that fits in the free worker slots.
-func (w *Worker) dispatch(ctx context.Context, sem chan struct{}, wg *sync.WaitGroup) {
+// Manual episodes (scry_remember) go first: an agent is waiting on those,
+// while a sweep backlog of transcript slices is nobody's blocker. The rest
+// are taken round-robin across sources, oldest first within a source, so
+// a handful of Kimi or OpenCode episodes never waits behind thousands of
+// Claude ones.
+func (w *Worker) dispatch(ctx context.Context, sem, manualSem chan struct{}, wg *sync.WaitGroup) {
+	if len(sem) == cap(sem) && len(manualSem) == cap(manualSem) {
+		return // every slot busy; listing the queue would be wasted work
+	}
 	items, err := w.o.Store.Pending(0)
 	if err != nil {
 		w.o.Logf("memory queue: list pending: %v", err)
 		return
 	}
 	now := time.Now()
-	for _, p := range items {
+	for _, p := range order(items, now) {
 		if p.Parked || p.NextAttempt.After(now) {
 			continue
 		}
@@ -136,33 +175,99 @@ func (w *Worker) dispatch(ctx context.Context, sem chan struct{}, wg *sync.WaitG
 			w.mu.Unlock()
 			continue
 		}
-		select {
-		case sem <- struct{}{}:
-		default:
-			w.mu.Unlock()
-			return // every slot busy; the next tick picks up the rest
+		// A manual item takes a reserved slot, or a free general one; a
+		// transcript item only ever takes a general slot.
+		var slot chan struct{}
+		if p.Source == "manual" {
+			select {
+			case manualSem <- struct{}{}:
+				slot = manualSem
+			default:
+			}
+		}
+		if slot == nil {
+			select {
+			case sem <- struct{}{}:
+				slot = sem
+			default:
+				w.mu.Unlock()
+				continue // busy; a differently classed item further on may still fit
+			}
 		}
 		w.inflight[p.ID] = true
 		w.mu.Unlock()
 
 		wg.Add(1)
-		go func(p store.PendingEpisode) {
+		go func(p store.PendingEpisode, slot chan struct{}) {
 			defer wg.Done()
 			defer func() {
 				w.mu.Lock()
 				delete(w.inflight, p.ID)
 				w.mu.Unlock()
-				<-sem
+				<-slot
+				select {
+				case w.done <- struct{}{}:
+				default:
+				}
 			}()
 			w.process(ctx, p)
-		}(p)
+		}(p, slot)
 	}
+}
+
+// order returns the ready items in dispatch order: manual first (oldest
+// first), then one item per source in turn, NEWEST first within a source:
+// a slice of today's session is worth more to the next recall than one
+// from last month, and a backlog drains from the present backwards.
+func order(items []store.PendingEpisode, now time.Time) []store.PendingEpisode {
+	var manual []store.PendingEpisode
+	bySource := map[string][]store.PendingEpisode{}
+	var sources []string
+	for _, p := range items {
+		if p.Parked || p.NextAttempt.After(now) {
+			continue
+		}
+		if p.Source == "manual" {
+			manual = append(manual, p)
+			continue
+		}
+		if _, ok := bySource[p.Source]; !ok {
+			sources = append(sources, p.Source)
+		}
+		bySource[p.Source] = append(bySource[p.Source], p)
+	}
+	sort.SliceStable(manual, func(i, j int) bool { return manual[i].EnqueuedAt.Before(manual[j].EnqueuedAt) })
+	sort.Strings(sources)
+	for _, s := range sources {
+		q := bySource[s]
+		sort.SliceStable(q, func(i, j int) bool {
+			if !q[i].OccurredAt.Equal(q[j].OccurredAt) {
+				return q[i].OccurredAt.After(q[j].OccurredAt)
+			}
+			return q[i].EnqueuedAt.Before(q[j].EnqueuedAt)
+		})
+	}
+	out := append([]store.PendingEpisode{}, manual...)
+	for {
+		took := false
+		for _, s := range sources {
+			if q := bySource[s]; len(q) > 0 {
+				out = append(out, q[0])
+				bySource[s] = q[1:]
+				took = true
+			}
+		}
+		if !took {
+			break
+		}
+	}
+	return out
 }
 
 // process extracts one item and either resolves it or records the failure
 // for a later attempt.
 func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
-	ictx, cancel := context.WithTimeout(ctx, w.o.ItemTimeout)
+	ictx, cancel := context.WithTimeout(ctx, itemDeadline(w.o.ItemTimeout, p.Attempts))
 	defer cancel()
 
 	ep := distill.RawEpisode{ID: p.ID, Source: p.Source, SourceRef: p.SourceRef, Text: p.Text,
@@ -175,6 +280,11 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 
 	res, err := w.o.Extractor.Extract(ictx, ep, glossary)
 	if err != nil {
+		if ctx.Err() != nil {
+			// The daemon is shutting down; the item stays as it was and the
+			// next daemon picks it up. Not a failure of the item.
+			return
+		}
 		w.fail(p, err)
 		return
 	}
@@ -203,23 +313,32 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 		p.ID, p.Source, stats.FactsAdded, stats.EntitiesCreated, p.Attempts+1)
 }
 
-// fail records one failed attempt. Parse failures count toward parking;
-// everything else — a timeout, a refused connection, a 5xx, a store error
-// — is retried indefinitely, because none of those say anything about the
-// episode itself.
+// fail records one failed attempt. Parse failures count toward parking,
+// and so do timeouts on transcript episodes (too long for the chain).
+// Everything else — a refused connection, a 5xx, a store error, and any
+// failure on a manual item that is not a parse failure — is retried
+// indefinitely, because none of those say anything about the episode.
 func (w *Worker) fail(p store.PendingEpisode, cause error) {
 	p.Attempts++
 	p.LastError = truncate(cause.Error(), 500)
 	parse := errors.Is(cause, extract.ErrParse)
-	if parse && p.Attempts >= MaxParseAttempts {
+	timeout := errors.Is(cause, context.DeadlineExceeded)
+	switch {
+	case parse && p.Attempts >= MaxParseAttempts:
 		p.Parked = true
 		w.o.Logf("memory queue: PARKED %s after %d unparseable replies: %v — replay with `scry memory queue retry %s`",
 			p.ID, p.Attempts, cause, p.ID)
-	} else {
+	case timeout && p.Source != "manual" && p.Attempts >= MaxTimeoutAttempts:
+		p.Parked = true
+		w.o.Logf("memory queue: PARKED %s after %d timeouts (last deadline %s): too long for the chain — replay with `scry memory queue retry %s`",
+			p.ID, p.Attempts, itemDeadline(w.o.ItemTimeout, p.Attempts-1), p.ID)
+	default:
 		p.NextAttempt = time.Now().Add(w.backoff(p.Attempts))
 		kind := "transport"
 		if parse {
 			kind = "parse"
+		} else if timeout {
+			kind = "timeout"
 		}
 		w.o.Logf("memory queue: %s failure on %s (attempt %d, retry in %s): %v",
 			kind, p.ID, p.Attempts, w.backoff(p.Attempts).Round(time.Second), cause)

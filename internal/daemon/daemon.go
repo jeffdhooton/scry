@@ -120,6 +120,15 @@ func buildMemoryExtractor(scryHome string) extract.Extractor {
 			"but never resolved into facts. Fix the file and restart the daemon.", err)
 		return nil
 	}
+	if sock := cfg.MemorySocket(); sock != "" {
+		// This daemon is a client of the shared store served elsewhere;
+		// its own memory store is unused and it must not run a model chain
+		// of its own, or the chain would be configured in two places and
+		// silently diverge (the laptop kept a dead DeepSeek chain for a day
+		// this way).
+		log.Printf("memory: extraction OFF — memory.socket in %s points at %s; that daemon runs the chain", config.Path(scryHome), sock)
+		return nil
+	}
 	ps := extract.ResolveProviders(cfg)
 	// Dormancy must be loud. A daemon restarted without the key went quietly
 	// dormant for a whole day: episodes kept being stored and never resolved

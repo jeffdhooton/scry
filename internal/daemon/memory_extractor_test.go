@@ -72,3 +72,15 @@ func TestMemoryStatusReportsModelChain(t *testing.T) {
 		t.Error("Dormant = true with a chain configured")
 	}
 }
+
+func TestBuildMemoryExtractorOffWhenSocketPointsElsewhere(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("SCRY_MEMORY_API_KEY", "sk-test")
+	t.Setenv("SCRY_MEMORY_MODEL", "deepseek-v4-flash")
+	if err := os.WriteFile(filepath.Join(home, "config.yaml"), []byte("memory:\n  socket: /tmp/shared.sock\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if ex := buildMemoryExtractor(home); ex != nil {
+		t.Fatal("a daemon that is a client of a shared store must not build its own chain, even with SCRY_MEMORY_* in the env")
+	}
+}

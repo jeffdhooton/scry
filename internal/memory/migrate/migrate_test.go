@@ -32,7 +32,8 @@ func seedAuditStore(t *testing.T, st *store.Store) {
 			t.Fatal(err)
 		}
 	}
-	put(store.Entity{Slug: "hermes-ops", Name: "hermes-ops", Type: "project", Aliases: []string{"Hermes", "mini", "Mac Mini", "the machine", "box", "Hermes ops project", "you"}})
+	put(store.Entity{Slug: "hermes-ops", Name: "hermes-ops", Type: "project", Aliases: []string{"Hermes", "mini", "Mac Mini", "the machine", "box", "Hermes ops project", "you", "Hermes agent", "ai.hermes.gateway", "halo1"}})
+	put(store.Entity{Slug: "halo-1", Name: "halo-1", Type: "machine"})
 	put(store.Entity{Slug: "hermes", Name: "Hermes", Type: "service", Aliases: []string{"Hermes agent"}})
 	put(store.Entity{Slug: "mac-mini", Name: "Mac mini", Type: "machine"})
 	put(store.Entity{Slug: "qwen", Name: "Qwen38-27B", Type: "tool", Aliases: []string{"gpt-oss-120b", "qwen"}})
@@ -169,7 +170,7 @@ func TestRunAppliesEveryRule(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, bad := range []string{"Hermes", "mini", "Mac Mini", "the machine", "box", "you"} {
+	for _, bad := range []string{"Hermes", "mini", "Mac Mini", "the machine", "box", "you", "Hermes agent", "ai.hermes.gateway", "halo1"} {
 		if contains(ops.Aliases, bad) {
 			t.Errorf("hermes-ops still carries %q: %v", bad, ops.Aliases)
 		}

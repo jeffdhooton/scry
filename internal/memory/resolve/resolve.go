@@ -171,6 +171,12 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	if existing.Type == "" || existing.Type == "concept" {
 		if ent.Type != "" && ent.Type != "concept" {
 			existing.Type = ent.Type
+			// A wildcard-typed stub may have collected aliases a typed
+			// entity may not hold (a machine's name on what is now a
+			// project). Re-check them against the new type.
+			if err := RevalidateAliases(st, &existing); err != nil {
+				return err
+			}
 		}
 	}
 	// Fill the description, never replace it. Last-writer-wins let a

@@ -22,9 +22,44 @@ var (
 	versionRE = regexp.MustCompile(`^(?:v|go|python|node|php|ruby|java|rust)?\d+(?:\.\d+){1,3}(?:[-+][a-z0-9.]+)?$|^v\d+$`)
 	// branchRE: git branch shapes: "feat/x", "fix/123-thing", "release/1.2",
 	// "jeff/wip", plus the bare trunk names.
-	branchRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|docs?|test|tests|release|releases|wip|exp|spike|ci|build|perf|style|revert|dependabot|renovate|codex|claude|kimi|jeff|jclaw|user|users|topic|dev|develop|development|staging|prod|production|main|master|trunk|origin|upstream)/[A-Za-z0-9._/-]+$`)
-	// hexRE: commit shas, run ids.
-	hexRE = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+	branchRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|docs?|test|tests|release|releases|wip|exp|spike|ci|build|perf|style|revert|dependabot|renovate|codex|claude|kimi|jeff|jclaw|user|users|topic|dev|develop|development|staging|prod|production|main|master|trunk|origin|upstream|setpoint|loop|attempt\d*|worker|agent|task|wave|round|pr|issue|hermes|opencode)/[A-Za-z0-9._/-]+$`)
+	// branchWordRE: "current branch", "worker branch", "fix-branch",
+	// "the-working-branch", "main branch", "docs/x branch".
+	branchWordRE = regexp.MustCompile(`(?:^|[\s_-])branch$|^head(?:[~^]\d*)?$`)
+	// hexRE: commit shas up to a full sha256, run ids.
+	hexRE = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
+	// uuidRE: session and thread ids.
+	uuidRE = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	// countRE: "10 users", "83 tests", "80_tests", "275 passing", "409
+	// status", "500 error", "54/54 passing", "1623-tests": a number and one
+	// or two words whose last word is a count noun or a state.
+	countRE = regexp.MustCompile(`^[+-]?\d[\d.,/_-]*[\s_-]+(?:[a-z]+[\s_-]+)?([a-z]+)$`)
+	// signedOrSciRE: "-1", "+5", "1e6", "40 percent", "version 1.2.1",
+	// "Version 2", "Q3 2026", "September 2026", "2026-09".
+	signedOrSciRE = regexp.MustCompile(`^[+-]\d+(?:\.\d+)?$|^\d+(?:\.\d+)?e[+-]?\d+$|^\d+(?:\.\d+)?\s*percent$|^version\s+\d[\w.]*$|^q[1-4]\s+\d{4}$|^(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}$|^\d{4}-\d{2}$`)
+)
+
+// countNouns are the words after a number in "83 tests" or "10 users":
+// the phrase is a measurement of something, not a thing.
+var countNouns = map[string]bool{
+	"tests": true, "test": true, "users": true, "user": true, "columns": true, "column": true,
+	"rows": true, "row": true, "files": true, "file": true, "lines": true, "line": true,
+	"items": true, "item": true, "records": true, "record": true, "entries": true, "entry": true,
+	"checks": true, "check": true, "steps": true, "step": true, "status": true, "error": true,
+	"errors": true, "warnings": true, "warning": true, "failures": true, "failure": true,
+	"passes": true, "commits": true, "commit": true, "tasks": true, "task": true, "facts": true,
+	"episodes": true, "entities": true, "tokens": true, "token": true, "requests": true,
+	"calls": true, "sessions": true, "session": true, "pages": true, "page": true, "words": true,
+	"chars": true, "characters": true, "bytes": true, "seconds": true, "minutes": true, "hours": true,
+	"days": true, "weeks": true, "months": true, "years": true, "percent": true, "points": true,
+	"routes": true, "endpoints": true, "tables": true, "migrations": true, "issues": true,
+	"defects": true, "findings": true, "bugs": true, "cases": true, "results": true, "runs": true,
+	"cores": true, "threads": true, "nodes": true, "gpus": true, "cpus": true, "boxes": true,
+	"insertions": true, "deletions": true, "attempts": true, "retries": true, "rounds": true,
+	"waves": true, "phases": true, "questions": true, "hits": true, "misses": true,
+}
+
+var (
 	// dateRE: "2026-09-02", "2026-09-02T12:00:00Z", "09/02/2026".
 	dateRE = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}(?:[t ]\d{2}:\d{2}(?::\d{2})?z?)?$|^\d{1,2}/\d{1,2}/\d{2,4}$`)
 	// timeRE: "12:30", "08:00 AM".
@@ -82,20 +117,40 @@ func IsValueName(name string) bool {
 	if IsStatusWord(n) {
 		return true
 	}
-	if trunkBranches[n] || branchRE.MatchString(n) {
+	if trunkBranches[n] || branchRE.MatchString(n) || branchWordRE.MatchString(n) {
 		return true
 	}
-	if bareNumberOrMeasureRE.MatchString(n) || versionRE.MatchString(n) || hexRE.MatchString(n) || dateRE.MatchString(n) || timeRE.MatchString(n) || endpointRE.MatchString(n) {
+	if bareNumberOrMeasureRE.MatchString(n) || versionRE.MatchString(n) || hexRE.MatchString(n) || uuidRE.MatchString(n) || dateRE.MatchString(n) || timeRE.MatchString(n) || endpointRE.MatchString(n) || signedOrSciRE.MatchString(n) {
+		return true
+	}
+	if m := countRE.FindStringSubmatch(n); m != nil && (countNouns[m[1]] || statusWords[m[1]]) {
 		return true
 	}
 	return false
 }
+
+// IsEphemeralName reports whether a name is a run artifact (temp worktree,
+// scratch path, bare hex id, session uuid) rather than an identity.
+func IsEphemeralName(name string) bool { return isEphemeralName(name) }
 
 // IsStatusWord reports whether name is a bare state value.
 func IsStatusWord(name string) bool {
 	n := strings.ToLower(strings.TrimSpace(name))
 	if statusWords[n] {
 		return true
+	}
+	// A phrase of up to three words that ends in a state ("build failed",
+	// "Phase 1 complete", "VOB Pending", "awaiting review"), or that names
+	// a status ("completed status", "READY status").
+	words := strings.Fields(strings.ReplaceAll(n, "_", " "))
+	if len(words) >= 2 && len(words) <= 3 {
+		last := words[len(words)-1]
+		if statusWords[last] || last == "status" || last == "state" {
+			return true
+		}
+		if (words[0] == "awaiting" || words[0] == "pending" || words[0] == "needs") && len(words) == 2 {
+			return true
+		}
 	}
 	// "status: done", "state=passing"
 	for _, sep := range []string{":", "="} {

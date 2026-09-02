@@ -75,12 +75,32 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 	}
 	bySlug := make(map[string]store.Entity, len(entities))
 	realSlugs := make(map[string]string, len(entities))
+	// byForm finds a real entity by any spelling of its name: slug,
+	// normalized name ("scry_status" and "scry status" both → scry-status),
+	// or compact ("halo1" for "halo-1").
+	byForm := map[string]string{}
 	for _, e := range entities {
 		bySlug[e.Slug] = e
 		if isEphemeralName(e.Name) || isEphemeralName(e.Slug) || isGenericEntityName(e.Name) || IsValueName(e.Name) {
 			continue
 		}
 		realSlugs[e.Slug] = e.Name
+		byForm[e.Slug] = e.Slug
+		byForm[store.Normalize(e.Name)] = e.Slug
+		byForm[compact(e.Slug)] = e.Slug
+	}
+	// nameOf returns the real entity a name spells, if any.
+	nameOf := func(name string) string {
+		if s, ok := byForm[store.Slugify(name)]; ok {
+			return s
+		}
+		if s, ok := byForm[store.Normalize(name)]; ok {
+			return s
+		}
+		if s, ok := byForm[compact(store.Slugify(name))]; ok {
+			return s
+		}
+		return ""
 	}
 	// nameTokens lets an alias that is a whole-token subset of another
 	// entity's name ("mini" inside "Mac mini") find that entity even when
@@ -116,10 +136,46 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 	}
 	subsetOwner := func(alias string, e store.Entity) string {
 		at := tokensOf(alias)
+		if len(at) == 0 || !hasSpecificToken(alias) {
+			return ""
+		}
+		// Another entity's whole name plus that entity's kind words names
+		// that entity: "Hermes agent" is the service Hermes even on a
+		// project called hermes-ops. This is decided before the own-name
+		// guard below, because the shared token IS the other's name.
+		for slug, nt := range nameTokens {
+			if slug == e.Slug || len(nt) == 0 || TypesCompatible(bySlug[slug].Type, e.Type) {
+				continue
+			}
+			kw := kindWords[bySlug[slug].Type]
+			ok := true
+			for t := range nt {
+				if !at[t] {
+					ok = false
+					break
+				}
+			}
+			if !ok {
+				continue
+			}
+			extras := 0
+			for t := range at {
+				if !nt[t] {
+					if !kw[t] {
+						ok = false
+						break
+					}
+					extras++
+				}
+			}
+			if ok && extras > 0 {
+				return slug
+			}
+		}
 		// An alias that echoes the entity's own name ("jeffdhooton" on Jeff,
 		// "Qwen38-27B" on the Qwen model) belongs to it; only a stranger is
 		// a candidate for another owner.
-		if len(at) == 0 || !hasSpecificToken(alias) || sharesToken(alias, e.Name) {
+		if sharesToken(alias, e.Name) {
 			return ""
 		}
 		texts := textsOf(e.Slug)
@@ -236,8 +292,8 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			// entity also lists: split it off this entity, moving the facts
 			// that plainly meant the other entity.
 			other := ""
-			if s, ok := realSlugs[store.Slugify(a)]; ok && store.Slugify(a) != e.Slug && s != "" {
-				other = store.Slugify(a)
+			if s := nameOf(a); s != "" && s != e.Slug {
+				other = s
 			}
 			split := other != ""
 			if !split {
@@ -495,4 +551,10 @@ func aliasNamesOther(at, nt map[string]bool, compatible bool) bool {
 		return true
 	}
 	return len(at) >= 2 && len(nt) == len(at)+1 && subset(at, nt)
+}
+
+// compact removes separators so "halo-1", "halo_1", and "halo1" compare
+// equal.
+func compact(s string) string {
+	return strings.NewReplacer("-", "", "_", "", " ", "", ".", "").Replace(strings.ToLower(s))
 }

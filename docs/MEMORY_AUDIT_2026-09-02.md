@@ -268,3 +268,106 @@ are the missing pieces, and both are bounded work.
    Qwen entity.
 6. **Cover Kimi and OpenCode.** Distillers for their session stores, ingested
    by the same sweep.
+
+---
+
+## Re-measurement, 2026-09-02 evening (after the run)
+
+Appended, not overwritten: the findings above are the "before". Everything
+below was measured against the live shared store on the mini and the real
+logs after PR #7 (`9fd4385`) was deployed to both machines, plus the queue
+tuning that followed. Reproduce with the commands shown.
+
+### Store
+
+| Measure | Before | After |
+|---|---|---|
+| Entities | 18,945 | 18,037 (917 value-named entities retired) |
+| Facts (total) | 30,301 | 30,335 → growing again as the queue drains |
+| Distinct relations on current facts | 5,586 | 39 (`scry memory migrate` dry run: `non_canonical_after: 0`) |
+| Attribute facts (value targets, not nodes) | 0 | 7,705 converted at migration |
+| Cross-type alias collisions | not measured; hermes-ops alone carried 130 aliases | 0 (`scry memory hygiene` dry run) |
+| Self-loops | present | 726 invalidated |
+| Backup before migration | — | `/Users/jclaw/.scry/backups/memory-20260902T230320Z.badger`, 62.9 MB |
+
+Migration report (`scry memory migrate --apply`, 19.5 s on the mini): 30,335
+facts scanned, 15,233 relations rewritten (1,317 flipped to the canonical
+direction, 1,561 on `related_to`), 917 value entities retired with 7,705
+facts converted and 154 value-to-value facts invalidated, 3,464 reference
+and generic aliases dropped, 4,012 aliases split away from entities of
+another type or bearing another entity's name, 4,520 facts reattached
+across type boundaries, hygiene converged in 2 passes. A second run
+reports zero changes.
+
+Relation distribution after migration (current facts): status 6,450; uses
+3,055; contains 2,178; related_to 1,571; depends_on 1,484; blocked_by 1,378;
+decided 1,033; tests 955; deployed_on 950; documents 920; implements 878;
+fixes 662; lacks 656; merged_into 653; owns 555; located_at 543; requires
+521; has_issue 518; produces 455; modifies 452; provides 451; replaced_by
+447; reviews 387; assigned_to 349; calls 324; causes 302; passes 296;
+runs_on 274; enforces 232; approves 215; part_of 205; monitors 196; targets
+191; excludes 175; configures 139; conflicts_with 137; references 74;
+same_as 56; notifies 18.
+
+Identities: `hermes-ops` (project) keeps 195 facts; `hermes` (service) 194;
+`mac-mini` (machine) 68, up from 7; `amd-halo` 11; `gpt-oss-120b` (tool)
+23 as its own entity; the Qwen model carries no gpt-oss alias. `mini`
+resolves to `mac-mini`, `Hermes` to `hermes`, `gpt-oss-120b` to itself.
+
+### Ingestion
+
+| Measure | Before | After |
+|---|---|---|
+| Laptop sweep files ingested | 0 since 09-01 13:34 | 1,090 of 2,157 scanned, 4,773 episodes queued, `Errors: null` (first run of the new agent, 23:04) |
+| Mini sweep | none existed | 47 of 47 files, 24 episodes, no errors (`ai.jermes.scry-memory-sweep`) |
+| 402 lines in the sweep log | ~475 per run | 0 (the sweep no longer calls a provider) |
+| Socket timeouts per run | 380 | 0 (per-file 2-minute deadlines) |
+| Places the chain is configured | 2 (laptop and mini config.yaml, diverged) | 1 (mini `config.yaml`; the laptop's names only `memory.socket`) |
+| Sources swept | claude, codex, loom | claude, codex, kimi, opencode, loom |
+| `scry doctor` | no memory checks | Memory section: daemon reachable, chain + worker, hours since last ingest (fails past 6h), last sweep, queue |
+
+### Remember
+
+Twenty `scry_remember` calls through the real `scry mcp --profile memory`
+server from the laptop, as recorded in `~/.scry/logs/mcp-calls.jsonl`:
+
+| Measure | Before | After |
+|---|---|---|
+| p50 | 40–130 s | 183 ms |
+| p95 | — | 277 ms |
+| max | 607 s | 420 ms |
+| Behaviour on provider failure | fact lost unless the failure was a parse error | queued on disk; retried with backoff; parked only after three unparseable replies or three timeouts, replayable |
+
+### Recall
+
+The seven audit probes against the live store (`scry memory bench --file
+docs/memory-bench/probes.json --top 5`): 7 of 7 place a fact from the
+intended entity in the top five; mean payload 4.2 KB, max 4.8 KB; mean
+answer rank 1.7.
+
+| Query | Before (facts / payload) | After (payload, answer rank) |
+|---|---|---|
+| `hermes deploy` | 3,434 / 1.18 MB | 9.5 KB, hermes-ops fact in top 5 |
+| `Z_AI_API_KEY` | 1,864 / 635 KB | 9.0 KB, the key's fact in top 5 |
+| `memory` | 798 / 293 KB | 8.7 KB |
+| `scry` | 550 / 203 KB | 9.4 KB |
+| `why did we switch off deepseek` | 241 / 92 KB (Qwen, a 10 GbE switch) | 9.6 KB, the 402 decision in top 5 |
+| `cockpit` | 95 / 43 KB | 9.0 KB |
+| `GLM-5.3-Flash` | 658 / 241 KB | 8.4 KB |
+
+Fifty-question tuning set (`docs/memory-bench/tuning.json`, written by a
+fresh sub-agent from 49 distinct episodes and 41 entities, 18 easy / 22
+medium / 10 hard): 46 of 50 answering facts in the top 20 (bar: 45), mean
+answer rank 3.8, mean payload 9.2 KB, max 10.3 KB, nothing over 24 KB.
+The four misses are paraphrases with no lexical overlap ("model cost split
+across pipeline stages", "watchdog outside the harness").
+
+### Queue drain
+
+The first laptop sweep queued 4,773 backlog episodes at once. GLM-5.3-Flash
+cannot disable thinking and takes roughly three minutes on a 16 KB
+transcript slice, so the backlog drains over the following day at twelve
+workers. Manual remembers are dispatched ahead of it, and sources are
+taken round-robin so the Kimi and OpenCode episodes do not wait behind
+the Claude ones. `scry memory status` reports `queue_ready`,
+`queue_backoff`, `queue_parked`, and the last successful extraction.

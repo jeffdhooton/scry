@@ -146,3 +146,54 @@ func TestSharesToken(t *testing.T) {
 		}
 	}
 }
+
+func TestAdmitAliasRefusesHardwareOnProjectsAndDescriptionCommonNouns(t *testing.T) {
+	st := openTemp(t)
+	ops := store.Entity{Slug: "hermes-ops", Name: "hermes-ops", Type: "project", Description: "Standing Hermes agent on the Mac mini, reachable over the tailnet"}
+	_ = st.PutEntity(ops)
+	for _, a := range []string{"M4 Mac mini", "jclaws mini", "mini box"} {
+		if ok, reason, _ := AdmitAlias(st, ops, a, "e1"); ok {
+			t.Errorf("AdmitAlias(%q) admitted a machine name onto a project: %s", a, reason)
+		}
+	}
+	// A description made of common nouns admits nothing in one episode.
+	sp := store.Entity{Slug: "setpoint", Name: "setpoint", Type: "project", Description: "loop engine"}
+	_ = st.PutEntity(sp)
+	if ok, _, _ := AdmitAlias(st, sp, "loop engine", "e1"); ok {
+		t.Error("common-noun description tokens must not admit an alias on one episode")
+	}
+	// A specific description token still does.
+	wren := store.Entity{Slug: "wren", Name: "wren", Type: "project", Description: "the wrenops cleaning dispatcher"}
+	_ = st.PutEntity(wren)
+	if ok, _, _ := AdmitAlias(st, wren, "wrenops", "e1"); !ok {
+		t.Error("a specific description token should admit")
+	}
+}
+
+func TestConceptUpgradeRevalidatesAliases(t *testing.T) {
+	st := openTemp(t)
+	putEntity(t, st, "mac-mini", "Mac mini", "machine", "mini")
+	at := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	// A concept stub collects "mini" over two episodes (compatible as a
+	// wildcard), then turns out to be a project.
+	for _, id := range []string{"e1", "e2"} {
+		ep := store.Episode{ID: id, Source: "manual", SourceRef: id, OccurredAt: at, IngestedAt: at}
+		if _, err := Apply(st, ep, "", extract.Result{EpisodeSummary: "x", Entities: []extract.Ent{{Name: "widget", Type: "concept", Aliases: []string{"mini"}}}}, DefaultExclusive); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ep := store.Episode{ID: "e3", Source: "manual", SourceRef: "e3", OccurredAt: at, IngestedAt: at}
+	if _, err := Apply(st, ep, "", extract.Result{EpisodeSummary: "x", Entities: []extract.Ent{{Name: "widget", Type: "project"}}}, DefaultExclusive); err != nil {
+		t.Fatal(err)
+	}
+	w, _ := st.GetEntity("widget")
+	for _, a := range w.Aliases {
+		if store.Normalize(a) == "mini" {
+			t.Errorf("project widget kept the machine's alias after upgrade: %v", w.Aliases)
+		}
+	}
+	rep, _ := Hygiene(st, true)
+	if rep.CrossTypeCollisions != 0 {
+		t.Errorf("collisions after upgrade = %d", rep.CrossTypeCollisions)
+	}
+}

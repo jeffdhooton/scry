@@ -129,8 +129,8 @@ func TestBackupAndRestoreRoundTrip(t *testing.T) {
 
 	var buf bytes.Buffer
 	n, err := src.Backup(&buf)
-	if err != nil || n == 0 {
-		t.Fatalf("Backup: %d bytes, %v", n, err)
+	if err != nil || n == 0 || int(n) != buf.Len() {
+		t.Fatalf("Backup: reported %d bytes, wrote %d, %v", n, buf.Len(), err)
 	}
 
 	dst := openTemp(t)

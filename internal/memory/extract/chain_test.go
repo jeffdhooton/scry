@@ -185,3 +185,12 @@ func TestRefusedOnBillingOrAuth(t *testing.T) {
 		}
 	}
 }
+
+func TestChainKeepsATimeoutVisibleFromAnyStep(t *testing.T) {
+	a := &countingExtractor{err: parseFailure("")}
+	b := &countingExtractor{err: fmt.Errorf("extract: haiku request failed: %w", context.DeadlineExceeded)}
+	_, err := NewChain(Step{"a", a}, Step{"b", b}).Extract(context.Background(), distill.RawEpisode{}, nil)
+	if err == nil || !errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrParse) {
+		t.Fatalf("err = %v, want a deadline error that is not a parse error", err)
+	}
+}

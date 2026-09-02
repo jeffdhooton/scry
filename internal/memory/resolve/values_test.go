@@ -12,7 +12,11 @@ func TestIsValueName(t *testing.T) {
 		"2026-09-02", "2026-09-02T12:00:00Z", "12:30", "08:00 AM",
 		"in-progress", "In Progress", "in_progress", "done", "partial", "passed", "broken", "healthy", "not-started",
 		"needs-work", "spec-compliant", "interviewphase", "status: done", "state=passing", "true", "n/a",
-		"", "  ", "\"done\"", "halo:13306", "0.0.0.0:8787", "jclaws-mac-mini.tail6e45c2.ts.net:10000", "192.168.1.254", "http://localhost:3000/health",
+		"", "  ", "\"done\"",
+		"setpoint/billing-domain", "loop/add-money-decimal-boundary", "attempt2/x", "current branch", "worker branch", "fix-branch", "the-working-branch", "main branch", "docs/content-system-finalization branch", "HEAD~1",
+		"10 users", "20 columns", "6 tests", "83 tests", "80_tests", "275 passing", "116 GB", "409 status", "500 error", "54/54 passing", "1623-tests", "101 passed",
+		"completed status", "draft status", "READY status", "VOB Pending", "context_pending status", "awaiting review", "pending review", "build failed", "Phase 1 complete", "Phase 2 in-progress", "step 2 blocked",
+		"7fc82ec288d6e1f83fc450c27c85a33f45d2fd74abcdef0123456789abcdef01", "d039fc89-1234-4abc-8def-0123456789ab", "-1", "+5", "1e6", "40 percent", "Q3 2026", "September 2026", "2026-09", "version 1.2.1", "Version 2", "halo:13306", "0.0.0.0:8787", "jclaws-mac-mini.tail6e45c2.ts.net:10000", "192.168.1.254", "http://localhost:3000/health",
 	}
 	for _, v := range values {
 		if !IsValueName(v) {
@@ -25,7 +29,7 @@ func TestIsValueName(t *testing.T) {
 		"GLM-5.3-Flash", "deepseek-v4-flash", "Z_AI_API_KEY", "com.jhoot.scryd", "ai.jermes.scryd",
 		"memory-book", "Operations suite", "10 GbE switch", "3Dconnexion", "Halo box", "2fa-service",
 		"main.go", "main-branch-policy", "01 Token Sheet.dc.html", "10 Days That Shook My World", "3 nodes cluster design", "release-notes", "status-page", "open-webui", "docket-wave-35",
-		"go", "python", "node", "T-Mobile 5G",
+		"go", "python", "node", "T-Mobile 5G", "PR #87", "issue #140", "branch protection", "feature-branches", "release-notes", "open-webui", "Live.vue", "status-page", "3 nodes cluster design", "2026-08-22 packet capture", "2026-08-06-family-newsletter-delivery.md",
 	}
 	for _, v := range identities {
 		if IsValueName(v) {
