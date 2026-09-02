@@ -47,7 +47,7 @@ var memoryToolDefinitions = []tool{
 	},
 	{
 		Name:        "scry_remember",
-		Description: "Store a durable fact in global memory (e.g. a decision, a deploy, a preference with lasting relevance). Use instead of only stating it in prose when the fact should survive this session.",
+		Description: "Store a durable fact in global memory (e.g. a decision, a deploy, a preference with lasting relevance). Use instead of only stating it in prose when the fact should survive this session. Returns immediately once the fact is queued; extraction into graph facts happens in the background and survives provider outages, so never retry a successful call.",
 		InputSchema: mustMarshal(map[string]any{
 			"type": "object",
 			"properties": map[string]any{

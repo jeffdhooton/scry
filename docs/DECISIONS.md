@@ -1688,3 +1688,77 @@ alternative — leaving it — is exactly the orphan this fixes.
 with a different discovery; or a daemon shutdown that legitimately needs
 longer than 10s, which would raise `TermGrace` rather than remove
 escalation.
+
+
+## 2026-09-02 — Memory writes queue at the daemon; the daemon runs extraction
+
+**Decision:** every memory write lands in a durable pending queue (`pq:`
+keys in the memory store) and is extracted by a worker pool inside the
+daemon that owns the store. `memory.remember` returns as soon as the
+episode is queued, in milliseconds. The sweep and `scry memory ingest`
+distill on the client and call `memory.enqueue`; they never touch a
+provider. Transport failures retry with a backoff capped at two minutes;
+an episode no model can parse after three tries is parked on disk and
+replayed with `scry memory queue retry`. A model that answers 401/402/403
+is skipped for fifteen minutes. Episode ids for remembers derive from the
+fact text and the UTC day.
+
+**Context:** `docs/MEMORY_AUDIT_2026-09-02.md`, findings 1 and 2. A
+remember ran 40 to 600 seconds because the provider reasons before
+answering; Codex's tool timeout is 60 seconds, so the agent saw a failure
+while the daemon finished the write, and a retry stored a second episode.
+When extraction failed for any non-parse reason the fact was gone. The
+laptop sweep extracted client-side with the laptop's own config, which
+still named a DeepSeek chain that had returned 402 for a day: 44 sweeps,
+zero files ingested, 12,696 lines of 402 noise, and 380 socket timeouts
+because one 30-minute context served the whole run.
+
+**Why the daemon and not the client:** one process per store means one
+config to keep correct (the mini's), one place keys have to exist, and a
+laptop that needs no provider credentials at all. It also lets the store
+know when ingestion last happened, which is what `scry doctor` needs.
+
+**Why a queue and not a background goroutine per call:** the queue is the
+durability. A goroutine dies with the daemon; a `pq:` record does not. It
+also gives the outage story: the provider comes back, the worker drains.
+
+**Why the schema version stays at 1:** a bump wipes the store. `pq:`,
+`meta:`, and `att:` are additive prefixes an older binary ignores.
+
+**What would change our minds:** a second store owner (two daemons writing
+one Badger dir is impossible anyway), or a provider so fast that inline
+extraction is faster than the round trip to the queue. Neither is near.
+
+
+## 2026-09-02 — OpenCode is read through the sqlite3 CLI
+
+**Decision:** the OpenCode distiller shells out to `sqlite3 -json
+-readonly` rather than linking a SQLite driver. Kimi Code's `wire.jsonl`
+event log is parsed directly, like the Claude and Codex transcripts.
+
+**Context:** OpenCode moved its sessions into a WAL-mode SQLite database.
+The pure-Go driver (`modernc.org/sqlite`) is the sanctioned choice if scry
+ever links SQLite, but it adds a large dependency and a minute of compile
+time to read eleven rows every half hour. `sqlite3` ships with macOS and
+nearly every Linux distribution, handles WAL correctly, and keeps the
+binary CGO-free and small. A missing `sqlite3` is a per-root sweep error,
+not a crash.
+
+**What would change our minds:** scry needing SQLite for anything on the
+hot path, or a machine without `sqlite3` in daily use.
+
+
+## 2026-09-02 — Doctor fails when memory has not ingested for six hours
+
+**Decision:** `scry doctor` dials the memory daemon (`SCRY_MEMORY_SOCKET`,
+then `memory.socket` in `config.yaml`, then the local socket) and reads
+`memory.status`. It fails on a dormant chain, a stopped queue worker, or a
+last-ingest timestamp older than six hours; it warns on a sweep older than
+two hours or a parked queue item.
+
+**Context:** laptop ingestion was dead for a day and nothing said so. The
+threshold is the goal file's; six quiet hours on a machine every agent
+writes sessions to means the pipeline stopped. Overnight this can fail
+honestly; a failing check that is sometimes loud beats one that is never
+loud. The `memory.socket` config key exists so the shared-store location
+has a home outside every MCP host's private env.

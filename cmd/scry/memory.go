@@ -79,7 +79,51 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd())
+	return cmd
+}
+
+// --- queue ---
+
+func memoryQueueCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "queue",
+		Short: "Show episodes waiting for extraction at the daemon",
+		Long: `Every memory write (scry_remember, the sweep, ingest) lands in the daemon's
+queue first and is extracted in the background. This lists what is waiting:
+ready items, items backing off after a transport failure, and parked items
+the models could not parse after three tries.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			var result daemon.MemoryQueueResult
+			if err := callMemoryDaemon(ctx, "memory.queue", nil, &result); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
+		},
+	}
+	cmd.AddCommand(&cobra.Command{
+		Use:   "retry [episode-id]",
+		Short: "Replay a parked or backing-off item now (all of them without an id)",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			var p daemon.MemoryQueueRetryParams
+			if len(args) == 1 {
+				p.ID = args[0]
+			}
+			var result map[string]int
+			if err := callMemoryDaemon(ctx, "memory.queue.retry", &p, &result); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
+		},
+	})
 	return cmd
 }
 
@@ -773,7 +817,7 @@ func memoryRecallCmd() *cobra.Command {
 func memoryRememberCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "remember <fact>",
-		Short: "Store a durable fact in global memory",
+		Short: "Store a durable fact in global memory (queued; extracted in the background)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			entities, _ := cmd.Flags().GetStringArray("entity")
@@ -791,7 +835,7 @@ func memoryRememberCmd() *cobra.Command {
 				return err
 			}
 			if result.Dormant {
-				fmt.Fprintln(os.Stderr, "memory: daemon is dormant (no API key in its environment) — fact stored as episode only, no graph facts extracted")
+				fmt.Fprintln(os.Stderr, "memory: daemon is dormant (no API key in its environment) — the fact is queued and will be extracted once a key is configured")
 			}
 			pretty, _ := cmd.Flags().GetBool("pretty")
 			return printJSON(result, pretty)
