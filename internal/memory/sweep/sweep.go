@@ -18,6 +18,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/memory/distill"
 	"github.com/jeffdhooton/scry/internal/memory/ingest"
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
@@ -54,7 +55,7 @@ type Report struct {
 	Errors        int    `json:"errors"`
 }
 
-// Roots names the three places the sweep looks for memory sources. Each
+// Roots names the places the sweep looks for memory sources. Each
 // field is independently defaulted (via DefaultRoots) when empty, so
 // callers can override just the one root they need — tests always override
 // every field with temp-dir paths and must never touch the real home
@@ -70,6 +71,13 @@ type Roots struct {
 	// LoomRuns is a directory whose immediate subdirectories are each one
 	// loom run, e.g. $HOME/.loom/runs.
 	LoomRuns string
+	// KimiGlob matches Kimi Code agent wire logs, e.g.
+	// $HOME/.kimi-code/sessions/*/*/agents/*/wire.jsonl.
+	KimiGlob string
+	// OpenCodeDB is OpenCode's SQLite database, e.g.
+	// $HOME/.local/share/opencode/opencode.db. Each session in it is one
+	// candidate.
+	OpenCodeDB string
 }
 
 // DefaultRoots returns the real, machine-wide default roots, rooted at the
@@ -81,6 +89,8 @@ func DefaultRoots() Roots {
 		ClaudeGlob: filepath.Join(home, ".claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(home, ".codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   filepath.Join(home, ".loom", "runs"),
+		KimiGlob:   filepath.Join(home, ".kimi-code", "sessions", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(home, ".local", "share", "opencode", "opencode.db"),
 	}
 }
 
@@ -96,6 +106,12 @@ func (r Roots) withDefaults() Roots {
 	}
 	if r.LoomRuns == "" {
 		r.LoomRuns = d.LoomRuns
+	}
+	if r.KimiGlob == "" {
+		r.KimiGlob = d.KimiGlob
+	}
+	if r.OpenCodeDB == "" {
+		r.OpenCodeDB = d.OpenCodeDB
 	}
 	return r
 }
@@ -157,6 +173,19 @@ func Run(ctx context.Context, roots Roots, o ingest.Options, activeWindow time.D
 		loomDirs = nil
 	}
 
+	kimiFiles, err := filepath.Glob(roots.KimiGlob)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", roots.KimiGlob, err))
+		kimiFiles = nil
+	}
+	sort.Strings(kimiFiles)
+
+	openCodeSessions, err := distill.OpenCodeSessions(roots.OpenCodeDB)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", roots.OpenCodeDB, err))
+		openCodeSessions = nil
+	}
+
 	now := time.Now()
 
 	for _, path := range claudeFiles {
@@ -167,6 +196,14 @@ func Run(ctx context.Context, roots Roots, o ingest.Options, activeWindow time.D
 	}
 	for _, dir := range loomDirs {
 		perFile(ctx, func(fctx context.Context) { sweepLoomDir(fctx, &result, o, dir, now, activeWindow, dryRun) })
+	}
+	for _, path := range kimiFiles {
+		perFile(ctx, func(fctx context.Context) { sweepFile(fctx, &result, o, "kimi", path, now, activeWindow, dryRun) })
+	}
+	for _, sess := range openCodeSessions {
+		perFile(ctx, func(fctx context.Context) {
+			sweepOpenCodeSession(fctx, &result, o, roots.OpenCodeDB, sess, now, activeWindow, dryRun)
+		})
 	}
 
 	if rep, ok := o.Daemon.(Reporter); ok && !dryRun {
@@ -385,6 +422,42 @@ func sweepLoomDir(ctx context.Context, result *Result, o ingest.Options, dir str
 		return
 	}
 
+	result.FilesIngested++
+	result.Episodes += sum.EpisodesIngested
+}
+
+// sweepOpenCodeSession handles one OpenCode session: a wholesale candidate
+// whose change detection is the session's time_updated column, compared
+// against the cursor's ModTime. The active window applies to that same
+// timestamp, since a session still being driven keeps updating it.
+func sweepOpenCodeSession(ctx context.Context, result *Result, o ingest.Options, dbPath string, sess distill.OpenCodeSession, now time.Time, activeWindow time.Duration, dryRun bool) {
+	result.FilesScanned++
+	ref := distill.OpenCodeRef(dbPath, sess.ID)
+
+	if now.Sub(sess.TimeUpdated) < activeWindow {
+		result.FilesSkippedActive++
+		return
+	}
+
+	cursor, found, err := o.Daemon.GetCursor(ctx, ref)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: get cursor: %v", ref, err))
+		return
+	}
+	if found && cursor.ModTime.Equal(sess.TimeUpdated) {
+		result.FilesUnchanged++
+		return
+	}
+	if dryRun {
+		result.FilesIngested++
+		return
+	}
+
+	sum, err := ingest.File(ctx, ingest.Options{Source: "opencode", Path: ref, Daemon: o.Daemon})
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", ref, err))
+		return
+	}
 	result.FilesIngested++
 	result.Episodes += sum.EpisodesIngested
 }

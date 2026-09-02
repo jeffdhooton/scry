@@ -153,9 +153,9 @@ func memoryIngestCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			source, _ := cmd.Flags().GetString("source")
 			switch source {
-			case "claude", "codex", "loom", "seed":
+			case "claude", "codex", "kimi", "opencode", "loom", "seed":
 			default:
-				return fmt.Errorf("--source must be one of claude|codex|loom|seed, got %q", source)
+				return fmt.Errorf("--source must be one of claude|codex|kimi|opencode|loom|seed, got %q", source)
 			}
 			path, _ := cmd.Flags().GetString("path")
 
@@ -174,8 +174,8 @@ func memoryIngestCmd() *cobra.Command {
 			return printJSON(sum, pretty)
 		},
 	}
-	cmd.Flags().String("source", "", "source type: claude|codex|loom|seed (required)")
-	cmd.Flags().String("path", "", "path to the transcript file, run directory, or seed markdown file (required)")
+	cmd.Flags().String("source", "", "source type: claude|codex|kimi|opencode|loom|seed (required)")
+	cmd.Flags().String("path", "", "path to the transcript file, run directory, or seed markdown file; for opencode, opencode:<db>:<session id> (required)")
 	_ = cmd.MarkFlagRequired("source")
 	_ = cmd.MarkFlagRequired("path")
 	return cmd

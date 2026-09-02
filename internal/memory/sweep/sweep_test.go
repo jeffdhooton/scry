@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -126,6 +127,7 @@ func backdate(t *testing.T, path string, when time.Time) {
 // (glob depth matters, exact names don't) and copies in the claude, codex,
 // and loom fixtures, backdating everything well outside activeWindow.
 type testRoots struct {
+	tmp        string
 	roots      Roots
 	claudePath string
 	codexPath  string
@@ -150,10 +152,15 @@ func newTestRoots(t *testing.T) testRoots {
 	backdate(t, loomPath, old) // dir's own mtime, after its contents are written
 
 	return testRoots{
+		tmp: tmp,
 		roots: Roots{
 			ClaudeGlob: filepath.Join(tmp, "claude", "projects", "*", "*.jsonl"),
 			CodexGlob:  filepath.Join(tmp, "codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 			LoomRuns:   filepath.Join(tmp, "loom", "runs"),
+			// Always pointed at the temp dir so no test can wander into the
+			// real ~/.kimi-code or OpenCode database through withDefaults.
+			KimiGlob:   filepath.Join(tmp, "kimi", "sessions", "*", "*", "agents", "*", "wire.jsonl"),
+			OpenCodeDB: filepath.Join(tmp, "opencode", "opencode.db"),
 		},
 		claudePath: claudePath,
 		codexPath:  codexPath,
@@ -296,6 +303,8 @@ func TestRun_AppendedDeltaOnlyIngestsNewContent(t *testing.T) {
 		ClaudeGlob: filepath.Join(tmp, "claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(tmp, "empty-codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   filepath.Join(tmp, "empty-loom", "runs"),
+		KimiGlob:   filepath.Join(t.TempDir(), "none", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(t.TempDir(), "none.db"),
 	}
 
 	daemon := newFakeDaemon()
@@ -374,6 +383,8 @@ func TestRun_TruncatedFileReingestsFromZero(t *testing.T) {
 		ClaudeGlob: filepath.Join(tmp, "claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(tmp, "empty-codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   filepath.Join(tmp, "empty-loom", "runs"),
+		KimiGlob:   filepath.Join(t.TempDir(), "none", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(t.TempDir(), "none.db"),
 	}
 
 	daemon := newFakeDaemon()
@@ -435,6 +446,8 @@ func TestRun_TouchWithoutAppendCountsUnchanged(t *testing.T) {
 		ClaudeGlob: filepath.Join(tmp, "claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(tmp, "empty-codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   filepath.Join(tmp, "empty-loom", "runs"),
+		KimiGlob:   filepath.Join(t.TempDir(), "none", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(t.TempDir(), "none.db"),
 	}
 
 	daemon := newFakeDaemon()
@@ -483,6 +496,8 @@ func TestRun_ActiveWindowSkipsRecentFile(t *testing.T) {
 		ClaudeGlob: filepath.Join(tmp, "claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(tmp, "empty-codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   filepath.Join(tmp, "empty-loom", "runs"),
+		KimiGlob:   filepath.Join(t.TempDir(), "none", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(t.TempDir(), "none.db"),
 	}
 
 	daemon := newFakeDaemon()
@@ -528,6 +543,8 @@ func TestRun_UnreadableFileErrorsButContinues(t *testing.T) {
 		ClaudeGlob: filepath.Join(tmp, "claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(tmp, "empty-codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   filepath.Join(tmp, "empty-loom", "runs"),
+		KimiGlob:   filepath.Join(t.TempDir(), "none", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(t.TempDir(), "none.db"),
 	}
 
 	daemon := newFakeDaemon()
@@ -583,6 +600,8 @@ func TestRun_UnreadableLoomRootErrorsButOtherRootsStillSweep(t *testing.T) {
 		ClaudeGlob: filepath.Join(tmp, "claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(tmp, "empty-codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   loomRoot,
+		KimiGlob:   filepath.Join(t.TempDir(), "none", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(t.TempDir(), "none.db"),
 	}
 
 	daemon := newFakeDaemon()
@@ -722,6 +741,8 @@ func TestDefaultRoots(t *testing.T) {
 		ClaudeGlob: filepath.Join(home, ".claude", "projects", "*", "*.jsonl"),
 		CodexGlob:  filepath.Join(home, ".codex", "sessions", "*", "*", "*", "rollout-*.jsonl"),
 		LoomRuns:   filepath.Join(home, ".loom", "runs"),
+		KimiGlob:   filepath.Join(home, ".kimi-code", "sessions", "*", "*", "agents", "*", "wire.jsonl"),
+		OpenCodeDB: filepath.Join(home, ".local", "share", "opencode", "opencode.db"),
 	}
 	if roots != want {
 		t.Errorf("DefaultRoots() = %+v, want %+v", roots, want)
@@ -796,5 +817,131 @@ func TestRun_ReportsToTheDaemonOnce(t *testing.T) {
 	}
 	if len(dry.reports) != 0 {
 		t.Error("a dry run must not report")
+	}
+}
+
+const kimiFixture = "../distill/testdata/kimi_session/agents/main/wire.jsonl"
+
+func TestRun_SweepsKimiWireLogs(t *testing.T) {
+	tr := newTestRoots(t)
+	sessDir := filepath.Join(tr.tmp, "kimi", "sessions", "wd_x", "session_1")
+	wire := filepath.Join(sessDir, "agents", "main", "wire.jsonl")
+	copyFile(t, kimiFixture, wire)
+	copyFile(t, "../distill/testdata/kimi_session/state.json", filepath.Join(sessDir, "state.json"))
+	backdate(t, wire, time.Now().Add(-time.Hour))
+
+	daemon := newFakeDaemon()
+	result, err := Run(context.Background(), tr.roots, ingest.Options{Daemon: daemon}, time.Minute, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.FilesScanned != 4 || result.FilesIngested != 4 {
+		t.Errorf("scanned %d ingested %d, want 4 and 4 (kimi included)", result.FilesScanned, result.FilesIngested)
+	}
+	var kimi int
+	for _, ep := range daemon.enqueued {
+		if ep.Source == "kimi-session" {
+			kimi++
+			if ep.Cwd != "/Users/jeff/workspace/context-stack/scry" {
+				t.Errorf("kimi episode cwd = %q", ep.Cwd)
+			}
+		}
+	}
+	if kimi != 1 {
+		t.Errorf("kimi episodes enqueued = %d, want 1", kimi)
+	}
+	if _, ok := daemon.cursors[wire]; !ok {
+		t.Error("no cursor for the kimi wire log")
+	}
+}
+
+func TestDefaultRootsCoverEveryAgent(t *testing.T) {
+	r := DefaultRoots()
+	for name, v := range map[string]string{"KimiGlob": r.KimiGlob, "OpenCodeDB": r.OpenCodeDB} {
+		if v == "" || !filepath.IsAbs(v) {
+			t.Errorf("%s = %q", name, v)
+		}
+	}
+	if !strings.Contains(r.KimiGlob, ".kimi-code") || !strings.HasSuffix(r.OpenCodeDB, "opencode.db") {
+		t.Errorf("roots = %+v", r)
+	}
+}
+
+// makeOpenCodeDB writes a minimal OpenCode database with one finished
+// session (three substantive turns) using the sqlite3 CLI.
+func makeOpenCodeDB(t *testing.T, path string, updatedMs int64) {
+	t.Helper()
+	if _, err := exec.LookPath("sqlite3"); err != nil {
+		t.Skip("sqlite3 not on PATH")
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.Remove(path)
+	sql := fmt.Sprintf(`
+create table session (id text primary key, project_id text not null, directory text not null, title text not null, time_created integer not null, time_updated integer not null);
+create table message (id text primary key, session_id text not null, time_created integer not null, time_updated integer not null, data text not null);
+create table part (id text primary key, message_id text not null, session_id text not null, time_created integer not null, time_updated integer not null, data text not null);
+insert into session values ('ses_one', 'p', '/Users/jeff/dotfiles', 't', 1788371694995, %d);
+insert into message values ('msg_1', 'ses_one', 1788371695011, 0, '{"role":"user"}');
+insert into message values ('msg_2', 'ses_one', 1788371700000, 0, '{"role":"assistant","path":{"cwd":"/Users/jeff/dotfiles"}}');
+insert into message values ('msg_3', 'ses_one', 1788371800000, 0, '{"role":"user"}');
+insert into part values ('prt_1', 'msg_1', 'ses_one', 0, 0, '{"type":"text","text":"Move the scry sweep log into ~/.scry/logs."}');
+insert into part values ('prt_2', 'msg_2', 'ses_one', 0, 0, '{"type":"text","text":"Done: the plist now logs to ~/.scry/logs/memory-sweep.log."}');
+insert into part values ('prt_3', 'msg_3', 'ses_one', 0, 0, '{"type":"text","text":"Thanks, reload it with launchctl."}');
+`, updatedMs)
+	cmd := exec.Command("sqlite3", path)
+	cmd.Stdin = strings.NewReader(sql)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("sqlite3: %v: %s", err, out)
+	}
+}
+
+func TestRun_SweepsOpenCodeSessionsByUpdateTime(t *testing.T) {
+	tr := newTestRoots(t)
+	updated := time.Now().Add(-time.Hour).UnixMilli()
+	makeOpenCodeDB(t, tr.roots.OpenCodeDB, updated)
+
+	daemon := newFakeDaemon()
+	result, err := Run(context.Background(), tr.roots, ingest.Options{Daemon: daemon}, time.Minute, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.FilesScanned != 4 || result.FilesIngested != 4 {
+		t.Errorf("scanned %d ingested %d, want 4 and 4 (opencode session included)", result.FilesScanned, result.FilesIngested)
+	}
+	ref := distill.OpenCodeRef(tr.roots.OpenCodeDB, "ses_one")
+	c, ok := daemon.cursors[ref]
+	if !ok || !c.ModTime.Equal(time.UnixMilli(updated)) {
+		t.Fatalf("cursor for %s = %+v ok=%v", ref, c, ok)
+	}
+	var oc int
+	for _, ep := range daemon.enqueued {
+		if ep.Source == "opencode-session" {
+			oc++
+		}
+	}
+	if oc != 1 {
+		t.Errorf("opencode episodes = %d, want 1", oc)
+	}
+
+	// Unchanged session: nothing to do.
+	second, _ := Run(context.Background(), tr.roots, ingest.Options{Daemon: daemon}, time.Minute, false)
+	if second.FilesUnchanged != 4 || second.FilesIngested != 0 {
+		t.Errorf("second sweep: %+v", second)
+	}
+
+	// The session is updated again: re-ingested, daemon dedupes by episode id.
+	makeOpenCodeDB(t, tr.roots.OpenCodeDB, updated+60_000)
+	third, _ := Run(context.Background(), tr.roots, ingest.Options{Daemon: daemon}, time.Minute, false)
+	if third.FilesIngested != 1 || third.Episodes != 0 {
+		t.Errorf("third sweep: %+v (want the session re-ingested with 0 new episodes)", third)
+	}
+
+	// A session still being driven is skipped.
+	makeOpenCodeDB(t, tr.roots.OpenCodeDB, time.Now().UnixMilli())
+	fourth, _ := Run(context.Background(), tr.roots, ingest.Options{Daemon: daemon}, time.Minute, false)
+	if fourth.FilesSkippedActive != 1 {
+		t.Errorf("fourth sweep: %+v (want the active session skipped)", fourth)
 	}
 }

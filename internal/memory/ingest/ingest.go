@@ -40,7 +40,7 @@ type Daemon interface {
 
 // Options configures a single File call.
 type Options struct {
-	Source string // "claude" | "codex" | "kimi" | "opencode" | "loom" | "seed"
+	Source string // "claude" | "codex" | "kimi" | "opencode" | "loom" | "seed" (opencode paths are OpenCodeRefs)
 	Path   string
 	Daemon Daemon
 }
@@ -65,6 +65,10 @@ func File(ctx context.Context, o Options) (Summary, error) {
 		return ingestOffset(ctx, o, distill.ClaudeSession)
 	case "codex":
 		return ingestOffset(ctx, o, distill.CodexRollout)
+	case "kimi":
+		return ingestOffset(ctx, o, distill.KimiWire)
+	case "opencode":
+		return ingestOpenCode(ctx, o)
 	case "loom":
 		return ingestWholesale(ctx, o, func() ([]distill.RawEpisode, error) {
 			return distill.LoomRun(o.Path)
@@ -161,6 +165,30 @@ func Enqueue(ctx context.Context, d Daemon, episodes []distill.RawEpisode) (Summ
 		}
 		sum.EpisodesIngested += queued
 		sum.EpisodesSkipped += known
+	}
+	return sum, nil
+}
+
+// ingestOpenCode handles one OpenCode session, addressed by an OpenCodeRef
+// ("opencode:<db>:<session>") rather than a file. The whole session is
+// distilled each time; episode ids are deterministic so the daemon dedupes
+// what it already has. The cursor's ModTime is the session's own
+// time_updated, which is what the sweep compares against.
+func ingestOpenCode(ctx context.Context, o Options) (Summary, error) {
+	dbPath, sessionID, ok := distill.ParseOpenCodeRef(o.Path)
+	if !ok {
+		return Summary{}, fmt.Errorf("ingest: %q is not an opencode ref", o.Path)
+	}
+	episodes, updated, err := distill.OpenCodeSessionEpisodes(dbPath, sessionID)
+	if err != nil {
+		return Summary{}, fmt.Errorf("ingest: distill %s: %w", o.Path, err)
+	}
+	sum, err := Enqueue(ctx, o.Daemon, episodes)
+	if err != nil {
+		return sum, err
+	}
+	if err := o.Daemon.PutCursor(ctx, store.Cursor{Path: o.Path, ModTime: updated}); err != nil {
+		return sum, fmt.Errorf("ingest: put cursor: %w", err)
 	}
 	return sum, nil
 }
