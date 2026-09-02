@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -220,17 +221,35 @@ func TestKickWakesTheLoop(t *testing.T) {
 	}
 }
 
-func TestItemTimeoutIsATransportFailure(t *testing.T) {
+func TestItemTimeoutRetriesWithMoreRoomThenParks(t *testing.T) {
 	st := openTemp(t)
 	_ = st.PutPending(pending("s1", "x"))
 	fx := &fakeExtractor{delay: time.Second}
 	w := New(Options{Store: st, Extractor: fx, Poll: 10 * time.Millisecond, ItemTimeout: 30 * time.Millisecond})
-	w.backoff = func(int) time.Duration { return time.Hour }
-	runFor(t, w, 500*time.Millisecond)
-	waitUntil(t, time.Second, func() bool { p, _ := st.GetPending("s1"); return p.Attempts == 1 })
+	w.backoff = func(int) time.Duration { return 0 }
+	runFor(t, w, 3*time.Second)
+	if !waitUntil(t, 3*time.Second, func() bool { p, _ := st.GetPending("s1"); return p.Parked }) {
+		p, _ := st.GetPending("s1")
+		t.Fatalf("item never parked after repeated timeouts: %+v", p)
+	}
 	p, _ := st.GetPending("s1")
-	if p.Attempts != 1 || p.Parked {
-		t.Errorf("after timeout: %+v", p)
+	if p.Attempts != MaxTimeoutAttempts || !strings.Contains(p.LastError, "deadline") {
+		t.Errorf("after timeouts: %+v", p)
+	}
+	if itemDeadline(time.Minute, 0) != time.Minute || itemDeadline(time.Minute, 1) != 2*time.Minute || itemDeadline(time.Minute, 5) != 3*time.Minute {
+		t.Error("itemDeadline escalation wrong")
+	}
+}
+
+func TestCompletionWakesTheLoopWithoutPolling(t *testing.T) {
+	st := openTemp(t)
+	for i := range 3 {
+		_ = st.PutPending(pending(fmt.Sprintf("c%d", i), "x"))
+	}
+	w := New(Options{Store: st, Extractor: &fakeExtractor{}, Workers: 1, Poll: time.Hour})
+	runFor(t, w, 2*time.Second)
+	if !waitUntil(t, 2*time.Second, func() bool { r, _, _, _ := st.PendingCounts(time.Now()); return r == 0 }) {
+		t.Fatal("with one worker and an hour poll, completions must wake the loop to take the next item")
 	}
 }
 
@@ -238,4 +257,45 @@ func TestBackoffCapsAtTwoMinutes(t *testing.T) {
 	if Backoff(1) != 30*time.Second || Backoff(2) != time.Minute || Backoff(3) != 2*time.Minute || Backoff(9) != 2*time.Minute {
 		t.Errorf("Backoff = %v %v %v %v", Backoff(1), Backoff(2), Backoff(3), Backoff(9))
 	}
+}
+
+func TestManualEpisodesJumpTheBacklog(t *testing.T) {
+	st := openTemp(t)
+	base := time.Now().Add(-time.Hour)
+	for i := range 30 {
+		p := pending(fmt.Sprintf("t%02d", i), "transcript slice")
+		p.Source = "claude-session"
+		p.EnqueuedAt = base.Add(time.Duration(i) * time.Second)
+		_ = st.PutPending(p)
+	}
+	m := pending("manual-1", "a remembered fact")
+	m.EnqueuedAt = time.Now() // youngest of all
+	_ = st.PutPending(m)
+
+	var mu sync.Mutex
+	var order []string
+	fx := &fakeExtractor{delay: 20 * time.Millisecond}
+	w := New(Options{Store: st, Extractor: &orderRecorder{inner: fx, mu: &mu, order: &order}, Workers: 1, Poll: 5 * time.Millisecond})
+	runFor(t, w, 2*time.Second)
+	if !waitUntil(t, 2*time.Second, func() bool { mu.Lock(); defer mu.Unlock(); return len(order) >= 3 }) {
+		t.Fatal("nothing processed")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if order[0] != "manual-1" {
+		t.Errorf("first processed = %q, want the manual episode ahead of the backlog: %v", order[0], order[:3])
+	}
+}
+
+type orderRecorder struct {
+	inner extract.Extractor
+	mu    *sync.Mutex
+	order *[]string
+}
+
+func (o *orderRecorder) Extract(ctx context.Context, ep distill.RawEpisode, g []string) (extract.Result, error) {
+	o.mu.Lock()
+	*o.order = append(*o.order, ep.ID)
+	o.mu.Unlock()
+	return o.inner.Extract(ctx, ep, g)
 }
