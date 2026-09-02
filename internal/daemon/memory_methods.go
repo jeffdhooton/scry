@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -357,10 +358,10 @@ func (d *Daemon) handleMemoryInvalidate(_ context.Context, raw json.RawMessage) 
 	now := time.Now()
 	invalidated := 0
 	for _, f := range facts {
-		if f.Relation != p.Relation || f.Dst != p.Dst {
+		if f.Relation != p.Relation || (f.Dst != p.Dst && f.Value != p.Dst) {
 			continue
 		}
-		if err := st.InvalidateFact(f.Src, f.Relation, f.Dst, f.ValidFrom, now); err != nil {
+		if err := st.InvalidateFact(f.Src, f.Relation, f.KeyDst(), f.ValidFrom, now); err != nil {
 			return nil, err
 		}
 		invalidated++
@@ -469,6 +470,13 @@ func (d *Daemon) handleMemoryHygiene(_ context.Context, raw json.RawMessage) (an
 	st, err := d.memoryStore()
 	if err != nil {
 		return nil, err
+	}
+	if !p.DryRun {
+		// Hygiene edits recorded identity. A backup first is the house rule
+		// for anything that rewrites the store, dry run excepted.
+		if _, err := d.handleMemoryBackup(context.Background(), nil); err != nil {
+			return nil, fmt.Errorf("backup before hygiene: %w", err)
+		}
 	}
 	return resolve.Hygiene(st, p.DryRun)
 }

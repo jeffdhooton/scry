@@ -135,12 +135,38 @@ start it again afterwards.`,
 				return fmt.Errorf("open %s (is the daemon stopped?): %w", dir, err)
 			}
 			defer st.Close()
+
+			// The store about to be wiped is itself backed up first, so a
+			// restore from the wrong file is reversible.
+			home, err := scryHome()
+			if err != nil {
+				return err
+			}
+			pre := filepath.Join(home, "backups", "memory-pre-restore-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
+			if err := os.MkdirAll(filepath.Dir(pre), 0o755); err != nil {
+				return err
+			}
+			pf, err := os.Create(pre)
+			if err != nil {
+				return err
+			}
+			if _, err := st.Backup(pf); err != nil {
+				pf.Close()
+				return fmt.Errorf("backup before restore: %w", err)
+			}
+			if err := pf.Close(); err != nil {
+				return err
+			}
+
 			if err := st.Restore(f); err != nil {
 				return err
 			}
 			episodes, entities, facts, _ := st.Counts()
-			fmt.Printf("restored %s into %s: %d episodes, %d entities, %d facts\n", from, dir, episodes, entities, facts)
-			return nil
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(map[string]any{
+				"restored_from": from, "dir": dir, "previous_store_backup": pre,
+				"episodes": episodes, "entities": entities, "facts": facts,
+			}, pretty)
 		},
 	}
 	cmd.Flags().String("from", "", "backup file written by `scry memory backup` (required)")

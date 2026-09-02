@@ -91,7 +91,11 @@ func (d *Daemon) glossaryLines() []string {
 	stale := time.Since(d.memGlossary.at) > glossaryTTL
 	if stale && !d.memGlossary.refreshing {
 		d.memGlossary.refreshing = true
-		go d.refreshGlossary()
+		d.memQueueWG.Add(1)
+		go func() {
+			defer d.memQueueWG.Done()
+			d.refreshGlossary()
+		}()
 	}
 	d.memGlossary.mu.Unlock()
 	return lines

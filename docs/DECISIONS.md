@@ -1722,8 +1722,16 @@ know when ingestion last happened, which is what `scry doctor` needs.
 durability. A goroutine dies with the daemon; a `pq:` record does not. It
 also gives the outage story: the provider comes back, the worker drains.
 
-**Why the schema version stays at 1:** a bump wipes the store. `pq:`,
-`meta:`, and `att:` are additive prefixes an older binary ignores.
+**Why the schema version stays at 1:** a bump wipes the store. `pq:` (and
+`att:`, which the alias-attestation work adds) are additive prefixes an
+older binary ignores; `meta:` already existed.
+
+**Known limits:** Badger runs without `SyncWrites`, so a queued write is
+durable against a daemon crash but not against power loss in the same
+second; the same has always been true of facts. `scry memory backfill` is
+the one attended command that still extracts on the client, because it
+uses the Anthropic batch API when pointed at Anthropic; the unattended
+paths (sweep, ingest, remember) all go through the daemon.
 
 **What would change our minds:** a second store owner (two daemons writing
 one Badger dir is impossible anyway), or a provider so fast that inline

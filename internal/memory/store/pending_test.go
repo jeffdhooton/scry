@@ -153,3 +153,47 @@ func TestBackupAndRestoreRoundTrip(t *testing.T) {
 		t.Errorf("schema version after restore = %d", v)
 	}
 }
+
+func TestAttributeFactsHaveNoReverseIndexAndDistinctKeys(t *testing.T) {
+	s := openTemp(t)
+	now := time.Now()
+	if err := s.PutFact(Fact{Src: "scry", Relation: "status", Fact: "scry is in progress", ValidFrom: now, Confidence: 0.9}); err == nil {
+		t.Fatal("a fact with neither dst nor value must be rejected")
+	}
+	a := Fact{Src: "scry", Relation: "status", Value: "in-progress", Fact: "scry is in progress", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e1"}}
+	b := Fact{Src: "scry", Relation: "status", Value: "done", Fact: "scry is done", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e2"}}
+	for _, f := range []Fact{a, b} {
+		if err := s.PutFact(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	from, _ := s.FactsFrom("scry", false)
+	if len(from) != 2 {
+		t.Fatalf("two attribute values with the same ValidFrom must not collide: got %d", len(from))
+	}
+	for _, f := range from {
+		if !f.IsAttribute() || f.Dst != "" || f.Value == "" {
+			t.Errorf("stored attribute fact = %+v", f)
+		}
+	}
+	about, _ := s.FactsAbout("scry", false)
+	if len(about) != 2 {
+		t.Errorf("FactsAbout(scry) = %d, want 2", len(about))
+	}
+	if aboutVal, _ := s.FactsAbout(AttrDst("in-progress"), false); len(aboutVal) != 0 {
+		t.Error("a value must not be reachable as a node")
+	}
+	if err := s.InvalidateFact(a.Src, a.Relation, a.KeyDst(), a.ValidFrom, now.Add(time.Minute)); err != nil {
+		t.Fatalf("InvalidateFact by KeyDst: %v", err)
+	}
+	from, _ = s.FactsFrom("scry", false)
+	if len(from) != 1 || from[0].Value != "done" {
+		t.Errorf("after invalidation: %+v", from)
+	}
+	if err := s.DeleteFact(b.Src, b.Relation, b.KeyDst(), b.ValidFrom); err != nil {
+		t.Fatalf("DeleteFact by KeyDst: %v", err)
+	}
+	if IsAttrDst("scry") || !IsAttrDst(AttrDst("x")) {
+		t.Error("IsAttrDst wrong")
+	}
+}

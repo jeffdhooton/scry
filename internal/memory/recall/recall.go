@@ -253,6 +253,10 @@ func Path(st *store.Store, from, to string) ([]store.Fact, error) {
 			return nil, err
 		}
 		for _, f := range facts {
+			if f.IsAttribute() {
+				// A value is not a node; an attribute fact leads nowhere.
+				continue
+			}
 			neighbor := f.Dst
 			if neighbor == cur {
 				neighbor = f.Src

@@ -10,9 +10,11 @@
 //	ep:<id>                                            → Episode
 //	en:<slug>                                          → Entity
 //	al:<normalized-name>                               → slug (raw string)
-//	fa:<src>:<relation>:<dst>:<validfrom-unixnano>      → Fact
-//	adj:<dst>:<src>:<relation>:<validfrom-unixnano>     → empty (reverse index for FactsAbout)
+//	fa:<src>:<relation>:<dst>:<validfrom-unixnano>      → Fact (dst is "~<value-slug>" for an attribute fact)
+//	adj:<dst>:<src>:<relation>:<validfrom-unixnano>     → empty (reverse index for FactsAbout; edges only)
 //	cur:<sha256(path)>                                  → Cursor
+//	pq:<id>                                             → PendingEpisode (see pending.go)
+//	meta:<key>                                          → timestamps and reports (see pending.go)
 //
 // All values are JSON (except al: values, which are raw slug strings, and
 // adj: values, which are empty). Schema version 1.
@@ -81,15 +83,48 @@ type Entity struct {
 // Dst) triple may have multiple Facts, one per ValidFrom — invalidating a
 // fact sets InvalidAt rather than deleting it, preserving history.
 type Fact struct {
-	Src        string     `json:"src"`
-	Relation   string     `json:"relation"`
-	Dst        string     `json:"dst"`
-	Fact       string     `json:"fact"` // one-sentence natural language
-	ValidFrom  time.Time  `json:"valid_from"`
-	InvalidAt  *time.Time `json:"invalid_at,omitempty"` // nil = current
-	Confidence float64    `json:"confidence"`
-	Episodes   []string   `json:"episodes"` // provenance episode IDs
+	Src      string `json:"src"`
+	Relation string `json:"relation"`
+	// Dst is the target entity slug. It is empty for an attribute fact,
+	// whose target is a Value (a status word, a measurement, a branch name)
+	// rather than an entity: values are never nodes.
+	Dst string `json:"dst"`
+	// Value is the literal target of an attribute fact ("in-progress",
+	// "46 GiB"). Exactly one of Dst and Value is set.
+	Value string `json:"value,omitempty"`
+	// RawRelation is the relation as the extraction model wrote it, before
+	// the resolver mapped it onto the closed vocabulary. Empty when they
+	// agree.
+	RawRelation string     `json:"raw_relation,omitempty"`
+	Fact        string     `json:"fact"` // one-sentence natural language
+	ValidFrom   time.Time  `json:"valid_from"`
+	InvalidAt   *time.Time `json:"invalid_at,omitempty"` // nil = current
+	Confidence  float64    `json:"confidence"`
+	Episodes    []string   `json:"episodes"` // provenance episode IDs
 }
+
+// attrPrefix marks the dst slot of an attribute fact's key. "~" cannot
+// appear in a slug, so an attribute key never collides with an edge key.
+const attrPrefix = "~"
+
+// AttrDst returns the key slot for an attribute value.
+func AttrDst(value string) string { return attrPrefix + Slugify(value) }
+
+// IsAttrDst reports whether a key slot names a value rather than an entity.
+func IsAttrDst(slot string) bool { return strings.HasPrefix(slot, attrPrefix) }
+
+// KeyDst returns what goes in the fact key's dst slot: the entity slug for
+// an edge, AttrDst(Value) for an attribute fact. Pass this, not f.Dst, to
+// InvalidateFact and DeleteFact.
+func (f Fact) KeyDst() string {
+	if f.Dst != "" {
+		return f.Dst
+	}
+	return AttrDst(f.Value)
+}
+
+// IsAttribute reports whether f targets a value rather than an entity.
+func (f Fact) IsAttribute() bool { return f.Dst == "" }
 
 // Cursor tracks ingestion progress through one source file, so re-runs can
 // resume from where they left off.
@@ -433,14 +468,23 @@ func adjKey(dst, src, relation string, validFrom time.Time) []byte {
 	return []byte(fmt.Sprintf("%s%s:%s:%s:%d", prefixAdj, dst, src, relation, validFrom.UnixNano()))
 }
 
+// PutFact writes f under its key and, for an edge, the adj: reverse index.
+// An attribute fact has no reverse index: a value is not a node anyone
+// traverses to.
 func (s *Store) PutFact(f Fact) error {
+	if f.Dst == "" && f.Value == "" {
+		return fmt.Errorf("memory: fact %s -[%s]-> has neither dst nor value", f.Src, f.Relation)
+	}
 	b, err := json.Marshal(f)
 	if err != nil {
 		return err
 	}
 	return s.db.Update(func(txn *badger.Txn) error {
-		if err := txn.Set(factKey(f.Src, f.Relation, f.Dst, f.ValidFrom), b); err != nil {
+		if err := txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b); err != nil {
 			return err
+		}
+		if f.Dst == "" {
+			return nil
 		}
 		return txn.Set(adjKey(f.Dst, f.Src, f.Relation, f.ValidFrom), nil)
 	})
@@ -486,7 +530,7 @@ func (s *Store) FactsAbout(slug string, includeInvalid bool) ([]Fact, error) {
 	}
 	seen := make(map[string]bool, len(facts))
 	for _, f := range facts {
-		seen[string(factKey(f.Src, f.Relation, f.Dst, f.ValidFrom))] = true
+		seen[string(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom))] = true
 	}
 
 	pb := []byte(prefixAdj + slug + ":")
@@ -563,7 +607,8 @@ func (s *Store) AllFacts() ([]Fact, error) {
 }
 
 // InvalidateFact locates the exact fact identified by (src, relation, dst,
-// validFrom) and sets its InvalidAt timestamp.
+// validFrom) and sets its InvalidAt timestamp. dst is the key slot: the
+// entity slug for an edge, Fact.KeyDst() for an attribute fact.
 func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Time) error {
 	key := factKey(src, relation, dst, validFrom)
 	return s.db.Update(func(txn *badger.Txn) error {
@@ -608,6 +653,9 @@ func (s *Store) DeleteFact(src, relation, dst string, validFrom time.Time) error
 		}
 		if err := txn.Delete(key); err != nil {
 			return err
+		}
+		if IsAttrDst(dst) {
+			return nil
 		}
 		return txn.Delete(adjKey(dst, src, relation, validFrom))
 	})
