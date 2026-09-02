@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -47,11 +48,18 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 type fakeExtractor struct {
 	result extract.Result
 	err    error
+	delay  time.Duration
+	mu     sync.Mutex
 	calls  []distill.RawEpisode
 }
 
 func (f *fakeExtractor) Extract(_ context.Context, ep distill.RawEpisode, _ []string) (extract.Result, error) {
+	f.mu.Lock()
 	f.calls = append(f.calls, ep)
+	f.mu.Unlock()
+	if f.delay > 0 {
+		time.Sleep(f.delay)
+	}
 	return f.result, f.err
 }
 
@@ -326,7 +334,7 @@ func TestMemoryCursorRoundtrip(t *testing.T) {
 	}
 }
 
-func TestMemoryRememberDormantStoresEpisodeWithoutError(t *testing.T) {
+func TestMemoryRememberDormantQueuesWithoutError(t *testing.T) {
 	d := newTestMemoryDaemon(t)
 	ctx := context.Background()
 
@@ -338,34 +346,24 @@ func TestMemoryRememberDormantStoresEpisodeWithoutError(t *testing.T) {
 	if !ok {
 		t.Fatalf("handleMemoryRemember result type = %T, want *MemoryRememberResult", res)
 	}
-	if !result.Dormant {
-		t.Errorf("Dormant = false, want true — a dormant call must be distinguishable from one that genuinely resolved zero stats")
-	}
-	if result.Stats != (resolve.Stats{}) {
-		t.Errorf("stats = %+v, want zero value in dormant mode", result.Stats)
+	if !result.Dormant || !result.Queued || result.EpisodeID == "" || result.QueueDepth != 1 {
+		t.Errorf("result = %+v, want dormant, queued, depth 1", result)
 	}
 
-	// Status should show one episode ingested, zero entities/facts (dormant
-	// never resolves), and Dormant true.
 	statusRes, err := d.handleMemoryStatus(ctx, nil)
 	if err != nil {
 		t.Fatalf("handleMemoryStatus: %v", err)
 	}
 	status := statusRes.(*MemoryStatusResult)
-	if status.Episodes != 1 {
-		t.Errorf("Episodes = %d, want 1", status.Episodes)
-	}
-	if status.Entities != 0 {
-		t.Errorf("Entities = %d, want 0 (dormant remember must not resolve)", status.Entities)
-	}
-	if !status.Dormant {
-		t.Errorf("Dormant = false, want true")
+	if status.Episodes != 0 || status.QueueReady != 1 || !status.Dormant || status.WorkerRunning {
+		t.Errorf("status = %+v, want 0 episodes, 1 queued, dormant, no worker", status)
 	}
 }
 
-func TestMemoryRememberWithExtractorResolvesFacts(t *testing.T) {
+func TestMemoryRememberReturnsBeforeExtractionAndResolvesInBackground(t *testing.T) {
 	d := newTestMemoryDaemon(t)
 	d.memExtractor = &fakeExtractor{
+		delay: 300 * time.Millisecond,
 		result: extract.Result{
 			EpisodeSummary: "book-system deployed to hermes-mini",
 			Entities: []extract.Ent{
@@ -377,70 +375,158 @@ func TestMemoryRememberWithExtractorResolvesFacts(t *testing.T) {
 			},
 		},
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	d.startMemoryWorker(ctx)
+	for d.memoryWorker() == nil {
+		time.Sleep(5 * time.Millisecond)
+	}
 
+	start := time.Now()
 	res, err := d.handleMemoryRemember(ctx, mustJSON(t, MemoryRememberParams{Fact: "book-system deployed to hermes-mini"}))
 	if err != nil {
-		t.Fatalf("handleMemoryRemember (with extractor): %v", err)
+		t.Fatalf("handleMemoryRemember: %v", err)
 	}
-	result, ok := res.(*MemoryRememberResult)
-	if !ok {
-		t.Fatalf("handleMemoryRemember result type = %T, want *MemoryRememberResult", res)
+	if elapsed := time.Since(start); elapsed > 100*time.Millisecond {
+		t.Errorf("remember took %s; it must return before extraction runs", elapsed)
 	}
-	if result.Dormant {
-		t.Errorf("Dormant = true, want false — an extractor is configured")
+	result := res.(*MemoryRememberResult)
+	if result.Dormant || !result.Queued {
+		t.Errorf("result = %+v", result)
 	}
-	if result.Stats.EntitiesCreated != 2 {
-		t.Errorf("EntitiesCreated = %d, want 2", result.Stats.EntitiesCreated)
+
+	st, _ := d.memoryStore()
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if has, _ := st.HasEpisode(result.EpisodeID); has {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
-	if result.Stats.FactsAdded != 1 {
-		t.Errorf("FactsAdded = %d, want 1", result.Stats.FactsAdded)
+	facts, _ := st.FactsFrom("book-system", false)
+	if len(facts) != 1 {
+		t.Fatalf("facts on book-system = %d, want 1 resolved in the background", len(facts))
+	}
+	if has, _ := st.HasPending(result.EpisodeID); has {
+		t.Error("episode still pending after resolution")
+	}
+	cancel()
+	d.closeMemory()
+}
+
+func TestMemoryRememberSameFactSameDayIsOneEpisode(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	first, _ := d.handleMemoryRemember(ctx, mustJSON(t, MemoryRememberParams{Fact: "scry lives on the mini"}))
+	second, _ := d.handleMemoryRemember(ctx, mustJSON(t, MemoryRememberParams{Fact: "scry lives on the mini"}))
+	a, b := first.(*MemoryRememberResult), second.(*MemoryRememberResult)
+	if a.EpisodeID != b.EpisodeID || a.Known || !b.Known || b.QueueDepth != 1 {
+		t.Errorf("first = %+v, second = %+v; want the same episode, second marked known", a, b)
 	}
 }
 
 // TestMemoryRememberRedactsFact covers F3: memory.remember must redact
-// secret-shaped text out of p.Fact before any of it reaches the extraction
-// API or gets stored — both the RawEpisode.Text sent to Extract and the
-// episode's stored Summary.
+// secret-shaped text out of p.Fact before it is stored in the queue, so it
+// never reaches a model or the episode summary un-redacted.
 func TestMemoryRememberRedactsFact(t *testing.T) {
 	d := newTestMemoryDaemon(t)
-	fake := &fakeExtractor{
-		result: extract.Result{EpisodeSummary: "noted a token"},
-	}
-	d.memExtractor = fake
 	ctx := context.Background()
 
 	secretFact := "the deploy key is sk-abcdefghijklmnopqrstuvwxyz123456"
-	if _, err := d.handleMemoryRemember(ctx, mustJSON(t, MemoryRememberParams{Fact: secretFact})); err != nil {
+	res, err := d.handleMemoryRemember(ctx, mustJSON(t, MemoryRememberParams{Fact: secretFact}))
+	if err != nil {
 		t.Fatalf("handleMemoryRemember: %v", err)
 	}
-
-	if len(fake.calls) != 1 {
-		t.Fatalf("extractor calls = %d, want 1", len(fake.calls))
-	}
-	if strings.Contains(fake.calls[0].Text, "sk-abcdefghijklmnopqrstuvwxyz123456") {
-		t.Errorf("un-redacted secret sent to the extractor: %q", fake.calls[0].Text)
-	}
-	if !strings.Contains(fake.calls[0].Text, "[REDACTED]") {
-		t.Errorf("expected the extractor's input to contain the redaction marker; got: %q", fake.calls[0].Text)
-	}
-
-	// The stored episode's Summary must be redacted too — reach past the RPC
-	// layer directly into the store (same package) since no RPC exposes a
-	// bare episode lookup by ID.
 	st, err := d.memoryStore()
 	if err != nil {
 		t.Fatalf("memoryStore: %v", err)
 	}
-	ep, err := st.GetEpisode(fake.calls[0].ID)
+	p, err := st.GetPending(res.(*MemoryRememberResult).EpisodeID)
 	if err != nil {
-		t.Fatalf("GetEpisode(%s): %v", fake.calls[0].ID, err)
+		t.Fatalf("GetPending: %v", err)
 	}
-	if strings.Contains(ep.Summary, "sk-abcdefghijklmnopqrstuvwxyz123456") {
-		t.Errorf("un-redacted secret stored in episode Summary: %q", ep.Summary)
+	if strings.Contains(p.Text, "sk-abcdefghijklmnopqrstuvwxyz123456") {
+		t.Errorf("un-redacted secret queued: %q", p.Text)
 	}
-	if !strings.Contains(ep.Summary, "[REDACTED]") {
-		t.Errorf("expected the stored Summary to contain the redaction marker; got: %q", ep.Summary)
+	if !strings.Contains(p.Text, "[REDACTED]") {
+		t.Errorf("expected the queued text to contain the redaction marker; got: %q", p.Text)
+	}
+}
+
+func TestMemoryEnqueueDedupesAgainstStoreAndQueue(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	st, _ := d.memoryStore()
+	now := time.Now()
+	if err := st.PutEpisode(memstore.Episode{ID: "known", Source: "claude-session", OccurredAt: now, IngestedAt: now}); err != nil {
+		t.Fatal(err)
+	}
+	params := MemoryEnqueueParams{Episodes: []distill.RawEpisode{
+		{ID: "known", Source: "claude-session", Text: "already resolved"},
+		{ID: "new1", Source: "claude-session", Text: "fresh", OccurredAt: now},
+		{ID: "new1", Source: "claude-session", Text: "fresh again", OccurredAt: now},
+	}}
+	res, err := d.handleMemoryEnqueue(ctx, mustJSON(t, params))
+	if err != nil {
+		t.Fatalf("handleMemoryEnqueue: %v", err)
+	}
+	r := res.(*MemoryEnqueueResult)
+	if r.Queued != 1 || r.Known != 2 {
+		t.Errorf("enqueue = %+v, want queued 1 known 2", r)
+	}
+	if _, found, _ := st.GetMetaTime(memstore.MetaLastIngest); !found {
+		t.Error("MetaLastIngest not stamped after a queued episode")
+	}
+	if _, err := d.handleMemoryEnqueue(ctx, mustJSON(t, MemoryEnqueueParams{Episodes: []distill.RawEpisode{{Text: "no id"}}})); err == nil {
+		t.Error("enqueue without an id must be rejected")
+	}
+}
+
+func TestMemoryQueueListsAndRetriesParkedItems(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	st, _ := d.memoryStore()
+	now := time.Now()
+	_ = st.PutPending(memstore.PendingEpisode{ID: "parked", EnqueuedAt: now, NextAttempt: now, Parked: true, Attempts: 3, Text: strings.Repeat("x", 500)})
+	_ = st.PutPending(memstore.PendingEpisode{ID: "ready", EnqueuedAt: now, NextAttempt: now})
+
+	res, err := d.handleMemoryQueue(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := res.(*MemoryQueueResult)
+	if q.Ready != 1 || q.Parked != 1 || len(q.Items) != 2 || len(q.Items[0].Text) > 210 {
+		t.Errorf("queue = ready %d parked %d items %d (text %d)", q.Ready, q.Parked, len(q.Items), len(q.Items[0].Text))
+	}
+
+	rr, err := d.handleMemoryQueueRetry(ctx, mustJSON(t, MemoryQueueRetryParams{ID: "parked"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rr.(map[string]int)["retried"] != 1 {
+		t.Errorf("retry = %v, want 1", rr)
+	}
+	p, _ := st.GetPending("parked")
+	if p.Parked || p.Attempts != 0 {
+		t.Errorf("after retry: %+v", p)
+	}
+}
+
+func TestMemorySweepReportStampsLastSweep(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	if _, err := d.handleMemorySweepReport(ctx, mustJSON(t, MemorySweepReport{Host: "laptop", FilesScanned: 10, FilesIngested: 2})); err != nil {
+		t.Fatal(err)
+	}
+	statusRes, _ := d.handleMemoryStatus(ctx, nil)
+	status := statusRes.(*MemoryStatusResult)
+	if status.LastSweepAt == nil || time.Since(*status.LastSweepAt) > time.Minute {
+		t.Errorf("LastSweepAt = %v", status.LastSweepAt)
+	}
+	st, _ := d.memoryStore()
+	var rep MemorySweepReport
+	if found, _ := st.GetMetaJSON(memstore.MetaLastSweepReport, &rep); !found || rep.FilesIngested != 2 || rep.Host != "laptop" {
+		t.Errorf("stored report = %+v found=%v", rep, found)
 	}
 }
 

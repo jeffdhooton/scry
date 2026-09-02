@@ -5,12 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -50,12 +44,17 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.hasEpisodes", d.handleMemoryHasEpisodes)
 	d.server.Register("memory.status", d.handleMemoryStatus)
 	d.server.Register("memory.export", d.handleMemoryExport)
+	d.server.Register("memory.enqueue", d.handleMemoryEnqueue)
+	d.server.Register("memory.queue", d.handleMemoryQueue)
+	d.server.Register("memory.queue.retry", d.handleMemoryQueueRetry)
+	d.server.Register("memory.sweepReport", d.handleMemorySweepReport)
 }
 
 // closeMemory closes the global memory store, if it was ever opened. Called
 // from the daemon's shutdown path alongside closeHTTP and the per-repo
 // registries.
 func (d *Daemon) closeMemory() {
+	d.memQueueWG.Wait()
 	if d.memStore != nil {
 		_ = d.memStore.Close()
 	}
@@ -113,39 +112,7 @@ func (d *Daemon) handleMemoryGlossary(_ context.Context, raw json.RawMessage) (a
 	if err != nil {
 		return nil, err
 	}
-	entities, err := st.Entities()
-	if err != nil {
-		return nil, err
-	}
-
-	type ranked struct {
-		entity memstore.Entity
-		degree int
-	}
-	rankedEntities := make([]ranked, 0, len(entities))
-	for _, e := range entities {
-		facts, err := st.FactsAbout(e.Slug, false)
-		if err != nil {
-			return nil, err
-		}
-		rankedEntities = append(rankedEntities, ranked{entity: e, degree: len(facts)})
-	}
-	sort.SliceStable(rankedEntities, func(i, j int) bool {
-		return rankedEntities[i].degree > rankedEntities[j].degree
-	})
-	if len(rankedEntities) > limit {
-		rankedEntities = rankedEntities[:limit]
-	}
-
-	lines := make([]string, 0, len(rankedEntities))
-	for _, r := range rankedEntities {
-		line := r.entity.Slug
-		if len(r.entity.Aliases) > 0 {
-			line += ": " + strings.Join(r.entity.Aliases, ", ")
-		}
-		lines = append(lines, line)
-	}
-	return lines, nil
+	return computeGlossary(st, limit)
 }
 
 // --- memory.recall ---
@@ -435,19 +402,20 @@ type MemoryRememberParams struct {
 	Entities []string `json:"entities,omitempty"`
 }
 
-// MemoryRememberResult is memory.remember's result. Dormant is true when no
-// extractor is configured: in that case the episode is still stored (so
-// it's ingestable later) but never resolved into facts, and Stats is
-// necessarily its zero value — indistinguishable, if Dormant weren't
-// reported, from a call that genuinely extracted zero entities/facts from a
-// fact with no durable content. The MCP dispatch (callMemoryQuery) forwards
-// this raw over JSON without unmarshaling it into a typed struct, so it
-// needs no changes. The `scry memory remember` CLI verb (cmd/scry/memory.go)
-// unmarshals this typed struct directly and prints a stderr warning when
-// Dormant is true.
+// MemoryRememberResult is memory.remember's result. The write is queued,
+// not resolved: the call returns as soon as the episode is durable, and the
+// daemon's queue worker extracts it in the background. EpisodeID lets a
+// caller find it in `scry memory queue`. Dormant is true when no extractor
+// is configured — the episode still waits in the queue and is resolved by
+// the first daemon that starts with a key.
 type MemoryRememberResult struct {
-	Stats   resolve.Stats `json:"stats"`
-	Dormant bool          `json:"dormant"`
+	Queued     bool   `json:"queued"`
+	EpisodeID  string `json:"episode_id"`
+	QueueDepth int    `json:"queue_depth"`
+	Dormant    bool   `json:"dormant"`
+	// Known is true when an identical fact was already queued or resolved
+	// today, so a retried call does not create a second episode.
+	Known bool `json:"known,omitempty"`
 }
 
 // deadLetterExtraction records an extraction that could not be parsed, so the
@@ -504,28 +472,7 @@ func (d *Daemon) handleMemoryHygiene(_ context.Context, raw json.RawMessage) (an
 	return resolve.Hygiene(st, p.DryRun)
 }
 
-func (d *Daemon) deadLetterExtraction(episodeID string, cause error) {
-	dir := filepath.Join(d.scryHome(), "memory", "dead-letter")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		log.Printf("memory: could not create dead-letter dir: %v", err)
-		return
-	}
-	name := fmt.Sprintf("%s-%s.json",
-		time.Now().UTC().Format("20060102T150405Z"), episodeID)
-	payload, _ := json.MarshalIndent(map[string]string{
-		"episode_id": episodeID,
-		"error":      cause.Error(),
-		"at":         time.Now().UTC().Format(time.RFC3339),
-	}, "", "  ")
-	if err := os.WriteFile(filepath.Join(dir, name), payload, 0o644); err != nil {
-		log.Printf("memory: could not write dead-letter file: %v", err)
-		return
-	}
-	log.Printf("memory: extraction failed for episode %s — dead-lettered to %s for replay",
-		episodeID, name)
-}
-
-func (d *Daemon) handleMemoryRemember(ctx context.Context, raw json.RawMessage) (any, error) {
+func (d *Daemon) handleMemoryRemember(_ context.Context, raw json.RawMessage) (any, error) {
 	var p MemoryRememberParams
 	if err := json.Unmarshal(raw, &p); err != nil {
 		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: err.Error()}
@@ -538,54 +485,41 @@ func (d *Daemon) handleMemoryRemember(ctx context.Context, raw json.RawMessage) 
 		return nil, err
 	}
 
-	// p.Fact is caller-supplied free text handed straight to the extraction
-	// API (and stored verbatim as the episode summary); redact it first, same
-	// as every other text that reaches distill/extract, so a fact pasted with
-	// a live credential in it doesn't leave this process un-redacted.
+	// p.Fact is caller-supplied free text; redact it before it is stored or
+	// shown to a model, same as every other text that reaches extraction.
 	redactedFact := distill.Redact(p.Fact)
-
 	now := time.Now()
-	sum := sha256.Sum256([]byte(p.Fact + now.Format(time.RFC3339)))
-	ep := memstore.Episode{
+
+	// The id is content-derived at day granularity: a client that times out
+	// and retries the same remember lands on the same episode instead of
+	// storing it twice, while the same sentence remembered on another day
+	// is a fresh attestation.
+	sum := sha256.Sum256([]byte("manual:" + redactedFact + "\n" + now.UTC().Format("2006-01-02")))
+	ep := distill.RawEpisode{
 		ID:         hex.EncodeToString(sum[:]),
 		Source:     "manual",
 		SourceRef:  "manual",
-		Summary:    redactedFact,
-		OccurredAt: now,
-		IngestedAt: now,
-	}
-
-	if d.memExtractor == nil {
-		// Dormant: still store the episode so it's ingestable later, but do
-		// not resolve it into facts.
-		if err := st.PutEpisode(ep); err != nil {
-			return nil, err
-		}
-		return &MemoryRememberResult{Dormant: true}, nil
-	}
-
-	rawEp := distill.RawEpisode{
-		ID:         ep.ID,
-		Source:     ep.Source,
-		SourceRef:  ep.SourceRef,
 		Text:       redactedFact,
 		OccurredAt: now,
 	}
-	result, err := d.memExtractor.Extract(ctx, rawEp, p.Entities)
-	if err != nil {
-		// The episode is already stored; only its resolution into facts was
-		// lost. Losing a fact is acceptable only if it leaves a trace you can
-		// replay — a fact was dropped once with nothing but a log line.
-		if errors.Is(err, extract.ErrParse) {
-			d.deadLetterExtraction(rawEp.ID, err)
-		}
-		return nil, err
-	}
-	stats, err := resolve.Apply(st, ep, "", result, resolve.DefaultExclusive)
+	queued, err := enqueueEpisode(st, ep, p.Entities, now)
 	if err != nil {
 		return nil, err
 	}
-	return &MemoryRememberResult{Stats: stats}, nil
+	if queued {
+		d.kickMemoryWorker()
+	}
+	ready, backoff, parked, err := st.PendingCounts(now)
+	if err != nil {
+		return nil, err
+	}
+	return &MemoryRememberResult{
+		Queued:     true,
+		Known:      !queued,
+		EpisodeID:  ep.ID,
+		QueueDepth: ready + backoff + parked,
+		Dormant:    d.memExtractor == nil,
+	}, nil
 }
 
 // --- memory.cursor.get / memory.cursor.put ---
@@ -694,6 +628,17 @@ type MemoryStatusResult struct {
 	// dormant — so `scry memory status` shows which models are actually
 	// live, not which ones the shell env would have picked.
 	Models []string `json:"models,omitempty"`
+
+	// Queue and liveness. The timestamps are what `scry doctor` reads to
+	// decide whether ingestion is alive; they are pointers so "never" is
+	// distinguishable from a zero time.
+	QueueReady      int        `json:"queue_ready"`
+	QueueBackoff    int        `json:"queue_backoff"`
+	QueueParked     int        `json:"queue_parked"`
+	WorkerRunning   bool       `json:"worker_running"`
+	LastIngestAt    *time.Time `json:"last_ingest_at,omitempty"`
+	LastSweepAt     *time.Time `json:"last_sweep_at,omitempty"`
+	LastExtractOKAt *time.Time `json:"last_extract_ok_at,omitempty"`
 }
 
 func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, error) {
@@ -713,14 +658,40 @@ func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, 
 	if ch, ok := d.memExtractor.(*extract.Chain); ok {
 		models = ch.Names()
 	}
-	return &MemoryStatusResult{
-		Episodes: episodes,
-		Entities: entities,
-		Facts:    facts,
-		Dormant:  d.memExtractor == nil,
-		Cursors:  len(cursors),
-		Models:   models,
-	}, nil
+	ready, backoff, parked, err := st.PendingCounts(time.Now())
+	if err != nil {
+		return nil, err
+	}
+	res := &MemoryStatusResult{
+		Episodes:      episodes,
+		Entities:      entities,
+		Facts:         facts,
+		Dormant:       d.memExtractor == nil,
+		Cursors:       len(cursors),
+		Models:        models,
+		QueueReady:    ready,
+		QueueBackoff:  backoff,
+		QueueParked:   parked,
+		WorkerRunning: d.memoryWorker() != nil,
+	}
+	for _, m := range []struct {
+		key string
+		dst **time.Time
+	}{
+		{memstore.MetaLastIngest, &res.LastIngestAt},
+		{memstore.MetaLastSweep, &res.LastSweepAt},
+		{memstore.MetaLastExtract, &res.LastExtractOKAt},
+	} {
+		t, found, err := st.GetMetaTime(m.key)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			tt := t
+			*m.dst = &tt
+		}
+	}
+	return res, nil
 }
 
 // --- memory.export ---

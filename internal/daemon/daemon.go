@@ -25,6 +25,7 @@ import (
 	scryhttp "github.com/jeffdhooton/scry/internal/http"
 	httpstore "github.com/jeffdhooton/scry/internal/http/store"
 	"github.com/jeffdhooton/scry/internal/memory/extract"
+	"github.com/jeffdhooton/scry/internal/memory/queue"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	roomstore "github.com/jeffdhooton/scry/internal/room/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
@@ -75,6 +76,10 @@ type Daemon struct {
 	memStore     *memstore.Store
 	memErr       error
 	memExtractor extract.Extractor
+	memQueueMu   sync.Mutex
+	memQueue     *queue.Worker
+	memQueueWG   sync.WaitGroup
+	memGlossary  glossaryCache
 
 	memUIMu  sync.Mutex
 	memUISrv *http.Server
@@ -281,6 +286,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Live memory graph UI, loopback-only, best-effort: a port conflict here
 	// must never keep the daemon itself from coming up.
 	d.startMemoryUI(runCtx)
+
+	// Drain queued memory writes for as long as the daemon runs. Stopped by
+	// runCtx before closeMemory (deferred above) closes the store.
+	d.startMemoryWorker(runCtx)
 
 	serveErr := d.server.Serve(runCtx, ln)
 	if serveErr != nil && !errors.Is(serveErr, net.ErrClosed) {
