@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 	"time"
@@ -113,5 +114,42 @@ func TestMetaJSONRoundTrip(t *testing.T) {
 	}
 	if found, _ := s.GetMetaJSON("nope", &got); found {
 		t.Error("missing meta key reported found")
+	}
+}
+
+func TestBackupAndRestoreRoundTrip(t *testing.T) {
+	src := openTemp(t)
+	now := time.Now()
+	_ = src.PutEntity(Entity{Slug: "scry", Name: "scry", Type: "project", Aliases: []string{"scry daemon"}, CreatedAt: now, LastSeen: now})
+	_ = src.PutFact(Fact{Src: "scry", Relation: "deployed_on", Dst: "mini", Fact: "scry runs on the mini", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e1"}})
+	_ = src.PutEpisode(Episode{ID: "e1", Source: "manual", OccurredAt: now, IngestedAt: now})
+	_ = src.PutPending(PendingEpisode{ID: "p1", EnqueuedAt: now, NextAttempt: now})
+
+	var buf bytes.Buffer
+	n, err := src.Backup(&buf)
+	if err != nil || n == 0 {
+		t.Fatalf("Backup: %d bytes, %v", n, err)
+	}
+
+	dst := openTemp(t)
+	_ = dst.PutEntity(Entity{Slug: "junk", Name: "junk", Type: "concept"})
+	if err := dst.Restore(&buf); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	if _, err := dst.GetEntity("junk"); !errors.Is(err, ErrNotFound) {
+		t.Error("restore must wipe what was there before")
+	}
+	if slug, ok, _ := dst.ResolveAlias("scry daemon"); !ok || slug != "scry" {
+		t.Errorf("alias index not restored: %q %v", slug, ok)
+	}
+	facts, _ := dst.FactsAbout("mini", false)
+	if len(facts) != 1 {
+		t.Errorf("facts about mini after restore = %d, want 1 (adj index restored)", len(facts))
+	}
+	if has, _ := dst.HasPending("p1"); !has {
+		t.Error("pending queue not restored")
+	}
+	if v, _ := dst.schemaVersionOnDisk(); v != SchemaVersion {
+		t.Errorf("schema version after restore = %d", v)
 	}
 }

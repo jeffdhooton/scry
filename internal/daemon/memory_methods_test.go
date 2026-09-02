@@ -3,6 +3,8 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -732,5 +734,23 @@ func TestMemoryInvalidateAllCurrentMatches(t *testing.T) {
 	current := facts.([]memstore.Fact)
 	if len(current) != 0 {
 		t.Errorf("current facts after invalidate = %+v, want none", current)
+	}
+}
+
+func TestMemoryBackupWritesAFile(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	st, _ := d.memoryStore()
+	_ = st.PutEpisode(memstore.Episode{ID: "e1", Source: "manual"})
+	res, err := d.handleMemoryBackup(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := res.(*MemoryBackupResult)
+	if !strings.HasPrefix(r.Path, filepath.Join(d.layout.Home, "backups", "memory-")) || r.Bytes == 0 {
+		t.Errorf("backup = %+v", r)
+	}
+	if _, err := os.Stat(r.Path); err != nil {
+		t.Errorf("backup file missing: %v", err)
 	}
 }

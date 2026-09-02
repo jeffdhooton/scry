@@ -48,6 +48,7 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.queue", d.handleMemoryQueue)
 	d.server.Register("memory.queue.retry", d.handleMemoryQueueRetry)
 	d.server.Register("memory.sweepReport", d.handleMemorySweepReport)
+	d.server.Register("memory.backup", d.handleMemoryBackup)
 }
 
 // closeMemory closes the global memory store, if it was ever opened. Called

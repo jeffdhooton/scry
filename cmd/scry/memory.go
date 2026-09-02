@@ -79,7 +79,73 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd())
+	return cmd
+}
+
+// --- backup / restore ---
+
+func memoryBackupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "backup",
+		Short: "Stream the live memory store to a Badger backup file on the daemon's machine",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out, _ := cmd.Flags().GetString("out")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			var result daemon.MemoryBackupResult
+			if err := callMemoryDaemon(ctx, "memory.backup", &daemon.MemoryBackupParams{Path: out}, &result); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
+		},
+	}
+	cmd.Flags().String("out", "", "destination path on the daemon's machine (default ~/.scry/backups/memory-<utc>.badger)")
+	return cmd
+}
+
+func memoryRestoreCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "restore",
+		Short: "Wipe the local memory store and load a backup into it (daemon must be stopped)",
+		Long: `Opens ~/.scry/memory directly, drops everything, and loads the backup file.
+The daemon holds the store's lock while it runs, so stop it first
+(launchctl bootout, or kill the scry start --foreground process) and
+start it again afterwards.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			from, _ := cmd.Flags().GetString("from")
+			dir, _ := cmd.Flags().GetString("dir")
+			if dir == "" {
+				home, err := scryHome()
+				if err != nil {
+					return err
+				}
+				dir = filepath.Join(home, "memory")
+			}
+			f, err := os.Open(from)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			st, err := memstore.Open(dir)
+			if err != nil {
+				return fmt.Errorf("open %s (is the daemon stopped?): %w", dir, err)
+			}
+			defer st.Close()
+			if err := st.Restore(f); err != nil {
+				return err
+			}
+			episodes, entities, facts, _ := st.Counts()
+			fmt.Printf("restored %s into %s: %d episodes, %d entities, %d facts\n", from, dir, episodes, entities, facts)
+			return nil
+		},
+	}
+	cmd.Flags().String("from", "", "backup file written by `scry memory backup` (required)")
+	cmd.Flags().String("dir", "", "store directory (default ~/.scry/memory)")
+	_ = cmd.MarkFlagRequired("from")
 	return cmd
 }
 

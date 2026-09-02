@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"sort"
 	"strings"
@@ -720,4 +721,27 @@ var nonSlugRE = regexp.MustCompile(`[^a-z0-9-]`)
 // Slugify is Normalize followed by stripping any rune outside [a-z0-9-].
 func Slugify(name string) string {
 	return nonSlugRE.ReplaceAllString(Normalize(name), "")
+}
+
+// --- Backup / restore ---
+
+// Backup streams every key in the store to w in Badger's backup format and
+// returns the number of bytes written. It runs against the live database,
+// so the daemon can take one before a migration without stopping.
+func (s *Store) Backup(w io.Writer) (uint64, error) {
+	return s.db.Backup(w, 0)
+}
+
+// Restore wipes the store and loads a Backup stream into it. It is meant
+// for an offline store (daemon stopped) opened directly by the CLI; the
+// schema marker is re-checked afterwards so a restored store from the same
+// schema version opens cleanly.
+func (s *Store) Restore(r io.Reader) error {
+	if err := s.db.DropAll(); err != nil {
+		return fmt.Errorf("wipe before restore: %w", err)
+	}
+	if err := s.db.Load(r, 16); err != nil {
+		return fmt.Errorf("load backup: %w", err)
+	}
+	return s.ensureSchema()
 }

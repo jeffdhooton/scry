@@ -3,7 +3,10 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -330,4 +333,54 @@ func (d *Daemon) handleMemorySweepReport(_ context.Context, raw json.RawMessage)
 		return nil, err
 	}
 	return map[string]any{"ok": true}, nil
+}
+
+// --- memory.backup ---
+
+// MemoryBackupParams names where the backup goes; empty means
+// ~/.scry/backups/memory-<utc>.badger on the daemon's machine.
+type MemoryBackupParams struct {
+	Path string `json:"path,omitempty"`
+}
+
+// MemoryBackupResult reports the file written.
+type MemoryBackupResult struct {
+	Path  string `json:"path"`
+	Bytes uint64 `json:"bytes"`
+}
+
+// handleMemoryBackup streams the live store to a file. It is the first step
+// of every migration and cheap enough to run on request.
+func (d *Daemon) handleMemoryBackup(_ context.Context, raw json.RawMessage) (any, error) {
+	var p MemoryBackupParams
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: err.Error()}
+		}
+	}
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	path := p.Path
+	if path == "" {
+		path = filepath.Join(d.scryHome(), "backups", "memory-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, err
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	n, err := st.Backup(f)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		_ = os.Remove(path)
+		return nil, fmt.Errorf("backup to %s: %w", path, err)
+	}
+	log.Printf("memory: backup written to %s (%d bytes)", path, n)
+	return &MemoryBackupResult{Path: path, Bytes: n}, nil
 }
