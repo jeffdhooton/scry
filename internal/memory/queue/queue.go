@@ -37,7 +37,7 @@ const (
 	// manualWorkers are slots reserved for manual episodes, so twenty
 	// remembers made during an outage never wait behind transcript slices
 	// that are holding every general slot against a hung upstream.
-	manualWorkers = 2
+	manualWorkers = 4
 
 	defaultWorkers     = 24
 	defaultItemTimeout = 6 * time.Minute
@@ -168,23 +168,29 @@ func (w *Worker) dispatch(ctx context.Context, sem, manualSem chan struct{}, wg 
 		if p.Parked || p.NextAttempt.After(now) {
 			continue
 		}
-		slot := sem
-		if p.Source == "manual" {
-			slot = manualSem
-		}
 		w.mu.Lock()
 		if w.inflight[p.ID] {
 			w.mu.Unlock()
 			continue
 		}
-		select {
-		case slot <- struct{}{}:
-		default:
-			w.mu.Unlock()
-			if slot == sem {
-				continue // general slots busy; a manual item further on may still fit
+		// A manual item takes a reserved slot, or a free general one; a
+		// transcript item only ever takes a general slot.
+		var slot chan struct{}
+		if p.Source == "manual" {
+			select {
+			case manualSem <- struct{}{}:
+				slot = manualSem
+			default:
 			}
-			continue
+		}
+		if slot == nil {
+			select {
+			case sem <- struct{}{}:
+				slot = sem
+			default:
+				w.mu.Unlock()
+				continue // busy; a differently classed item further on may still fit
+			}
 		}
 		w.inflight[p.ID] = true
 		w.mu.Unlock()

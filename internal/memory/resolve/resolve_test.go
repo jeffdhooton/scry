@@ -935,7 +935,7 @@ func TestApply_EphemeralAliasesAreRejected(t *testing.T) {
 	if _, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{
 		Name: "setpoint", Type: "project", Description: "loop engine",
 		Aliases: []string{
-			"loop engine",                 // keep: a real alias
+			"setpoint loop engine",        // keep: a real alias (shares "setpoint")
 			"setpoint-wt-9e6jz82r",        // drop: a temp worktree
 			"/private/var/folders/p2/T/x", // drop: a temp path
 			"/tmp/survtest",               // drop: a scratch dir
@@ -953,7 +953,7 @@ func TestApply_EphemeralAliasesAreRejected(t *testing.T) {
 			t.Fatalf("ephemeral alias survived: %q in %v", bad, got.Aliases)
 		}
 	}
-	if !containsString(got.Aliases, "loop engine") {
+	if !containsString(got.Aliases, "setpoint loop engine") {
 		t.Fatalf("real alias was dropped: %v", got.Aliases)
 	}
 }

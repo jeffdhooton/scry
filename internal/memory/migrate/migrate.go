@@ -170,7 +170,7 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 	values := map[string]store.Entity{}
 	for _, e := range entities {
 		bySlug[e.Slug] = e
-		if resolve.IsValueName(e.Name) || pureNumberOrHex(e.Slug) {
+		if resolve.IsValueName(e.Name) || resolve.IsEphemeralName(e.Name) || pureNumberOrHex(e.Slug) {
 			values[e.Slug] = e
 		}
 	}
@@ -269,7 +269,7 @@ func audit(st *store.Store, rep *Report) error {
 		return err
 	}
 	for _, e := range entities {
-		if resolve.IsValueName(e.Name) {
+		if resolve.IsValueName(e.Name) || resolve.IsEphemeralName(e.Name) {
 			rep.ValueEntitiesAfter++
 		}
 	}

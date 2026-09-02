@@ -63,7 +63,7 @@ func TestLiveStoreInvariants(t *testing.T) {
 	}
 	var valueNamed []string
 	for _, e := range entities {
-		if resolve.IsValueName(e.Name) {
+		if resolve.IsValueName(e.Name) || resolve.IsEphemeralName(e.Name) {
 			valueNamed = append(valueNamed, e.Name)
 		}
 	}

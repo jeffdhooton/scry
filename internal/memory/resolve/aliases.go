@@ -179,6 +179,9 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	if neverAlias(alias) {
 		return false, "generic, value, or reference word", nil
 	}
+	if machineLeak(alias, e) {
+		return false, "names hardware on a non-machine", nil
+	}
 
 	owner, owned, err := st.ResolveAlias(alias)
 	if err != nil {
@@ -216,10 +219,19 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		return false, "owned by " + owner + ", attested by " + itoa(n) + " episode(s)", nil
 	}
 
-	// The entity's own name, aliases, and description are its self-account;
-	// an alias that echoes any of them is not a stranger.
-	if sharesToken(alias, append([]string{e.Name, e.Description}, e.Aliases...)...) {
-		return true, "shares a token with the entity's name or description", nil
+	// The entity's own name and aliases are its self-account; an alias that
+	// echoes them is not a stranger. Its description counts only through
+	// a specific token — "loop engine" in a description made of two common
+	// nouns is not enough, since descriptions name other things too.
+	if sharesToken(alias, append([]string{e.Name}, e.Aliases...)...) {
+		return true, "shares a token with the entity's name", nil
+	}
+	if hasSpecificToken(alias) && sharesToken(alias, e.Description) {
+		for t := range tokensOf(alias) {
+			if !commonNouns[t] && tokensOf(e.Description)[t] {
+				return true, "shares a specific token with the entity's description", nil
+			}
+		}
 	}
 	n, err := st.AttestAlias(e.Slug, norm, episodeID)
 	if err != nil {
@@ -263,6 +275,18 @@ var machineNouns = map[string]bool{
 	"macbook": true, "imac": true, "studio": true, "pi": true, "nas": true,
 }
 
+// kindWords are the nouns that say what kind of thing an entity is. An
+// alias made of another entity's name plus its kind words ("Hermes agent"
+// for the service Hermes, "Halo box" for the machine AMD Halo) names that
+// entity, whatever it was listed on.
+var kindWords = map[string]map[string]bool{
+	"service": {"agent": true, "gateway": true, "dashboard": true, "dash": true, "transport": true, "profiles": true, "profile": true, "serve": true, "service": true, "daemon": true, "bot": true, "monitor": true, "cron": true, "job": true, "api": true, "server": true, "app": true, "ai": true, "the": true, "own": true},
+	"machine": {"box": true, "machine": true, "mini": true, "host": true, "server": true, "node": true, "laptop": true, "desktop": true, "mac": true, "pc": true, "vm": true, "the": true, "first": true, "second": true, "new": true, "old": true},
+	"tool":    {"cli": true, "tool": true, "binary": true, "command": true, "model": true, "engine": true, "the": true, "endpoint": true},
+	"project": {"repo": true, "project": true, "codebase": true, "app": true, "the": true},
+	"person":  {"the": true, "user": true},
+}
+
 // machineLeak reports whether alias names hardware while e is not a
 // machine.
 func machineLeak(alias string, e store.Entity) bool {
@@ -275,4 +299,28 @@ func machineLeak(alias string, e store.Entity) bool {
 		}
 	}
 	return false
+}
+
+// RevalidateAliases drops from e every alias that the current rules would
+// refuse: reference words, values, hardware nouns on a non-machine, and
+// aliases owned by an entity of an incompatible type. It runs when a
+// concept stub is upgraded to a real type, because the aliases it collected
+// as a wildcard may not belong to what it turned out to be.
+func RevalidateAliases(st *store.Store, e *store.Entity) error {
+	kept := e.Aliases[:0]
+	for _, a := range e.Aliases {
+		if neverAlias(a) || machineLeak(a, *e) {
+			continue
+		}
+		if owner, ok, err := st.ResolveAlias(a); err != nil {
+			return err
+		} else if ok && owner != e.Slug {
+			if other, gerr := st.GetEntity(owner); gerr == nil && !TypesCompatible(other.Type, e.Type) {
+				continue
+			}
+		}
+		kept = append(kept, a)
+	}
+	e.Aliases = kept
+	return nil
 }
