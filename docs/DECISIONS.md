@@ -2350,3 +2350,36 @@ is a thing or a measurement of one is a question it can answer and a
 regex cannot. That is a design change, it costs a provider call per
 episode, and it is not something to slip in while the provider is
 unreachable — so it is written down here rather than half-built.
+
+
+## 2026-09-03 — The stemmer files some words twice, and every fix measured worse
+
+**Decision:** the stemmer is left as it is, and the defect is written
+down rather than fixed.
+
+**The defect is real.** Stripping a suffix leaves a stem without the
+silent e the base form keeps: "merging" becomes "merg" while "merge"
+stays "merge", so a question asked in one inflection never meets a fact
+written in the other. A grader counted 585 pairs of words split this way
+in the live store — "route" in 1,511 documents and "rout" in 2,078,
+"worktree" in 1,524 and "worktre" in 213 — and showed four of its six
+misses flip to a hit when a single word of the question is changed to
+the fact's inflection, with no new information added.
+
+**Three fixes were measured against 250 questions across four sets.**
+Dropping the silent e from both sides, so a word has one bucket: 63, 43,
+52, 35 against a baseline of 62, 44, 53, 35 — one gained, two lost.
+Emitting both forms so nothing is displaced and matches can only be
+added: 61, 43, 46, 30, much worse, because duplicating a token inflates
+term frequency and document length and distorts the ranking that reads
+them. The grader's own additive variants scored 61 and 63. Every one
+trades questions one for one.
+
+**Why it stays.** A change that does not measure better does not ship,
+which is the same rule applied to relevance feedback, entity-name
+expansion, graph traversal, coverage weighting, and vector retrieval
+this session. A real fix is a real stemmer — Porter, about two hundred
+lines — which would handle the whole family consistently rather than
+patching the one suffix. That is worth doing when there is a question
+set big enough to tell a real gain from noise; at 250 questions a
+one-for-one trade is indistinguishable from either.
