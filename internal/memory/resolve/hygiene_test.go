@@ -334,7 +334,7 @@ func TestStubsGiveUpNamesATypedEntityAnswersTo(t *testing.T) {
 		}
 	}
 	put(store.Entity{Slug: "photon-node-sidecar", Name: "photon node sidecar", Type: "service", Aliases: []string{"sidecar"}})
-	put(store.Entity{Slug: "meta", Name: "-meta", Type: "concept", Aliases: []string{"sidecar", "its own thing"}})
+	put(store.Entity{Slug: "meta", Name: "-meta", Type: "concept", Aliases: []string{"sidecar", "meta helper"}})
 	put(store.Entity{Slug: "db-migrations", Name: "db-migrations", Type: "decision", Aliases: []string{"migration"}})
 	put(store.Entity{Slug: "add-is-beta", Name: "add is beta to users table", Type: "concept", Aliases: []string{"migration"}})
 
@@ -342,7 +342,7 @@ func TestStubsGiveUpNamesATypedEntityAnswersTo(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, c := range []struct{ slug, gone, kept string }{
-		{"meta", "sidecar", "its own thing"},
+		{"meta", "sidecar", "meta helper"},
 		{"add-is-beta", "migration", ""},
 	} {
 		e, err := st.GetEntity(c.slug)
