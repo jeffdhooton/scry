@@ -147,6 +147,14 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		return err
 	}
 
+	// A name beats an alias. If another entity of an incompatible type
+	// lists this name as an alias, that alias goes: otherwise the two
+	// share it and the store grows a cross-type collision every time a new
+	// entity is named after something else's nickname.
+	if err := claimNameFromAliasHolders(st, ent.Name, slug, ent.Type); err != nil {
+		return err
+	}
+
 	if errors.Is(err, store.ErrNotFound) {
 		e := store.Entity{
 			Slug:        slug,
@@ -286,7 +294,22 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// endpoint bypassed the entity checks entirely and
 		// "setpoint-wt-lpj7ikz0 worktree" became an entity.
 		srcIsValue := NotAnIdentity(fct.Src)
-		dstIsValue := relation == RelStatus || NotAnIdentity(fct.Dst)
+		dstIsValue := NotAnIdentity(fct.Dst)
+		if relation == RelStatus {
+			// "status" almost always points at a state word, and those are
+			// attributes. When it points at a real identity the model meant
+			// something else by it; keep the edge rather than turning a
+			// project into this entity's status, which exclusivity would
+			// then invalidate on the next status fact.
+			if dstIsValue {
+				dstIsValue = true
+			} else {
+				relation, fct.Relation = RelRelatedTo, RelRelatedTo
+				if rawRel == "" {
+					rawRel = raw
+				}
+			}
+		}
 		switch {
 		case srcIsValue && dstIsValue:
 			stats.FactsRejected++
@@ -743,7 +766,14 @@ func isGenericEntityName(name string) bool {
 	if fields := strings.Fields(n); len(fields) == 2 && processNouns[fields[1]] {
 		return true
 	}
-	return isGenericAlias(n)
+	// Role words, but NOT the sub-path rule below: "packages/shared" and
+	// "internal/memory" are real modules you can say things about. That
+	// rule exists to stop a directory becoming an ALIAS that merges two
+	// projects, which is a different question from whether it is a thing.
+	if v, ok := genericAliases[n]; ok {
+		return v
+	}
+	return false
 }
 
 // isGenericAlias reports whether a name is a role rather than an identity,
@@ -814,4 +844,38 @@ func containsString(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// claimNameFromAliasHolders removes name from the aliases of any entity of
+// an incompatible type that lists it, so the entity actually called that
+// owns it.
+func claimNameFromAliasHolders(st *store.Store, name, slug, typ string) error {
+	owner, ok, err := st.ResolveAlias(name)
+	if err != nil || !ok || owner == slug {
+		return err
+	}
+	holder, err := st.GetEntity(owner)
+	if err != nil {
+		return nil
+	}
+	if TypesCompatible(holder.Type, typ) || store.Normalize(holder.Name) == store.Normalize(name) {
+		return nil
+	}
+	kept := holder.Aliases[:0]
+	dropped := false
+	for _, a := range holder.Aliases {
+		if store.Normalize(a) == store.Normalize(name) {
+			dropped = true
+			continue
+		}
+		kept = append(kept, a)
+	}
+	if !dropped {
+		return nil
+	}
+	holder.Aliases = kept
+	if err := st.PutEntity(holder); err != nil {
+		return err
+	}
+	return st.ClaimAlias(name, slug)
 }

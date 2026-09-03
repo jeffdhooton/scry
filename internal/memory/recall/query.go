@@ -240,14 +240,17 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 			scored = append(scored, toHit(f, s))
 		}
 	}
-	// Facts on named entities that BM25 missed (the question used none of
-	// the fact's words) still belong: add them at a low score so a query
-	// that is only an entity name behaves like the old recall, ranked.
+	// Facts on entities the query names, scored the same way as the global
+	// candidates. An entity with two hundred facts pushes its own best
+	// match out of the global window, so without this the answer to "how
+	// do I ssh into the mini" loses to two hundred other facts about the
+	// mini.
 	if len(named) > 0 {
 		seen := map[string]bool{}
 		for _, h := range scored {
 			seen[hitKey(h)] = true
 		}
+		now := time.Now()
 		for slug, w := range named {
 			facts, err := st.FactsAbout(slug, asOf != nil)
 			if err != nil {
@@ -255,11 +258,19 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 			}
 			facts = filterAsOf(facts, asOf)
 			for _, f := range facts {
-				h := toHit(f, 0.1*w)
+				h := toHit(f, 0)
 				if seen[hitKey(h)] {
 					continue
 				}
 				seen[hitKey(h)] = true
+				s := 0.1 * w
+				if ix != nil {
+					s += ix.ScoreDoc(expand(q), search.FactKey(f)) + entityBoost*(1+w/4)
+					if now.Sub(f.ValidFrom) < 30*24*time.Hour {
+						s += recencyBoost
+					}
+				}
+				h.Score = round3(s)
 				scored = append(scored, h)
 			}
 		}

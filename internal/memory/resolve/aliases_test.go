@@ -236,3 +236,78 @@ func TestAdmitAliasRefusesNamesComposedFromAnotherEntity(t *testing.T) {
 		}
 	}
 }
+
+// The loopholes the item-5 grader demonstrated on the live write path.
+func TestAdmitAliasClosesTheGraderLoopholes(t *testing.T) {
+	st := openTemp(t)
+	ops := putEntity(t, st, "hermes-ops", "hermes-ops", "project")
+	putEntity(t, st, "hermes", "Hermes", "service")
+	putEntity(t, st, "amd-halo", "AMD Halo", "machine")
+	putEntity(t, st, "state-license-lookup-design", "State License Lookup design", "project")
+	lemonade := putEntity(t, st, "lemonade", "lemonade", "service")
+	if err := RefreshCompactIndex(st); err != nil {
+		t.Fatal(err)
+	}
+	refuse := []struct {
+		e     store.Entity
+		alias string
+	}{
+		{ops, "Hermes repo"}, {ops, "Hermes Slack gateway"}, {ops, "Hermes tmux"},
+		{ops, "Jeff's own Hermes"}, {ops, "AMD Halos"}, {ops, "halo boxes"},
+		{lemonade, "State License Lookup design doc"},
+	}
+	for _, tc := range refuse {
+		for _, ep := range []string{"e1", "e2", "e3"} {
+			if ok, reason, err := AdmitAlias(st, tc.e, tc.alias, ep); err != nil {
+				t.Fatal(err)
+			} else if ok {
+				t.Errorf("AdmitAlias(%s, %q, %s) admitted: %s", tc.e.Slug, tc.alias, ep, reason)
+			}
+		}
+	}
+	// An alias that names no existing entity and shares nothing with its
+	// holder is governed by attestation: deferred once, admitted twice.
+	if ok, _, _ := AdmitAlias(st, lemonade, "State License Lookup repo", "e1"); ok {
+		t.Error("an unrelated alias should wait for a second episode")
+	}
+	if ok, reason, _ := AdmitAlias(st, lemonade, "State License Lookup repo", "e2"); !ok {
+		t.Errorf("two episodes should admit an alias that names no other entity: %s", reason)
+	}
+
+	// The entity's own name, extended, is still immediate.
+	scry := putEntity(t, st, "scry", "scry", "project")
+	_ = RefreshCompactIndex(st)
+	for _, a := range []string{"scry daemon", "scryd", "context-stack/scry", "Scry memory"} {
+		if ok, reason, _ := AdmitAlias(st, scry, a, "e1"); !ok {
+			t.Errorf("AdmitAlias(scry, %q) refused: %s", a, reason)
+		}
+	}
+}
+
+// A new entity named after another's alias takes that name from it, so the
+// two never share it across a type boundary.
+func TestNewEntityNameBeatsAnIncompatibleAlias(t *testing.T) {
+	st := openTemp(t)
+	putEntity(t, st, "codex-sms-threading", "codex-sms-threading", "person", "sms conversation threading")
+	at := time.Date(2026, 9, 3, 0, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "e1", Source: "manual", SourceRef: "e1", OccurredAt: at, IngestedAt: at}
+	res := extract.Result{EpisodeSummary: "x", Entities: []extract.Ent{
+		{Name: "sms conversation threading", Type: "project", Description: "the threading project"},
+	}}
+	if _, err := Apply(st, ep, "", res, DefaultExclusive); err != nil {
+		t.Fatal(err)
+	}
+	holder, _ := st.GetEntity("codex-sms-threading")
+	for _, a := range holder.Aliases {
+		if store.Normalize(a) == "sms-conversation-threading" {
+			t.Errorf("the person kept the project's name as an alias: %v", holder.Aliases)
+		}
+	}
+	if slug, ok, _ := st.ResolveAlias("sms conversation threading"); !ok || slug != "sms-conversation-threading" {
+		t.Errorf("the name resolves to %q, want the project itself", slug)
+	}
+	rep, _ := Hygiene(st, true)
+	if rep.CrossTypeCollisions != 0 {
+		t.Errorf("cross-type collisions after the write: %d", rep.CrossTypeCollisions)
+	}
+}

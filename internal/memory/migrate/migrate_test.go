@@ -42,6 +42,7 @@ func seedAuditStore(t *testing.T, st *store.Store) {
 	put(store.Entity{Slug: "main", Name: "main", Type: "concept"})
 	put(store.Entity{Slug: "scry", Name: "scry", Type: "project"})
 	put(store.Entity{Slug: "childscribe-laravel", Name: "childscribe-laravel", Type: "project"})
+	put(store.Entity{Slug: "wren-home-cleaning", Name: "wren-home-cleaning", Type: "project"})
 	put(store.Entity{Slug: "51b-active-parameters", Name: "51B active parameters", Type: "concept"})
 
 	facts := []store.Fact{
@@ -55,7 +56,7 @@ func seedAuditStore(t *testing.T, st *store.Store) {
 		{Src: "gpt-oss-120b", Relation: "has_active_parameters", Dst: "51b-active-parameters", Fact: "gpt-oss-120b has 51B active parameters"},
 		{Src: "qwen", Relation: "runs_on", Dst: "hermes-ops", Fact: "gpt-oss-120b runs on halo"},
 		{Src: "scry", Relation: "status", Dst: "childscribe-laravel", Fact: "odd status edge"},
-		{Src: "scry", Relation: "robots_method_now_welcomes", Dst: "childscribe-laravel", Fact: "long tail verb"},
+		{Src: "scry", Relation: "robots_method_now_welcomes", Dst: "wren-home-cleaning", Fact: "long tail verb"},
 		{Src: "scry", Relation: "uses", Dst: "scry", Fact: "self loop"},
 	}
 	for i, f := range facts {
@@ -133,7 +134,7 @@ func TestRunAppliesEveryRule(t *testing.T) {
 	if f, ok := facts["childscribe-laravel uses scry"]; !ok || f.RawRelation != "used_by" {
 		t.Errorf("used_by not flipped into uses: %v", keys(facts))
 	}
-	if _, ok := facts["scry related_to childscribe-laravel"]; !ok {
+	if _, ok := facts["scry related_to wren-home-cleaning"]; !ok {
 		t.Errorf("long tail verb not on related_to: %v", keys(facts))
 	}
 
@@ -152,8 +153,13 @@ func TestRunAppliesEveryRule(t *testing.T) {
 	if _, ok := facts["gpt-oss-120b status =51B active parameters"]; !ok {
 		t.Errorf("measurement not converted: %v", keys(facts))
 	}
-	if f, ok := facts["scry status =childscribe-laravel"]; !ok || f.Dst != "" {
-		t.Errorf("status edge to a real entity must become an attribute: %v", keys(facts))
+	// A status edge between two real entities is not a status: it keeps its
+	// edge under related_to instead of making a project into scry's status.
+	if f, ok := facts["scry related_to childscribe-laravel"]; !ok || f.Dst != "childscribe-laravel" {
+		t.Errorf("status edge to a real entity must stay an edge: %v", keys(facts))
+	}
+	if _, ok := facts["scry status =childscribe-laravel"]; ok {
+		t.Errorf("a real entity must not become another's status value: %v", keys(facts))
 	}
 	if f, ok := facts["in-progress related_to main"]; !ok || f.InvalidAt == nil {
 		t.Errorf("value-to-value fact must be invalidated, not deleted: %+v", f)

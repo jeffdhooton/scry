@@ -38,11 +38,14 @@ type Report struct {
 	// AttributesRestored counts attribute facts whose value turned out to
 	// be an identity under the current rules and were turned back into
 	// edges to a (re)created entity.
-	AttributesRestored  int      `json:"attributes_restored"`
-	ValueEntities       int      `json:"value_entities"`
-	ValueFactsConverted int      `json:"value_facts_converted"`
-	ValueFactsDropped   int      `json:"value_facts_dropped"` // both endpoints values: invalidated
-	ValueEntitiesSample []string `json:"value_entities_sample,omitempty"`
+	AttributesRestored  int `json:"attributes_restored"`
+	ValueEntities       int `json:"value_entities"`
+	ValueFactsConverted int `json:"value_facts_converted"`
+	// StatusEdgesRepointed counts status edges between two real entities
+	// turned back into related_to edges.
+	StatusEdgesRepointed int      `json:"status_edges_repointed"`
+	ValueFactsDropped    int      `json:"value_facts_dropped"` // both endpoints values: invalidated
+	ValueEntitiesSample  []string `json:"value_entities_sample,omitempty"`
 
 	Hygiene       resolve.HygieneReport `json:"hygiene"`
 	HygienePasses int                   `json:"hygiene_passes"`
@@ -224,8 +227,29 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 		srcVal, dstVal := values[f.Src], values[f.Dst]
 		_, srcIsValue := values[f.Src]
 		_, dstIsValue := values[f.Dst]
-		statusEdge := f.Relation == resolve.RelStatus
-		if !srcIsValue && !dstIsValue && !statusEdge {
+		// A status edge to a real identity is not a status: the model used
+		// the word loosely. Re-point the relation and keep the edge, rather
+		// than making the other entity this one's status and letting
+		// exclusivity invalidate it.
+		statusEdge := f.Relation == resolve.RelStatus && !srcIsValue && !dstIsValue
+		if statusEdge {
+			if _, ok := bySlug[f.Dst]; ok {
+				updated := f
+				updated.Relation = resolve.RelRelatedTo
+				if updated.RawRelation == "" {
+					updated.RawRelation = resolve.RelStatus
+				}
+				rep.StatusEdgesRepointed++
+				if dryRun {
+					continue
+				}
+				if err := st.RelocateFact(f, updated); err != nil {
+					return fmt.Errorf("repoint status edge %s -> %s: %w", f.Src, f.Dst, err)
+				}
+				continue
+			}
+		}
+		if !srcIsValue && !dstIsValue {
 			continue
 		}
 		updated := f
@@ -246,12 +270,9 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 		case dstIsValue:
 			updated.Dst = ""
 			updated.Value = dstVal.Name
-		default: // status edge to a real entity
-			updated.Dst = ""
-			updated.Value = bySlug[f.Dst].Name
-			if updated.Value == "" {
-				updated.Value = f.Dst
-			}
+		default:
+			// Unreachable: the status-edge case is handled above.
+			continue
 		}
 		rep.ValueFactsConverted++
 		if len(rep.ValueFactsSample) < 30 {

@@ -373,6 +373,58 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 	return hits
 }
 
+// ScoreDoc returns the BM25 score q would give the document at key, using
+// the same corpus statistics as Search. Recall uses it to rank the facts
+// of an entity the query names even when they fell outside the global
+// candidate window: an entity with two hundred facts should still answer
+// with the one that matches.
+func (ix *Index) ScoreDoc(q, key string) float64 {
+	toks := Tokenize(q)
+	if len(toks) == 0 {
+		return 0
+	}
+	ix.mu.RLock()
+	defer ix.mu.RUnlock()
+	i, ok := ix.byKey[key]
+	if !ok || ix.live == 0 {
+		return 0
+	}
+	avg := float64(ix.totalLen) / float64(ix.live)
+	docLen := float64(ix.lengths[i])
+	counts := map[string]int{}
+	for _, t := range Tokenize(ix.docs[i].Text) {
+		counts[t]++
+	}
+	var score float64
+	seen := map[string]bool{}
+	for _, t := range toks {
+		if seen[t] {
+			continue
+		}
+		seen[t] = true
+		tf := float64(counts[t])
+		if tf == 0 {
+			continue
+		}
+		df := 0
+		for _, p := range ix.postings[t] {
+			if ix.docs[p.doc].Key != "" {
+				df++
+			}
+		}
+		if df == 0 {
+			continue
+		}
+		idf := math.Log(1 + (float64(ix.live)-float64(df)+0.5)/(float64(df)+0.5))
+		weight := 1.0
+		if strings.HasPrefix(t, "^") {
+			weight = prefixWeight
+		}
+		score += weight * idf * tf * (k1 + 1) / (tf + k1*(1-b+b*docLen/avg))
+	}
+	return score
+}
+
 func validAt(d Doc, asOf *time.Time) bool {
 	if asOf == nil {
 		return d.InvalidAt == nil

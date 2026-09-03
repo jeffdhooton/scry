@@ -169,3 +169,34 @@ func TestApply_FactEndpointsNeverCreateNonIdentityEntities(t *testing.T) {
 		t.Error("NotAnIdentity wrong")
 	}
 }
+
+func TestApply_StatusToARealEntityStaysAnEdge(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 3, 0, 0, 0, 0, time.UTC)
+	putEntity(t, st, "setpoint-fleet", "setpoint fleet", "project")
+	applyOne(t, st, "e1", at,
+		extract.Fct{Src: "dotfiles", Relation: "status", Dst: "setpoint fleet", Fact: "the fleet applied Vale to commit messages", Confidence: 0.9},
+		extract.Fct{Src: "dotfiles", Relation: "status", Dst: "in-progress", Fact: "dotfiles work is in progress", Confidence: 0.9},
+	)
+	facts, _ := st.FactsFrom("dotfiles", false)
+	if len(facts) != 2 {
+		t.Fatalf("both facts must be current, got %+v", facts)
+	}
+	var edge, attr int
+	for _, f := range facts {
+		if f.IsAttribute() {
+			attr++
+			if f.Value != "in-progress" {
+				t.Errorf("wrong attribute value: %+v", f)
+			}
+		} else {
+			edge++
+			if f.Dst != "setpoint-fleet" || f.Relation != RelRelatedTo || f.RawRelation != "status" {
+				t.Errorf("status edge to a real entity: %+v", f)
+			}
+		}
+	}
+	if edge != 1 || attr != 1 {
+		t.Errorf("want one edge and one attribute, got %d and %d", edge, attr)
+	}
+}

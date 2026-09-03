@@ -16,7 +16,7 @@ var (
 	// bareNumberOrMeasureRE: "51", "3.5", "46 GiB", "51b", "12GB", "3.5s",
 	// "40%", "1,024 rows", "51b-active-parameters", "46-gib-spare-memory".
 	bareNumberOrMeasureRE = regexp.MustCompile(`^[~≈<>]?[$€£]?\d[\d.,_]*$` +
-		`|^[~≈<>]?[$€£]?\d[\d.,_]*[\s-]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|us|ns|s|sec|secs|seconds?|m|min|mins|minutes?|h|hr|hrs|hours?|d|days?|w|weeks?|%|x|k|m|b|bn|rows?|tokens?|params?|parameters?|cores?|threads?|gpus?|cpus?|nodes?|files?|lines?|fps|rps|qps|tps|req/s|mtok|usd|eur)$` +
+		`|^[~≈<>]?[$€£]?\d[\d.,_]*[\s-]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|us|ns|s|sec|secs|seconds?|m|min|mins|minutes?|h|hr|hrs|hours?|d|days?|w|weeks?|%|x|k|m|b|bn|rows?|tokens?|params?|parameters?|cores?|threads?|gpus?|cpus?|nodes?|files?|lines?|fps|rps|qps|tps|req/s|mtok|usd|eur|px|pt|em|rem|vh|vw|dpi|tok)$` +
 		`|^[~≈<>]?[$€£]?\d[\d.,_]*[\s-]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|%|params?|parameters?|cores?|threads?|gpus?|cpus?|mtok|k|m|b|bn|x)(?:[\s-][a-z][a-z-]*)*$`)
 	// versionRE: "v2", "v1.2.3", "1.2.3", "2026.09", "1.2.3-rc1", "go1.23".
 	versionRE = regexp.MustCompile(`^(?:v|go|python|node|php|ruby|java|rust)?\d+(?:\.\d+){1,3}(?:[-+][a-z0-9.]+)?$|^v\d+$`)
@@ -34,7 +34,7 @@ var (
 	// userAtHostRE: "jclaw@100.96.45.73", "jeff@mini".
 	userAtHostRE = regexp.MustCompile(`^[a-z0-9._-]+@[a-z0-9.-]+$`)
 	// httpStatusRE: "HTTP 429", "500 response", "route cache 500 error".
-	httpStatusRE = regexp.MustCompile(`(?:^|\s)(?:http\s+)?[1-5]\d\d(?:/[1-5]\d\d)*(?:\s+(?:response|error|errors|status|code))?$|^http\s+[1-5]\d\d`)
+	httpStatusRE = regexp.MustCompile(`^(?:http[\s_-]+)?[1-5]\d\d(?:[\s_/-]+(?:or[\s_-]+)?[1-5]\d\d)*(?:[\s_-]+(?:rate|limit|limits|error|errors|status|statuses|code|codes|response|responses|redirect|redirects|auth|regression|regressions|too|many|requests|request|not|found|unauthorized|forbidden|server|timeout|timeouts|bad|gateway|unavailable|conflict|loop|loops)){0,3}$`)
 	// hexRE: commit shas up to a full sha256, run ids.
 	hexRE = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
 	// uuidRE: session and thread ids.
@@ -42,13 +42,20 @@ var (
 	// countRE: "10 users", "83 tests", "80_tests", "275 passing", "409
 	// status", "500 error", "54/54 passing", "1623-tests": a number and one
 	// or two words whose last word is a count noun or a state.
-	countRE = regexp.MustCompile(`^[+-]?\d[\d.,/_-]*[\s_-]+(?:[a-z]+[\s_-]+)?([a-z]+)$`)
+	countRE = regexp.MustCompile(`^[+-]?\d[\d.,]*[\s_-]+(?:[a-z]+[\s_-]+)?([a-z]+)$`)
+	// dimensionRE: "1200x630", "400 x 400".
+	dimensionRE = regexp.MustCompile(`^\d+\s*[x×]\s*\d+$`)
+	// durationRE: "14h40m", "2m30s", "1h".
+	durationRE = regexp.MustCompile(`^\d+h(?:\d+m)?(?:\d+s)?$|^\d+m(?:\d+s)?$|^\d+s$`)
+	// ratioRE: "31 / 100 health score", "10 tests / 326 assertions",
+	// "54/54 passing", "6/10".
+	ratioRE = regexp.MustCompile(`^\d[\d.,]*\s*/\s*\d[\d.,]*(?:[\s_-]+[a-z][a-z-]*)*$`)
 	// leadingNumberRE: names that start with a number, for the "number plus
 	// a unit, count, or state anywhere" rule ("116 GB of 125 GB", "793
 	// passed, 1 failed", "20.2 tok/s", "8-10").
 	leadingNumberRE = regexp.MustCompile(`^[~≈<>+-]?\d`)
-	numberRangeRE   = regexp.MustCompile(`^\d+(?:\.\d+)?\s*[-–]\s*\d+(?:\.\d+)?$`)
-	unitTokenRE     = regexp.MustCompile(`^\d[\d.,]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|s|h|d|w|%|x|tok|tokens?|mb/s|gb/s|kb/s|tok/s|req/s|fps|rps|qps|tps)$|^(?:[kmgtp]?i?b|[kmgt]?hz|ms|mb/s|gb/s|kb/s|tok/s|req/s|%)$`)
+	numberRangeRE   = regexp.MustCompile(`^\d+(?:\.\d+)?\s*[-–]\s*\d+(?:\.\d+)?[a-z]{0,4}$`)
+	unitTokenRE     = regexp.MustCompile(`^\d[\d.,]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|s|h|d|w|%|x|tok|tokens?|px|mb/s|gb/s|kb/s|tok/s|req/s|fps|rps|qps|tps)$|^(?:[kmgtp]?i?b|[kmgt]?hz|ms|us|ns|sec|secs|min|mins|hr|hrs|tok|px|mb/s|gb/s|kb/s|tok/s|req/s|fps|rps|qps|tps|%)$`)
 	// signedOrSciRE: "-1", "+5", "1e6", "40 percent", "version 1.2.1",
 	// "Version 2", "Q3 2026", "September 2026", "2026-09".
 	signedOrSciRE = regexp.MustCompile(`^[+-]\d+(?:\.\d+)?$|^\d+(?:\.\d+)?e[+-]?\d+$|^\d+(?:\.\d+)?\s*percent$|^version\s+\d[\w.]*$|^q[1-4]\s+\d{4}$|^(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}$|^\d{4}-\d{2}$`)
@@ -73,6 +80,12 @@ var countNouns = map[string]bool{
 	"insertions": true, "deletions": true, "attempts": true, "retries": true, "rounds": true,
 	"waves": true, "phases": true, "questions": true, "hits": true, "misses": true,
 	"clicks": true, "impressions": true, "assertions": true, "specs": true, "spec": true, "typos": true,
+	"tools": true, "tool": true, "prs": true, "pr": true, "states": true, "state": true, "sources": true,
+	"source": true, "repos": true, "repo": true, "blocks": true, "block": true, "epics": true, "epic": true,
+	"branches": true, "branch": true, "bookmarks": true, "likes": true, "retweets": true, "replies": true,
+	"watchers": true, "watcher": true, "redirects": true, "redirect": true, "responses": true, "response": true,
+	"suites": true, "suite": true, "regenerations": true, "score": true, "scores": true,
+	"dependents": true, "consumers": true, "callers": true, "usages": true, "instances": true,
 	"fails": true, "occurrences": true, "matches": true, "violations": true, "regressions": true,
 	"gb": true, "mb": true, "kb": true, "tb": true, "gib": true, "mib": true,
 }
@@ -138,10 +151,12 @@ func IsValueName(name string) bool {
 	if trunkBranches[n] || (branchRE.MatchString(n) && !fileExtRE.MatchString(n)) || branchWordRE.MatchString(n) {
 		return true
 	}
-	if uuidAnywhereRE.MatchString(n) || userAtHostRE.MatchString(n) || httpStatusRE.MatchString(n) || numberRangeRE.MatchString(n) {
+	if uuidAnywhereRE.MatchString(n) || userAtHostRE.MatchString(n) || httpStatusRE.MatchString(n) ||
+		numberRangeRE.MatchString(n) || dimensionRE.MatchString(n) || durationRE.MatchString(n) || ratioRE.MatchString(n) {
 		return true
 	}
-	if leadingNumberRE.MatchString(n) && !fileExtRE.MatchString(n) && measurementPhrase(n) {
+	if leadingNumberRE.MatchString(n) && !fileExtRE.MatchString(n) &&
+		(measurementPhrase(n) || countPhrase(n) || ratioPhrase(n)) {
 		return true
 	}
 	if bareNumberOrMeasureRE.MatchString(n) || versionRE.MatchString(n) || hexRE.MatchString(n) || uuidRE.MatchString(n) || dateRE.MatchString(n) || timeRE.MatchString(n) || endpointRE.MatchString(n) || signedOrSciRE.MatchString(n) {
@@ -204,6 +219,46 @@ func IsStatusWord(name string) bool {
 		}
 	}
 	return false
+}
+
+// resultWords end a phrase that reports an outcome: "13 full
+// regenerations logged", "5 residual test failures".
+var resultWords = map[string]bool{
+	"logged": true, "recorded": true, "remaining": true, "total": true, "measured": true,
+	"observed": true, "expected": true, "reported": true, "counted": true, "seen": true,
+}
+
+// countPhrase reports whether s is a number followed by words that end in
+// something countable, a unit, a state, or a value: "23 pre-existing test
+// failures", "7 commits on main", "12-tok-per-sec". A phrase ending in a
+// noun that names a thing ("3 nodes cluster design", "303 Magazine") is an
+// identity and is left alone.
+func countPhrase(s string) bool {
+	words := strings.Fields(strings.NewReplacer("-", " ", "_", " ", ",", " ", "/", " ").Replace(s))
+	if len(words) < 2 || len(words) > 8 || !leadingNumberRE.MatchString(words[0]) {
+		return false
+	}
+	last := words[len(words)-1]
+	if countNouns[last] || statusWords[last] || resultWords[last] || unitTokenRE.MatchString(last) {
+		return true
+	}
+	return trunkBranches[last]
+}
+
+// ratioPhrase reports whether s is two count phrases either side of a
+// slash: "10 tests / 326 assertions".
+func ratioPhrase(s string) bool {
+	parts := strings.Split(s, "/")
+	if len(parts) != 2 {
+		return false
+	}
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if !countPhrase(p) && !leadingNumberRE.MatchString(p) {
+			return false
+		}
+	}
+	return leadingNumberRE.MatchString(strings.TrimSpace(parts[0]))
 }
 
 // measurementFillers are the words allowed between the numbers, units,

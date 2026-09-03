@@ -133,9 +133,23 @@ func TestApply_AliasResolution(t *testing.T) {
 	if !got.LastSeen.Equal(occurred) {
 		t.Fatalf("LastSeen should be max(existing, occurred): got %v want %v", got.LastSeen, occurred)
 	}
+	// "jclaws-mac-mini" shares only the word "mini" with "Hermes Mini", and
+	// one shared word is how unrelated things used to fuse, so it waits for
+	// a second, independent episode to attest it.
+	if len(got.Aliases) != 1 || got.Aliases[0] != "the mini" {
+		t.Fatalf("a one-episode alias sharing a single word should be deferred: %+v", got.Aliases)
+	}
+	ep2 := store.Episode{ID: "ep-2", Source: "manual", SourceRef: "y", OccurredAt: occurred, IngestedAt: occurred}
+	if _, err := Apply(st, ep2, "", res, DefaultExclusive); err != nil {
+		t.Fatalf("Apply 2: %v", err)
+	}
+	got, err = st.GetEntity("hermes-mini")
+	if err != nil {
+		t.Fatalf("GetEntity: %v", err)
+	}
 	wantAliases := map[string]bool{"the mini": true, "jclaws-mac-mini": true}
 	if len(got.Aliases) != len(wantAliases) {
-		t.Fatalf("aliases not unioned correctly: %+v", got.Aliases)
+		t.Fatalf("a second episode should admit the alias: %+v", got.Aliases)
 	}
 	for _, a := range got.Aliases {
 		if !wantAliases[a] {

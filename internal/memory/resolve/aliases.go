@@ -3,6 +3,7 @@ package resolve
 import (
 	"errors"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -225,18 +226,34 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		return false, "owned by " + owner + ", attested by " + itoa(n) + " episode(s)", nil
 	}
 
-	// The entity's own name and aliases are its self-account; an alias that
-	// echoes them is not a stranger. Its description counts only through
-	// a specific token — "loop engine" in a description made of two common
-	// nouns is not enough, since descriptions name other things too.
-	if sharesToken(alias, append([]string{e.Name}, e.Aliases...)...) {
-		return true, "shares a token with the entity's name", nil
+	// Immediate admission is narrow on purpose. Sharing one token with the
+	// entity's name used to be enough, and that is how "Hermes repo",
+	// "Hermes tmux" and "Jeff's own Hermes" all landed on the hermes-ops
+	// project. An alias is the entity's own only when it spells the name,
+	// or contains the whole name and adds nothing but this type's kind
+	// words.
+	an := singularTokens(alias)
+	en := singularTokens(e.Name)
+	if compactName(alias) == compactName(e.Name) || compactName(alias) == compactName(e.Slug) {
+		return true, "another spelling of the entity's own name", nil
 	}
-	if hasSpecificToken(alias) && sharesToken(alias, e.Description) {
-		for t := range tokensOf(alias) {
-			if !commonNouns[t] && tokensOf(e.Description)[t] {
-				return true, "shares a specific token with the entity's description", nil
+	// An alias that spells the entity's own name and adds to it ("scry
+	// daemon", "scryd", "context-stack/scry" for scry) is the entity's
+	// own. Nothing else is admitted on one episode: the check above has
+	// already established that no other entity is named in this alias.
+	if n := compactName(e.Name); len(n) >= 4 && strings.Contains(compactName(alias), n) {
+		return true, "contains the entity's own name", nil
+	}
+	if len(en) > 0 && len(an) > len(en) {
+		contains := true
+		for t := range en {
+			if !an[t] {
+				contains = false
+				break
 			}
+		}
+		if contains {
+			return true, "contains every word of the entity's name", nil
 		}
 	}
 	n, err := st.AttestAlias(e.Slug, norm, episodeID)
@@ -276,7 +293,7 @@ func itoa(n int) string {
 // entity that is not a machine ("hermes-mini" on the ops project, "Hermes
 // box") is the machine's name leaking onto the project.
 var machineNouns = map[string]bool{
-	"mini": true, "box": true, "machine": true, "host": true, "laptop": true, "desktop": true,
+	"mini": true, "box": true, "boxe": true, "machine": true, "host": true, "laptop": true, "desktop": true,
 	"server": true, "node": true, "mac": true, "workstation": true, "vm": true, "instance": true,
 	"macbook": true, "imac": true, "studio": true, "pi": true, "nas": true,
 }
@@ -299,7 +316,7 @@ func machineLeak(alias string, e store.Entity) bool {
 	if e.Type == "machine" || e.Type == "" || e.Type == "concept" {
 		return false
 	}
-	for t := range tokensOf(alias) {
+	for t := range singularTokens(alias) {
 		if machineNouns[t] {
 			return true
 		}
@@ -339,6 +356,15 @@ func aliasOwner(st *store.Store, alias string) (string, bool, error) {
 	if err != nil || ok {
 		return owner, ok, err
 	}
+	singularCompact := ""
+	{
+		toks := make([]string, 0, 4)
+		for t := range singularTokens(alias) {
+			toks = append(toks, t)
+		}
+		sort.Strings(toks)
+		singularCompact = strings.Join(toks, "")
+	}
 	for _, cand := range []string{store.Slugify(alias), store.Normalize(alias), compactName(alias)} {
 		if cand == "" {
 			continue
@@ -361,6 +387,10 @@ func aliasOwner(st *store.Store, alias string) (string, bool, error) {
 	if slug, found := ci.lookup(compactName(alias)); found {
 		return slug, true, nil
 	}
+	// A plural or reordered spelling of a name ("AMD Halos" for AMD Halo).
+	if slug, found := ci.lookupSingular(singularCompact); found {
+		return slug, true, nil
+	}
 	return "", false, nil
 }
 
@@ -368,68 +398,88 @@ func aliasOwner(st *store.Store, alias string) (string, bool, error) {
 // compare equal.
 func compactName(s string) string { return compact(s) }
 
-// namedByKindWords returns the slug of an entity of a type incompatible
-// with e whose name tokens are all in alias and whose remaining tokens are
-// that type's kind words, or "".
+// namedByKindWords returns the slug of another entity whose whole name
+// appears in the alias, with every remaining word one of that entity's
+// kind words: "Hermes agent" names the service Hermes, "halo boxes" and
+// "AMD Halos" name the machine AMD Halo, "State License Lookup repo"
+// names that project. Such an alias belongs to the entity it names, not
+// to whatever happened to be mentioned alongside it.
 func namedByKindWords(st *store.Store, alias string, e store.Entity) (string, error) {
-	at := tokensOf(alias)
+	at := singularTokens(alias)
 	if len(at) < 2 {
 		return "", nil
 	}
-	// Candidates: entities whose name is one of the alias's tokens or the
-	// alias minus one kind word. Look them up by name rather than scanning.
-	for t := range at {
-		if kindWords[e.Type][t] {
-			continue
-		}
-		owner, ok, err := aliasOwner(st, t)
-		if err != nil {
+	ci := compactIndex(st)
+	if ci.stale() {
+		if err := RefreshCompactIndex(st); err != nil {
 			return "", err
 		}
-		if !ok || owner == e.Slug {
-			continue
-		}
-		other, err := st.GetEntity(owner)
-		if err != nil || TypesCompatible(other.Type, e.Type) {
-			continue
-		}
-		nt := tokensOf(other.Name)
-		if len(nt) == 0 {
-			continue
-		}
-		ok2 := true
-		for x := range nt {
-			if !at[x] {
-				ok2 = false
-				break
-			}
-		}
-		if !ok2 {
-			continue
-		}
-		extras := 0
-		for x := range at {
-			if !nt[x] {
-				if !kindWords[other.Type][x] {
-					ok2 = false
-					break
-				}
-				extras++
-			}
-		}
-		if ok2 && extras > 0 {
-			return other.Slug, nil
+	}
+	holder := singularTokens(e.Name)
+	holderNamed := len(holder) > 0
+	for t := range holder {
+		if !at[t] {
+			holderNamed = false
+			break
 		}
 	}
-	return "", nil
+	if holderNamed {
+		// The alias spells its holder's own name too; that is the holder's
+		// business, decided by the rules below.
+		return "", nil
+	}
+	best, bestLen := "", 0
+	for _, slug := range ci.candidatesFor(at) {
+		if slug == e.Slug {
+			continue
+		}
+		other, err := st.GetEntity(slug)
+		if err != nil {
+			continue
+		}
+		ci.mu.Lock()
+		nt := ci.toks[slug]
+		ci.mu.Unlock()
+		if len(nt) == 0 || len(nt) == len(at) {
+			continue // the alias IS that name; the owner check covers it
+		}
+		// An alias that spells another entity's whole name, and does not
+		// spell its holder's, belongs to that entity — whatever the extra
+		// words are ("Hermes repo", "Jeff's own Hermes", "State License
+		// Lookup design doc"). Between entities of the same type the extras
+		// must be kind words, since two projects can legitimately share a
+		// word.
+		if TypesCompatible(other.Type, e.Type) {
+			kw := kindWords[other.Type]
+			ok := true
+			for t := range at {
+				if !nt[t] && !kw[t] {
+					ok = false
+					break
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
+		// Prefer the most specific name (the most tokens matched).
+		if len(nt) > bestLen {
+			best, bestLen = slug, len(nt)
+		}
+	}
+	return best, nil
 }
 
-// compactIdx is a cache of compact entity names → slug, refreshed at most
-// once a minute per store.
+// compactIdx caches, per store, what the entity names are: their compact
+// spellings and their singularised tokens. AdmitAlias needs both to answer
+// "does this alias name some other entity?" without a full scan per call.
 type compactIdx struct {
-	mu    sync.Mutex
-	at    time.Time
-	names map[string]string
+	mu        sync.Mutex
+	at        time.Time
+	names     map[string]string
+	singulars map[string]string          // compact name -> slug
+	byTok     map[string][]string        // singular token -> slugs
+	toks      map[string]map[string]bool // slug -> its name's singular tokens
 }
 
 var (
@@ -454,6 +504,18 @@ func (ci *compactIdx) stale() bool {
 	return time.Since(ci.at) > time.Minute
 }
 
+// lookupSingular finds an entity whose name has exactly these singular
+// tokens, in any order or plurality.
+func (ci *compactIdx) lookupSingular(key string) (string, bool) {
+	ci.mu.Lock()
+	defer ci.mu.Unlock()
+	if key == "" {
+		return "", false
+	}
+	slug, ok := ci.singulars[key]
+	return slug, ok
+}
+
 func (ci *compactIdx) lookup(key string) (string, bool) {
 	ci.mu.Lock()
 	defer ci.mu.Unlock()
@@ -464,20 +526,88 @@ func (ci *compactIdx) lookup(key string) (string, bool) {
 	return slug, ok
 }
 
-// RefreshCompactIndex rebuilds the compact-name cache for st.
+// RefreshCompactIndex rebuilds the entity-name caches for st.
 func RefreshCompactIndex(st *store.Store) error {
 	entities, err := st.Entities()
 	if err != nil {
 		return err
 	}
 	names := make(map[string]string, len(entities))
+	singulars := make(map[string]string, len(entities))
+	byTok := map[string][]string{}
+	toks := make(map[string]map[string]bool, len(entities))
 	for _, e := range entities {
 		names[compactName(e.Name)] = e.Slug
 		names[compactName(e.Slug)] = e.Slug
+		t := singularTokens(e.Name)
+		if len(t) == 0 {
+			continue
+		}
+		toks[e.Slug] = t
+		keys := make([]string, 0, len(t))
+		for tok := range t {
+			byTok[tok] = append(byTok[tok], e.Slug)
+			keys = append(keys, tok)
+		}
+		sort.Strings(keys)
+		singulars[strings.Join(keys, "")] = e.Slug
 	}
 	ci := compactIndex(st)
 	ci.mu.Lock()
-	ci.names, ci.at = names, time.Now()
+	ci.names, ci.singulars, ci.byTok, ci.toks, ci.at = names, singulars, byTok, toks, time.Now()
 	ci.mu.Unlock()
 	return nil
+}
+
+// singularTokens lowercases, splits, drops stop words, and strips a
+// trailing plural "s" or "es" so "AMD Halos" and "halo boxes" reach the
+// same tokens as "AMD Halo" and "Halo box".
+func singularTokens(s string) map[string]bool {
+	out := map[string]bool{}
+	for t := range tokensOf(s) {
+		out[singular(t)] = true
+	}
+	return out
+}
+
+func singular(t string) string {
+	switch {
+	case len(t) > 4 && strings.HasSuffix(t, "es") && !strings.HasSuffix(t, "ses"):
+		return t[:len(t)-2]
+	case len(t) > 3 && strings.HasSuffix(t, "s") && !strings.HasSuffix(t, "ss"):
+		return t[:len(t)-1]
+	}
+	return t
+}
+
+// candidatesFor returns slugs whose name tokens are all present in at,
+// looked up through the token index rather than by scanning every entity.
+func (ci *compactIdx) candidatesFor(at map[string]bool) []string {
+	ci.mu.Lock()
+	defer ci.mu.Unlock()
+	seen := map[string]bool{}
+	var out []string
+	for tok := range at {
+		for _, slug := range ci.byTok[tok] {
+			if seen[slug] {
+				continue
+			}
+			seen[slug] = true
+			nt := ci.toks[slug]
+			if len(nt) == 0 {
+				continue
+			}
+			ok := true
+			for t := range nt {
+				if !at[t] {
+					ok = false
+					break
+				}
+			}
+			if ok {
+				out = append(out, slug)
+			}
+		}
+	}
+	return out
 }
