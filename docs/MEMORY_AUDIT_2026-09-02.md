@@ -517,3 +517,83 @@ the store and scored 44 by meaning, 39 by exact expectation, against a
 bar of 45 in 50. Every one of the 18 misses was a ranking failure: the
 answering fact was live in the store in every single case. That is the
 next thing to fix, and it is not fixed yet.
+
+
+## Re-measured 2026-09-03, after grading round four
+
+Three fresh graders, none of which had seen the earlier question sets.
+All three disproved their claim. What follows is what they measured and
+what changed, with the numbers that got worse when measured properly
+sitting next to the ones that improved.
+
+**Retrieval, item 3: still failing.** A grader wrote 66 questions of its
+own from the store and got the answering fact into the top twenty for 43,
+against a bar of 90 per cent. Every one of the 23 misses was a ranking
+failure: the answering fact was live and current in all 23. It also
+showed the two mechanisms tuned against the previous grader's questions
+are *negatively* correlated with success on fresh ones — questions that
+fire a synonym scored 58 per cent against 70 for those that do not — and
+named the mechanism: the entry mapping "box" to machine, host, mini and
+halo floods any question containing the word with facts about the two
+loudest machines in the graph. That table is fitted, and the honest
+conclusion is that a hand-written thesaurus cannot close a conceptual
+gap; three of the grader's misses need "cannot fake his way through" to
+reach "no sports domain knowledge", which no synonym list will do.
+
+**Values, item 4: the rules generalised one notch and no further.** The
+same grader fed 51 hand-picked non-identities to the predicate and 50 of
+them were accepted. Every family the previous round's table covers had a
+neighbour that walked through: digits but not words ("15 relations"
+caught, "three failures" not), listed branch prefixes but not unlisted
+ones (feat/ caught, goal/ and proof/ and seo/ not), listed status words
+but not their synonyms (approved caught, confirmed not), and a length cap
+of 80 characters set against a store whose longest name was 79. After
+this round all 51 are refused and all 40 of its identities still
+accepted, including `modernc.org/sqlite`, which the old rules read as a
+URL — this project's own dependency.
+
+**Identities, item 5: the collision metric is now honest.** The grader
+computed cross-type collisions with its own normaliser and got 558,
+equal to the tool's own number to the unit, and could not make the metric
+read low. About 8 per cent of the pairs it counts are junk rather than
+fusions (`#61` and `§6.1` fold to the same key), and the fusions it
+cannot see are few. It also verified the duplicate-stub merge lost
+nothing: 538 facts relocated byte-identical, 8 correct self-loops, zero
+facts whose text no longer exists. But the merge fused about ten pairs
+that are not the same thing, because the counting key folds plurals and
+separators: `reports.ts` into `report.ts`, `books` into `book`, an
+API-integration concept into the person responsible for it, a model's
+pricing onto the subagent named after it.
+
+| Measure | Before | After |
+|---|---|---|
+| Non-identities accepted, of 51 hand-picked | 50 | 0 |
+| Identities wrongly rejected, of 40 hand-picked | 2 | 0 |
+| Value entities in the live store | 911 | 8 |
+| Facts pointing at an entity that no longer exists | 545 | 8 |
+| Cross-type collisions | 558 | 513 |
+| Alias churn per migration pass | 4,886 split, 2,133 facts moved | 0 |
+| Aliases the write path refuses but hygiene kept | 8 of 23 on one entity | 0 |
+| Tuning benchmark, strict expectations | 43 of 50 | 44 of 50 |
+| Tuning benchmark, alternate phrasings | 48 of 50 | 48 of 50 |
+| A grader's own 62 questions, machine-scored | 39 of 62 | 50 of 62 |
+| A second grader's own 66 questions, its own scoring | 43 of 66 | not re-graded |
+
+The migration now converges: the second pass changes nothing. Eight value
+entities and eight dangling endpoints remain as a fixed point rather than
+zero, and that residue is reported rather than explained away.
+
+**Known damage, not repaired.** The ten bad merges above are still in the
+store. The facts are all present and none moved to the wrong side of the
+merge; two identities share one node. The pre-merge state is in
+`~/.scry/backups/memory-20260903T174706Z.badger` on the mini. The rule
+that made them is fixed, so the next extraction round will restate both
+sides; separating them by hand was judged worse than leaving them, and
+that judgement is recorded here rather than left implicit.
+
+**The benchmark files are now the same fifty questions.** A reviewer
+found the strict file and the loose file had drifted apart — the loose
+one had swapped out a question the system missed for an easier one on the
+same topic. The strict file is generated from the loose one by pinning
+each question to the first of its accepted phrasings, so the two differ
+only in strictness.
