@@ -311,6 +311,7 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 	stats, err := resolve.ApplyWith(w.o.Store, store.Episode{
 		ID: p.ID, Source: p.Source, SourceRef: p.SourceRef, Summary: summary,
 		OccurredAt: p.OccurredAt, IngestedAt: time.Now(),
+		Cwd: p.Cwd, CwdIsRepo: p.CwdIsRepo,
 	}, cwd, res, resolve.DefaultExclusive, resolve.ApplyOptions{Force: p.Force})
 	if err != nil {
 		w.fail(p, fmt.Errorf("resolve: %w", err))

@@ -65,6 +65,12 @@ type Episode struct {
 	Summary    string    `json:"summary"`
 	OccurredAt time.Time `json:"occurred_at"`
 	IngestedAt time.Time `json:"ingested_at"`
+	// Cwd is the working directory of the session the episode came from,
+	// and CwdIsRepo the attestation (from the machine that has the path)
+	// that it was a repository. Kept so a repair can re-attach repo refs
+	// without asking a model anything.
+	Cwd       string `json:"cwd,omitempty"`
+	CwdIsRepo bool   `json:"cwd_is_repo,omitempty"`
 }
 
 // Entity is a named node in the knowledge graph: a project, service,

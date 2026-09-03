@@ -492,3 +492,118 @@ func (d *Daemon) handleMemoryMigrate(_ context.Context, raw json.RawMessage) (an
 	d.memGlossary.mu.Unlock()
 	return rep, nil
 }
+
+// --- memory.repairRepoRefs ---
+
+// MemoryRepairRepoRefsParams maps episode ids to the working directory the
+// session ran in, attested as a repository by the machine that has the
+// path. The daemon cannot stat those paths (the store may live on another
+// machine), so the client decides and the daemon applies.
+type MemoryRepairRepoRefsParams struct {
+	Refs map[string]string `json:"refs"`
+}
+
+// MemoryRepairRepoRefsResult reports what the repair touched.
+type MemoryRepairRepoRefsResult struct {
+	EpisodesKnown   int `json:"episodes_known"`
+	EpisodesUpdated int `json:"episodes_updated"`
+	PendingUpdated  int `json:"pending_updated"`
+	EntitiesUpdated int `json:"entities_updated"`
+	RefsAdded       int `json:"refs_added"`
+}
+
+// handleMemoryRepairRepoRefs attaches repo refs to the entities touched by
+// the facts of the named episodes, and stamps the attestation on the
+// episodes and on any still-pending items. It asks no model anything: the
+// working directory comes from the transcript the client re-distilled.
+func (d *Daemon) handleMemoryRepairRepoRefs(_ context.Context, raw json.RawMessage) (any, error) {
+	var p MemoryRepairRepoRefsParams
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: err.Error()}
+	}
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	var res MemoryRepairRepoRefsResult
+	if len(p.Refs) == 0 {
+		return &res, nil
+	}
+
+	// Stamp the episodes we know, and remember which ids are live.
+	live := make(map[string]string, len(p.Refs))
+	for id, cwd := range p.Refs {
+		ep, err := st.GetEpisode(id)
+		if err != nil {
+			if pend, perr := st.GetPending(id); perr == nil {
+				if !pend.CwdIsRepo || pend.Cwd != cwd {
+					pend.Cwd, pend.CwdIsRepo = cwd, true
+					if err := st.PutPending(pend); err != nil {
+						return nil, err
+					}
+					res.PendingUpdated++
+				}
+			}
+			continue
+		}
+		res.EpisodesKnown++
+		live[id] = cwd
+		if ep.Cwd != cwd || !ep.CwdIsRepo {
+			ep.Cwd, ep.CwdIsRepo = cwd, true
+			if err := st.PutEpisode(ep); err != nil {
+				return nil, err
+			}
+			res.EpisodesUpdated++
+		}
+	}
+	if len(live) == 0 {
+		return &res, nil
+	}
+
+	// One pass over the facts: every entity a repaired episode's facts
+	// touch gains that episode's repo ref.
+	facts, err := st.AllFacts()
+	if err != nil {
+		return nil, err
+	}
+	wanted := map[string]map[string]bool{} // slug -> set of cwds
+	for _, f := range facts {
+		for _, id := range f.Episodes {
+			cwd, ok := live[id]
+			if !ok {
+				continue
+			}
+			for _, slug := range []string{f.Src, f.Dst} {
+				if slug == "" {
+					continue
+				}
+				if wanted[slug] == nil {
+					wanted[slug] = map[string]bool{}
+				}
+				wanted[slug][cwd] = true
+			}
+			break
+		}
+	}
+	for slug, cwds := range wanted {
+		e, err := st.GetEntity(slug)
+		if err != nil {
+			continue
+		}
+		before := len(e.RepoRefs)
+		for cwd := range cwds {
+			e.RepoRefs = resolve.AddRepoRef(e.RepoRefs, cwd)
+		}
+		if len(e.RepoRefs) == before {
+			continue
+		}
+		res.RefsAdded += len(e.RepoRefs) - before
+		res.EntitiesUpdated++
+		if err := st.PutEntity(e); err != nil {
+			return nil, err
+		}
+	}
+	log.Printf("memory: repo-ref repair: %d episodes known, %d stamped, %d pending stamped, %d entities gained %d refs",
+		res.EpisodesKnown, res.EpisodesUpdated, res.PendingUpdated, res.EntitiesUpdated, res.RefsAdded)
+	return &res, nil
+}

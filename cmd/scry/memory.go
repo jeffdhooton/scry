@@ -81,7 +81,7 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd())
 	return cmd
 }
 
@@ -149,6 +149,110 @@ hold it).`,
 	}
 	cmd.Flags().Bool("apply", false, "write the changes after taking a backup (default is a dry run)")
 	cmd.Flags().String("dir", "", "run offline against this store directory instead of the daemon")
+	return cmd
+}
+
+// --- repair-repos ---
+
+// repairRepoBatch is how many episode→cwd pairs ride in one RPC; the
+// daemon does one full fact scan per call, so bigger batches are cheaper.
+const repairRepoBatch = 4000
+
+func memoryRepairReposCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "repair-repos",
+		Short: "Re-attach repository refs to entities from the transcripts, without asking a model anything",
+		Long: `Walks the same roots as the sweep, re-distills each transcript locally
+(no extraction, no cost), and tells the daemon which repository each
+episode ran in. Entities touched by those episodes gain the ref, so
+"scry memory orient" in a repo surfaces what happened there.
+
+Needed once because repo refs used to be recorded only when the working
+directory existed on the machine resolving the episode, which since the
+store moved to a shared daemon is the wrong machine.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			claudeFiles, codexFiles, loomDirs, kimiFiles, ocRefs, errs := sweep.AllCandidates(sweep.Roots{}, 0)
+			refs := map[string]string{}
+			add := func(eps []distill.RawEpisode) {
+				for _, ep := range eps {
+					if ep.CwdIsRepo && ep.Cwd != "" {
+						refs[ep.ID] = ep.Cwd
+					}
+				}
+			}
+			for _, f := range claudeFiles {
+				if eps, _, err := distill.ClaudeSession(f, 0); err == nil {
+					add(eps)
+				} else {
+					errs = append(errs, f+": "+err.Error())
+				}
+			}
+			for _, f := range codexFiles {
+				if eps, _, err := distill.CodexRollout(f, 0); err == nil {
+					add(eps)
+				} else {
+					errs = append(errs, f+": "+err.Error())
+				}
+			}
+			for _, f := range kimiFiles {
+				if eps, _, err := distill.KimiWire(f, 0); err == nil {
+					add(eps)
+				} else {
+					errs = append(errs, f+": "+err.Error())
+				}
+			}
+			for _, d := range loomDirs {
+				if eps, err := distill.LoomRun(d); err == nil {
+					add(eps)
+				}
+			}
+			for _, ref := range ocRefs {
+				db, id, ok := distill.ParseOpenCodeRef(ref)
+				if !ok {
+					continue
+				}
+				if eps, _, err := distill.OpenCodeSessionEpisodes(db, id); err == nil {
+					add(eps)
+				}
+			}
+			host, _ := os.Hostname()
+			out := map[string]any{"host": host, "episodes_with_repo_cwd": len(refs), "errors": len(errs)}
+			if dryRun {
+				return printJSON(out, pretty)
+			}
+
+			ids := make([]string, 0, len(refs))
+			for id := range refs {
+				ids = append(ids, id)
+			}
+			total := daemon.MemoryRepairRepoRefsResult{}
+			for start := 0; start < len(ids); start += repairRepoBatch {
+				end := min(start+repairRepoBatch, len(ids))
+				batch := make(map[string]string, end-start)
+				for _, id := range ids[start:end] {
+					batch[id] = refs[id]
+				}
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+				var res daemon.MemoryRepairRepoRefsResult
+				err := callMemoryDaemon(ctx, "memory.repairRepoRefs", &daemon.MemoryRepairRepoRefsParams{Refs: batch}, &res)
+				cancel()
+				if err != nil {
+					return err
+				}
+				total.EpisodesKnown += res.EpisodesKnown
+				total.EpisodesUpdated += res.EpisodesUpdated
+				total.PendingUpdated += res.PendingUpdated
+				total.EntitiesUpdated += res.EntitiesUpdated
+				total.RefsAdded += res.RefsAdded
+			}
+			out["result"] = total
+			return printJSON(out, pretty)
+		},
+	}
+	cmd.Flags().Bool("dry-run", false, "report how many episodes have a repository cwd without telling the daemon")
 	return cmd
 }
 

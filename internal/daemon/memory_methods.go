@@ -51,6 +51,7 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.sweepReport", d.handleMemorySweepReport)
 	d.server.Register("memory.backup", d.handleMemoryBackup)
 	d.server.Register("memory.migrate", d.handleMemoryMigrate)
+	d.server.Register("memory.repairRepoRefs", d.handleMemoryRepairRepoRefs)
 }
 
 // closeMemory closes the global memory store, if it was ever opened. Called

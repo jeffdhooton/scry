@@ -623,6 +623,20 @@ func isWorkspacePath(cwd string) bool {
 	return true
 }
 
+// AddRepoRef unions cwd into refs when it looks like a workspace path,
+// keeping the newest maxRepoRefs. Shared with the daemon's repo-ref
+// repair so both obey one rule.
+func AddRepoRef(refs []string, cwd string) []string {
+	if !isWorkspacePath(cwd) {
+		return refs
+	}
+	refs = unionStrings(refs, []string{cwd})
+	if len(refs) > maxRepoRefs {
+		refs = refs[len(refs)-maxRepoRefs:]
+	}
+	return refs
+}
+
 // maxRepoRefs caps how many repositories one entity may claim. An entity
 // that genuinely spans more than a handful of repos is not an entity, it is
 // a category, and listing twenty paths helps nobody.

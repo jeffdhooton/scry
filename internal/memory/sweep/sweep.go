@@ -461,3 +461,28 @@ func sweepOpenCodeSession(ctx context.Context, result *Result, o ingest.Options,
 	result.FilesIngested++
 	result.Episodes += sum.EpisodesIngested
 }
+
+// AllCandidates lists every candidate across every root, including the
+// Kimi wire logs and the OpenCode session refs, with no cursor filtering.
+// activeWindow 0 includes even a session still being written, which is
+// what a repair wants: it reads, it does not ingest.
+func AllCandidates(roots Roots, activeWindow time.Duration) (claudeFiles, codexFiles, loomDirs, kimiFiles, openCodeRefs []string, errs []string) {
+	claudeFiles, codexFiles, loomDirs, errs = Candidates(roots, activeWindow)
+	roots = roots.withDefaults()
+
+	kimi, err := filepath.Glob(roots.KimiGlob)
+	if err != nil {
+		errs = append(errs, fmt.Sprintf("%s: %v", roots.KimiGlob, err))
+	}
+	sort.Strings(kimi)
+	kimiFiles = filterActive(kimi, time.Now(), activeWindow, &errs)
+
+	sessions, err := distill.OpenCodeSessions(roots.OpenCodeDB)
+	if err != nil {
+		errs = append(errs, fmt.Sprintf("%s: %v", roots.OpenCodeDB, err))
+	}
+	for _, s := range sessions {
+		openCodeRefs = append(openCodeRefs, distill.OpenCodeRef(roots.OpenCodeDB, s.ID))
+	}
+	return claudeFiles, codexFiles, loomDirs, kimiFiles, openCodeRefs, errs
+}
