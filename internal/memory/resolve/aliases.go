@@ -190,11 +190,17 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	if neverAlias(alias) {
 		return false, "generic, value, or reference word", nil
 	}
-	if roleLeak(alias, e) {
-		return false, "names a role rather than a person", nil
-	}
-	if machineLeak(alias, e) {
-		return false, "names hardware on a non-machine", nil
+	// A leak check never refuses an alias that spells the holder's own
+	// name: "Android Studio Ladybug" is Android Studio's, whatever
+	// hardware noun it contains, and "Codex Reviewer #2" is that
+	// reviewer's.
+	if !nameAsWord(alias, e) && compactName(alias) != compactName(e.Name) {
+		if roleLeak(alias, e) {
+			return false, "names a role rather than a person", nil
+		}
+		if machineLeak(alias, e) {
+			return false, "names hardware on a non-machine", nil
+		}
 	}
 
 	owner, owned, err := aliasOwner(st, alias)
@@ -270,7 +276,9 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	if genericOneWordName(e.Name) && !extrasAreKindWords(alias, e) {
 		return false, "would add unrelated words to a one-word name", nil
 	}
-	if n := compactName(e.Name); len(n) >= 4 && strings.Contains(compactName(alias), n) {
+	// The alias must contain the name as a word, not as letters inside
+	// one: Bloomberg is not loom, Shalom is not halo, descry is not scry.
+	if nameAsWord(alias, e) {
 		return true, "contains the entity's own name", nil
 	}
 	if len(en) > 0 && len(an) > len(en) {
@@ -362,10 +370,27 @@ var kindWords = map[string]map[string]bool{
 // on it. A single word that is a proper name — scry, hermes, docket —
 // still does, so "scryd" and "Scry memory" are scry's.
 func genericOneWordName(name string) bool {
-	if !oneWordName(name) {
+	raw := tokensOf(name)
+	if len(raw) == 0 || len(raw) > 3 {
 		return false
 	}
-	for t := range tokensOf(name) {
+	// Every word ordinary, not just one: "audit gate" and "review
+	// session" collect exactly what "audit" and "session" did.
+	ordinary := 0
+	for t := range raw {
+		w := singular(t)
+		if commonNouns[t] || commonNouns[w] || anyKindWord[t] || anyKindWord[w] ||
+			processNouns[t] || processNouns[w] || thingWords[t] || thingWords[w] {
+			ordinary++
+		}
+	}
+	if ordinary != len(raw) {
+		return false
+	}
+	if len(raw) > 1 {
+		return true
+	}
+	for t := range raw {
 		w := singular(t)
 		if commonNouns[t] || commonNouns[w] || anyKindWord[t] || anyKindWord[w] ||
 			processNouns[t] || processNouns[w] || thingWords[t] || thingWords[w] {
@@ -373,6 +398,48 @@ func genericOneWordName(name string) bool {
 		}
 	}
 	return false
+}
+
+// maxCompoundTail is how much may follow a name in a compound written
+// without separators before the compound is a different word.
+const maxCompoundTail = 3
+
+// nameAsWord reports whether an alias contains the entity's name as a
+// word of its own, in any spelling: "scry daemon" and "context-stack/scry"
+// contain scry; "descry" and "Bloomberg" do not contain scry or loom.
+func nameAsWord(alias string, e store.Entity) bool {
+	n := compactName(e.Name)
+	if len(n) < 4 {
+		return false
+	}
+	at := tokensOf(alias)
+	for t := range at {
+		if compactName(t) == n {
+			return true
+		}
+	}
+	// Or the alias carries every word of a multi-word name: "Android
+	// Studio Ladybug" is Android Studio's.
+	if en := singularTokens(e.Name); len(en) > 1 {
+		all := true
+		for t := range en {
+			if !singularTokens(alias)[t] {
+				all = false
+				break
+			}
+		}
+		if all {
+			return true
+		}
+	}
+	// A compound written without separators counts only when the name
+	// starts it and little follows: "scryd" and "wrenops" are the thing,
+	// "Kimikaze" is not kimi. A name at the END of a longer word is
+	// never the thing — "heirloom" is not loom, "descry" is not scry —
+	// which is the case that matters, since a short name is a suffix of
+	// a great many ordinary words.
+	ca := compactName(alias)
+	return len(ca) > len(n) && len(ca)-len(n) <= maxCompoundTail && strings.HasPrefix(ca, n)
 }
 
 // oneWordName reports whether a name is a single word once punctuation
@@ -783,14 +850,33 @@ func singularTokens(s string) map[string]bool {
 	return out
 }
 
+// singular strips an English plural. "es" comes off only after a
+// sibilant, which is the rule that makes it "es" in the first place:
+// boxes, batches, dishes. Taking it off everything turned gates into
+// gat, routes into rout and pages into pag, which stopped an entity
+// taking its own plural as an alias and hid 96 collisions from the
+// audit.
 func singular(t string) string {
 	switch {
-	case len(t) > 4 && strings.HasSuffix(t, "es") && !strings.HasSuffix(t, "ses"):
+	case len(t) > 4 && strings.HasSuffix(t, "es") && sibilantBefore(t[:len(t)-2]):
 		return t[:len(t)-2]
-	case len(t) > 3 && strings.HasSuffix(t, "s") && !strings.HasSuffix(t, "ss"):
+	case len(t) > 3 && strings.HasSuffix(t, "s") && !strings.HasSuffix(t, "ss") && !strings.HasSuffix(t, "us"):
 		return t[:len(t)-1]
 	}
 	return t
+}
+
+// sibilantBefore reports whether a stem ends in the sound that takes
+// "es": s, x, z, ch, sh.
+func sibilantBefore(stem string) bool {
+	if strings.HasSuffix(stem, "ch") || strings.HasSuffix(stem, "sh") {
+		return true
+	}
+	switch {
+	case strings.HasSuffix(stem, "s"), strings.HasSuffix(stem, "x"), strings.HasSuffix(stem, "z"):
+		return true
+	}
+	return false
 }
 
 // candidatesFor returns slugs whose name tokens are all present in at,

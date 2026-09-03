@@ -232,7 +232,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			// Among candidates, the one this entity's own facts actually
 			// talk about; a candidate nobody mentions still wins over none.
 			m := mentions(bySlug[slug].Name, texts)
-			if best == "" || m > bestMentions {
+			if best == "" || m > bestMentions || (m == bestMentions && slug < best) {
 				best, bestMentions = slug, m
 			}
 		}
@@ -910,13 +910,19 @@ func dropStubClaims(st *store.Store, dryRun bool) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	typed := map[string]string{} // folded name → the typed entity holding it
+	// Keyed the way the alias index is keyed, not the way collisions are
+	// counted. foldName folds plurals and punctuation, so matching on it
+	// dropped names a typed entity merely *folds* to: "halo1" went
+	// because "halo-1" folds to it, and then nothing resolved "halo1" at
+	// all. The index answers on store.Normalize, so that is what decides
+	// whether the name still has an owner.
+	typed := map[string]string{}
 	for _, e := range entities {
 		if t := strings.ToLower(strings.TrimSpace(e.Type)); t == "" || t == "concept" {
 			continue
 		}
 		for _, spelling := range append([]string{e.Name}, e.Aliases...) {
-			if k := foldName(spelling); k != "" {
+			if k := store.Normalize(spelling); k != "" {
 				typed[k] = e.Slug
 			}
 		}
@@ -929,8 +935,8 @@ func dropStubClaims(st *store.Store, dryRun bool) (int, error) {
 		kept := make([]string, 0, len(e.Aliases))
 		changed := false
 		for _, a := range e.Aliases {
-			k := foldName(a)
-			if owner, ok := typed[k]; ok && owner != e.Slug && k != foldName(e.Name) {
+			k := store.Normalize(a)
+			if owner, ok := typed[k]; ok && owner != e.Slug && k != store.Normalize(e.Name) {
 				dropped++
 				changed = true
 				continue

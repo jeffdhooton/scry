@@ -58,6 +58,9 @@ func seedAuditStore(t *testing.T, st *store.Store) {
 		{Src: "scry", Relation: "status", Dst: "childscribe-laravel", Fact: "odd status edge"},
 		{Src: "scry", Relation: "robots_method_now_welcomes", Dst: "wren-home-cleaning", Fact: "long tail verb"},
 		{Src: "scry", Relation: "uses", Dst: "scry", Fact: "self loop"},
+		// halo-1 needs a fact of its own, or the pass prunes it as an
+		// entity nothing says anything about, and its aliases go with it.
+		{Src: "halo-1", Relation: "runs_on", Dst: "hermes-ops", Fact: "halo-1 serves the flash model"},
 	}
 	for i, f := range facts {
 		f.ValidFrom = now.Add(time.Duration(i) * time.Minute)

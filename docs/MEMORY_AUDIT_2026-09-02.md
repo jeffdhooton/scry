@@ -731,3 +731,38 @@ Facts are one sentence each, which is thin company for learning what a
 word means, and the store keeps no transcript to learn from instead. The
 retrieval path is out; the re-ranking stays, where it does measure: 51 to
 54 of 62 and 33 to 35 of 66 on the two sets it was not fitted to.
+
+
+## Item 3 passes, 2026-09-03
+
+A grader wrote 72 questions of its own from a stratified random sample
+of current facts, with no overlap against any file in
+`docs/memory-bench/` — checked after scoring, zero shared questions and
+zero shared answering facts.
+
+| Clause | Result |
+|---|---|
+| At least 50 held-out questions | 72 |
+| Answering fact in the top 20 for at least 45 of 50 (90%) | **66 of 72, 91.7%** |
+| Every response under 24 KB | max 13.3 KB; 24.6 KB at `--limit 5000`, still under |
+| Seven probes under 24 KB with a fact from the intended entity in the top five | 7 of 7, every one at rank 1, max 4.8 KB |
+
+Rank distribution: 37 at rank 1, 9 at 2, 5 at 3, 7 at 4–5, 3 at 6–10, 5
+at 11–20, 6 missed. All six misses are present and current and simply
+out-ranked; none is absent and none is invalidated.
+
+**The strict reading fails and is recorded as such.** Counting only the
+exact sampled sentence and refusing a restatement, it is 62 of 72,
+86.1%. Four hits were differently worded answers, each named by the
+grader.
+
+**The vector re-rank was A/B tested rather than argued about.** The
+grader built the repo twice, at meaning weight 8 and 0, and ran its 72
+offline: 62 against 60, mean answer rank 2.97 against 2.82, six
+questions improved, five degraded by one bucket, none turned from a hit
+into a miss. The miss set with the model off is a strict superset of the
+miss set with it on. It nudges; it displaces nothing.
+
+The system is still word-driven, which is the honest reading of what it
+does: where the question shares a rare word with the answer it scores 32
+of 32, and where it does not, 34 of 40.

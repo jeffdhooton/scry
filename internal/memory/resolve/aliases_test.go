@@ -545,3 +545,79 @@ func TestAliasOwnershipIsDeterministic(t *testing.T) {
 		}
 	}
 }
+
+// The cases a fifth grader found, each a rule reaching past its word.
+func TestAliasRulesRespectWordBoundaries(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	for _, e := range []store.Entity{
+		{Slug: "loom", Name: "loom", Type: "project"},
+		{Slug: "halo", Name: "halo", Type: "machine"},
+		{Slug: "scry", Name: "scry", Type: "project"},
+		{Slug: "kimi", Name: "kimi", Type: "person"},
+		{Slug: "gate", Name: "gate", Type: "service"},
+		{Slug: "audit-gate", Name: "audit gate", Type: "concept"},
+		{Slug: "review-session", Name: "review session", Type: "concept"},
+		{Slug: "android-studio", Name: "Android Studio", Type: "tool"},
+		{Slug: "codex-reviewer", Name: "Codex Reviewer", Type: "person"},
+	} {
+		e.CreatedAt, e.LastSeen = now, now
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	refuse := []struct{ slug, alias string }{
+		// A name inside another word is not that name.
+		{"loom", "Bloomberg"}, {"loom", "heirloom"}, {"halo", "Shalom"},
+		{"scry", "descry"}, {"kimi", "Kimikaze"},
+		// Every word ordinary, so the magnet guard applies at two words too.
+		{"audit-gate", "COPPA audit gate"}, {"audit-gate", "billing audit gate"},
+		{"review-session", "Monday review session"},
+	}
+	for _, c := range refuse {
+		e, err := st.GetEntity(c.slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok, why, err := AdmitAlias(st, e, c.alias, "ep-1"); err != nil {
+			t.Fatal(err)
+		} else if ok {
+			t.Errorf("%s took %q on one episode: %s", c.slug, c.alias, why)
+		}
+	}
+	keep := []struct{ slug, alias string }{
+		{"scry", "scryd"}, {"scry", "scry daemon"}, {"scry", "context-stack/scry"},
+		// A leak check must not refuse an entity a spelling of its own name.
+		{"android-studio", "Android Studio Ladybug"}, {"codex-reviewer", "Codex Reviewer #2"},
+		// An entity can take its own plural.
+		{"gate", "gates"},
+	}
+	for _, c := range keep {
+		e, err := st.GetEntity(c.slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok, why, err := AdmitAlias(st, e, c.alias, "ep-1"); err != nil {
+			t.Fatal(err)
+		} else if !ok {
+			t.Errorf("%s must keep %q: %s", c.slug, c.alias, why)
+		}
+	}
+}
+
+func TestSingularStripsEsOnlyAfterASibilant(t *testing.T) {
+	same := [][2]string{
+		{"gates", "gate"}, {"routes", "route"}, {"pages", "page"}, {"tables", "table"},
+		{"boxes", "box"}, {"batches", "batch"}, {"dishes", "dish"}, {"buses", "bus"},
+		{"halos", "halo"}, {"minis", "mini"},
+	}
+	for _, p := range same {
+		if singular(p[0]) != singular(p[1]) {
+			t.Errorf("singular(%q)=%q and singular(%q)=%q, want one bucket",
+				p[0], singular(p[0]), p[1], singular(p[1]))
+		}
+	}
+	if singular("status") != "status" {
+		t.Errorf("singular(status) = %q", singular("status"))
+	}
+}
