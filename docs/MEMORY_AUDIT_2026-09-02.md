@@ -597,3 +597,56 @@ one had swapped out a question the system missed for an easier one on the
 same topic. The strict file is generated from the loose one by pinning
 each question to the first of its accepted phrasings, so the two differ
 only in strictness.
+
+
+## Re-measured 2026-09-03, round five — a regression found and rolled back
+
+The fourth round's headline change was hygiene applying the write path's
+naming rule to stored aliases, which cleaned hermes-ops. A grader diffed
+the store against the backup and found what else it had done: of 5,621
+aliases that left their entity, **4,634 were handed to a new owner, 4,340
+of those to an entity whose own facts never mention the name, and 1,075
+provably misfiled** — a design system to DESIGN.md, an analytics service
+to PHP 8.4, a Kimi wave to the person Kimi, four unrelated gates to a
+service called gate. One entity gained 107 aliases.
+
+One branch caused it. The rule that hands an alias to the entity it names
+required the extra words to describe a kind of thing, and skipped that
+requirement whenever the two entity types differed. Applied to every
+stored alias at store scale, any alias containing any entity's name
+became transferable to it.
+
+**The store was rolled back and rebuilt.** The backup the offending
+migration itself had taken was restored, the rule was corrected, and the
+migration re-run. This is what the backup discipline is for, and it is
+the first time this session it was needed.
+
+| Measure | Before the round | After the rollback and rebuild |
+|---|---|---|
+| Aliases handed to an entity that never mentions them | 4,340 | the named cases all back with their own entity |
+| Cross-type collisions | 513 | 428 |
+| Value entities | 8 | 8 |
+| Dangling endpoints | 8 | 8 |
+| Migration second pass | no churn | no churn |
+| hermes-ops aliases | 16 | 18 |
+| jeff aliases | 20 | 18 |
+| mac-mini aliases | 3 | 3 |
+| Tuning benchmark, strict | 44 of 50 | 44 of 50 |
+| Tuning benchmark, loose | 47 of 50 | 47 of 50 |
+
+The corrected rule keeps the distinction that matters: a distinctive name
+carries its alias with it, so "Hermes tmux" and "Hermes Slack gateway"
+still go to Hermes. A name that is a common noun, a single short word, or
+a file name carries nothing on its own, so "COPPA gate" is not the gate
+service, "kimi-wire-wave33" is not Kimi, and DESIGN.md does not own
+"design system".
+
+**Still open, and reported rather than fixed.** Entities named by one
+word that had already collected everything near that word keep what they
+have: AUDIT-6 holds 104 aliases, session-ts 63. The write path no longer
+admits them, so the magnets do not grow, but hygiene does not remove an
+alias that names nothing else, and dropping a hundred spellings that
+might each be somebody's legitimate name for the thing is a worse risk
+than leaving them. The Mac mini is still two entities and the Halo
+hardware is still spread over eight, both same-type duplications that no
+rule here addresses.
