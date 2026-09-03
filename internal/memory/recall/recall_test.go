@@ -1,6 +1,7 @@
 package recall
 
 import (
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -214,5 +215,45 @@ func TestEpisodesLimit(t *testing.T) {
 	}
 	if !sort.SliceIsSorted(eps, func(i, j int) bool { return eps[i].OccurredAt.After(eps[j].OccurredAt) }) {
 		t.Fatalf("expected episodes sorted most-recent first, got %+v", eps)
+	}
+}
+
+func TestOrientRanksRecentAndConnectedFirst(t *testing.T) {
+	s := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	repo := "/Users/jeff/workspace/thing"
+	put := func(slug, name, typ string, lastSeen time.Time, facts int) {
+		if err := s.PutEntity(store.Entity{Slug: slug, Name: name, Type: typ, RepoRefs: []string{repo}, CreatedAt: lastSeen, LastSeen: lastSeen}); err != nil {
+			t.Fatal(err)
+		}
+		for i := range facts {
+			if err := s.PutFact(store.Fact{Src: slug, Relation: "status", Value: fmt.Sprintf("v%d", i), Fact: name + " fact " + fmt.Sprint(i), ValidFrom: lastSeen, Confidence: 0.9}); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	put("aaa-old-concept", "aaa-old-concept", "concept", now.Add(-30*24*time.Hour), 5)
+	put("zzz-new-service", "zzz-new-service", "service", now, 2)
+	put("mmm-new-concept", "mmm-new-concept", "concept", now, 9)
+	put("empty", "empty", "service", now, 0)
+
+	md, err := Orient(s, repo, 4000, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iNew := strings.Index(md, "zzz-new-service")
+	iConcept := strings.Index(md, "mmm-new-concept")
+	iOld := strings.Index(md, "aaa-old-concept")
+	if iNew < 0 || iConcept < 0 {
+		t.Fatalf("orient missing recent entities:\n%s", md)
+	}
+	if iNew > iConcept {
+		t.Errorf("a typed entity should outrank a concept at the same recency:\n%s", md)
+	}
+	if iOld >= 0 && iOld < iNew {
+		t.Errorf("a month-old entity outranked today's work:\n%s", md)
+	}
+	if strings.Contains(md, "empty") {
+		t.Errorf("an entity with no current fact must not appear:\n%s", md)
 	}
 }

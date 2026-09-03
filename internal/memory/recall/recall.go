@@ -177,6 +177,12 @@ const (
 	activeWindow        = 14 * 24 * time.Hour
 	maxRepoFacts        = 3
 	maxActiveEntities   = 10
+	// maxRepoEntities bounds the repo section. Entities are ranked, not
+	// listed alphabetically: an orientation blurb has room for the handful
+	// of things most recently and most heavily worked on, and the first
+	// entities by name are usually the least interesting ("36px-card-
+	// layout" ahead of the service that was deployed yesterday).
+	maxRepoEntities = 8
 )
 
 // orientSection is a heading paired with the bullet lines under it; either
@@ -199,12 +205,21 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 		return "", err
 	}
 	repoSlugs := make(map[string]bool, len(repoEntities))
-	repoBullets := make([]string, 0, len(repoEntities))
 	for _, e := range repoEntities {
 		repoSlugs[e.Slug] = true
+	}
+	ranked, err := rankForOrient(st, repoEntities, maxRepoEntities)
+	if err != nil {
+		return "", err
+	}
+	repoBullets := make([]string, 0, len(ranked))
+	for _, e := range ranked {
 		texts, err := recentFactTexts(st, e.Slug, maxRepoFacts)
 		if err != nil {
 			return "", err
+		}
+		if len(texts) == 0 {
+			continue
 		}
 		repoBullets = append(repoBullets, fmt.Sprintf("- **%s** (%s): %s", e.Name, e.Type, strings.Join(texts, "; ")))
 	}
@@ -248,6 +263,58 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 	activeSec := orientSection{heading: activeHeading, bullets: activeBullets}
 
 	return renderOrient(repoSec, activeSec, budgetChars), nil
+}
+
+// rankForOrient picks the limit most worth mentioning: most recently seen
+// first, ties broken by how many current facts touch them. A typed entity
+// outranks a bare concept at the same recency, since a concept stub is
+// usually a phrase someone said once.
+func rankForOrient(st *store.Store, entities []store.Entity, limit int) ([]store.Entity, error) {
+	type scored struct {
+		e      store.Entity
+		degree int
+	}
+	out := make([]scored, 0, len(entities))
+	for _, e := range entities {
+		facts, err := st.FactsAbout(e.Slug, false)
+		if err != nil {
+			return nil, err
+		}
+		if len(facts) == 0 {
+			continue
+		}
+		out = append(out, scored{e: e, degree: len(facts)})
+	}
+	typedRank := func(t string) int {
+		if t == "" || t == "concept" {
+			return 0
+		}
+		return 1
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		// Same day counts as the same recency, so degree and type decide
+		// among everything touched in one working session.
+		da, db := a.e.LastSeen.Truncate(24*time.Hour), b.e.LastSeen.Truncate(24*time.Hour)
+		if !da.Equal(db) {
+			return da.After(db)
+		}
+		if ta, tb := typedRank(a.e.Type), typedRank(b.e.Type); ta != tb {
+			return ta > tb
+		}
+		if a.degree != b.degree {
+			return a.degree > b.degree
+		}
+		return a.e.Slug < b.e.Slug
+	})
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	ranked := make([]store.Entity, 0, len(out))
+	for _, s := range out {
+		ranked = append(ranked, s.e)
+	}
+	return ranked, nil
 }
 
 // recentFactTexts returns up to limit current facts' Fact text about slug,
