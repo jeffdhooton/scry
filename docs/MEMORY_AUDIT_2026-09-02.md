@@ -803,3 +803,49 @@ number now stands at 302 after the over-drop was undone.
 reverted, one restored twice from backup. The migration converges in two
 passes with every counter at zero, 2,560 entities nothing said anything
 about are gone, and every name a grader found broken resolves again.
+
+
+## Round seven: the false-positive side, measured properly for the first time
+
+A grader made the sharpest point of the day. Every earlier measurement of
+"do the rules reject real names?" used lists drawn from or checked
+against the store — and the store cannot contain a name the rules
+reject, because such a name was pruned or never created. The 80-of-81
+survival rate this project had been quoting was circular.
+
+Measured on names chosen independently — invented but plausible, plus
+real directories from these repositories — the rules rejected **37 of
+56**:
+
+| Family | Rejected | Examples |
+|---|---|---|
+| Two-segment paths | 16 of 16 | `terraform/modules`, `k8s/overlays`, `helm/charts`, `proto/billing` |
+| Real directories from these repos | 11 of 12 | `screens/failure-reasons`, `operations/task-state`, `e2e/visual` |
+| Names opening with a verdict word | 18 of 18 | `deferred-revenue-ledger`, `failed-payment-retrier` |
+| Ordinary particle compounds | 25 of 32 | `trade-off`, `stand-up`, `follow-up`, `add-on`, `go-live` |
+
+By the project's own stated priority — a rule that rejects real things
+destroys the graph, a rule that misses a value leaves one extra node —
+the rules were erring in the expensive direction, and the decision log
+said the opposite. That sentence has been corrected in place.
+
+Four defaults were inverted: a two-segment name is a directory unless
+its head is a branch namespace; a verdict phrase is two words unless a
+preposition makes it prose; a hyphenated compound is one word; a
+particle compound is a noun. The test lives in
+`shapes_real_names_test.go` and is built from names that are not in the
+store, which is the only version of it that means anything.
+
+Applying the corrected rules restored **552 attributes** to entities:
+real names that had been demoted to values.
+
+Three more from the same round: the magnet guard refused outright, so
+the Mac mini could not be called "Mac mini M4 Pro" — it defers to
+attestation now, where one episode is not enough and two still are. The
+stemmer split words from their own plurals, so an entity could not be
+called by its plural; both forms are kept. And a prune that ran before
+its repair had shipped cost spellings that a live entity still answers
+to; the repair is in and `halo1` resolves again.
+
+Migration: a complete no-op on both passes. Strict benchmark 44 of 50,
+loose 47, cross-type collisions 304.
