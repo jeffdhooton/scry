@@ -2233,6 +2233,16 @@ to, naming that entry as the mechanism. Joining adjacent words is not
 really expansion — it is spelling, reaching a name written as one word
 from a question that writes it as two.
 
+**Coverage weighting was tried twice and does not help.** Every grader
+names polysemy as the failure mode: one common word in the question
+collides with a different sense elsewhere in the store, and a document
+repeating that word outranks one carrying three of the question's words.
+Weighting a document by how much of the question it accounts for is the
+textbook answer, and it was measured at weights from one to four on
+three question sets, before and after the ranking was rebuilt around a
+vector re-rank. It never gained an answer and above weight two it lost
+them. Removed both times.
+
 **What is left unsolved, stated plainly.** The remaining misses are
 conceptual. A question about someone who "cannot fake his way through" a
 subject has to reach a fact about having "no sports domain knowledge",
