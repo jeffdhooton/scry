@@ -1138,3 +1138,34 @@ func TestApply_GenericEntityNamesAreNotStored(t *testing.T) {
 		t.Fatalf("real entity was lost: %v", err)
 	}
 }
+
+// Rule 5 obeys the same order as Rule 6: a session cannot report the end
+// of something that had not started when it ran.
+func TestApply_OlderEpisodeSupersedesHintIsIgnored(t *testing.T) {
+	st := openTemp(t)
+	aug := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	jul := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+
+	epNew := store.Episode{ID: "ep-aug", Source: "manual", SourceRef: "a", OccurredAt: aug, IngestedAt: aug}
+	resNew := extract.Result{Facts: []extract.Fct{
+		{Src: "childscribe", Relation: "uses", Dst: "drizzle", Fact: "childscribe uses drizzle", Confidence: 0.9},
+	}}
+	if _, err := Apply(st, epNew, "", resNew, DefaultExclusive); err != nil {
+		t.Fatal(err)
+	}
+
+	epOld := store.Episode{ID: "ep-jul", Source: "manual", SourceRef: "b", OccurredAt: jul, IngestedAt: jul}
+	resOld := extract.Result{Facts: []extract.Fct{{
+		Src: "childscribe", Relation: "uses", Dst: "prisma", Fact: "childscribe uses prisma", Confidence: 0.9,
+		Supersedes: &extract.SupRef{Src: "childscribe", Relation: "uses", Dst: "drizzle"},
+	}}}
+	if _, err := Apply(st, epOld, "", resOld, DefaultExclusive); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, f := range mustFacts(t, st, "childscribe") {
+		if f.Dst == "drizzle" && f.InvalidAt != nil {
+			t.Fatalf("a July episode retired an August fact: %+v", f)
+		}
+	}
+}

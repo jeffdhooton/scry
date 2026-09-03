@@ -525,6 +525,13 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stat
 	if current == nil {
 		return nil
 	}
+	// A session cannot report the end of something that had not started
+	// when it ran. An episode older than the fact it points at is being
+	// resolved late, out of order, and its hint is about an earlier state
+	// that this fact has already replaced.
+	if !current.ValidFrom.Before(ep.OccurredAt) {
+		return nil
+	}
 	at := clampInvalidAt(ep.OccurredAt, current.ValidFrom)
 	if err := st.InvalidateFact(srcSlug, relation, keyDst, current.ValidFrom, at); err != nil {
 		return err

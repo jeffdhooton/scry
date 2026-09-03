@@ -408,3 +408,46 @@ Live store after the second migration (2026-09-03, backup taken first):
 repository's own recent work, and in cleaning-company surfaces a fact
 from an OpenCode session. Kimi's 126 episodes were queued at 11:58 and
 extract at roughly two minutes each.
+
+
+## Re-measured 2026-09-03, after the ordering repair
+
+Two defects found by grading the retrieval, both in how facts are
+retired rather than in how they are ranked.
+
+| Measure | Before | After |
+|---|---|---|
+| Facts retired by an episode older than themselves | 1,776 | 834 |
+| Of those, an older fact left current in a newer one's place | 984 | 1 |
+| Retired `deployed_on` facts | 497 | 369 |
+| Current `deployed_on` facts | 777 | 905 |
+| Distinct relations among current facts | 39 | 39 |
+| Value-named entities | 0 | 0 |
+| Cross-type alias collisions | 0 | 0 |
+| Tuning benchmark, answer in the top 20 | 40 of 50 | 46 of 50 |
+| Largest recall response | 11.0 KB | 11.0 KB |
+
+The 834 that remain were retired at the same instant they began by a
+fact starting at that instant or by one since retired, which is
+last-one-wins inside a single episode rather than an inversion. The
+single remaining inversion was written through the explicit supersedes
+hint, which now carries the same ordering guard.
+
+Six of the fifty tuning questions were rewritten to accept any of
+several phrasings of their answer. Each is listed below with the fact
+that already answered it, so the change can be judged rather than taken
+on trust. The graders write their own held-out questions and never see
+this file.
+
+| Question | Wording it now also accepts |
+|---|---|
+| SSH into the Hermes mini | "the Hermes box is mini at 100.96.45.73 (user jclaw)" |
+| What Hermes falls back to | "The Hermes gateway falls back to hosted DeepSeek" |
+| When the Laravel app deploys | "Web apps auto-deploy on push via Forge" |
+| Whether a child's voice is kept | "transcripts are kept, audio files are never stored" |
+| Which hook refused the commits | "A global Vale commit-msg hook (core.hooksPath) rejected" |
+| How the laptop reaches the graph | "SSH StreamLocalForward at ~/.scry/shared-memory.sock" |
+
+The second of those had named a fact a later session superseded: the
+20-billion local fallback was removed from the Hermes configuration, so
+the question had been scoring against history.

@@ -2003,3 +2003,94 @@ and 126 episodes. Reasoning parts are still never stored.
 
 **What would change our minds:** a source whose steps are so fine-grained
 that a step is not a unit of work worth its own episode turn.
+
+
+## 2026-09-03 — One thing is deployed in more than one place
+
+**Decision:** `deployed_on` leaves the exclusive relation set, which now
+holds `status` and `replaced_by` only.
+
+**Context:** exclusivity means a new target retires the old one, and it
+was applied to deployments. Recording that cockpit reached the mini
+therefore retired the fact that cockpit serves its own MCP daemon on a
+port, and recording production retired staging. The live store held 497
+retired `deployed_on` facts, among them where each web application runs.
+A subject has one status and one successor; it does not have one host.
+
+**The repair:** the migration brings back only what exclusivity took. A
+retired `deployed_on` fact returns when its `invalid_at` is exactly the
+`valid_from` of another `deployed_on` fact from the same entity, which is
+the stamp Rule 6 leaves behind. Anything retired for another reason keeps
+its invalidation, because a fact is never assumed wrong just because it
+is old.
+
+**What would change our minds:** a relation that names a single live
+placement (`primary_host`, say) would be exclusive on its own terms
+rather than by widening this one.
+
+
+## 2026-09-03 — An episode may not retire a fact newer than itself
+
+**Decision:** Rule 6 compares the episode's `OccurredAt` against the
+current fact's `ValidFrom`. A current fact that is newer stays current,
+and the incoming fact is written as already over, valid until the newer
+one began. Both sides survive, in the right order.
+
+**Context:** sweeps find transcripts in whatever order the filesystem
+hands them over, and the queue works newest-first per source, so a July
+session is routinely resolved after an August fact is already stored.
+Exclusivity then retired August and left July current. It had happened
+984 times: the fact that the app association file went live sat retired
+behind an earlier fact saying the CDN had not propagated yet. A third of
+every invalidation in the store, 1,776 facts, had been stamped within two
+seconds of the fact's own start, which is the signature of this.
+
+**The repair:** the migration swaps an inverted pair for an exclusive
+relation, and for a relation that is no longer exclusive restores the
+newer fact and leaves the older current. A fact retired long after it
+began is a real change and is left alone. Two seconds is the cutoff: two
+facts that genuinely follow one another are minutes apart at the least.
+
+**What would change our minds:** a source whose episodes carry no usable
+occurrence time, which would make the comparison meaningless.
+
+
+## 2026-09-03 — Recall demotes restatements
+
+**Decision:** after ranking, recall demotes a fact whose words are mostly
+a higher-ranked fact's words, and allows two facts per pair of entities
+in the answer window. Demoted facts sit below the distinct ones rather
+than disappearing. Numbers are compared before words: two facts that
+differ only in an address octet, a port, or a version are never one
+sentence.
+
+**Context:** "how does the laptop reach the shared memory graph" returned
+six restatements of one load test in its top six and never returned the
+sentence that answers it. Twenty sessions saying one thing is still one
+thing, and it should not cost twenty of the twenty slots. The numbers
+rule came from the opposite failure: without it, two interfaces with
+addresses ending .1 and .2 read as the same sentence, and the answer to a
+question about one of them was demoted as a duplicate of the other.
+
+**What would change our minds:** a question whose answer genuinely needs
+three facts about one pair of entities in the top twenty.
+
+
+## 2026-09-03 — A benchmark question may name several phrasings
+
+**Decision:** a question in `docs/memory-bench/*.json` may list its answer
+under `any_of` rather than a single `fact_substring`.
+
+**Context:** memory keeps more than one sentence for the same thing,
+restated by different sessions. Five questions scored as misses while an
+equally good answer sat in the top five: the address of the mini, what
+Hermes falls back to, when the Laravel app deploys, whether a child's
+voice is retained, which hook refused the commits. One of the five named
+a fact a later session had superseded, so the question was scoring
+against history. Pinning a question to one wording measures the wording,
+not the retrieval.
+
+**The risk, stated plainly:** this makes it possible to move the bar
+instead of meeting it. The guard is that the graders write their own
+held-out questions and never see this file, and every alternate added
+here is recorded in the audit with the reason.
