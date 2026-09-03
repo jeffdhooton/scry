@@ -426,6 +426,7 @@ func memoryIngestCmd() *cobra.Command {
 			defer cancel()
 
 			sum, err := ingest.File(ctx, ingest.Options{
+				Force:  force,
 				Source: source,
 				Path:   path,
 				Daemon: daemonClient{force: force},

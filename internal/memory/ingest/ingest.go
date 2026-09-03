@@ -40,6 +40,10 @@ type Daemon interface {
 
 // Options configures a single File call.
 type Options struct {
+	// Force re-reads the source from the beginning and re-applies episodes
+	// the daemon already holds, to repair ones resolved before a fix. The
+	// cursor is still advanced afterwards.
+	Force  bool
 	Source string // "claude" | "codex" | "kimi" | "opencode" | "loom" | "seed" (opencode paths are OpenCodeRefs)
 	Path   string
 	Daemon Daemon
@@ -95,7 +99,7 @@ func ingestOffset(ctx context.Context, o Options, distillFn offsetDistillFunc) (
 		return Summary{}, fmt.Errorf("ingest: get cursor: %w", err)
 	}
 	var startOffset int64
-	if found {
+	if found && !o.Force {
 		startOffset = cursor.ProcessedBytes
 	}
 

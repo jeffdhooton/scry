@@ -201,3 +201,32 @@ func TestFile_CursorErrorIsReported(t *testing.T) {
 		t.Fatal("cursor lookup failure must surface")
 	}
 }
+
+func TestFile_ForceRereadsFromTheStart(t *testing.T) {
+	wantEpisodes, _, _ := distill.ClaudeSession(claudeFixture, 0)
+	daemon := newFakeDaemon()
+	if _, err := File(context.Background(), Options{Source: "claude", Path: claudeFixture, Daemon: daemon}); err != nil {
+		t.Fatal(err)
+	}
+	first := len(daemon.enqueued)
+	if first == 0 {
+		t.Fatal("nothing ingested")
+	}
+	// Without force the cursor is at EOF: nothing is distilled, so no
+	// batch is sent at all.
+	batches := len(daemon.batches)
+	if _, err := File(context.Background(), Options{Source: "claude", Path: claudeFixture, Daemon: daemon}); err != nil {
+		t.Fatal(err)
+	}
+	if len(daemon.batches) != batches || len(daemon.enqueued) != first {
+		t.Errorf("a second plain run re-read the file: batches %v, enqueued %d", daemon.batches, len(daemon.enqueued))
+	}
+	// With force the whole file is re-read and every episode re-offered.
+	daemon.known = map[string]bool{}
+	if _, err := File(context.Background(), Options{Force: true, Source: "claude", Path: claudeFixture, Daemon: daemon}); err != nil {
+		t.Fatal(err)
+	}
+	if len(daemon.enqueued) != first+len(wantEpisodes) {
+		t.Errorf("force re-offered %d episodes, want %d", len(daemon.enqueued)-first, len(wantEpisodes))
+	}
+}
