@@ -268,6 +268,20 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 				break
 			}
 		}
+		// An entity named by one word collects everything said near that
+		// word unless the extras describe a kind of thing. AUDIT-6 had
+		// gathered 107 aliases this way — every a11y audit, privacy audit
+		// and audit seam in the graph — and session-ts every session.
+		// "scry daemon" is still scry; "collaboration session" is not
+		// session.ts.
+		if contains && len(en) == 1 {
+			for t := range an {
+				if !en[t] && !anyKindWord[t] && !kindWords[e.Type][t] {
+					contains = false
+					break
+				}
+			}
+		}
 		if contains {
 			return true, "contains every word of the entity's name", nil
 		}

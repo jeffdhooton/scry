@@ -409,3 +409,52 @@ func TestAnAliasMovesOnlyToTheThingItNames(t *testing.T) {
 		}
 	}
 }
+
+// An entity named by a single word used to collect everything said near
+// that word: AUDIT-6 had gathered 107 aliases, every a11y audit and
+// privacy audit in the graph, and session-ts every session.
+func TestAOneWordNameDoesNotCollectEverythingNearIt(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	for _, e := range []store.Entity{
+		{Slug: "audit-6", Name: "AUDIT-6", Type: "concept"},
+		{Slug: "session-ts", Name: "session-ts", Type: "concept"},
+		{Slug: "scry", Name: "scry", Type: "project"},
+	} {
+		e.CreatedAt, e.LastSeen = now, now
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	refuse := []struct{ slug, alias string }{
+		{"audit-6", "a11y audit"}, {"audit-6", "privacy audit"}, {"audit-6", "audit seam"},
+		{"session-ts", "collaboration session"}, {"session-ts", "session approval policy"},
+	}
+	for _, c := range refuse {
+		e, err := st.GetEntity(c.slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ok, why, err := AdmitAlias(st, e, c.alias, "ep-1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Errorf("%s took %q on one episode: %s", c.slug, c.alias, why)
+		}
+	}
+	// A word that describes a kind of thing still extends the name.
+	e, err := st.GetEntity("scry")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, alias := range []string{"scry daemon", "scry repo"} {
+		ok, why, err := AdmitAlias(st, e, alias, "ep-1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			t.Errorf("scry must still take %q: %s", alias, why)
+		}
+	}
+}
