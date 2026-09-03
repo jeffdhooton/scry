@@ -1,0 +1,606 @@
+[
+  {
+    "question": "What SSH host and port do I use to get into the Selerix staging server, and what user?",
+    "expect": {
+      "all_of": [
+        "163.192.209.112",
+        "61229"
+      ]
+    },
+    "note": "aca-hubspot-form-swap blocked_by selerix-staging: SSH selerixcom@163.192.209.112:61229 timed out; staging HTTP 522"
+  },
+  {
+    "question": "When the Raspberry Pi appliance falls back to its own access point, where do I open the dashboard?",
+    "expect": {
+      "all_of": [
+        "10.42.0.1"
+      ]
+    },
+    "note": "pi provides 10.42.0.1:5000 dashboard over its own Wi-Fi AP"
+  },
+  {
+    "question": "Which model is behind the 'halo' entry in opencode and what URL does it hit?",
+    "expect": {
+      "all_of": [
+        "8082"
+      ]
+    },
+    "note": "opencode uses flashnext: http://100.77.13.39:8082/v1, Qwen3.8-Flash-Next 256k ctx"
+  },
+  {
+    "question": "Where do the deep-research agent's LLM calls actually go?",
+    "expect": {
+      "all_of": [
+        "13306"
+      ]
+    },
+    "note": "deepresearch: OpenAI-compatible endpoint http://100.77.13.39:13306/v1 on the Halo, no API key, cloud APIs forbidden"
+  },
+  {
+    "question": "How are the two AMD machines physically wired together and what addresses does that link use?",
+    "expect": {
+      "all_of": [
+        "192.168.100.0",
+        "10GbE"
+      ]
+    },
+    "note": "hermes-ops uses halo2: direct 10GbE cable on 192.168.100.0/30"
+  },
+  {
+    "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+    "expect": {
+      "all_of": [
+        "loopback origins",
+        "warp-routing",
+        "127.0.0.1/32"
+      ]
+    },
+    "note": "cloudflare-workers-vpc conflicts_with cloudflared: Workers VPC Services don't work against loopback origins over cloudflared; binding never connects, 502"
+  },
+  {
+    "question": "Why did we go with ULIDs instead of plain auto-increment ids or UUIDs in the Laravel app?",
+    "expect": {
+      "all_of": [
+        "ULID"
+      ]
+    },
+    "note": "childscribe-laravel decided primitive-id-choice: phone mints offline, sort order must be creation order, Crockford base32 read-aloud"
+  },
+  {
+    "question": "What are we paying per million output tokens for the top Anthropic model?",
+    "expect": {
+      "all_of": [
+        "25.00 USD",
+        "$25.00"
+      ]
+    },
+    "note": "claude-opus-4-6 status: $25.00 per million output tokens"
+  },
+  {
+    "question": "Why was the self-hosted CI runner for the CRM offline for a week and a half in August?",
+    "expect": {
+      "all_of": [
+        "11 days",
+        "not installed as a service",
+        "by hand"
+      ]
+    },
+    "note": "actions-runner-hoopless causes network-timeout: died Aug 4 on a network timeout, down 11 days because started by hand not installed as a service"
+  },
+  {
+    "question": "What broke on trunk when the app shell branch landed?",
+    "expect": {
+      "all_of": [
+        "react-router wasn't in package.json",
+        "typecheck failure"
+      ]
+    },
+    "note": "web-app-shell causes main: typecheck failure because react-router wasn't in package.json, led to a revert"
+  },
+  {
+    "question": "Which release of react-router is the shell branch locked to?",
+    "expect": {
+      "all_of": [
+        "7.18.2"
+      ]
+    },
+    "note": "land-web-app-shell / web-app-shell uses react-router: branch pins ^7.18.2, trunk briefly installed 8.3.0 and reverted"
+  },
+  {
+    "question": "What is the Pi's wired hardware address and the address it usually gets from the router?",
+    "expect": {
+      "all_of": [
+        "2c:cf:67",
+        "192.168.1.243"
+      ]
+    },
+    "note": "pi uses home-router: Ethernet MAC 2c:cf:67:1f:14:8b, usual DHCP lease 192.168.1.243"
+  },
+  {
+    "question": "Why can't we add a database trigger that blocks row deletion in the API?",
+    "expect": {
+      "all_of": [
+        "BEFORE DELETE",
+        "truncates every discovered table"
+      ]
+    },
+    "note": "no-delete-trigger causes api: a BEFORE DELETE guard would fail every api test because test setup truncates every discovered table between tests"
+  },
+  {
+    "question": "Why did limiting the number of watched directories fail to keep scry's file handle count down?",
+    "expect": {
+      "all_of": [
+        "2048-dir cap",
+        "each entry in a watched directory",
+        "133,605"
+      ]
+    },
+    "note": "kqueue-per-entry-fd causes scry: each entry in a watched directory consumed an fd, so descriptors scale with repo count"
+  },
+  {
+    "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+    "expect": {
+      "all_of": [
+        "not ancestors",
+        "only matched exact paths"
+      ]
+    },
+    "note": "subdirectory-query causes daemon-registry: registry matched only exact paths, not ancestors"
+  },
+  {
+    "question": "What made the first couple of cloud builds of the ChildScribe phone app fail?",
+    "expect": {
+      "all_of": [
+        "metro.config.js unconditionally",
+        "expo-agent-bridge directory"
+      ]
+    },
+    "note": "childscribe-mobile causes metroconfigjs: metro.config.js referenced a non-existent sibling expo-agent-bridge directory on the EAS builder"
+  },
+  {
+    "question": "How should Cell Saviors send mail in production, and why not the normal way?",
+    "expect": {
+      "all_of": [
+        "Postmark HTTP API",
+        "SMTP port blocking"
+      ]
+    },
+    "note": "cell-saviors uses postmark: Postmark HTTP API (symfony/postmark-mailer) to bypass SMTP port blocking"
+  },
+  {
+    "question": "What tailnet address does the Cell Saviors box answer on?",
+    "expect": {
+      "all_of": [
+        "100.99.162.30"
+      ]
+    },
+    "note": "cellsaviors related_to 100.99.162.30 (cellsaviors-new)"
+  },
+  {
+    "question": "Who is keeping an eye on the Cell Saviors site, and with what login?",
+    "expect": {
+      "all_of": [
+        "hermeswatch"
+      ]
+    },
+    "note": "hermes monitors cellsaviors: read-only over SSH as the hermeswatch user"
+  },
+  {
+    "question": "Which billing package version handles subscriptions in the ChildScribe Laravel app?",
+    "expect": {
+      "all_of": [
+        "Cashier 16.5"
+      ]
+    },
+    "note": "childscribe-laravel uses cashier: Cashier 16.5, auto-routes disabled"
+  },
+  {
+    "question": "What editor version is set up on Hermes and where is its config symlinked from?",
+    "expect": {
+      "all_of": [
+        "0.11.7"
+      ]
+    },
+    "note": "hermes uses neovim: Neovim 0.11.7, ~/.config/nvim -> ~/dotfiles/nvim, old config backed up"
+  },
+  {
+    "question": "What does Hermes use for inference when the primary model is down?",
+    "expect": {
+      "all_of": [
+        "gpt-oss-20b"
+      ]
+    },
+    "note": "hermes depends_on gpt-oss-20b: local OMLX gpt-oss-20b at 127.0.0.1:8000/v1 is the fallback LLM"
+  },
+  {
+    "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+    "expect": {
+      "all_of": [
+        "max_loaded_models"
+      ]
+    },
+    "note": "lemonade configures halo2: max_loaded_models raised 1->2 so Qwen3.8-27B-Q8 and GPT-OSS-120B-Q4_K_M stay resident, ~98 GiB of 128 GB"
+  },
+  {
+    "question": "How fast is the heavily-quantized GLM on the Halo at full context, and how much RAM does it take?",
+    "expect": {
+      "all_of": [
+        "15.1 tok/s",
+        "107 GiB"
+      ]
+    },
+    "note": "glm-53 deployed_on halo2: GLM Q2 15.1 tok/s at 256k context using 107 GiB"
+  },
+  {
+    "question": "What did Jeff say about using a Q5 quant when upgrading llama.cpp on halo?",
+    "expect": {
+      "all_of": [
+        "skip Q5",
+        "fuck q5"
+      ]
+    },
+    "note": "jeff decided halo-flash-next-upgrade: keep existing Q4 UD-Q4_K_XL weights, skip Q5 ('Honestly fuck q5'), defer MTP"
+  },
+  {
+    "question": "What hardware fix was floated for halo's flaky wireless, given its ethernet is already committed?",
+    "expect": {
+      "all_of": [
+        "2.5GbE adapter",
+        "$30 USB-C"
+      ]
+    },
+    "note": "jeff decided halo-wired-nic-upgrade: ~$30 USB-C/Thunderbolt 2.5GbE adapter, or halo-through-halo2 NAT as the zero-hardware alternative"
+  },
+  {
+    "question": "What address does the new GLM systemd service bind to?",
+    "expect": {
+      "all_of": [
+        "8081"
+      ]
+    },
+    "note": "glm-server deployed_on halo2: 127.0.0.1:8081"
+  },
+  {
+    "question": "Which local port does the cockpit background service answer on?",
+    "expect": {
+      "all_of": [
+        "45679"
+      ]
+    },
+    "note": "cockpit daemon on 127.0.0.1:45679"
+  },
+  {
+    "question": "Which processes does cockpit bring up on its own without being asked?",
+    "expect": {
+      "all_of": [
+        "auto-start",
+        "only two Cockpit processes"
+      ]
+    },
+    "note": "program-health-web calls cockpit: program-health web and program-health api are the only two Cockpit processes that auto-start"
+  },
+  {
+    "question": "There's a bug where searching in cockpit shows the same record twice - what causes it?",
+    "expect": {
+      "all_of": [
+        "duplicate",
+        "sessionIndexByKey",
+        "MergedSession.Key"
+      ]
+    },
+    "note": "cockpit has_issue duplicate-conversation-key: MergedSession.Key() = 'build:'+conversation_id, sessionIndexByKey resolves the first match so the second duplicate"
+  },
+  {
+    "question": "How did a terminal control sequence end up wiping the cockpit screen?",
+    "expect": {
+      "all_of": [
+        "SanitizeDisplay",
+        "ESC[2J"
+      ]
+    },
+    "note": "cockpit has_issue defect-ansi-project-label: project_label/agent rendered without SanitizeDisplay emit ESC[2J/ESC[H clear-screen in tui/sessions.go"
+  },
+  {
+    "question": "How is the routing solver started for docket's node-based end-to-end tests?",
+    "expect": {
+      "all_of": [
+        "solver-serve.sh",
+        "8190"
+      ]
+    },
+    "note": "solver runs_on docket-e2e-node-tier: scripts/solver-serve.sh on port 8190 with 600s timeout for first-run venv build"
+  },
+  {
+    "question": "Why do the API test gates blow up when run under the restricted sandbox?",
+    "expect": {
+      "all_of": [
+        "EPERM"
+      ]
+    },
+    "note": "vitest requires wrangler / blocked_by sandbox: wrangler can't write debug logs to ~/Library/Preferences/.wrangler/logs and node can't bind 127.0.0.1 -> EPERM"
+  },
+  {
+    "question": "Two tests were red on the whole-repo gate around the job costing work - what was actually wrong?",
+    "expect": {
+      "all_of": [
+        "0260-0269",
+        "README.md lacks"
+      ]
+    },
+    "note": "npm-run-check causes setpoint/repair-job-costing: migration-registry.test.ts and schema-conventions.test.ts fail solely because db/migrations/README.md lacks th"
+  },
+  {
+    "question": "Why did the build job go red on the small CI runner in mid-August?",
+    "expect": {
+      "all_of": [
+        "scrub bench",
+        "21.8s"
+      ]
+    },
+    "note": "build causes scrub-bench: scrub bench test timed out at 21.8s against a 20s ceiling on a 2-core runner"
+  },
+  {
+    "question": "Why does the assurance check never pass on a Mac?",
+    "expect": {
+      "all_of": [
+        "Linux-only deployment shell scripts",
+        "36 tests in 6 files"
+      ]
+    },
+    "note": "assurance-check causes project-health: 36 tests in 6 files exercise Linux-only deployment shell scripts"
+  },
+  {
+    "question": "What's wrong with the way the money agent stores dollar amounts?",
+    "expect": {
+      "all_of": [
+        "IEEE-754",
+        "integer cents",
+        "CPT_UNIT_PRICE"
+      ]
+    },
+    "note": "money-agent uses cpt-unit-price: CPT_UNIT_PRICE plain JS numbers summed by float addition, money is IEEE-754 floats in dollars not integer cents"
+  },
+  {
+    "question": "What has to be in place before the money agent is allowed to hand out cards by itself?",
+    "expect": {
+      "all_of": [
+        "hard cap",
+        "prefunded",
+        "issuer gateway"
+      ]
+    },
+    "note": "money-agent requires safeguards: provider-confirmed hard cap or true prefunded alternative, plus separate issuer gateway with independent monotonic issuance env"
+  },
+  {
+    "question": "Which search provider does the overnight research agent use and how many searches was it allowed?",
+    "expect": {
+      "all_of": [
+        "Brave Search",
+        "600 queries"
+      ]
+    },
+    "note": "deepresearch uses brave-search: Brave Search API with BRAVE_API_KEY, capped at 600 queries for the night"
+  },
+  {
+    "question": "What did Jeff set as the acceptance criteria for the research reports?",
+    "expect": {
+      "all_of": [
+        "8 distinct",
+        "citations"
+      ]
+    },
+    "note": "jeff decided deepresearch-done-bar: three fixed questions end to end, inline [n] citations, >=8 distinct URLs per report, 100% of cited URLs resolve with fetche"
+  },
+  {
+    "question": "Where did Jeff buy the domain for the DBA filing site?",
+    "expect": {
+      "all_of": [
+        "Cloudflare Registrar"
+      ]
+    },
+    "note": "jeff decided dbafilingguide: purchase via Cloudflare Registrar at the verified price, autonomous build kicked off via Kimi on Hermes"
+  },
+  {
+    "question": "Is the DBA filing site actually online yet?",
+    "expect": {
+      "all_of": [
+        "no dbafilingguide Worker",
+        "DNS remains empty"
+      ]
+    },
+    "note": "dbafilingguide lacks cloudflare-workers: Cloudflare confirms no Worker exists and public DNS remains empty as of the 2026-09-03 checkpoint"
+  },
+  {
+    "question": "Which states are still outstanding on the DBA guide build?",
+    "expect": {
+      "all_of": [
+        "Alabama, Kentucky, and Michigan",
+        "Alabama"
+      ]
+    },
+    "note": "dbafilingguide related_to dbafilingguide-missing-states: Alabama, Kentucky, Michigan"
+  },
+  {
+    "question": "Why was the Colorado destination changed on the DBA guide?",
+    "expect": {
+      "all_of": [
+        "File a Business Document",
+        "Colorado repair routes"
+      ]
+    },
+    "note": "dbafilingguide decided colorado-stable-route: routed through the SoS 'File a Business Document' page after repeated retrieval/link failures, consolidated with V"
+  },
+  {
+    "question": "What company name and opening hours are on the cleaning business's Google listing?",
+    "expect": {
+      "all_of": [
+        "PH Cleaning Co",
+        "8 AM"
+      ]
+    },
+    "note": "wren-home-cleaning owns google-business-profile: PH Cleaning Co (phcleaningco.com, Cleaners), hours 8 AM-6 PM matching site.hoursSpec"
+  },
+  {
+    "question": "How big is the crew we're launching the cleaning company with?",
+    "expect": {
+      "all_of": [
+        "two-person cleaning crew"
+      ]
+    },
+    "note": "jeff decided duo-crew: Jeff and Jermes agreed to start with one two-person cleaning crew"
+  },
+  {
+    "question": "There's a mismatch between the cleaning company's written docs and the manual about worker classification - what is it?",
+    "expect": {
+      "all_of": [
+        "W-2",
+        "subcontractor manual"
+      ]
+    },
+    "note": "hermes-ops uses wren-home-cleaning: docs written for W-2 model, conflicts with subcontractor manual"
+  },
+  {
+    "question": "What is actually holding up hiring for the cleaning business?",
+    "expect": {
+      "all_of": [
+        "attorney, payout",
+        "screening-provider"
+      ]
+    },
+    "note": "hiring-compliance-blockers located_at hiring-policy-manual: attorney, payout %, and screening-provider decisions are the blockers; 4-6 week bench is the long po"
+  },
+  {
+    "question": "What PHP version is already on the CRM's CI runner machine?",
+    "expect": {
+      "all_of": [
+        "8.4.19"
+      ]
+    },
+    "note": "actions-runner-hoopless uses herd: PHP 8.4.19 via Herd, same version setup-php tries to install, making the step redundant"
+  },
+  {
+    "question": "What did Jeff want done about two-factor auth on the demo site?",
+    "expect": {
+      "all_of": [
+        "any 6-digit code",
+        "MFA"
+      ]
+    },
+    "note": "jeff decided demo-mfa-open: demo/staging MFA should let any 6-digit code in; deploy was still pending"
+  },
+  {
+    "question": "What addresses does the Android app point at for the backend and engine during local development?",
+    "expect": {
+      "all_of": [
+        "18731",
+        "192.168.1.221"
+      ]
+    },
+    "note": "childscribe-laravel depends_on childscribe-local-stack: 192.168.1.221:18731 (Laravel API) and 192.168.1.221:3100 (engine)"
+  },
+  {
+    "question": "A test was hitting a real server on the internet - what was missing and where did the traffic go?",
+    "expect": {
+      "all_of": [
+        "preventStrayRequests",
+        "216.40.34.37"
+      ]
+    },
+    "note": "publishingconnectiontest related_to httppreventstrayrequests: test lacked Http::preventStrayRequests(), real TCP calls to 216.40.34.37 Tucows parking server"
+  },
+  {
+    "question": "Why did the webhook sender fail against non-TLS development URLs?",
+    "expect": {
+      "all_of": [
+        "hardcoded https.request",
+        "ECONNRESET"
+      ]
+    },
+    "note": "httpspost excludes webhook-client-bug: client hardcoded https.request with port 443, ignoring the URL scheme, so plain-HTTP dev URLs got a TLS handshake and ECO"
+  },
+  {
+    "question": "What interface is Ollama bound to these days?",
+    "expect": {
+      "all_of": [
+        "11434"
+      ]
+    },
+    "note": "ollama related_to laptop: listener is 127.0.0.1:11434 loopback-only, no mini-to-laptop routing added"
+  },
+  {
+    "question": "A memory write disappeared without an error - what happened?",
+    "expect": {
+      "all_of": [
+        "max_tokens"
+      ]
+    },
+    "note": "scry causes scry-remember: the extraction model hit max_tokens producing no JSON; shorter writes succeeded"
+  },
+  {
+    "question": "What network did Jeff join so the hotspot's admin page would come up?",
+    "expect": {
+      "all_of": [
+        "Orbic's own Wi-Fi",
+        "USB tethering"
+      ]
+    },
+    "note": "jeff decided orbic-wifi: connect to the Orbic's own Wi-Fi instead of home Wi-Fi so 192.168.1.1 points at the Orbic; USB tethering offered as alternative"
+  },
+  {
+    "question": "What happened the very first time the external Wi-Fi dongle was plugged into the Pi?",
+    "expect": {
+      "all_of": [
+        "power collapse",
+        "fully offline for over a minute"
+      ]
+    },
+    "note": "alfa-wifi-adapter status: first attachment instantly took the Pi fully offline for over a minute (power collapse/USB protection event); after power-cycle it enu"
+  },
+  {
+    "question": "Is the Pi getting a satellite fix?",
+    "expect": {
+      "all_of": [
+        "gpsd",
+        "never delivered a fix"
+      ]
+    },
+    "note": "pi calls gpsd: runs gpsd but it never delivered a fix all day; receiver likely malfunctioning or not initialized"
+  },
+  {
+    "question": "How did Jeff resolve the licensing question with David over the shared build project?",
+    "expect": {
+      "all_of": [
+        "forking privately",
+        "no upstream contributions"
+      ]
+    },
+    "note": "david decided jbuild-private-fork: build is private and unlicensed; Jeff resolved it by forking privately with no upstream contributions"
+  },
+  {
+    "question": "What is the second provider entry in opencode pointed at, and which model does it serve?",
+    "expect": {
+      "all_of": [
+        "100.83.107.97"
+      ]
+    },
+    "note": "opencode uses halo2: 100.83.107.97:13306 'halo2 (Lemonade over tailnet)' serving gpt-oss-120b-Q4_K_M"
+  },
+  {
+    "question": "Who owns the state license lookup site and where does its code live?",
+    "expect": {
+      "all_of": [
+        "statelicenselookup"
+      ]
+    },
+    "note": "jeff owns statelicenselookup: domain statelicenselookup.com, the D1 database and repo /Users/jclaw/workspace/statelicenselookup are jeff's"
+  },
+  {
+    "question": "How do I open the battery pack designer while developing locally?",
+    "expect": {
+      "all_of": [
+        "cellsaviors.test/battery-designer"
+      ]
+    },
+    "note": "cellsaviors runs_on vite: Vite dev server on localhost:5173, reachable at https://cellsaviors.test/battery-designer"
+  }
+]

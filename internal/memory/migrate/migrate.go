@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/memory/resolve"
@@ -45,6 +46,9 @@ type Report struct {
 	// deployed_on was still an exclusive relation, brought back because a
 	// thing is deployed in more than one place at once.
 	DeployedOnRestored int `json:"deployed_on_restored"`
+	// DanglingEndpoints counts fact endpoints whose entity no longer
+	// exists, left behind when an earlier pass retired a value entity.
+	DanglingEndpoints int `json:"dangling_endpoints"`
 	// InversionsRepaired counts facts that an older episode retired the
 	// moment they were written, with a fact older than themselves left
 	// current in their place.
@@ -198,6 +202,20 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 		if retireable(e.Name) {
 			values[e.Slug] = e
 		}
+	}
+	// A fact may point at a slug with no entity behind it: an earlier pass
+	// retired the value entity and missed a fact that had been moved onto
+	// it. The endpoint is a value in everything but the entity table, so it
+	// is treated as one here and the fact becomes an attribute like any
+	// other. The slug is its own best name; there is nothing else left of
+	// it to read.
+	dangling, err := danglingEndpoints(st, bySlug)
+	if err != nil {
+		return err
+	}
+	rep.DanglingEndpoints = len(dangling)
+	for slug := range dangling {
+		values[slug] = store.Entity{Slug: slug, Name: strings.ReplaceAll(slug, "-", " ")}
 	}
 	rep.ValueEntities = len(values)
 	names := make([]string, 0, len(values))
@@ -467,4 +485,29 @@ func repairInversions(st *store.Store, dry bool, rep *Report) error {
 		}
 	}
 	return nil
+}
+
+// danglingEndpoints returns every slug a current fact points at that has
+// no entity record. Invalidated facts are left out: they are history, and
+// rewriting history is not this pass's job.
+func danglingEndpoints(st *store.Store, bySlug map[string]store.Entity) (map[string]bool, error) {
+	facts, err := st.AllFacts()
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]bool{}
+	for _, f := range facts {
+		if f.InvalidAt != nil {
+			continue
+		}
+		for _, slug := range []string{f.Src, f.Dst} {
+			if slug == "" {
+				continue
+			}
+			if _, ok := bySlug[slug]; !ok {
+				out[slug] = true
+			}
+		}
+	}
+	return out, nil
 }

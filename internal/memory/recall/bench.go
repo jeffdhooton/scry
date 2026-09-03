@@ -44,6 +44,10 @@ type Expect struct {
 	// sessions, so pinning a question to a single wording measures the
 	// wording rather than the retrieval.
 	AnyOf []string `json:"any_of,omitempty"`
+	// AllOf holds the parts of one answer that must appear together: an
+	// address and the port beside it, say. A fact carrying only one of
+	// them has not answered the question.
+	AllOf []string `json:"all_of,omitempty"`
 }
 
 // Matches reports whether h is the fact e describes.
@@ -78,6 +82,11 @@ func (e Expect) Matches(h FactHit) bool {
 			return false
 		}
 	}
+	for _, want := range e.AllOf {
+		if !strings.Contains(strings.ToLower(h.Fact), strings.ToLower(want)) {
+			return false
+		}
+	}
 	if e.Episode != "" {
 		found := false
 		for _, id := range h.Episodes {
@@ -90,7 +99,7 @@ func (e Expect) Matches(h FactHit) bool {
 			return false
 		}
 	}
-	return e.Entity != "" || e.Src != "" || e.Relation != "" || e.Dst != "" || e.Value != "" || e.FactSubstring != "" || e.Episode != "" || len(e.AnyOf) > 0
+	return e.Entity != "" || e.Src != "" || e.Relation != "" || e.Dst != "" || e.Value != "" || e.FactSubstring != "" || e.Episode != "" || len(e.AnyOf) > 0 || len(e.AllOf) > 0
 }
 
 // Miss records a question whose answer was not in the top N.
@@ -190,6 +199,9 @@ func LoadQuestions(path string) ([]Question, error) {
 		probe := FactHit{Src: q.Expect.Src, Relation: q.Expect.Relation, Dst: q.Expect.Dst, Value: q.Expect.Value, Fact: q.Expect.FactSubstring, Episodes: []string{q.Expect.Episode}}
 		if len(q.Expect.AnyOf) > 0 {
 			probe.Fact += q.Expect.AnyOf[0]
+		}
+		for _, want := range q.Expect.AllOf {
+			probe.Fact += want
 		}
 		if q.Expect.Entity != "" && probe.Src == "" {
 			probe.Src = q.Expect.Entity

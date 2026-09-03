@@ -13,8 +13,10 @@ package search
 
 import (
 	"math"
+	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -316,6 +318,13 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 	}
 	avg := float64(ix.totalLen) / float64(ix.live)
 	scores := map[int]float64{}
+	// covered tracks how much of the question each document accounts for,
+	// weighted by how rare each term is. A fact that carries every word of
+	// the question beats one that repeats the loudest word: "who watches
+	// cellsaviors and with what login" should answer with the monitoring
+	// fact, not with the twentieth fact about cellsaviors.
+	covered := map[int]float64{}
+	askedFor := 0.0
 	seenTok := map[string]bool{}
 	for _, t := range toks {
 		if seenTok[t] {
@@ -337,6 +346,7 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 		if strings.HasPrefix(t, "^") {
 			weight = prefixWeight
 		}
+		askedFor += weight * idf
 		for _, p := range pl {
 			d := ix.docs[p.doc]
 			if d.Key == "" {
@@ -345,6 +355,7 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 			tf := float64(p.tf)
 			norm := tf * (k1 + 1) / (tf + k1*(1-b+b*float64(ix.lengths[p.doc])/avg))
 			scores[p.doc] += weight * idf * norm
+			covered[p.doc] += weight * idf
 		}
 	}
 	hits := make([]Hit, 0, len(scores))
@@ -355,6 +366,9 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 		}
 		if d.Kind == KindFact && !validAt(d, asOf) {
 			continue
+		}
+		if askedFor > 0 {
+			s *= 1 + coverageWeight*math.Pow(covered[i]/askedFor, coveragePower)
 		}
 		if len(phrase) >= 6 && strings.Contains(strings.ToLower(d.Text), phrase) {
 			s *= 1.5
@@ -371,6 +385,26 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 		hits = hits[:k]
 	}
 	return hits
+}
+
+// coverageWeight is how much a document gains for accounting for the
+// whole question rather than part of it; coveragePower shapes the curve so
+// that covering most of a question is worth much more than covering half.
+var (
+	coverageWeight = tuneFloat("SCRY_COV_W", 1.0)
+	coveragePower  = tuneFloat("SCRY_COV_P", 2.0)
+)
+
+// tuneFloat reads a ranking constant from the environment so a sweep can
+// try values without a rebuild. Unset, which is how it runs everywhere
+// but a tuning session, returns the default.
+func tuneFloat(name string, def float64) float64 {
+	if v := os.Getenv(name); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	}
+	return def
 }
 
 // ScoreDoc returns the BM25 score q would give the document at key, using

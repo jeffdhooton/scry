@@ -422,3 +422,43 @@ func TestRepairInversionsPutsTheNewerFactBack(t *testing.T) {
 		t.Errorf("second pass repaired %d, want a no-op", again.InversionsRepaired)
 	}
 }
+
+func TestMigrateValuesTakesFactsPointingAtNothing(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	if err := st.PutEntity(store.Entity{Slug: "docket", Name: "docket", Type: "project", CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatal(err)
+	}
+	// ready-to-merge has no entity record: an earlier pass retired it and
+	// left this fact pointing at the slug.
+	if err := st.PutFact(store.Fact{Src: "ready-to-merge", Relation: "related_to", Dst: "docket", Fact: "the branch was ready to merge", ValidFrom: now, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+	var rep Report
+	if err := migrateValues(st, false, &rep); err != nil {
+		t.Fatal(err)
+	}
+	if rep.DanglingEndpoints != 1 {
+		t.Fatalf("dangling endpoints = %d, want 1", rep.DanglingEndpoints)
+	}
+	facts, err := st.FactsAbout("docket", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kept int
+	for _, f := range facts {
+		if f.InvalidAt != nil {
+			continue
+		}
+		kept++
+		if f.Src != "docket" || f.Dst != "" || f.Value == "" {
+			t.Errorf("fact = %+v, want an attribute of docket carrying the value", f)
+		}
+		if f.Fact != "the branch was ready to merge" {
+			t.Errorf("the sentence must survive: %q", f.Fact)
+		}
+	}
+	if kept != 1 {
+		t.Errorf("current facts on docket = %d, want 1", kept)
+	}
+}

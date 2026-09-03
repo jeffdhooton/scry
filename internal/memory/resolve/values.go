@@ -165,7 +165,7 @@ func IsValueName(name string) bool {
 	if m := countRE.FindStringSubmatch(n); m != nil && (countNouns[m[1]] || statusWords[m[1]]) {
 		return true
 	}
-	return false
+	return ValueShape(n)
 }
 
 // IsEphemeralName reports whether a name is a run artifact (temp worktree,
