@@ -113,6 +113,13 @@ var (
 // ("hoopless-production"), so it is not here.
 var trunkNames = map[string]bool{"main": true, "master": true, "develop": true, "trunk": true}
 
+// gitNouns are the words that follow a branch name when someone is
+// talking about the branch itself.
+var gitNouns = map[string]bool{
+	"tip": true, "head": true, "branch": true, "branches": true, "commit": true,
+	"sha": true, "ref": true, "rev": true, "hash": true, "tag": true,
+}
+
 // codeDirs open a path inside a repository rather than a branch
 // namespace. Everything else with one slash in it is read as a branch,
 // because branch namespaces cannot be enumerated: a store that knows
@@ -280,15 +287,20 @@ func hasHashToken(n string) bool {
 // namespaced branch ("feat/x", "wt/apply", "loop/llm-unify prior work"),
 // or a trunk name carrying a commit ("main b9f73b5").
 func branchPhrase(n string) bool {
-	if fileExtRE.MatchString(n) || namesAThing(n) || modulePathRE.MatchString(n) {
+	if fileExtRE.MatchString(n) || modulePathRE.MatchString(n) {
 		return false
 	}
 	// Any two-segment name is a branch unless its first segment names part
-	// of a repository.
+	// of a repository. The last word does not change that: seo/resume-page
+	// and ux/onboarding-polish are the same shape and are judged the same
+	// way, which they were not while a thing word could exempt one.
 	if slashNameRE.MatchString(n) {
 		if head, _, _ := strings.Cut(n, "/"); !codeDirs[head] {
 			return true
 		}
+	}
+	if namesAThing(n) {
+		return false
 	}
 	words := nameWords(n)
 	if len(words) >= 2 {
@@ -300,8 +312,33 @@ func branchPhrase(n string) bool {
 				others++
 			}
 		}
-		if trunks > 0 && others > 0 {
+		// A name made only of trunk words is a branch: "main trunk".
+		if trunks > 0 && others == 0 {
 			return true
+		}
+		// Otherwise the trunk word must come last, the way a project's
+		// branch is written: docket-main, ph-develop. A trunk word in any
+		// other position is a word in a name — main-thread-scheduler,
+		// master-key-rotation, trunk-based-development — and rejecting
+		// those cost real entities.
+		if trunks > 0 && trunkNames[words[len(words)-1]] {
+			return true
+		}
+		// Or the trunk word comes first and everything after it is git
+		// vocabulary: "main tip", "main branch", "develop head". Anything
+		// else after a leading trunk word is a name that starts with an
+		// ordinary word.
+		if trunks > 0 && trunkNames[words[0]] {
+			rest := true
+			for _, w := range words[1:] {
+				if !gitNouns[w] {
+					rest = false
+					break
+				}
+			}
+			if rest {
+				return true
+			}
 		}
 	}
 	if len(words) > 0 && branchNamespaceRE.MatchString(words[0]) {
@@ -326,6 +363,11 @@ var thingWords = map[string]bool{
 	"route": true, "bucket": true, "topic": true, "stream": true, "surface": true, "flow": true,
 	"screen": true, "view": true, "panel": true, "widget": true, "field": true, "column": true,
 	"button": true, "job": true, "table": true, "list": true, "gateway": true, "adapter": true,
+	"api": true, "apis": true, "endpoints": true, "repository": true,
+	"repositories": true, "ui": true, "module": true, "package": true, "library": true,
+	"client": true, "worker": true, "workers": true, "handler": true, "controller": true,
+	"middleware": true, "hook": true, "hooks": true, "resolver": true, "parser": true,
+	"encoder": true, "interface": true, "component": true, "provider": true, "store": true,
 }
 
 // namesAThing reports whether a name ends in a word that makes it the

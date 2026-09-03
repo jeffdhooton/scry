@@ -219,6 +219,13 @@ func IsStatusWord(name string) bool {
 	// status ("completed status", "READY status"), or starts with a state
 	// or a waiting word ("ready for merge", "pending-reload", "needs env",
 	// "awaiting review", "loop 2 in progress").
+	// A code identifier is a name whatever English it reads as, and a
+	// name ending in a thing is that thing: pending-payments-api is an
+	// api, blocked_by_id is a column, ready-check-endpoint is an
+	// endpoint. Rejecting those cost real entities.
+	if snakeIdentRE.MatchString(n) || namesAThing(n) {
+		return false
+	}
 	words := strings.Fields(strings.NewReplacer("_", " ", "-", " ").Replace(n))
 	if len(words) >= 2 && len(words) <= 6 {
 		last := words[len(words)-1]
