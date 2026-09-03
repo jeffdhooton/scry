@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/jeffdhooton/scry/internal/memory/search"
 	"github.com/jeffdhooton/scry/internal/memory/store"
@@ -281,6 +282,7 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 		}
 		return scored[i].ValidFrom.After(scored[j].ValidFrom)
 	})
+	scored = diversify(scored)
 	res.Total = len(scored)
 	if len(scored) > limit {
 		scored = scored[:limit]
@@ -403,3 +405,97 @@ func clip(s string, n int) string {
 }
 
 func round3(f float64) float64 { return float64(int(f*1000+0.5)) / 1000 }
+
+// Diversity. One thing said twenty times by twenty sessions is still one
+// thing, and twenty restatements of it fill the answer window that the
+// asked-about fact needed. Restatements are demoted below the last
+// distinct fact rather than dropped, so a caller who asks for two hundred
+// still gets them.
+const (
+	// maxPerPair is how many facts about the same two entities may hold
+	// top slots. A pair with more to say than this says it in different
+	// pairs.
+	maxPerPair = 2
+	// dupOverlap is the share of the shorter fact's words that must also
+	// appear in a kept fact for the two to count as the same sentence.
+	dupOverlap = 0.8
+	// minDupTokens is the shortest fact that similarity may collapse.
+	// Below it, only an exact repeat counts.
+	minDupTokens = 4
+	// diversifyWindow bounds the work: only the top of the ranking
+	// competes for the answer window, and the tail is left alone.
+	diversifyWindow = 300
+	// maxSigs bounds how many kept facts a candidate is compared against.
+	maxSigs = 80
+)
+
+// diversify demotes near-duplicate facts and third-and-later facts about
+// the same pair of entities, preserving relative order otherwise.
+func diversify(in []FactHit) []FactHit {
+	if len(in) < 3 {
+		return in
+	}
+	n := min(len(in), diversifyWindow)
+	kept := make([]FactHit, 0, len(in))
+	var demoted []FactHit
+	pair := map[string]int{}
+	var sigs []map[string]bool
+	for _, h := range in[:n] {
+		key := h.Src + "\x00" + h.Dst
+		sig := textSig(h.Fact)
+		dup := false
+		for _, s := range sigs {
+			if sameSentence(sig, s) {
+				dup = true
+				break
+			}
+		}
+		if dup || pair[key] >= maxPerPair {
+			demoted = append(demoted, h)
+			continue
+		}
+		pair[key]++
+		if len(sigs) < maxSigs {
+			sigs = append(sigs, sig)
+		}
+		kept = append(kept, h)
+	}
+	kept = append(kept, in[n:]...)
+	return append(kept, demoted...)
+}
+
+// textSig is a fact's set of content words, lowercased, short words and
+// punctuation dropped.
+func textSig(s string) map[string]bool {
+	out := map[string]bool{}
+	for _, w := range strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	}) {
+		if len(w) > 2 {
+			out[w] = true
+		}
+	}
+	return out
+}
+
+// sameSentence reports whether two facts say the same thing: most of the
+// shorter one's words appear in the longer.
+func sameSentence(a, b map[string]bool) bool {
+	if len(a) == 0 || len(b) == 0 {
+		return false
+	}
+	shorter, longer := a, b
+	if len(b) < len(a) {
+		shorter, longer = b, a
+	}
+	hit := 0
+	for w := range shorter {
+		if longer[w] {
+			hit++
+		}
+	}
+	if len(shorter) < minDupTokens {
+		return hit == len(shorter) && len(longer) == len(shorter)
+	}
+	return float64(hit)/float64(len(shorter)) >= dupOverlap
+}
