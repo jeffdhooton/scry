@@ -2296,3 +2296,47 @@ weight where it does nothing, which is the same call made for relevance
 feedback and entity-name expansion. What the attempt did surface is that
 facts on a named entity were scored without the meaning term while
 searched facts had it; that inconsistency is fixed.
+
+
+## 2026-09-03 — What separates a value from a thing, and what does not
+
+**Decision:** the value rules stay lexical, and their ceiling is stated
+rather than papered over. Two alternatives were measured and neither
+works.
+
+**Usage statistics do not work.** A value ought to be mentioned once and
+never again, and against a list of 50 known values and 29 well-known
+entities the signal looks decisive: the values have a median of one fact
+and 44 of 50 have a single episode; the entities have a median of 142
+facts and none has a single episode. But that comparison is rigged by
+the second list. Applied to the store, "one episode and untouched for a
+fortnight" selects 9,999 of 18,166 live entities, 55 per cent, and a
+random sample of them is full of real things: `PerfLintTest.php`,
+`ChapterService::entriesPayloadFor()`, `commit-msg-linter`,
+`feedback_submissions table`, `v1-rest-api`, `AWS BAA`. A rarely
+mentioned thing and a value are the same shape in the graph. Measured
+before it was built, and not built.
+
+**Four rounds of shape rules have a ceiling, and it has been reached.**
+Each grader hand-picks names the rules accept, the rules grow to cover
+them, and the next grader finds a family one token to the side: digits
+but not words, `feat/` but not `goal/`, `approved` but not `confirmed`,
+`task-<hex>` but not `task_<hex>`. The fourth round caught none of its
+68. The rules are 844 literal tokens across 23 tables, and the honest
+description is that they encode what earlier rounds found rather than a
+theory of what a name is.
+
+**What the false-positive side is worth.** It is genuinely good and it
+is what matters most: 80 of 81 hard real names survive, including
+`modernc.org/sqlite`, `42 CFR Part 2`, `Boeing 737 MAX`, `Xbox 360`,
+`packages/shared`, `claude-sonnet-4-20250514`. A rule that rejects real
+things destroys the graph; a rule that misses a value leaves one extra
+node. The rules err in the cheap direction on purpose.
+
+**What would actually close it:** the judgement belongs where the
+language is understood. The extraction model reads the transcript and
+already names and types every entity; asking it to say whether a name
+is a thing or a measurement of one is a question it can answer and a
+regex cannot. That is a design change, it costs a provider call per
+episode, and it is not something to slip in while the provider is
+unreachable — so it is written down here rather than half-built.
