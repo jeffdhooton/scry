@@ -278,3 +278,44 @@ func TestStubMergeRefusesTheFusionsAGraderFound(t *testing.T) {
 		}
 	}
 }
+
+// The drop for hardware named on a non-machine and a role named on a
+// person is the part of the alias cleanup that measured well, and a
+// revert of the part that did not once removed it by accident.
+func TestHygieneStillDropsRolesAndHardware(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	put := func(e store.Entity) {
+		e.CreatedAt, e.LastSeen = now, now
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put(store.Entity{Slug: "jeff", Name: "Jeff", Type: "person",
+		Aliases: []string{"jeffdhooton", "Claude agent", "review subagent", "/Users/jeff", "coding-agent"}})
+	put(store.Entity{Slug: "some-project", Name: "some project", Type: "project",
+		Aliases: []string{"some-proj", "the mac mini box"}})
+	if err := st.PutFact(store.Fact{Src: "jeff", Relation: "owns", Value: "a laptop", Fact: "Jeff owns a laptop", ValidFrom: now, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Hygiene(st, false); err != nil {
+		t.Fatal(err)
+	}
+	jeff, err := st.GetEntity("jeff")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(jeff.Aliases) != 1 || jeff.Aliases[0] != "jeffdhooton" {
+		t.Errorf("a person keeps only their names, got %v", jeff.Aliases)
+	}
+	proj, err := st.GetEntity("some-project")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range proj.Aliases {
+		if a == "the mac mini box" {
+			t.Error("hardware named on a project must be dropped")
+		}
+	}
+}

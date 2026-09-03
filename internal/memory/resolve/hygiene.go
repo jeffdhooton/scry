@@ -380,6 +380,15 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			// forbids: hermes-ops held "Hermes tmux", "Hermes Slack
 			// gateway", and "Jeff's own Hermes" long after the rule that
 			// admitted them was replaced.
+			if !split && (machineLeak(a, e) || roleLeak(a, e)) {
+				// Hardware named on a non-machine, or a role named on a
+				// person, with no better owner to hand it to: the alias
+				// goes and the facts stay.
+				rep.AliasesDropped++
+				rep.DroppedAliasList = append(rep.DroppedAliasList, e.Slug+": "+a+" (names another kind of thing)")
+				changed = true
+				continue
+			}
 			// Applying the write path's naming rule to stored aliases was
 			// tried twice and measured worse than not doing it, both
 			// times. The first attempt handed 4,634 aliases to entities
