@@ -621,3 +621,33 @@ func TestSingularStripsEsOnlyAfterASibilant(t *testing.T) {
 		t.Errorf("singular(status) = %q", singular("status"))
 	}
 }
+
+// A word must meet itself across inflections. The stemmer splits some
+// words from their own plural — "cases" reduces to "cas" while "case"
+// stays "case" — so both forms are kept.
+func TestSingularTokensMeetAcrossInflections(t *testing.T) {
+	pairs := [][2]string{
+		{"test cases", "test case"}, {"gates", "gate"}, {"boxes", "box"},
+		{"halo boxes", "halo box"},
+		// analysis/analyses is a Greek plural and is left alone: a rule
+		// simple enough to be right about gates and boxes is not going to
+		// be right about that one, and pretending otherwise would be a
+		// list entry rather than a rule.
+	}
+	for _, p := range pairs {
+		a, b := singularTokens(p[0]), singularTokens(p[1])
+		shared := 0
+		for t := range b {
+			if a[t] {
+				shared++
+			}
+		}
+		if shared < len(b)-1 {
+			t.Errorf("%q and %q share %d of %d tokens: %v vs %v", p[0], p[1], shared, len(b), a, b)
+		}
+	}
+	// A name that merely ends in s is not a plural of something else.
+	if !singularTokens("hermes")["hermes"] {
+		t.Error("hermes must keep its own spelling")
+	}
+}

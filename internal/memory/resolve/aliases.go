@@ -273,12 +273,15 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	// is what made an earlier version of the guard unreachable, and it
 	// applies to every one-word name rather than to a list of common
 	// nouns, since gate was not on that list.
-	if genericOneWordName(e.Name) && !extrasAreKindWords(alias, e) {
-		return false, "would add unrelated words to a one-word name", nil
-	}
+	// Unless the name is an ordinary word, in which case containing it
+	// says nothing on its own. Such an alias waits for a second episode
+	// rather than being refused outright: refusing outright stopped the
+	// Mac mini being called "Mac mini M4 Pro" and the App Store being
+	// called "iOS App Store", which is the expensive mistake.
+	magnet := genericOneWordName(e.Name) && !extrasAreKindWords(alias, e)
 	// The alias must contain the name as a word, not as letters inside
 	// one: Bloomberg is not loom, Shalom is not halo, descry is not scry.
-	if nameAsWord(alias, e) {
+	if !magnet && nameAsWord(alias, e) {
 		return true, "contains the entity's own name", nil
 	}
 	if len(en) > 0 && len(an) > len(en) {
@@ -295,13 +298,12 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		// and audit seam in the graph — and session-ts every session.
 		// "scry daemon" is still scry; "collaboration session" is not
 		// session.ts.
-		if contains && len(en) == 1 {
-			for t := range an {
-				if !en[t] && !anyKindWord[t] && !kindWords[e.Type][t] {
-					contains = false
-					break
-				}
-			}
+		// An ordinary-word name, however many words it has, does not take
+		// an alias on one episode just for containing it: "audit gate"
+		// would otherwise collect COPPA audit gate and billing audit gate
+		// exactly as "gate" collected COPPA gate.
+		if contains && magnet {
+			contains = false
 		}
 		if contains {
 			return true, "contains every word of the entity's name", nil
@@ -464,9 +466,12 @@ func extrasAreKindWords(alias string, e store.Entity) bool {
 	en := singularTokens(e.Name)
 	kw := kindWords[e.Type]
 	for t := range singularTokens(alias) {
-		if !en[t] && !kw[t] && !anyKindWord[t] {
-			return false
+		// Compared across inflections, so an entity may be called by its
+		// own plural: "gates" is gate's.
+		if en[t] || en[singular(t)] || kw[t] || anyKindWord[t] {
+			continue
 		}
+		return false
 	}
 	return true
 }
@@ -845,6 +850,12 @@ func RefreshCompactIndex(st *store.Store) error {
 func singularTokens(s string) map[string]bool {
 	out := map[string]bool{}
 	for t := range tokensOf(s) {
+		// Both forms. Stemming is lossy in ways that split a word from
+		// itself — "cases" reduces to "cas" while "case" stays "case", and
+		// "hermes" to "herme" though it is nobody's plural — so the word
+		// as written is kept beside its stem and the two sets meet on one
+		// or the other.
+		out[t] = true
 		out[singular(t)] = true
 	}
 	return out
