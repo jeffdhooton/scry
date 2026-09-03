@@ -157,6 +157,15 @@ func IsValueName(name string) bool {
 // scratch path, bare hex id, session uuid) rather than an identity.
 func IsEphemeralName(name string) bool { return isEphemeralName(name) }
 
+// NotAnIdentity reports whether a name must never be an entity: a value, a
+// run artifact, or process vocabulary. Every path that could create an
+// entity — a named entity in an extraction, or a fact's endpoint — asks
+// this first. A fact whose endpoint is not an identity becomes an
+// attribute of the other endpoint rather than an edge to a new node.
+func NotAnIdentity(name string) bool {
+	return IsValueName(name) || isEphemeralName(name) || isGenericEntityName(name)
+}
+
 // IsStatusWord reports whether name is a bare state value.
 func IsStatusWord(name string) bool {
 	n := strings.ToLower(strings.TrimSpace(name))

@@ -247,11 +247,6 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 			updated.Dst = ""
 			updated.Value = dstVal.Name
 		default: // status edge to a real entity
-			if _, ok := bySlug[f.Src]; !ok {
-				// The source was retired by an earlier pass (a value entity
-				// whose edges are already invalidated); nothing to convert.
-				continue
-			}
 			updated.Dst = ""
 			updated.Value = bySlug[f.Dst].Name
 			if updated.Value == "" {
@@ -309,7 +304,7 @@ var pureNumberOrHexRE = regexp.MustCompile(`^\d+$|^[0-9a-f]{7,40}$`)
 // step use, so a value can never be restored as an entity by one pass and
 // retired again by the next.
 func retireable(name string) bool {
-	return resolve.IsValueName(name) || resolve.IsEphemeralName(name) || pureNumberOrHex(store.Slugify(name))
+	return resolve.NotAnIdentity(name) || pureNumberOrHex(store.Slugify(name))
 }
 
 // pureNumberOrHex catches entities whose name slugified to a bare number

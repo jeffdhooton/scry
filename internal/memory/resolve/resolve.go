@@ -281,8 +281,12 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// attribute of its source; a fact whose source is a value and whose
 		// target is an entity is turned around; a fact between two values
 		// is about nothing and is dropped.
-		srcIsValue := IsValueName(fct.Src)
-		dstIsValue := relation == RelStatus || IsValueName(fct.Dst)
+		// An endpoint that is not an identity (a value, a run artifact, or
+		// process vocabulary) must not become a node: before this, a fact
+		// endpoint bypassed the entity checks entirely and
+		// "setpoint-wt-lpj7ikz0 worktree" became an entity.
+		srcIsValue := NotAnIdentity(fct.Src)
+		dstIsValue := relation == RelStatus || NotAnIdentity(fct.Dst)
 		switch {
 		case srcIsValue && dstIsValue:
 			stats.FactsRejected++

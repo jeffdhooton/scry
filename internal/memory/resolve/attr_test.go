@@ -134,3 +134,38 @@ func TestApply_ValueNamedEntitiesAreNotCreated(t *testing.T) {
 		t.Errorf("value aliases must be dropped: %v", e.Aliases)
 	}
 }
+
+func TestApply_FactEndpointsNeverCreateNonIdentityEntities(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 3, 0, 0, 0, 0, time.UTC)
+	stats := applyOne(t, st, "e1", at,
+		extract.Fct{Src: "setpoint-wt-lpj7ikz0 worktree", Relation: "owns", Dst: "port-22460", Fact: "the worktree owns port 22460", Confidence: 0.9},
+		extract.Fct{Src: "scry", Relation: "contains", Dst: "plan", Fact: "scry has a plan", Confidence: 0.9},
+		extract.Fct{Src: "scry", Relation: "blocked_by", Dst: "a49bec73610fc684", Fact: "blocked by run a49bec73610fc684", Confidence: 0.9},
+	)
+	if stats.FactsAdded != 3 {
+		t.Fatalf("stats = %+v, want three facts", stats)
+	}
+	for _, bad := range []string{"setpoint-wt-lpj7ikz0-worktree", "plan", "a49bec73610fc684"} {
+		if _, err := st.GetEntity(bad); err == nil {
+			t.Errorf("fact endpoint %q became an entity", bad)
+		}
+	}
+	// The worktree fact is turned around: the port owns the worktree name.
+	port, _ := st.FactsFrom("port-22460", false)
+	if len(port) != 1 || port[0].Value == "" {
+		t.Errorf("value-src fact = %+v", port)
+	}
+	scry, _ := st.FactsFrom("scry", false)
+	if len(scry) != 2 {
+		t.Fatalf("scry facts = %d, want 2 attributes", len(scry))
+	}
+	for _, f := range scry {
+		if !f.IsAttribute() {
+			t.Errorf("expected an attribute, got %+v", f)
+		}
+	}
+	if NotAnIdentity("scry") || !NotAnIdentity("plan") || !NotAnIdentity("main") || !NotAnIdentity("/tmp/x") {
+		t.Error("NotAnIdentity wrong")
+	}
+}
