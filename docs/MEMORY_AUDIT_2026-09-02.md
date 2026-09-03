@@ -906,3 +906,66 @@ Applying the corrected rules restored **674 attributes** to entities.
 The strict benchmark moved 44 to 43 on one question whose answering
 sentence changed: the fact is at rank 8 in a wording the loose file
 accepts and the strict one does not.
+
+
+## Round nine
+
+Three graders, three failures, and the most useful findings were bugs
+rather than judgement calls.
+
+**Three admission checks could not fire.** The hardware check never saw
+`vm`, `pi` or `pc` because the tokeniser drops words under three
+characters, so a project took "hermes-ops vm" on one episode. The role
+check's path branch was unreachable because separators are replaced
+before it runs, so a person took a home directory on two. And
+revalidation judged the whole alias where admission judges the words it
+adds, so an upgraded stub lost "Android Studio Ladybug" the moment it
+got a type — the exact case the added-words rule was written for.
+
+**Five value rules reached past ordinary English.** A phrase ending in a
+state word was a status: `boarding pass`, `customer success`, `standard
+error`, `storm warning`, `putting green`, `Xbox Live`. Two words opening
+with a verdict were a verdict: `deferred revenue`, `merged cells`,
+`verified account`, `failed payment`. Three words opening with a message
+word were a message: `error correcting code`, `missing middle housing`,
+`no code platform`. A name starting with a month's first three letters
+was a date: `Marketing 101`, `Novation 61`, `Marathon 26`. And a path
+over 56 characters was prose, which rejected 907 real files from these
+repositories.
+
+**Four values were traded for thirteen real names**, and each trade is
+written into the test beside the names that bought it: `verified
+decision` and `in-progress tasks` for the seven the verdict rule was
+rejecting, `works as expected` and `no longer needed` for the six the
+message rule was.
+
+**A leading shell verb was enough to make a command**, which had been
+rejecting `PHP session`, `SSH StreamLocalForward`, `git worktree` and
+`python detection fix` — and, once loosened, admitted twenty literal
+command lines that are live entities. It now needs a subcommand or a
+flag, which keeps both sides.
+
+| Measure | Value |
+|---|---|
+| Migration second pass | every counter zero |
+| Attributes restored to entities | 93 more |
+| Strict benchmark | 44 of 50 |
+| Loose benchmark | 47 of 50 |
+| Probes | 7 of 7, six at rank 1 |
+| Cross-type collisions | 315 at the counting fold, 0 at the alias-index key |
+
+**On the two collision numbers.** A grader reproduced 315 exactly with
+its own normaliser and then made the sharper point: at the key the alias
+index actually answers on, the count is zero — no two entities of
+different types resolve from the same string. 315 counts names that
+*fold* together once punctuation and plurals are removed. Both numbers
+are true; the clause says "share an alias", and at the index key nothing
+does.
+
+**Recall.** A second grader scored 104 of its own questions: 90 of 104
+by meaning on a principled reading, 94 generously, 81 counting only the
+exact sampled sentence. The bar sits inside its confidence interval. It
+also found that a longer, more natural question ranks the answer *worse*
+than a terse one, because nothing penalises query terms the fact lacks.
+Coverage weighting is the textbook fix for that and has now been
+measured three times, each time neutral or harmful.
