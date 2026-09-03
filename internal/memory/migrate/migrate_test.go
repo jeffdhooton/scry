@@ -356,3 +356,69 @@ func TestDeployedOnIsNotExclusive(t *testing.T) {
 		t.Error("status must stay exclusive")
 	}
 }
+
+func TestRepairInversionsPutsTheNewerFactBack(t *testing.T) {
+	st := openTemp(t)
+	jun := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	jul := time.Date(2026, 7, 22, 22, 24, 35, 0, time.UTC)
+	born := jul.Add(300 * time.Millisecond)
+	for _, e := range []string{"aasa", "not-cached", "live", "loom", "one", "two", "app", "hostA", "hostB"} {
+		if err := st.PutEntity(store.Entity{Slug: e, Name: e, Type: "project", CreatedAt: jun, LastSeen: jun}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put := func(f store.Fact) {
+		if err := st.PutFact(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The inversion: the July fact was retired the moment it was written,
+	// leaving the June fact current.
+	put(store.Fact{Src: "aasa", Relation: "status", Value: "not-cached", Fact: "CDN has not propagated", ValidFrom: jun, Confidence: 1})
+	put(store.Fact{Src: "aasa", Relation: "status", Value: "live", Fact: "AASA file is live", ValidFrom: jul, InvalidAt: &born, Confidence: 1})
+	// A real supersede: retired long after it began, and left alone.
+	end := jul
+	put(store.Fact{Src: "loom", Relation: "status", Value: "one", Fact: "loom was one", ValidFrom: jun, InvalidAt: &end, Confidence: 1})
+	put(store.Fact{Src: "loom", Relation: "status", Value: "two", Fact: "loom is two", ValidFrom: jul, Confidence: 1})
+	// A non-exclusive relation: the newer fact comes back and the older
+	// one stays current, because both hold at once.
+	put(store.Fact{Src: "app", Relation: "deployed_on", Dst: "hostA", Fact: "app runs on hostA", ValidFrom: jun, Confidence: 1})
+	put(store.Fact{Src: "app", Relation: "deployed_on", Dst: "hostB", Fact: "app runs on hostB", ValidFrom: jul, InvalidAt: &born, Confidence: 1})
+
+	var rep Report
+	if err := repairInversions(st, false, &rep); err != nil {
+		t.Fatal(err)
+	}
+	if rep.InversionsRepaired != 2 {
+		t.Fatalf("repaired = %d, want 2", rep.InversionsRepaired)
+	}
+	state := func(slug string) map[string]bool {
+		facts, err := st.FactsFrom(slug, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := map[string]bool{}
+		for _, f := range facts {
+			out[f.Value+f.Dst] = f.InvalidAt == nil
+		}
+		return out
+	}
+	if got := state("aasa"); !got["live"] || got["not-cached"] {
+		t.Errorf("aasa = %v, want live current and not-cached retired", got)
+	}
+	if got := state("loom"); !got["two"] || got["one"] {
+		t.Errorf("loom = %v, a real supersede must be left alone", got)
+	}
+	if got := state("app"); !got["hostA"] || !got["hostB"] {
+		t.Errorf("app = %v, want both deployments current", got)
+	}
+
+	// Running it again changes nothing.
+	var again Report
+	if err := repairInversions(st, false, &again); err != nil {
+		t.Fatal(err)
+	}
+	if again.InversionsRepaired != 0 {
+		t.Errorf("second pass repaired %d, want a no-op", again.InversionsRepaired)
+	}
+}

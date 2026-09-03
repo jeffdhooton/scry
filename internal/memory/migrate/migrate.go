@@ -45,6 +45,10 @@ type Report struct {
 	// deployed_on was still an exclusive relation, brought back because a
 	// thing is deployed in more than one place at once.
 	DeployedOnRestored int `json:"deployed_on_restored"`
+	// InversionsRepaired counts facts that an older episode retired the
+	// moment they were written, with a fact older than themselves left
+	// current in their place.
+	InversionsRepaired int `json:"inversions_repaired"`
 	// StatusEdgesRepointed counts status edges between two real entities
 	// turned back into related_to edges.
 	StatusEdgesRepointed int      `json:"status_edges_repointed"`
@@ -87,6 +91,11 @@ func Run(st *store.Store, o Options) (Report, error) {
 	}
 	logf("migrate: relations: %d scanned, %d rewritten, %d flipped, %d fallback",
 		rep.FactsScanned, rep.RelationsRewritten, rep.RelationsFlipped, rep.RelationFallback)
+
+	if err := repairInversions(st, o.DryRun, &rep); err != nil {
+		return rep, err
+	}
+	logf("migrate: order: %d facts restored over an older fact left current in their place", rep.InversionsRepaired)
 
 	if err := restoreDeployedOn(st, o.DryRun, &rep); err != nil {
 		return rep, err
@@ -381,6 +390,80 @@ func restoreDeployedOn(st *store.Store, dry bool, rep *Report) error {
 		revived.InvalidAt = nil
 		if err := st.PutFact(revived); err != nil {
 			return fmt.Errorf("migrate: restore %s deployed_on: %w", f.Src, err)
+		}
+	}
+	return nil
+}
+
+// inversionWindow is how soon after a fact begins its retirement counts as
+// an artifact of arrival order rather than a real change. Two facts about
+// the same thing that genuinely follow one another are minutes apart at
+// the very least; two seconds means the retiring episode predated the
+// fact it retired.
+const inversionWindow = 2 * time.Second
+
+// repairInversions undoes the retirements that arrival order caused.
+// Transcripts are swept in whatever order they are found, so a July
+// session was routinely resolved after an August fact was stored, and
+// exclusivity retired the August fact and left July current. The store
+// then answered with the older state.
+//
+// For an exclusive relation the two swap: the newer fact becomes current
+// and the older one ends where the newer begins. For a relation that is
+// no longer exclusive the newer fact is simply restored and the older one
+// left alone, since both can hold at once.
+func repairInversions(st *store.Store, dry bool, rep *Report) error {
+	facts, err := st.AllFacts()
+	if err != nil {
+		return fmt.Errorf("migrate: scan for inversions: %w", err)
+	}
+	groups := map[string][]store.Fact{}
+	for _, f := range facts {
+		k := f.Src + "\x00" + f.Relation
+		groups[k] = append(groups[k], f)
+	}
+	for _, g := range groups {
+		if len(g) < 2 {
+			continue
+		}
+		sort.Slice(g, func(i, j int) bool { return g[i].ValidFrom.Before(g[j].ValidFrom) })
+		for i := range g {
+			f := &g[i]
+			if f.InvalidAt == nil || f.InvalidAt.Sub(f.ValidFrom) >= inversionWindow {
+				continue
+			}
+			var winner *store.Fact
+			for j := range g {
+				w := &g[j]
+				if w == f || w.InvalidAt != nil {
+					continue
+				}
+				if f.ValidFrom.Sub(w.ValidFrom) < inversionWindow {
+					continue
+				}
+				if winner == nil || w.ValidFrom.After(winner.ValidFrom) {
+					winner = w
+				}
+			}
+			if winner == nil {
+				continue
+			}
+			rep.InversionsRepaired++
+			if dry {
+				continue
+			}
+			f.InvalidAt = nil
+			if err := st.PutFact(*f); err != nil {
+				return fmt.Errorf("migrate: restore %s %s: %w", f.Src, f.Relation, err)
+			}
+			if !resolve.DefaultExclusive[f.Relation] {
+				continue
+			}
+			at := f.ValidFrom
+			winner.InvalidAt = &at
+			if err := st.PutFact(*winner); err != nil {
+				return fmt.Errorf("migrate: retire %s %s: %w", winner.Src, winner.Relation, err)
+			}
 		}
 	}
 	return nil

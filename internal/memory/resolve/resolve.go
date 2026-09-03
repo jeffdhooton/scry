@@ -383,19 +383,35 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// Rule 6: exclusive relations invalidate any current fact with the
 		// same (src, relation) but a different target — entity or value —
 		// before the new one is added.
+		//
+		// Order decides which of the two is retired. Transcripts arrive in
+		// whatever order the sweep finds them, so an episode from July is
+		// routinely resolved after a fact from August is already stored.
+		// Retiring the August fact would leave the store answering with
+		// the older state; instead this episode's fact is recorded as
+		// already over, valid until the newer one began.
+		var supersededAt *time.Time
 		if exclusive[rf.fct.Relation] {
 			currents, err := st.FactsFrom(rf.src, false)
 			if err != nil {
 				return err
 			}
 			for _, f := range currents {
-				if f.Relation == rf.fct.Relation && f.KeyDst() != rf.keyDst() {
-					at := clampInvalidAt(ep.OccurredAt, f.ValidFrom)
-					if err := st.InvalidateFact(f.Src, f.Relation, f.KeyDst(), f.ValidFrom, at); err != nil {
-						return err
-					}
-					stats.FactsInvalidated++
+				if f.Relation != rf.fct.Relation || f.KeyDst() == rf.keyDst() {
+					continue
 				}
+				if !f.ValidFrom.Before(ep.OccurredAt) {
+					if supersededAt == nil || f.ValidFrom.Before(*supersededAt) {
+						start := f.ValidFrom
+						supersededAt = &start
+					}
+					continue
+				}
+				at := clampInvalidAt(ep.OccurredAt, f.ValidFrom)
+				if err := st.InvalidateFact(f.Src, f.Relation, f.KeyDst(), f.ValidFrom, at); err != nil {
+					return err
+				}
+				stats.FactsInvalidated++
 			}
 		}
 
@@ -409,6 +425,9 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 			ValidFrom:   rf.validFrom,
 			Confidence:  rf.fct.Confidence,
 			Episodes:    []string{ep.ID},
+		}
+		if supersededAt != nil && rf.validFrom.Before(*supersededAt) {
+			newFact.InvalidAt = supersededAt
 		}
 		if err := st.PutFact(newFact); err != nil {
 			return err

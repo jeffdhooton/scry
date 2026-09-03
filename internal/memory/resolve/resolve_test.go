@@ -678,11 +678,13 @@ func TestApply_ExclusiveFlip_OrderIndependent(t *testing.T) {
 	}
 }
 
-// Guard: Rules 5/6 must never invalidate a fact before its own ValidFrom —
-// if ep.OccurredAt predates it (e.g. a backfilled episode processed after a
-// later-dated fact already exists), InvalidAt is clamped to the fact's
-// ValidFrom instead.
-func TestApply_InvalidAtClampedToValidFrom(t *testing.T) {
+// Guard: an episode may not retire a fact that is newer than itself.
+// Transcripts arrive in whatever order the sweep finds them, so a July
+// session is routinely resolved after an August fact is already stored.
+// The August fact stays current and the July one is recorded as having
+// ended when August began, rather than the store answering with the
+// older state.
+func TestApply_OlderEpisodeDoesNotRetireANewerFact(t *testing.T) {
 	st := openTemp(t)
 	validFrom := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	backfillOccurred := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -690,37 +692,45 @@ func TestApply_InvalidAtClampedToValidFrom(t *testing.T) {
 	ep1 := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: validFrom, IngestedAt: validFrom}
 	res1 := extract.Result{
 		Facts: []extract.Fct{
-			{Src: "hermes-mini", Relation: "replaced_by", Dst: "digitalocean", Fact: "deployed on DO", ValidFrom: "2026-05-01", Confidence: 0.9},
+			{Src: "hermes-mini", Relation: "replaced_by", Dst: "digitalocean", Fact: "replaced by DO", ValidFrom: "2026-05-01", Confidence: 0.9},
 		},
 	}
 	if _, err := Apply(st, ep1, "", res1, DefaultExclusive); err != nil {
 		t.Fatalf("Apply 1: %v", err)
 	}
 
-	// A backfilled episode, with an OccurredAt earlier than the existing
-	// fact's ValidFrom, triggers an exclusive flip.
 	ep2 := store.Episode{ID: "ep-2", Source: "manual", SourceRef: "y", OccurredAt: backfillOccurred, IngestedAt: backfillOccurred}
 	res2 := extract.Result{
 		Facts: []extract.Fct{
-			{Src: "hermes-mini", Relation: "replaced_by", Dst: "jclaws-mac-mini", Fact: "deployed on the mini", ValidFrom: "2026-01-01", Confidence: 0.95},
+			{Src: "hermes-mini", Relation: "replaced_by", Dst: "jclaws-mac-mini", Fact: "replaced by the mini", ValidFrom: "2026-01-01", Confidence: 0.95},
 		},
 	}
-	if _, err := Apply(st, ep2, "", res2, DefaultExclusive); err != nil {
+	stats, err := Apply(st, ep2, "", res2, DefaultExclusive)
+	if err != nil {
 		t.Fatalf("Apply 2: %v", err)
+	}
+	if stats.FactsInvalidated != 0 {
+		t.Errorf("an older episode invalidated %d newer facts, want 0", stats.FactsInvalidated)
 	}
 
 	facts := mustFacts(t, st, "hermes-mini")
-	var old *store.Fact
+	var newer, older *store.Fact
 	for i := range facts {
-		if facts[i].Dst == "digitalocean" {
-			old = &facts[i]
+		switch facts[i].Dst {
+		case "digitalocean":
+			newer = &facts[i]
+		case "jclaws-mac-mini":
+			older = &facts[i]
 		}
 	}
-	if old == nil || old.InvalidAt == nil {
-		t.Fatalf("expected digitalocean fact invalidated: %+v", old)
+	if newer == nil || newer.InvalidAt != nil {
+		t.Fatalf("the May fact must stay current: %+v", newer)
 	}
-	if !old.InvalidAt.Equal(validFrom) {
-		t.Fatalf("expected InvalidAt clamped to the fact's own ValidFrom (%v), got %v", validFrom, old.InvalidAt)
+	if older == nil || older.InvalidAt == nil {
+		t.Fatalf("the backfilled January fact must be stored as already over: %+v", older)
+	}
+	if !older.InvalidAt.Equal(validFrom) {
+		t.Errorf("the January fact must end where May begins (%v), got %v", validFrom, older.InvalidAt)
 	}
 }
 
