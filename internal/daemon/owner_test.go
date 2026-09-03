@@ -503,7 +503,10 @@ func TestRunSecondInstanceStepsAsideAndSuccessorSurvivesIncumbentCleanup(t *test
 	}
 	waitSocket := func() {
 		t.Helper()
-		deadline := time.Now().Add(10 * time.Second)
+		// Generous on purpose: under `go test ./...` every package runs at
+		// once, and a daemon that opens Badger and builds a search index
+		// has taken more than ten seconds to answer on a loaded machine.
+		deadline := time.Now().Add(60 * time.Second)
 		for !pingSocket(layout.SocketPath) {
 			if time.Now().After(deadline) {
 				t.Fatal("daemon socket never came up")
