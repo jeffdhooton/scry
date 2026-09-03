@@ -2207,3 +2207,41 @@ between attempts.
 
 **What would change our minds:** a provider outage long enough to be
 normal, which would make the check noise rather than news.
+
+
+## 2026-09-03 — Query expansion has one form that works
+
+**Decision:** the only expansion recall performs is a synonym table of
+English words, plus joining each adjacent pair of question words. Two
+other forms were built, measured, and deleted.
+
+**What was tried.** Relevance feedback: take the highest-signal words
+from the twenty facts a question already reaches and add them to the
+query, which is the textbook answer to a vocabulary gap. It made every
+question set worse at every weight down to a tenth — the neighbourhood's
+words pull the query toward the neighbourhood and away from the one fact
+that answers it. Entity-name expansion: add the name of each entity the
+question resolves to, on the theory that a question saying "the mobile
+app" needs the word childscribe-mobile. Worse again, and for the same
+reason: an entity's name brings all of that entity's facts.
+
+**What survives, and why it is narrow.** A synonym maps an English word
+to an English word. It never maps a word to the name of an entity: "box"
+once expanded to mini and halo, and a grader measured the whole table as
+negatively correlated with success on questions it had not been fitted
+to, naming that entry as the mechanism. Joining adjacent words is not
+really expansion — it is spelling, reaching a name written as one word
+from a question that writes it as two.
+
+**What is left unsolved, stated plainly.** The remaining misses are
+conceptual. A question about someone who "cannot fake his way through" a
+subject has to reach a fact about having "no sports domain knowledge",
+and no thesaurus and no reweighting of words will do that. Closing it
+needs meaning, which means embeddings. The house rules allow local ones;
+the mini's model server accepts an embeddings request but has no
+embedding model loaded, so that is a decision for the machine's owner
+rather than something to arrange quietly.
+
+**What would change our minds:** a local embedding model on the store's
+machine, at which point the lexical index becomes the first stage of a
+hybrid rather than the whole of it.
