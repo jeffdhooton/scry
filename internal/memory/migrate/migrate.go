@@ -258,6 +258,21 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 					return fmt.Errorf("restore %s -[%s]-> %q: %w", f.Src, f.Relation, f.Value, err)
 				}
 			}
+			// An attribute whose subject is itself a value describes
+			// nothing: "5 residual test failures" is not a thing that can
+			// have a status. The sentence stays readable as an
+			// invalidated fact; it is not knowledge about any identity.
+			// Skipping these is what left several hundred facts pointing
+			// at entities the pass had just deleted.
+			if _, ok := values[f.Src]; ok && f.InvalidAt == nil {
+				rep.ValueFactsDropped++
+				if !dryRun {
+					at := time.Now()
+					if err := st.InvalidateFact(f.Src, f.Relation, f.KeyDst(), f.ValidFrom, at); err != nil {
+						return err
+					}
+				}
+			}
 			continue // already an attribute
 		}
 		srcVal, dstVal := values[f.Src], values[f.Dst]

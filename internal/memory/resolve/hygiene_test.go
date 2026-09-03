@@ -239,3 +239,42 @@ func TestHygieneMergesADuplicateStubButNeverTwoTypedEntities(t *testing.T) {
 		t.Error("the machine and the project still collide and must still be counted")
 	}
 }
+
+// The ten fusions a grader found after the first merge ran: names that
+// differ by a plural or a separator are different things, and a person or
+// a decision never absorbs anything.
+func TestStubMergeRefusesTheFusionsAGraderFound(t *testing.T) {
+	cases := []struct{ stub, stubType, target, targetType string }{
+		{"reports.ts", "concept", "report.ts", "tool"},
+		{"webhooks.ts", "concept", "webhook.ts", "tool"},
+		{"db/seeds/", "concept", "db:seed", "runbook"},
+		{"books", "concept", "book", "project"},
+		{"broker", "concept", "brokers", "service"},
+		{"CellData", "concept", "cell-datas", "project"},
+		{"Stop", "concept", "stops/", "machine"},
+		{"API integrations", "concept", "api-integration", "person"},
+		{"claude-opus-4-8", "concept", "claude-opus-4.8", "person"},
+		{"db/migrations", "concept", "db-migrations", "decision"},
+	}
+	for _, c := range cases {
+		st := openTemp(t)
+		now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+		if err := st.PutEntity(store.Entity{Slug: store.Slugify(c.stub), Name: c.stub, Type: c.stubType, CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.PutEntity(store.Entity{Slug: store.Slugify(c.target), Name: c.target, Type: c.targetType, CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+		ents, err := st.Entities()
+		if err != nil {
+			t.Fatal(err)
+		}
+		n, sample, err := mergeDuplicateStubs(st, ents, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 0 {
+			t.Errorf("%q (%s) must not merge into %q (%s): %v", c.stub, c.stubType, c.target, c.targetType, sample)
+		}
+	}
+}

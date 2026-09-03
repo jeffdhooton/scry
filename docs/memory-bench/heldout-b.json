@@ -1,0 +1,728 @@
+[
+  {
+    "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+    "expect": {
+      "all_of": [
+        "keepalive",
+        "webui",
+        "launchd"
+      ]
+    },
+    "note": "Open WebUI is under launchd on mini with KeepAlive, on port 9999."
+  },
+  {
+    "question": "Why did we stop using jumbo frames on the wired link between the two AI boxes?",
+    "expect": {
+      "all_of": [
+        "9000-byte",
+        "mtu",
+        "lowered"
+      ]
+    },
+    "note": "MTU lowered from 9000 (jumbo frames sized for the old direct 10GbE halo\u2194halo2 cable) to 1500 for the new switched path; the router"
+  },
+  {
+    "question": "How do I reach the Raspberry Pi's dashboard when there is no home network available?",
+    "expect": {
+      "all_of": [
+        "10.42.0.1:5000",
+        "wi-fi",
+        "dashboard"
+      ]
+    },
+    "note": "The Pi runs a dashboard at 10.42.0.1:5000 reachable via its own Wi-Fi AP when no home network is available."
+  },
+  {
+    "question": "Which model currently holds the daily driver slot on halo?",
+    "expect": {
+      "all_of": [
+        "daily",
+        "flash-next",
+        "restored"
+      ]
+    },
+    "note": "Restored as the halo daily driver after the probe per the earlier OOM decision; since the evidence constraint erases the accuracy "
+  },
+  {
+    "question": "Why did we decide against spreading GLM-5.3 across both machines?",
+    "expect": {
+      "all_of": [
+        "single-box",
+        "penalty",
+        "ud-iq3_xxs"
+      ]
+    },
+    "note": "Cluster plan for GLM-5.3 not worth it due to prefill penalty; UD-IQ3_XXS single-box recommended instead."
+  },
+  {
+    "question": "What happened to the DeepSeek worker container on the second box?",
+    "expect": {
+      "all_of": [
+        "ds4-worker",
+        "crash-looping",
+        "304"
+      ]
+    },
+    "note": "ds4-worker podman container was stopped and removed after accumulating 304 restarts crash-looping after its coordinator died."
+  },
+  {
+    "question": "How much free memory is left on halo once the big model is loaded?",
+    "expect": {
+      "all_of": [
+        "125",
+        "gtt",
+        "rss"
+      ]
+    },
+    "note": "Flash-Next holds ~86 GB GTT plus ~11 GB RSS on halo's 125 GB, leaving only ~23 GB free \u2014 the memory constraint that forced a coexi"
+  },
+  {
+    "question": "Where do the deep research agent's model calls actually go?",
+    "expect": {
+      "all_of": [
+        "http://100.77.13.39:13306/v1",
+        "openai-compatible",
+        "apis"
+      ]
+    },
+    "note": "Every model call goes to the OpenAI-compatible endpoint at http://100.77.13.39:13306/v1 on the Halo (no API key); cloud LLM APIs a"
+  },
+  {
+    "question": "How often are the queue backups taken and how long do we keep them?",
+    "expect": {
+      "all_of": [
+        "0600",
+        "checksum-verified",
+        "halos"
+      ]
+    },
+    "note": "SQLite-consistent snapshots every 6 hours to both Halos, checksum-verified atomic rename, mode 0600, 30 days of retention per box;"
+  },
+  {
+    "question": "What is causing the MagicDNS failure on my machine?",
+    "expect": {
+      "all_of": [
+        "extensionnotfound",
+        "1.102.1",
+        "1.98.8"
+      ]
+    },
+    "note": "App 1.102.1 vs running extension 1.98.8, causing ExtensionNotFound dialog and MagicDNS failure"
+  },
+  {
+    "question": "What address does the interview engine bind to so a real phone can hit it?",
+    "expect": {
+      "all_of": [
+        "0.0.0.0",
+        "3100",
+        "physical"
+      ]
+    },
+    "note": "Engine server bound to 0.0.0.0 on port 3100 for physical device access"
+  },
+  {
+    "question": "Why was the mobile app failing to reach the engine from its environment file?",
+    "expect": {
+      "all_of": [
+        "3100",
+        "expo_public_engine_url",
+        "3000"
+      ]
+    },
+    "note": "EXPO_PUBLIC_ENGINE_URL had wrong engine port (3000 instead of 3100); fixed to 'http://127.0.0.1:3100'"
+  },
+  {
+    "question": "Why were all the icons showing up empty on Android but fine on iOS?",
+    "expect": {
+      "all_of": [
+        "ionicons",
+        "font",
+        "bundled"
+      ]
+    },
+    "note": "All Ionicons glyphs rendered blank on Android pre-fix; root cause: icon font not bundled; iOS unaffected (reads family from file m"
+  },
+  {
+    "question": "What do we use to run unit tests in the mobile app?",
+    "expect": {
+      "all_of": [
+        "jest",
+        "react-native",
+        "reanimated"
+      ]
+    },
+    "note": "Test runner is vitest (not jest) with mocked react-native and reanimated stubs"
+  },
+  {
+    "question": "What is holding up charging sales tax to customers?",
+    "expect": {
+      "all_of": [
+        "automatic",
+        "enable",
+        "business"
+      ]
+    },
+    "note": "Stripe Tax is pending with no head-office address and Checkout does not enable automatic tax; registration/tax treatment needs a b"
+  },
+  {
+    "question": "Where does the app keep each user's Granola credentials?",
+    "expect": {
+      "all_of": [
+        "user_settings",
+        "granola_api_key",
+        "app-wide"
+      ]
+    },
+    "note": "Granola API keys are stored per-user in encrypted user_settings['granola_api_key'], not app-wide .env"
+  },
+  {
+    "question": "What was the last Android build we pushed to the store and to which track?",
+    "expect": {
+      "all_of": [
+        "submitted",
+        "play",
+        "track"
+      ]
+    },
+    "note": "Android build 31 submitted to Google Play internal track via EAS submission e2f3d7ba-d90f-4e84-b6fa-5a4664d1ee88."
+  },
+  {
+    "question": "What extra step does staging need after the server-rendered bundle changes?",
+    "expect": {
+      "all_of": [
+        "daemon-939114",
+        "supervisorctl",
+        "13714"
+      ]
+    },
+    "note": "ChildScribe deployed on Forge; staging daemon-939114 port 13714 requires supervisorctl restart after SSR bundle change."
+  },
+  {
+    "question": "Why is the Sentry integration not usable for this project?",
+    "expect": {
+      "all_of": [
+        "advocates-for-self-government",
+        "shv-3q",
+        "authed"
+      ]
+    },
+    "note": "Sentry MCP is authed to org advocates-for-self-government (theadvocates.org), not shv-3q; should not be used for ChildScribe"
+  },
+  {
+    "question": "How is a review supposed to be requested in a fleet room?",
+    "expect": {
+      "all_of": [
+        "broadcast",
+        "name",
+        "assigned"
+      ]
+    },
+    "note": "Assigned reviewer for the task; when the gate passes the worker must set status review and post a review request addressed to kimi"
+  },
+  {
+    "question": "Why can't a worker just start its dev server on the default port?",
+    "expect": {
+      "all_of": [
+        ".setpoint-ports.env",
+        "stack",
+        "worktrees"
+      ]
+    },
+    "note": "The worktree owns the port range starting at 26461 (recorded in .setpoint-ports.env); any server started for verification had to b"
+  },
+  {
+    "question": "Which git operations are workers not allowed to run?",
+    "expect": {
+      "all_of": [
+        "stash",
+        "sweeps",
+        "specific"
+      ]
+    },
+    "note": "Fleet discipline for this worker: never git stash, reset, checkout -- . or rewrite history; build on previous iterations' commits "
+  },
+  {
+    "question": "What was wrong with the dunning run endpoint when it got bad input?",
+    "expect": {
+      "all_of": [
+        "/dunning/runs",
+        "org-wide",
+        "malformed"
+      ]
+    },
+    "note": "[P1] malformed JSON on POST /dunning/runs triggers an org-wide write instead of being rejected: the handler never returns body.res"
+  },
+  {
+    "question": "How could a crash mid-write leave a bad invoice behind?",
+    "expect": {
+      "all_of": [
+        "death",
+        "numbered",
+        "leaves"
+      ]
+    },
+    "note": "SEQ 58/59 still blocking after re-review round 1: writeInvoiceDocument commits the invoice header via invoiceRepository.create (do"
+  },
+  {
+    "question": "Given the database has no interactive transactions, how do we make a two-part move atomic?",
+    "expect": {
+      "all_of": [
+        "transactions",
+        "interactive",
+        "db.batch"
+      ]
+    },
+    "note": "D1 has no interactive transactions; db.batch() is the atomicity tool, so the exchange's two containers move atomically via a singl"
+  },
+  {
+    "question": "How do per-user grants interact with someone's role?",
+    "expect": {
+      "all_of": [
+        "unioned",
+        "intersected",
+        "grants"
+      ]
+    },
+    "note": "Org tenancy is checked before role with no admin exception; users.permissions_json grants can only narrow (intersected with the ro"
+  },
+  {
+    "question": "Is there any migration number range nobody has claimed yet?",
+    "expect": {
+      "all_of": [
+        "0180-0199",
+        "unclaimed",
+        "single"
+      ]
+    },
+    "note": "Ran both registry parsers (BLOCK_ROW in db/test/migration-registry.test.ts and the stricter one at db/test/schema-conventions.test"
+  },
+  {
+    "question": "Where did the online ordering cart tables actually end up?",
+    "expect": {
+      "all_of": [
+        "0370_storefront_orders.sql",
+        "0371_storefront_price_snapshots.sql",
+        "0370_storefront_carts.sql"
+      ]
+    },
+    "note": "The registry owner (seq 20/24) directed migrations be named 0370_storefront_carts.sql and 0371_storefront_price_snapshots.sql rath"
+  },
+  {
+    "question": "Is the messaging section of the office app actually built?",
+    "expect": {
+      "all_of": [
+        "officepageshell",
+        "communications",
+        "api/src/routes/comms.ts"
+      ]
+    },
+    "note": "Communications area is still an OfficePageShell placeholder; backend api/src/routes/comms.ts is complete"
+  },
+  {
+    "question": "Why can nobody hit the customer portal endpoints?",
+    "expect": {
+      "all_of": [
+        "portalroutes",
+        "api/src/routes/portal.ts",
+        "defined"
+      ]
+    },
+    "note": "The docket repo has portalRoutes defined in api/src/routes/portal.ts but not mounted in api/src/app.ts"
+  },
+  {
+    "question": "What stops a web page from talking to the local daemon?",
+    "expect": {
+      "all_of": [
+        "application/json",
+        "1mb",
+        "bodies"
+      ]
+    },
+    "note": "daemon/mcp.go:89 \u2014 MCP daemon refuses any Origin header, requires application/json, caps bodies at 1MB with 413; verified against "
+  },
+  {
+    "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+    "expect": {
+      "all_of": [
+        "kickstart",
+        "launchctl",
+        "answering"
+      ]
+    },
+    "note": "Daemon was restarted onto the new hook-driven-status build listening on port 45679; the old binary kept answering (202 on the old "
+  },
+  {
+    "question": "What caused duplicate dev servers to be launched?",
+    "expect": {
+      "all_of": [
+        "re-started",
+        "listwindows",
+        "reconcileprocesses"
+      ]
+    },
+    "note": "ReconcileProcesses (sources/processes.go:179-182) set windows=nil on ListWindows error, so every auto-start process was re-started"
+  },
+  {
+    "question": "What is risky about the way the sync loop touches the Claude config file?",
+    "expect": {
+      "all_of": [
+        "sync_once",
+        "/.claude.json",
+        "racing"
+      ]
+    },
+    "note": "sync_once unconditionally runs tool.update_mcps(canonical) for all four tools on every 5s tick, read-modify-writing ~/.claude.json"
+  },
+  {
+    "question": "Why does the orientation output list things that aren't projects?",
+    "expect": {
+      "all_of": [
+        "recently",
+        "seen",
+        "projects"
+      ]
+    },
+    "note": "Orientation's 'Active projects' section includes every recently seen entity type without a type==project check (internal/memory/re"
+  },
+  {
+    "question": "How do I know whether an agent actually got launched into its pane?",
+    "expect": {
+      "all_of": [
+        "spawn_agent",
+        "liveness",
+        "pane"
+      ]
+    },
+    "note": "spawn_agent now checks pane liveness before typing and returns terminal delivery status (e.g., 'not delivered: the process exited "
+  },
+  {
+    "question": "What did Jeff settle on for shipping several products from the same PHP app?",
+    "expect": {
+      "all_of": [
+        "separate-repo-per-product",
+        "differences",
+        "codebase"
+      ]
+    },
+    "note": "Jeff approved dropping the separate-repo-per-product plan for Laravel: one codebase per layer deployed N times, with which product"
+  },
+  {
+    "question": "Which newsletter layout do customers get unless we change something?",
+    "expect": {
+      "all_of": [
+        "newsletter_pdf_style",
+        "keepsake",
+        "selects"
+      ]
+    },
+    "note": "Classic is the production default until Jeff chooses; NEWSLETTER_PDF_STYLE=keepsake selects the keepsake treatment, and both varia"
+  },
+  {
+    "question": "Why does the voice interview traffic take a detour instead of going direct?",
+    "expect": {
+      "all_of": [
+        "quality/control",
+        "prioritizes",
+        "hop"
+      ]
+    },
+    "note": "Intentional design choice: extra control hop (mobile\u2192Laravel\u2192engine) prioritizes interview quality/control over minimum latency; t"
+  },
+  {
+    "question": "What fields is the sign-up form allowed to have?",
+    "expect": {
+      "all_of": [
+        "creep",
+        "password_confirmation",
+        "password"
+      ]
+    },
+    "note": "Registration form /register endpoint must have exactly five named inputs: name, email, password, password_confirmation, terms; no "
+  },
+  {
+    "question": "How does the demo box get new code?",
+    "expect": {
+      "all_of": [
+        "pushing",
+        "hetzner",
+        "deploys"
+      ]
+    },
+    "note": "Pushing to main automatically deploys to Hetzner"
+  },
+  {
+    "question": "What was the verdict on the time zone lookup site idea?",
+    "expect": {
+      "all_of": [
+        "ai-citation",
+        "weak",
+        "potential"
+      ]
+    },
+    "note": "Idea #13; labelled a reach play \u2014 good AI-citation potential, weak monetisation."
+  },
+  {
+    "question": "What does the SEO data vendor charge per request?",
+    "expect": {
+      "all_of": [
+        "0.05/call",
+        "search_volume",
+        "1000"
+      ]
+    },
+    "note": "search_volume \u2248 $0.05/call for up to 1000 keywords; live SERP endpoints \u2248 $0.002\u20130.006 per task and take exactly one task per POST"
+  },
+  {
+    "question": "Why was hunting for search terms with no existing player a dead end?",
+    "expect": {
+      "all_of": [
+        "incumbent",
+        "structurally",
+        "absence"
+      ]
+    },
+    "note": "The method failed structurally, not in execution: absence of an incumbent is evidence there is no money, so searching for unserved"
+  },
+  {
+    "question": "Where is the signing certificate stored?",
+    "expect": {
+      "all_of": [
+        "/documents/helm_cer.cer",
+        "mac",
+        "mini"
+      ]
+    },
+    "note": "Certificate is stored at ~/Documents/helm_cer.cer on the Mac Mini"
+  },
+  {
+    "question": "How are the different kinds of events categorized in that WordPress site?",
+    "expect": {
+      "all_of": [
+        "in-person",
+        "338",
+        "340"
+      ]
+    },
+    "note": "Events CPT uses event_type taxonomy with In-Person Events (338), Virtual Events (339), Webinars (340) terms"
+  },
+  {
+    "question": "Why is that markdown parser test red?",
+    "expect": {
+      "all_of": [
+        "tasks.md",
+        "retired",
+        "orphaned"
+      ]
+    },
+    "note": "TasksMarkdownParserTest fails because App\\Services\\Google\\TasksMarkdownParser class was deleted when TASKS.md workflow was retired"
+  },
+  {
+    "question": "Which model came out on top in the writing comparison?",
+    "expect": {
+      "all_of": [
+        "multi-model",
+        "unanimously",
+        "gpt-5.4"
+      ]
+    },
+    "note": "GPT-5.4 won the multi-model generation test unanimously with best overall scores"
+  },
+  {
+    "question": "What makes that page builder awkward for agents to edit?",
+    "expect": {
+      "all_of": [
+        "elementor",
+        "abstraction",
+        "friction"
+      ]
+    },
+    "note": "Elementor's serialized JSON page layouts create friction for agent automation; requires custom abstraction layer"
+  },
+  {
+    "question": "Where does the billing code get its display names from now?",
+    "expect": {
+      "all_of": [
+        "vob-queue",
+        "vobstatus",
+        "buildvobqueue"
+      ]
+    },
+    "note": "Billing service now delegates to vob-queue for displayNames, vobStatus, and buildVobQueue instead of maintaining parallel copies; "
+  },
+  {
+    "question": "What data survives from one month's report to the next?",
+    "expect": {
+      "all_of": [
+        "first_seen_at",
+        "priorities",
+        "risks"
+      ]
+    },
+    "note": "Sidecar column carries health score, open risks, active priorities, and first_seen_at across month boundaries for deterministic ca"
+  },
+  {
+    "question": "What has to be true about a child before their content can be posted?",
+    "expect": {
+      "all_of": [
+        "eligible_for_sharing",
+        "true",
+        "have"
+      ]
+    },
+    "note": "Child must have eligible_for_sharing = true in child_social_sharing_settings."
+  },
+  {
+    "question": "How do we treat temporary errors coming back from Meta when publishing?",
+    "expect": {
+      "all_of": [
+        "retryable",
+        "mapped",
+        "publish"
+      ]
+    },
+    "note": "Meta transient failures are mapped to 'failed' attempt status, making them retryable in later publish calls"
+  },
+  {
+    "question": "What is the minimum length the automated writing gate enforces?",
+    "expect": {
+      "all_of": [
+        "trigram",
+        "syntax",
+        "overlap"
+      ]
+    },
+    "note": "Mechanical gate validated in isolation before loop launch; catches trigram overlap, word count floor (100 words), and syntax templ"
+  },
+  {
+    "question": "How long has Jeff been writing TypeScript?",
+    "expect": {
+      "all_of": [
+        "continuously",
+        "2.5",
+        "years"
+      ]
+    },
+    "note": "TypeScript continuously since Loop (2.5 years) through current work"
+  },
+  {
+    "question": "What subject does Jeff say he cannot fake his way through?",
+    "expect": {
+      "all_of": [
+        "improvise",
+        "sports",
+        "talk"
+      ]
+    },
+    "note": "Jeff has no sports domain knowledge and cannot improvise sports talk or judge interview quality by feel"
+  },
+  {
+    "question": "Where do the Google OAuth tokens live for the assistant box?",
+    "expect": {
+      "all_of": [
+        "encrypted",
+        "location",
+        "gog"
+      ]
+    },
+    "note": "Hermes monitors OAuth tokens via gog CLI's encrypted keyring. Tokens must be written to this specific location for API calls to wo"
+  },
+  {
+    "question": "Where do the engine health check results get posted?",
+    "expect": {
+      "all_of": [
+        "childscribe-ops",
+        "hermes-ops",
+        "slack"
+      ]
+    },
+    "note": "Probe wired to post connection health results to #childscribe-ops Slack via scheduled execution on hermes-ops"
+  },
+  {
+    "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+    "expect": {
+      "all_of": [
+        "invited",
+        "jermes-inbox",
+        "jermes"
+      ]
+    },
+    "note": "Task 8 needs the real #jermes-inbox Slack channel with the Jermes app invited; Jeff to create it and send the channel id; Tasks 1\u2013"
+  },
+  {
+    "question": "Why did the first headless coding session die before doing anything?",
+    "expect": {
+      "all_of": [
+        "greedily",
+        "--file",
+        "argument"
+      ]
+    },
+    "note": "Headless OpenCode session; the first launch exited cleanly before touching the worktree because this OpenCode version greedily par"
+  },
+  {
+    "question": "Which model is powering the visual design session and how fast is it going?",
+    "expect": {
+      "all_of": [
+        "64k",
+        "resident",
+        "gpt-oss-120b"
+      ]
+    },
+    "note": "Design session is pointed at halo2's resident GPT-OSS-120B model; halo2 GPU engaged (51 tok/s, 64K context)."
+  },
+  {
+    "question": "Does the earlier passing grade still count after the last code change?",
+    "expect": {
+      "all_of": [
+        "grade-1",
+        "18/18",
+        "grade"
+      ]
+    },
+    "note": "Because the LA decision-route repair changed product code after the prior pass, that Grade-1 18/18 pass no longer counts and the r"
+  },
+  {
+    "question": "How did we end up handling the conflicting publication dates?",
+    "expect": {
+      "all_of": [
+        "editorially",
+        "disputed",
+        "unverified"
+      ]
+    },
+    "note": "Decision: publication start left null and disputed and proof deadline left null and unverified, with the conflict documented edito"
+  },
+  {
+    "question": "What URL do I open to see the battery pack layout tool locally?",
+    "expect": {
+      "all_of": [
+        "localhost:5173",
+        "vite",
+        "dev"
+      ]
+    },
+    "note": "The battery designer app is served by a Vite dev server found on localhost:5173, reachable at https://cellsaviors.test/battery-des"
+  },
+  {
+    "question": "What is the local database setup for the monorepo?",
+    "expect": {
+      "all_of": [
+        "54321",
+        "docker-compose.yml",
+        "pgvector"
+      ]
+    },
+    "note": "Scribe monorepo now includes docker-compose.yml for local Postgres + pgvector setup on port 54321"
+  },
+  {
+    "question": "Can the Ahrefs path in the backlink code ever actually run?",
+    "expect": {
+      "all_of": [
+        "elseif",
+        "moz",
+        "fire"
+      ]
+    },
+    "note": "The Ahrefs branch is elseif (! empty($ahrefsKey)); an empty key means it cannot fire, and provider is set to moz anyway."
+  }
+]

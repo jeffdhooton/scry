@@ -2,6 +2,7 @@ package recall
 
 import (
 	"encoding/json"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -157,6 +158,9 @@ var whyWords = map[string]bool{
 
 // asksWhy reports whether a question is after a reason or a failure.
 func asksWhy(q string) bool {
+	if os.Getenv("SCRY_NO_WHY") != "" {
+		return false
+	}
 	for _, w := range strings.Fields(strings.ToLower(q)) {
 		if whyWords[strings.Trim(w, "?.,'\"")] {
 			return true
@@ -168,6 +172,9 @@ func asksWhy(q string) bool {
 // expand appends synonym words to q so the BM25 pass sees them. The
 // original words keep their full weight; synonyms only add candidates.
 func expand(q string) string {
+	if os.Getenv("SCRY_NO_SYN") != "" {
+		return q
+	}
 	lower := strings.ToLower(q)
 	var extra []string
 	seen := map[string]bool{}

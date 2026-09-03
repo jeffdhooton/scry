@@ -133,6 +133,13 @@ var statusWords = map[string]bool{
 	"spec-compliant": true, "compliant": true, "non-compliant": true, "clean": true, "dirty": true, "empty": true, "full": true,
 	"interviewphase": true, "interview-phase": true, "interview phase": true, "phase-1": true, "phase-2": true, "phase 1": true, "phase 2": true,
 	"code-quality-review": true, "all-tests-race-green": true, "smoke-fix round": true,
+	"confirmed": true, "claimed": true, "unclaimed": true, "killed": true, "refused": true,
+	"unchanged": true, "untouched": true, "truncated": true, "preserved": true, "restored": true,
+	"handled": true, "unhandled": true, "contested": true, "nope": true, "maybe": true,
+	"behind": true, "ahead": true, "committed": true, "uncommitted": true, "deleted": true,
+	"dropped": true, "cancelled": true, "canceled": true, "superseded": true, "abandoned": true,
+	"escalated": true, "triaged": true, "reopened": true, "greenlit": true, "postponed": true,
+	"in-flight": true, "at risk": true, "at-risk": true, "on-track": true, "on track": true,
 }
 
 // IsValueName reports whether name is a value (a number, measurement,
@@ -145,9 +152,23 @@ func IsValueName(name string) bool {
 	if n == "" {
 		return true
 	}
+	// Names first: a package path, a name with a capital straight after a
+	// digit, and a phrase in which every word is capitalised are things,
+	// whatever later rules would make of them.
+	if modulePathRE.MatchString(n) || brandName(strings.TrimSpace(name)) {
+		return false
+	}
 	if IsStatusWord(n) {
 		return true
 	}
+	// A phrase in which every word is capitalised is a name, unless it is
+	// one of the shapes a name cannot take. Status phrases are judged
+	// above, since "In Progress" is capitalised too.
+	if properPhraseRE.MatchString(strings.TrimSpace(name)) &&
+		!sentenceName(n) && !runArtifact(n) && !listName(n) && !branchPhrase(n) {
+		return false
+	}
+
 	if trunkBranches[n] || (branchRE.MatchString(n) && !fileExtRE.MatchString(n)) || branchWordRE.MatchString(n) {
 		return true
 	}
@@ -155,7 +176,7 @@ func IsValueName(name string) bool {
 		numberRangeRE.MatchString(n) || dimensionRE.MatchString(n) || durationRE.MatchString(n) || ratioRE.MatchString(n) {
 		return true
 	}
-	if leadingNumberRE.MatchString(n) && !fileExtRE.MatchString(n) &&
+	if leadingNumberRE.MatchString(n) && !fileExtRE.MatchString(n) && !namesAThing(n) &&
 		(measurementPhrase(n) || countPhrase(n) || ratioPhrase(n)) {
 		return true
 	}

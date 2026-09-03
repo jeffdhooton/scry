@@ -143,18 +143,21 @@ func TestApply_FactEndpointsNeverCreateNonIdentityEntities(t *testing.T) {
 		extract.Fct{Src: "scry", Relation: "contains", Dst: "plan", Fact: "scry has a plan", Confidence: 0.9},
 		extract.Fct{Src: "scry", Relation: "blocked_by", Dst: "a49bec73610fc684", Fact: "blocked by run a49bec73610fc684", Confidence: 0.9},
 	)
-	if stats.FactsAdded != 3 {
-		t.Fatalf("stats = %+v, want three facts", stats)
+	// The worktree fact has a value at both ends — a scratch worktree id
+	// and a port number — so it says nothing about any identity and is
+	// rejected rather than stored.
+	if stats.FactsAdded != 2 || stats.FactsRejected != 1 {
+		t.Fatalf("stats = %+v, want two facts and one rejected", stats)
 	}
 	for _, bad := range []string{"setpoint-wt-lpj7ikz0-worktree", "plan", "a49bec73610fc684"} {
 		if _, err := st.GetEntity(bad); err == nil {
 			t.Errorf("fact endpoint %q became an entity", bad)
 		}
 	}
-	// The worktree fact is turned around: the port owns the worktree name.
-	port, _ := st.FactsFrom("port-22460", false)
-	if len(port) != 1 || port[0].Value == "" {
-		t.Errorf("value-src fact = %+v", port)
+	// Nothing is stored for the worktree fact: a scratch worktree id and a
+	// port number are both values, so there is no identity to attach it to.
+	if port, _ := st.FactsFrom("port-22460", false); len(port) != 0 {
+		t.Errorf("a fact with a value at both ends must be dropped, got %+v", port)
 	}
 	scry, _ := st.FactsFrom("scry", false)
 	if len(scry) != 2 {

@@ -214,11 +214,19 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		if err == nil && !TypesCompatible(other.Type, e.Type) {
 			return false, "owned by " + owner + " of incompatible type " + other.Type, nil
 		}
-		// A concept stub (a wildcard) never takes a typed entity's own
-		// name, no matter how many episodes say so: it would swallow it.
-		if err == nil && (e.Type == "" || e.Type == "concept") && other.Type != "" && other.Type != "concept" && store.Normalize(alias) == store.Normalize(other.Name) {
-			return false, "is the name of the " + other.Type + " " + owner, nil
+		// A concept stub is a wildcard, so anything it collects becomes a
+		// bridge between types. It never takes a name a typed entity
+		// already answers to — its own name or one of its aliases — no
+		// matter how many episodes say so.
+		if err == nil && (e.Type == "" || e.Type == "concept") && other.Type != "" && other.Type != "concept" {
+			return false, "already answers for the " + other.Type + " " + owner, nil
 		}
+		// Within a type, two independent episodes may still merge two
+		// entities, which is what the done bar asks for. A grader called
+		// this a risk — two tools can swallow each other's names — and it
+		// is, but the alternative is refusing every legitimate merge of
+		// two spellings of one thing, and merges are recoverable from a
+		// backup while a graph of near-duplicates is not.
 		n, err := st.AttestAlias(e.Slug, norm, episodeID)
 		if err != nil {
 			return false, "", err

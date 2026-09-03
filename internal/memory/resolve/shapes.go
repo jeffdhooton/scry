@@ -45,6 +45,52 @@ var (
 	// datedDocRE: "2026-07-17-loom-multi-engine-executors". A name that
 	// opens with a date is a dated document, which is a thing.
 	datedDocRE = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}[-_ ]\S`)
+	// modulePathRE: "modernc.org/sqlite", "github.com/dgraph-io/badger". A
+	// host and one path segment name a package, which is a thing. A deeper
+	// path is a URL, which locates one.
+	modulePathRE = regexp.MustCompile(`^[a-z0-9-]+(?:\.[a-z0-9-]+)+/[a-z0-9._-]+(?:/[a-z0-9._-]+)?$`)
+	// brandNumberRE: "7Up", "5Guys". A capital and at least one more
+	// letter straight after a digit is a name. Two letters are required
+	// because a single one is a unit far more often than a brand in this
+	// store: 51B is a parameter count, and 3M loses the tie.
+	brandNumberRE = regexp.MustCompile(`^[0-9]+[A-Z][A-Za-z]+$`)
+	// slashNameRE: any two-segment name. Git branches are written this way
+	// under namespaces nobody can enumerate — goal/, proof/, seo/, ux/ —
+	// so the shape is the rule and the exceptions are listed instead.
+	slashNameRE = regexp.MustCompile(`^[a-z][a-z0-9-]{1,11}/[a-z0-9._*<>-]+$`)
+	// numberedItemRE: "Decision 1", "PR #32", "Wave 4", "port :4290".
+	// A pull request and an issue are absent on purpose: "PR #87" names a
+	// specific change that sessions say things about, while "Decision 1"
+	// and "Wave 4" name a position in a list.
+	numberedItemRE = regexp.MustCompile(`^(?:decision|item|step|phase|wave|round|attempt|try|option|slice|lane)[\s_-]*#?\d+$|^ports?[\s_-]*:?\s*\d+`)
+	// hashNumberRE: "#42" — one names a change, several make a list.
+	hashNumberRE = regexp.MustCompile(`#\d+`)
+	// hashColorRE: "#D4793C", "color #D4793C".
+	hashColorRE = regexp.MustCompile(`#[0-9a-fA-F]{3,8}\b`)
+	// hexLetterRE distinguishes a colour from an issue number: "#D4793C"
+	// carries letters, "#140" does not.
+	hexLetterRE = regexp.MustCompile(`[a-fA-F]`)
+	// monthYearRE: "Sep 2025", "January 2026", "Feb 14".
+	monthYearRE = regexp.MustCompile(`^(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?[\s_-]+\d{1,4}$`)
+	// unAdjectiveRE: "unaudited", "unmerged", "unshipped" — a state written
+	// as the negative of a past participle.
+	unAdjectiveRE = regexp.MustCompile(`^un[a-z]{3,}(?:ed|able|ible)$`)
+	// quarterRE: "Q3", "Q3 2026".
+	quarterRE = regexp.MustCompile(`^q[1-4](?:[\s_-]*\d{2,4})?$`)
+	// longDigitsRE: a run of six or more digits anywhere in a name is an
+	// id — a probe number, a task number, a short sha.
+	longDigitsRE = regexp.MustCompile(`^\d{6,}$`)
+	// isoDigitsRE: an eight-digit run beginning 19 or 20 is a date, which
+	// belongs to names such as claude-sonnet-4-20250514.
+	isoDigitsRE = regexp.MustCompile(`^(?:19|20)\d{6}$`)
+	// numericListRE: "0050-0099, 0100-0109" — only digits and separators.
+	numericListRE = regexp.MustCompile(`^[\d\s,.:_/-]+$`)
+	// properPhraseRE: "Five Guys", "Boeing 737 MAX" — every word
+	// capitalised is a name, whatever the words mean.
+	// Every word capitalised, ending on a word that starts with a letter:
+	// "Five Guys", "Boeing 737 MAX". "HTTP 429" ends on a number and is a
+	// status code, not a name.
+	properPhraseRE = regexp.MustCompile(`^[A-Z][A-Za-z0-9.&'-]*(?:[ -][A-Za-z0-9.&'-]+){0,1}[ -][A-Z][A-Za-z0-9.&'-]*$`)
 	// trailingPercentRE: "stall at 0%", "coverage 87.5 %".
 	trailingPercentRE = regexp.MustCompile(`[\s_-][\d.,]+\s*%$|^[\d.,]+\s*%$`)
 )
@@ -55,6 +101,60 @@ var (
 // as production or staging compounds into real entity names
 // ("hoopless-production"), so it is not here.
 var trunkNames = map[string]bool{"main": true, "master": true, "develop": true, "trunk": true}
+
+// codeDirs open a path inside a repository rather than a branch
+// namespace. Everything else with one slash in it is read as a branch,
+// because branch namespaces cannot be enumerated: a store that knows
+// feat/ and loop/ still meets goal/, proof/, seo/, and ux/.
+var codeDirs = map[string]bool{
+	"packages": true, "internal": true, "src": true, "cmd": true, "docs": true,
+	"lib": true, "app": true, "apps": true, "test": true, "tests": true,
+	"pkg": true, "api": true, "web": true, "services": true, "scripts": true,
+	"tools": true, "config": true, "public": true, "static": true, "assets": true,
+	"vendor": true, "node": true, "dist": true, "build": true, "components": true,
+	"pages": true, "routes": true, "models": true, "views": true, "db": true,
+	"database": true, "migrations": true, "resources": true, "storage": true,
+	"bin": true, "etc": true, "usr": true, "var": true, "opt": true, "home": true,
+	"users": true, "tmp": true, "private": true, "system": true, "library": true,
+}
+
+// wordNumbers are numbers written out. Every rule about quantities was
+// gated on a leading digit, so "three failures" walked past all of them
+// while "3 failures" did not.
+var wordNumbers = map[string]bool{
+	"zero": true, "one": true, "two": true, "three": true, "four": true,
+	"five": true, "six": true, "seven": true, "eight": true, "nine": true,
+	"ten": true, "eleven": true, "twelve": true, "dozen": true, "fifteen": true,
+	"twenty": true, "thirty": true, "forty": true, "fifty": true, "sixty": true,
+	"seventy": true, "eighty": true, "ninety": true, "hundred": true,
+	"thousand": true, "million": true, "billion": true, "half": true,
+	"couple": true, "few": true, "several": true, "twice": true, "double": true,
+}
+
+// timeUnits follow a number in a duration written out: "one hour".
+var timeUnits = map[string]bool{
+	"second": true, "seconds": true, "minute": true, "minutes": true,
+	"hour": true, "hours": true, "day": true, "days": true, "week": true,
+	"weeks": true, "month": true, "months": true, "year": true, "years": true,
+	"ms": true, "sec": true, "min": true, "gigabyte": true, "gigabytes": true,
+	"megabyte": true, "megabytes": true, "percent": true, "token": true, "tokens": true,
+	"terabyte": true, "kilobyte": true,
+}
+
+// comparatives follow a bare quantity in a phrase that measures rather
+// than names: "twice as fast", "three times slower".
+var comparatives = map[string]bool{
+	"as": true, "than": true, "fast": true, "faster": true, "slow": true,
+	"slower": true, "more": true, "less": true, "better": true, "worse": true,
+	"bigger": true, "smaller": true, "longer": true, "shorter": true, "times": true,
+}
+
+// weekdays and quarters name a moment, not a thing.
+var weekdays = map[string]bool{
+	"monday": true, "tuesday": true, "wednesday": true, "thursday": true,
+	"friday": true, "saturday": true, "sunday": true, "today": true,
+	"yesterday": true, "tomorrow": true, "tonight": true,
+}
 
 // irregularPlurals are the count nouns that do not end in s.
 var irregularPlurals = map[string]bool{
@@ -83,9 +183,15 @@ var stateOpeners = map[string]bool{"in": true, "at": true, "on": true, "off": tr
 // maxNameChars and maxNameWords bound a name. Past them it is a sentence
 // or a paragraph that an extraction mistook for a thing; the longest real
 // name in the store is well inside both.
+// A name is a noun phrase. Past these it is a sentence someone wrote
+// about a thing rather than the name of one. The previous values, 80 and
+// 12, were set against the longest name the store then held — 79
+// characters and 12 words — so the rule could not fire on anything that
+// had survived. These are set against what a name is, and retire the
+// sentences that were sitting in the entity table.
 const (
-	maxNameChars = 80
-	maxNameWords = 12
+	maxNameChars = 56
+	maxNameWords = 8
 )
 
 // nameWords splits a name the way a reader would, on spaces and the
@@ -117,10 +223,35 @@ func hashLike(tok string) bool {
 	if letters == 0 {
 		return false // a run of digits is a number, judged elsewhere
 	}
-	if len(tok) < 8 {
+	if len(tok) < 7 {
 		return digits >= 2
 	}
 	return digits >= 1
+}
+
+// unitLetters are the letter runs that follow a number as a unit rather
+// than as a name: 12GB is a size, 7Up is a drink.
+var unitLetters = map[string]bool{
+	"b": true, "kb": true, "mb": true, "gb": true, "tb": true, "pb": true,
+	"kib": true, "mib": true, "gib": true, "tib": true, "hz": true, "khz": true,
+	"mhz": true, "ghz": true, "ms": true, "us": true, "ns": true, "px": true,
+	"pt": true, "em": true, "rem": true, "vh": true, "vw": true, "dpi": true,
+	"tok": true, "fps": true, "rps": true, "qps": true, "tps": true, "k": true,
+	"m": true, "g": true, "t": true, "s": true, "h": true, "d": true, "w": true,
+	"x": true, "bn": true, "usd": true, "eur": true, "gbp": true,
+}
+
+// brandName reports whether a digit-then-capital name is a brand rather
+// than a measurement: 7Up is, 12GB is not.
+func brandName(s string) bool {
+	if !brandNumberRE.MatchString(s) {
+		return false
+	}
+	i := 0
+	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+		i++
+	}
+	return !unitLetters[strings.ToLower(s[i:])]
 }
 
 // hasHashToken reports whether any word of a name is an opaque handle.
@@ -138,8 +269,15 @@ func hasHashToken(n string) bool {
 // namespaced branch ("feat/x", "wt/apply", "loop/llm-unify prior work"),
 // or a trunk name carrying a commit ("main b9f73b5").
 func branchPhrase(n string) bool {
-	if fileExtRE.MatchString(n) || namesAThing(n) {
+	if fileExtRE.MatchString(n) || namesAThing(n) || modulePathRE.MatchString(n) {
 		return false
+	}
+	// Any two-segment name is a branch unless its first segment names part
+	// of a repository.
+	if slashNameRE.MatchString(n) {
+		if head, _, _ := strings.Cut(n, "/"); !codeDirs[head] {
+			return true
+		}
 	}
 	words := nameWords(n)
 	if len(words) >= 2 {
@@ -172,6 +310,11 @@ var thingWords = map[string]bool{
 	"strategy": true, "convention": true, "conventions": true, "standard": true, "standards": true,
 	"protocol": true, "runbook": true, "checklist": true, "template": true, "schema": true,
 	"model": true, "engine": true, "server": true, "daemon": true, "agent": true, "system": true,
+	"queue": true, "cart": true, "test": true, "suite": true, "layout": true, "feature": true,
+	"form": true, "page": true, "report": true, "index": true, "cache": true, "endpoint": true,
+	"route": true, "bucket": true, "topic": true, "stream": true, "surface": true, "flow": true,
+	"screen": true, "view": true, "panel": true, "widget": true, "field": true, "column": true,
+	"button": true, "job": true, "table": true, "list": true, "gateway": true, "adapter": true,
 }
 
 // namesAThing reports whether a name ends in a word that makes it the
@@ -194,7 +337,30 @@ func plural(w string) bool {
 // relations" and "10 of 12" are measurements; "303 Magazine", "4Runner",
 // and "42 CFR Part 2" are names.
 func numberPhrase(n string) bool {
-	if !leadingNumberRE.MatchString(n) || fileExtRE.MatchString(n) || namesAThing(n) {
+	if fileExtRE.MatchString(n) || brandName(strings.TrimSpace(n)) {
+		return false
+	}
+	words := nameWords(strings.TrimPrefix(strings.TrimPrefix(n, "a "), "an "))
+	// A name that opens with a quantity is a count even when it ends in a
+	// noun; the veto is for names that merely contain one.
+	if len(words) > 0 && !wordNumbers[words[0]] && !leadingNumberRE.MatchString(n) && namesAThing(n) {
+		return false
+	}
+	// A number written out counts the same as a number written in digits.
+	if len(words) > 0 && wordNumbers[words[0]] {
+		if len(words) == 1 {
+			return true
+		}
+		if plural(words[len(words)-1]) {
+			return true
+		}
+		for _, w := range words[1:] {
+			if timeUnits[w] || comparatives[w] || countNouns[w] {
+				return true
+			}
+		}
+	}
+	if !leadingNumberRE.MatchString(n) {
 		return false
 	}
 	if paddedOrdinalRE.MatchString(n) {
@@ -203,7 +369,9 @@ func numberPhrase(n string) bool {
 	if numberThenParenRE.MatchString(n) || scoreRE.MatchString(n) || itemLabelRE.MatchString(n) {
 		return true
 	}
-	words := nameWords(n)
+	if quarterRE.MatchString(n) {
+		return true
+	}
 	if len(words) < 2 {
 		return false
 	}
@@ -262,6 +430,12 @@ func verdictPhrase(n string) bool {
 	if len(words) == 0 || len(words) > 4 {
 		return false
 	}
+	if namesAThing(n) {
+		return false // "abandoned cart queue" is a queue
+	}
+	if unAdjectiveRE.MatchString(n) {
+		return true
+	}
 	if verdictWords[words[0]] {
 		return true
 	}
@@ -291,7 +465,39 @@ func verdictPhrase(n string) bool {
 // looksMeasured reports whether a name trails a unit, a percentage, a
 // version, or a rate, whatever it opens with.
 func looksMeasured(n string) bool {
+	if namesAThing(n) {
+		return false
+	}
 	return trailingPercentRE.MatchString(n) || trailingVersionRE.MatchString(n) || perUnitRE.MatchString(n)
+}
+
+// listName reports whether a name is several values written as one: a
+// union of literals, a run of issue numbers, a colour, a numbered item.
+func listName(n string) bool {
+	if strings.Contains(n, "|") || strings.Count(n, ",") >= 2 {
+		return true
+	}
+	if m := hashColorRE.FindString(n); m != "" && hexLetterRE.MatchString(m) {
+		return true
+	}
+	if numberedItemRE.MatchString(n) || monthYearRE.MatchString(n) {
+		return true
+	}
+	if strings.Contains(n, `"`) || numericListRE.MatchString(n) {
+		return true
+	}
+	if quarterRE.MatchString(n) {
+		return true
+	}
+	words := nameWords(n)
+	if len(words) == 2 && (ordinalWords[words[0]] || wordNumbers[words[0]]) && weekdays[words[1]] {
+		return true
+	}
+	if len(words) == 1 && weekdays[words[0]] {
+		return true
+	}
+	// One "#42" names a thing; several are a list of them.
+	return len(hashNumberRE.FindAllString(n, -1)) >= 2
 }
 
 // runArtifact reports whether a name is something a run produced and
@@ -301,10 +507,23 @@ func runArtifact(n string) bool {
 	if hasHashToken(n) {
 		return true
 	}
+	// A long run of digits anywhere is an id: a probe number, a task
+	// number. A date is not, and neither is a zero-padded ordinal: a
+	// migration named 2026-06-29-000002-create-social-destinations-table
+	// is a file, and the store says things about it.
+	if !datedDocRE.MatchString(n) {
+		for _, w := range nameWords(n) {
+			if longDigitsRE.MatchString(w) && !isoDigitsRE.MatchString(w) && !paddedOrdinalRE.MatchString(w) {
+				return true
+			}
+		}
+	}
 	if idNamespaceRE.MatchString(n) {
 		rest := strings.TrimSpace(idNamespaceRE.ReplaceAllString(n, ""))
 		for _, w := range nameWords(rest) {
-			if hashLike(w) || uuidRE.MatchString(w) {
+			// Under a run-shaped namespace a bare run of digits is an id
+			// too: "commit 2110904" names a commit, not a number.
+			if hashLike(w) || uuidRE.MatchString(w) || (len(w) >= 6 && isAllDigits(w)) {
 				return true
 			}
 		}
@@ -329,9 +548,15 @@ func isAllDigits(w string) bool {
 // the generalising half of IsValueName: IsValueName knows particular
 // forms, this knows kinds of form.
 func ValueShape(n string) bool {
-	if snakeIdentRE.MatchString(n) || datedDocRE.MatchString(n) {
+	if snakeIdentRE.MatchString(n) || datedDocRE.MatchString(n) || modulePathRE.MatchString(n) {
 		return false
 	}
+	// Every word capitalised is a name, whatever the words mean: "Five
+	// Guys" counts nothing. The shapes a name cannot take are still
+	// checked, since a sentence or a commit sha may be capitalised too.
+	if properPhraseRE.MatchString(n) {
+		return sentenceName(n) || runArtifact(n) || listName(n)
+	}
 	return sentenceName(n) || runArtifact(n) || branchPhrase(n) ||
-		numberPhrase(n) || verdictPhrase(n) || looksMeasured(n)
+		numberPhrase(n) || verdictPhrase(n) || looksMeasured(n) || listName(n)
 }

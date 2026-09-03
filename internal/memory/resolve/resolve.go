@@ -752,6 +752,12 @@ var genericAliases = map[string]bool{
 // things. Stored as entities they become universal magnets: once "plan"
 // exists, every design document in the graph carries it as an alias and
 // "collides" with it, and the collision signal becomes useless.
+// qualifiableNouns are process nouns that name a thing once qualified.
+var qualifiableNouns = map[string]bool{
+	"feature": true, "queue": true, "surface": true, "page": true, "form": true,
+	"report": true, "table": true, "view": true, "job": true,
+}
+
 var processNouns = map[string]bool{
 	"approved": true, "bug": true, "branch": true, "change": true,
 	"commit": true, "design": true, "doc": true, "docs": true,
@@ -792,7 +798,10 @@ func isGenericEntityName(name string) bool {
 	}
 	// "implementation plan", "rollout plan", "test plan" — a qualifier on a
 	// process noun is still a process noun.
-	if fields := strings.Fields(n); len(fields) == 2 && processNouns[fields[1]] {
+	// A qualifier on a process noun is still a process noun, except where
+	// the noun also names a thing: "admissions feature" is a product
+	// surface, while bare "feature" is junk.
+	if fields := strings.Fields(n); len(fields) == 2 && processNouns[fields[1]] && !qualifiableNouns[fields[1]] {
 		return true
 	}
 	// Role words, but NOT the sub-path rule below: "packages/shared" and

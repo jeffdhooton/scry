@@ -94,6 +94,13 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 		if entities, err = st.Entities(); err != nil {
 			return rep, err
 		}
+		// The name index is cached, and the merge just removed entities
+		// from it. Without this refresh the passes below hand aliases and
+		// facts to slugs that no longer exist, which is where several
+		// hundred facts pointing at nothing came from.
+		if err := RefreshCompactIndex(st); err != nil {
+			return rep, err
+		}
 	}
 	bySlug := make(map[string]store.Entity, len(entities))
 	realSlugs := make(map[string]string, len(entities))
@@ -367,6 +374,27 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 					split, other = true, o
 				}
 			}
+			// An alias the write path would refuse today does not get to
+			// stay because it was admitted yesterday. Cleanup and
+			// prevention have to agree, or the store keeps what the rule
+			// forbids: hermes-ops held "Hermes tmux", "Hermes Slack
+			// gateway", and "Jeff's own Hermes" long after the rule that
+			// admitted them was replaced.
+			// aliasOnly marks a split made because the write path would
+			// refuse the alias today. The alias goes to the entity it
+			// names, but the facts stay: an alias naming another entity
+			// says nothing about which entity the facts are about, and
+			// moving them on that basis misfiled two thousand of them.
+			aliasOnly := false
+			if !split {
+				named, err := namedByKindWords(st, a, e)
+				if err != nil {
+					return rep, err
+				}
+				if _, live := bySlug[named]; live && named != e.Slug {
+					split, other, aliasOnly = true, named, true
+				}
+			}
 			if !split && (machineLeak(a, e) || roleLeak(a, e)) {
 				// Hardware named on a non-machine, with no machine to hand
 				// the facts to: the alias goes, the facts stay.
@@ -374,6 +402,11 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 				rep.DroppedAliasList = append(rep.DroppedAliasList, e.Slug+": "+a+" (machine noun)")
 				changed = true
 				continue
+			}
+			if _, live := bySlug[other]; split && other != "" && !live {
+				// Whatever named this alias is gone: keep the alias where
+				// it is rather than handing it to nothing.
+				split, other = false, ""
 			}
 			if split {
 				// Facts move across a type boundary (a machine's facts on a
@@ -383,7 +416,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 				// "childscribe" facts on childscribe-laravel may be about
 				// either, and guessing is worse than a stray alias.
 				exactStranger := other != "" && other == store.Slugify(a) && !sharesToken(a, e.Name)
-				if other != "" && other != e.Slug && (!TypesCompatible(bySlug[other].Type, e.Type) || exactStranger) {
+				if !aliasOnly && other != "" && other != e.Slug && (!TypesCompatible(bySlug[other].Type, e.Type) || exactStranger) {
 					n, moves, err := reattachByMention(st, e, a, other, now, dryRun)
 					if err != nil {
 						return rep, err
@@ -393,8 +426,18 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 				}
 				rep.AliasesSplit++
 				rep.DroppedAliasList = append(rep.DroppedAliasList, e.Slug+": "+a+" → "+other)
-				if other != "" && other != e.Slug && store.Normalize(a) != store.Normalize(bySlug[other].Name) && !neverAlias(a) && !machineLeak(a, bySlug[other]) {
-					grants[other] = append(grants[other], a)
+				// Hand the alias over only if the recipient would keep it.
+				// An alias that names a third entity comes straight back
+				// out on the next pass, and the two passes trade it
+				// forever, moving facts each time.
+				if other != "" && other != e.Slug && store.Normalize(a) != store.Normalize(bySlug[other].Name) && !neverAlias(a) && !machineLeak(a, bySlug[other]) && !roleLeak(a, bySlug[other]) {
+					named, err := namedByKindWords(st, a, bySlug[other])
+					if err != nil {
+						return rep, err
+					}
+					if named == "" || named == other {
+						grants[other] = append(grants[other], a)
+					}
 				}
 				changed = true
 				continue
@@ -708,7 +751,7 @@ func mergeDuplicateStubs(st *store.Store, entities []store.Entity, dryRun bool) 
 		if isEphemeralName(e.Name) || IsValueName(e.Name) {
 			continue
 		}
-		groups[foldName(e.Name)] = append(groups[foldName(e.Name)], e)
+		groups[mergeKey(e.Name)] = append(groups[mergeKey(e.Name)], e)
 	}
 	merged := 0
 	var sample []string
@@ -725,7 +768,7 @@ func mergeDuplicateStubs(st *store.Store, entities []store.Entity, dryRun bool) 
 			}
 			typed = append(typed, e)
 		}
-		if len(typed) != 1 || len(stubs) == 0 {
+		if len(typed) != 1 || len(stubs) == 0 || !absorbs(typed[0].Type) {
 			continue
 		}
 		for _, stub := range stubs {
@@ -743,6 +786,29 @@ func mergeDuplicateStubs(st *store.Store, entities []store.Entity, dryRun bool) 
 	}
 	sort.Strings(sample)
 	return merged, sample, nil
+}
+
+// mergeKey is the name two entities must share to be one thing written
+// twice. It folds case and punctuation but not plurals: reports.ts and
+// report.ts are two files, books and book are a table and a project, and
+// API integrations is not the person responsible for api-integration.
+// The counting key (foldName) folds more, because two names a reader
+// would confuse are worth reporting even when they are not worth
+// merging.
+func mergeKey(s string) string {
+	return nonAlnumRE.ReplaceAllString(strings.ToLower(s), "")
+}
+
+// absorbs reports whether a type can take a stub's facts. A person and a
+// decision cannot: a person is not the model named after them, and a
+// decision is an event rather than a thing that holds a directory's
+// facts. Both were survivors of merges that should not have happened.
+func absorbs(typ string) bool {
+	switch strings.ToLower(strings.TrimSpace(typ)) {
+	case "person", "decision", "episode", "event":
+		return false
+	}
+	return true
 }
 
 // mergeStub moves a stub's facts, aliases, and repository references onto
