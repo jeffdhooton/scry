@@ -766,3 +766,40 @@ miss set with it on. It nudges; it displaces nothing.
 The system is still word-driven, which is the honest reading of what it
 does: where the question shares a rare word with the answer it scores 32
 of 32, and where it does not, 34 of 40.
+
+
+## Round six: a cleanup that broke resolution, and six rules reaching past their word
+
+The stub-claim drop shipped earlier in this round with a comment saying
+nothing would stop resolving. A grader checked rather than believed it
+and found 60 names that now resolved to nothing and 97 repointed, some
+plainly wrong: `§6.4` to a decision aliased `#64`, `layout.tsx` to
+`_layout.tsx`, `lock-file` to `pnpm-lock.yaml`, `--tunnel` to
+`cloudflare-tunnel`. The pass matched on the fold used for *counting*
+collisions, which folds punctuation and plurals, while the alias index
+answers on a normaliser that folds neither. So a stub lost a name to an
+entity that merely folded to it.
+
+The store was restored from the backup taken before that pass and the
+rule now matches the index. `halo1` resolves to `halo-1` again, and so
+does every other name the grader named.
+
+Five more rules were reaching past their word, all found by the same
+grader and all now fixed with tests:
+
+| Rule | What it did | What it does |
+|---|---|---|
+| Plural stripping | `es` came off anything, so `gates`→`gat`, `routes`→`rout` | `es` comes off after a sibilant only, as in English |
+| Alias containment | No word boundary: Bloomberg was loom, Shalom was halo, descry was scry | The name must be a word, or start a compound with at most three letters after it |
+| The magnet guard | Stopped at one-word names, leaving "audit gate" and "review session" to collect everything near them | Applies when every word of the name is ordinary |
+| Hardware and role checks | Refused an entity a spelling of its own name: Android Studio could not be "Android Studio Ladybug" | Skipped when the alias names the holder |
+| Pruning | Took a dead entity's aliases with it, including spellings of live entities | A pruned name goes to an entity whose own name spells the same thing |
+
+The plural bug was also hiding collisions: with `es` stripped correctly
+the honest count is higher than the one previously reported, and the
+number now stands at 302 after the over-drop was undone.
+
+**What the round cost and what it bought.** Two passes of mine were
+reverted, one restored twice from backup. The migration converges in two
+passes with every counter at zero, 2,560 entities nothing said anything
+about are gone, and every name a grader found broken resolves again.
