@@ -414,42 +414,58 @@ func TestSplitStopsAtDepthAndShortText(t *testing.T) {
 	}
 }
 
-func TestRateLimitNarrowsTheseThenWidensAgain(t *testing.T) {
+func TestRateLimitNarrowsThenWidensAgain(t *testing.T) {
 	st := openTemp(t)
-	for i := range 40 {
+	for i := range 60 {
 		_ = st.PutPending(pending(fmt.Sprintf("r%02d", i), "fact"))
 	}
 	limited := errors.New(`POST "https://api.z.ai/api/anthropic/v1/messages": 429 Too Many Requests {"type":"error","error":{"type":"rate_limit_error"}}`)
-	fx := &fakeExtractor{}
-	fx.mu.Lock()
-	for range 12 {
-		fx.errs = append(fx.errs, limited)
+	if !extract.IsRateLimited(limited) || extract.IsRateLimited(errors.New("500 boom")) {
+		t.Fatal("IsRateLimited wrong")
 	}
-	fx.mu.Unlock()
+	// Refuse everything until the test says otherwise, so narrowing is not
+	// a race with a scripted error list.
+	var refusing atomic.Bool
+	refusing.Store(true)
+	fx := &gatedExtractor{refuse: &refusing, err: limited}
+
 	w := New(Options{Store: st, Extractor: fx, Workers: 24, Poll: 10 * time.Millisecond})
 	if w.Limit() != startLimit {
 		t.Fatalf("initial limit = %d, want %d", w.Limit(), startLimit)
 	}
-	runFor(t, w, 4*time.Second)
+	runFor(t, w, 20*time.Second)
 
-	if !waitUntil(t, 3*time.Second, func() bool { return w.Limit() < startLimit }) {
-		t.Fatalf("limit never narrowed under rate limiting (still %d)", w.Limit())
+	if !waitUntil(t, 5*time.Second, func() bool { return w.Limit() <= minLimit }) {
+		t.Fatalf("limit never narrowed to the floor under rate limiting (still %d)", w.Limit())
 	}
-	if w.Limit() < minLimit {
-		t.Errorf("limit fell below the floor: %d", w.Limit())
-	}
-	// A rate-limited item keeps its budget: attempts stay at zero.
+	// A rate-limit refusal must not spend an item's budget.
 	items, _ := st.Pending(0)
+	spent := 0
 	for _, it := range items {
-		if it.Attempts > 0 && strings.Contains(it.LastError, "429") {
-			t.Errorf("a rate-limit refusal spent the item's budget: %+v", it)
+		if it.Attempts > 0 {
+			spent++
 		}
 	}
-	// Once the provider stops refusing, the pool widens again.
-	if !waitUntil(t, 4*time.Second, func() bool { return w.Limit() > minLimit }) {
-		t.Logf("limit after recovery: %d", w.Limit())
+	if spent > 0 {
+		t.Errorf("%d items spent an attempt on a rate-limit refusal", spent)
 	}
-	if !extract.IsRateLimited(limited) || extract.IsRateLimited(errors.New("500 boom")) {
-		t.Error("IsRateLimited wrong")
+
+	refusing.Store(false)
+	if !waitUntil(t, 12*time.Second, func() bool { return w.Limit() > minLimit }) {
+		t.Errorf("limit never widened again after the provider recovered (still %d)", w.Limit())
 	}
+}
+
+// gatedExtractor refuses with err while refuse is set, and succeeds after.
+type gatedExtractor struct {
+	refuse *atomic.Bool
+	err    error
+	inner  fakeExtractor
+}
+
+func (g *gatedExtractor) Extract(ctx context.Context, ep distill.RawEpisode, glossary []string) (extract.Result, error) {
+	if g.refuse.Load() {
+		return extract.Result{}, g.err
+	}
+	return g.inner.Extract(ctx, ep, glossary)
 }
