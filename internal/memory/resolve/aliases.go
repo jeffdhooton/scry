@@ -337,6 +337,12 @@ func distinctiveName(name string) bool {
 	if n == "" || commonNouns[n] || anyKindWord[n] || machineNouns[n] {
 		return false
 	}
+	// A file name is its extension plus a word, and the word is usually a
+	// common one: DESIGN.md does not own "design system", and settings.py
+	// does not own "admin settings".
+	if fileExtRE.MatchString(n) {
+		return false
+	}
 	if len(strings.Fields(n)) > 1 {
 		return true
 	}
