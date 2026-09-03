@@ -34,6 +34,9 @@ type HygieneReport struct {
 	// CollisionSample shows the first of them, so the number can be read
 	// rather than trusted.
 	CollisionSample []string `json:"collision_sample,omitempty"`
+	// EntitiesPruned counts entities removed because no fact, current or
+	// invalidated, referenced them.
+	EntitiesPruned int `json:"entities_pruned"`
 	// StubClaimsDropped counts names an untyped stub was holding that a
 	// typed entity also answers to.
 	StubClaimsDropped int `json:"stub_claims_dropped"`
@@ -532,6 +535,15 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			}
 		}
 	}
+	// Entities nothing says anything about. They still hold aliases, so
+	// they still collide and still answer to names, while carrying no
+	// knowledge at all.
+	pruned, err := pruneUnreferenced(st, dryRun, now)
+	if err != nil {
+		return rep, err
+	}
+	rep.EntitiesPruned = pruned
+
 	// An untyped stub never keeps a name a typed entity also answers to.
 	// The write path refuses that outright; a stub that collected one
 	// earlier keeps it, and every one of the store's identical-alias
@@ -934,4 +946,47 @@ func dropStubClaims(st *store.Store, dryRun bool) (int, error) {
 		}
 	}
 	return dropped, nil
+}
+
+// pruneAge is how long an entity may exist with nothing said about it
+// before it is removed. A resolver writes an entity and its facts in one
+// pass, so an entity a day old with no fact is one an extraction named
+// and then said nothing about.
+const pruneAge = 24 * time.Hour
+
+// pruneUnreferenced removes entities that no fact mentions at either
+// end, invalidated facts included. Nothing is orphaned by construction:
+// if a fact referenced the entity it would not be pruned. What they cost
+// while they sit there is real — they hold aliases, so they collide with
+// entities that have something to say, and they answer to names.
+func pruneUnreferenced(st *store.Store, dryRun bool, now time.Time) (int, error) {
+	facts, err := st.AllFacts()
+	if err != nil {
+		return 0, err
+	}
+	referenced := make(map[string]bool, len(facts))
+	for _, f := range facts {
+		referenced[f.Src] = true
+		if f.Dst != "" {
+			referenced[f.Dst] = true
+		}
+	}
+	entities, err := st.Entities()
+	if err != nil {
+		return 0, err
+	}
+	pruned := 0
+	for _, e := range entities {
+		if referenced[e.Slug] || now.Sub(e.CreatedAt) < pruneAge {
+			continue
+		}
+		pruned++
+		if dryRun {
+			continue
+		}
+		if err := st.DeleteEntity(e.Slug); err != nil {
+			return pruned, err
+		}
+	}
+	return pruned, nil
 }

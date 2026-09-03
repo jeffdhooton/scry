@@ -379,3 +379,50 @@ func TestStubsGiveUpNamesATypedEntityAnswersTo(t *testing.T) {
 		t.Errorf("sidecar resolves to %q, want the service", slug)
 	}
 }
+
+// An eighth of the graph was entities no fact mentioned at either end.
+// They still held aliases, so they still collided and still answered to
+// names, while carrying nothing.
+func TestHygienePrunesEntitiesNothingSaysAnythingAbout(t *testing.T) {
+	st := openTemp(t)
+	old := time.Now().Add(-72 * time.Hour)
+	fresh := time.Now()
+	put := func(slug, name string, created time.Time) {
+		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: "concept",
+			Aliases: []string{name + " alias"}, CreatedAt: created, LastSeen: created}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put("has-facts", "has facts", old)
+	put("only-history", "only history", old)
+	put("nothing-said", "nothing said", old)
+	put("just-created", "just created", fresh)
+	end := time.Now()
+	if err := st.PutFact(store.Fact{Src: "has-facts", Relation: "uses", Value: "a thing", Fact: "it uses a thing", ValidFrom: old, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+	// An entity whose only fact is invalidated is history and stays.
+	if err := st.PutFact(store.Fact{Src: "only-history", Relation: "uses", Value: "a thing", Fact: "it used to use a thing", ValidFrom: old, InvalidAt: &end, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+
+	rep, err := Hygiene(st, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.EntitiesPruned != 1 {
+		t.Fatalf("pruned = %d, want 1: %+v", rep.EntitiesPruned, rep)
+	}
+	for _, slug := range []string{"has-facts", "only-history", "just-created"} {
+		if _, err := st.GetEntity(slug); err != nil {
+			t.Errorf("%s must survive: %v", slug, err)
+		}
+	}
+	if _, err := st.GetEntity("nothing-said"); err == nil {
+		t.Error("an entity nothing references must be pruned")
+	}
+	// Its alias goes with it rather than resolving to a dead slug.
+	if slug, ok, _ := st.ResolveAlias("nothing said alias"); ok {
+		t.Errorf("a pruned entity's alias still resolves, to %q", slug)
+	}
+}
