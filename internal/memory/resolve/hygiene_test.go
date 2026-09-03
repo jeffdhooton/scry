@@ -3,6 +3,7 @@ package resolve
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -420,5 +421,56 @@ func TestUnreferencedEntitiesAreCountedOutNotRemoved(t *testing.T) {
 	// nothing is said about the machine.
 	if rep.CrossTypeCollisions != 0 {
 		t.Errorf("collisions = %d, want 0: %v", rep.CrossTypeCollisions, rep.CollisionSample)
+	}
+}
+
+// A thing named by where it is, is that thing. "Mac mini at
+// 100.96.45.73" survived four rounds of grading as a second machine.
+func TestAThingNamedByWhereItIsIsThatThing(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	put := func(slug, name, typ string) {
+		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: typ, CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put("mac-mini", "Mac mini", "machine")
+	put("mac-mini-at-100964573", "Mac mini at 100.96.45.73", "machine")
+	put("build-at-dawn", "build at dawn", "project") // not an address
+	put("build", "build", "project")
+	for i, src := range []string{"mac-mini", "mac-mini", "mac-mini", "build"} {
+		if err := st.PutFact(store.Fact{Src: src, Relation: "uses", Value: "a thing", Fact: src + " uses a thing", ValidFrom: now.Add(time.Duration(i) * time.Minute), Confidence: 1}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := st.PutFact(store.Fact{Src: "mac-mini-at-100964573", Relation: "runs_on", Value: "the gateway", Fact: "the Mac mini at 100.96.45.73 runs the gateway", ValidFrom: now, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutFact(store.Fact{Src: "build-at-dawn", Relation: "uses", Value: "a thing", Fact: "build at dawn uses a thing", ValidFrom: now, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Hygiene(st, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.GetEntity("mac-mini-at-100964573"); err == nil {
+		t.Error("a machine named by its address must fold into the machine")
+	}
+	facts, err := st.FactsFrom("mac-mini", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var moved bool
+	for _, f := range facts {
+		if strings.Contains(f.Fact, "runs the gateway") {
+			moved = true
+		}
+	}
+	if !moved {
+		t.Error("its fact must come with it")
+	}
+	// "at dawn" is not an address.
+	if _, err := st.GetEntity("build-at-dawn"); err != nil {
+		t.Error("a name whose tail is not an address must be left alone")
 	}
 }

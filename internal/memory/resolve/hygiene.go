@@ -98,6 +98,23 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 		return rep, err
 	}
 	rep.StubsMerged, rep.StubMergeSample = merged, mergeSample
+
+	// A thing named by where it is, is that thing. "Mac mini at
+	// 100.96.45.73" is the Mac mini, and it had survived four rounds of
+	// grading as a second machine holding one fact, because two typed
+	// entities are never merged on a name alone and nothing else looked
+	// at the address.
+	located, locatedSample, err := mergeLocatedDuplicates(st, dryRun)
+	if err != nil {
+		return rep, err
+	}
+	rep.StubsMerged += located
+	rep.StubMergeSample = append(rep.StubMergeSample, locatedSample...)
+	if located > 0 && !dryRun {
+		if entities, err = st.Entities(); err != nil {
+			return rep, err
+		}
+	}
 	if merged > 0 && !dryRun {
 		if entities, err = st.Entities(); err != nil {
 			return rep, err
@@ -989,3 +1006,65 @@ func referencedSlugs(st *store.Store) (map[string]bool, error) {
 // pass, so an entity a day old with no fact is one an extraction named
 // and then said nothing about.
 const pruneAge = 24 * time.Hour
+
+// locatedNameRE splits "Mac mini at 100.96.45.73" into the thing and
+// where it is.
+var locatedNameRE = regexp.MustCompile(`(?i)^(.*?)\s+(?:at|on|@)\s+(\S+)$`)
+
+// addressRE matches the where: an IP, a host on a local or tailnet
+// domain, or a bare port.
+var addressRE = regexp.MustCompile(`(?i)^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?$|^[a-z0-9-]+\.(?:local|lan|ts\.net|internal)$|^:\d{2,5}$`)
+
+// mergeLocatedDuplicates folds an entity named "<thing> at <address>"
+// into the thing, when the thing is an entity of the same type with more
+// facts. Naming something by where it is does not make it a second
+// thing, and the pair is only merged when the address is genuinely an
+// address rather than any trailing word.
+func mergeLocatedDuplicates(st *store.Store, dryRun bool) (int, []string, error) {
+	entities, err := st.Entities()
+	if err != nil {
+		return 0, nil, err
+	}
+	facts, err := st.AllFacts()
+	if err != nil {
+		return 0, nil, err
+	}
+	count := map[string]int{}
+	for _, f := range facts {
+		if f.InvalidAt != nil {
+			continue
+		}
+		count[f.Src]++
+		if f.Dst != "" {
+			count[f.Dst]++
+		}
+	}
+	byName := map[string]store.Entity{}
+	for _, e := range entities {
+		byName[strings.ToLower(strings.TrimSpace(e.Name))] = e
+	}
+	merged := 0
+	var sample []string
+	for _, e := range entities {
+		m := locatedNameRE.FindStringSubmatch(e.Name)
+		if m == nil || !addressRE.MatchString(m[2]) {
+			continue
+		}
+		target, ok := byName[strings.ToLower(strings.TrimSpace(m[1]))]
+		if !ok || target.Slug == e.Slug || !strings.EqualFold(target.Type, e.Type) {
+			continue
+		}
+		if count[target.Slug] <= count[e.Slug] {
+			continue
+		}
+		merged++
+		sample = append(sample, e.Slug+" ("+e.Type+") -> "+target.Slug+", named by where it is")
+		if dryRun {
+			continue
+		}
+		if err := mergeStub(st, e, target); err != nil {
+			return merged, sample, err
+		}
+	}
+	return merged, sample, nil
+}
