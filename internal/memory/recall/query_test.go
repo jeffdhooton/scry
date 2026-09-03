@@ -184,3 +184,29 @@ func TestRecallCapIsHardAgainstHostileInputs(t *testing.T) {
 		t.Errorf("clip must count runes: %q", string(r))
 	}
 }
+
+func TestAsksWhyRecognisesAQuestionAboutAReason(t *testing.T) {
+	reasons := []string{
+		"Why can't we add a database trigger that blocks row deletion?",
+		"What broke on trunk when the app shell branch landed?",
+		"What made the first couple of cloud builds fail?",
+		"Two tests were red on the gate - what was actually wrong?",
+		"What is actually holding up hiring for the cleaning business?",
+		"What happened the first time the dongle was plugged in?",
+	}
+	for _, q := range reasons {
+		if !asksWhy(q) {
+			t.Errorf("asksWhy(%q) = false, want true", q)
+		}
+	}
+	plain := []string{
+		"What tailnet address does the Cell Saviors box answer on?",
+		"Who owns the state license lookup site?",
+		"Which search provider does the research agent use?",
+	}
+	for _, q := range plain {
+		if asksWhy(q) {
+			t.Errorf("asksWhy(%q) = true, want false", q)
+		}
+	}
+}

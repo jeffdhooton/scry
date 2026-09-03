@@ -201,3 +201,32 @@ func TestScoreDocScoresOneDocumentLikeSearchDoes(t *testing.T) {
 		t.Errorf("Search disagrees with ScoreDoc: %+v", hits)
 	}
 }
+
+func TestTokenizeQueryJoinsAdjacentWords(t *testing.T) {
+	toks := TokenizeQuery("what address does the Cell Saviors box answer on")
+	var joined bool
+	for _, tok := range toks {
+		if tok == "cellsavior" || tok == "cellsaviors" {
+			joined = true
+		}
+	}
+	if !joined {
+		t.Errorf("a question written as two words must reach a name written as one: %v", toks)
+	}
+	// The original words survive alongside the join.
+	var kept int
+	for _, tok := range toks {
+		if tok == "cell" || tok == "saviors" || tok == "savior" {
+			kept++
+		}
+	}
+	if kept == 0 {
+		t.Errorf("the words themselves must still be searched: %v", toks)
+	}
+	// A long pair produces no token no name would take.
+	for _, tok := range TokenizeQuery("extraordinarily complicated internationalisation configuration") {
+		if len(tok) > maxJoinedToken+1 {
+			t.Errorf("token %q is longer than any name", tok)
+		}
+	}
+}

@@ -13,10 +13,8 @@ package search
 
 import (
 	"math"
-	"os"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -301,7 +299,7 @@ func (ix *Index) Len() int {
 // nil returns current facts only; otherwise facts valid at asOf. Entities
 // are always eligible. Returns up to k hits, best first.
 func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit {
-	toks := Tokenize(q)
+	toks := TokenizeQuery(q)
 	if len(toks) == 0 || k <= 0 {
 		return nil
 	}
@@ -318,13 +316,6 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 	}
 	avg := float64(ix.totalLen) / float64(ix.live)
 	scores := map[int]float64{}
-	// covered tracks how much of the question each document accounts for,
-	// weighted by how rare each term is. A fact that carries every word of
-	// the question beats one that repeats the loudest word: "who watches
-	// cellsaviors and with what login" should answer with the monitoring
-	// fact, not with the twentieth fact about cellsaviors.
-	covered := map[int]float64{}
-	askedFor := 0.0
 	seenTok := map[string]bool{}
 	for _, t := range toks {
 		if seenTok[t] {
@@ -346,7 +337,6 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 		if strings.HasPrefix(t, "^") {
 			weight = prefixWeight
 		}
-		askedFor += weight * idf
 		for _, p := range pl {
 			d := ix.docs[p.doc]
 			if d.Key == "" {
@@ -355,7 +345,6 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 			tf := float64(p.tf)
 			norm := tf * (k1 + 1) / (tf + k1*(1-b+b*float64(ix.lengths[p.doc])/avg))
 			scores[p.doc] += weight * idf * norm
-			covered[p.doc] += weight * idf
 		}
 	}
 	hits := make([]Hit, 0, len(scores))
@@ -366,9 +355,6 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 		}
 		if d.Kind == KindFact && !validAt(d, asOf) {
 			continue
-		}
-		if askedFor > 0 {
-			s *= 1 + coverageWeight*math.Pow(covered[i]/askedFor, coveragePower)
 		}
 		if len(phrase) >= 6 && strings.Contains(strings.ToLower(d.Text), phrase) {
 			s *= 1.5
@@ -390,30 +376,13 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 // coverageWeight is how much a document gains for accounting for the
 // whole question rather than part of it; coveragePower shapes the curve so
 // that covering most of a question is worth much more than covering half.
-var (
-	coverageWeight = tuneFloat("SCRY_COV_W", 1.0)
-	coveragePower  = tuneFloat("SCRY_COV_P", 2.0)
-)
-
-// tuneFloat reads a ranking constant from the environment so a sweep can
-// try values without a rebuild. Unset, which is how it runs everywhere
-// but a tuning session, returns the default.
-func tuneFloat(name string, def float64) float64 {
-	if v := os.Getenv(name); v != "" {
-		if f, err := strconv.ParseFloat(v, 64); err == nil {
-			return f
-		}
-	}
-	return def
-}
-
 // ScoreDoc returns the BM25 score q would give the document at key, using
 // the same corpus statistics as Search. Recall uses it to rank the facts
 // of an entity the query names even when they fell outside the global
 // candidate window: an entity with two hundred facts should still answer
 // with the one that matches.
 func (ix *Index) ScoreDoc(q, key string) float64 {
-	toks := Tokenize(q)
+	toks := TokenizeQuery(q)
 	if len(toks) == 0 {
 		return 0
 	}
@@ -532,3 +501,30 @@ func stem(t string) string {
 	}
 	return t
 }
+
+// TokenizeQuery tokenizes a question, adding the join of each adjacent
+// pair of words. A store writes one name both ways — "cellsaviors" in a
+// hostname and "Cell Saviors" in prose, "macmini" and "Mac mini" — and a
+// question asked one way must reach a fact written the other. Only the
+// query side pays for this; the documents keep their own spelling.
+func TokenizeQuery(q string) []string {
+	toks := Tokenize(q)
+	words := make([]string, 0, len(toks))
+	for _, t := range toks {
+		if strings.HasPrefix(t, "^") || len(t) < 2 {
+			continue
+		}
+		words = append(words, t)
+	}
+	for i := 0; i+1 < len(words); i++ {
+		joined := words[i] + words[i+1]
+		if len(joined) <= maxJoinedToken {
+			toks = append(toks, joined)
+		}
+	}
+	return toks
+}
+
+// maxJoinedToken bounds the join, so a run of long words does not produce
+// tokens no name would ever take.
+const maxJoinedToken = 24

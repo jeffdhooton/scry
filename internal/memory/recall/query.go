@@ -27,7 +27,7 @@ const (
 	// seen.
 	MaxPayloadBytes = 24 * 1024
 	// candidateFacts is how many BM25 hits are re-ranked.
-	candidateFacts = 1000
+	candidateFacts = 4000
 	maxEntities    = 5
 	maxEpisodes    = 3
 	summaryChars   = 300
@@ -37,11 +37,12 @@ const (
 	valueChars    = 200
 	maxProvenance = 5
 	queryChars    = 200
-	// entityBoost is added to a fact's score per query-named entity it
-	// touches; recencyBoost to a fact valid in the last thirty days;
-	// episodeBoost to a fact produced by an episode whose summary the
-	// query matches, scaled by that episode's share of the best score.
-	entityBoost    = 0.5
+	// recencyBoost lifts a fact valid in the last thirty days;
+	// episodeBoost a fact produced by an episode whose summary the query
+	// matches, scaled by that episode's share of the best score.
+	//
+	// reasonBoost lifts a fact that carries a reason when the question
+	// asks for one.
 	recencyBoost   = 0.15
 	episodeBoost   = 2.0
 	maxEpisodeHits = 8
@@ -51,7 +52,7 @@ const (
 // instead. Small and domain-specific on purpose: a general thesaurus would
 // flood the query. Lexical, local, and inspectable.
 var synonyms = map[string][]string{
-	"ssh": {"login", "access", "tailscale", "user"}, "login": {"ssh", "user", "access"},
+	"ssh": {"login", "access", "tailscale", "user"}, "login": {"ssh", "user", "access", "credential", "account", "key"},
 	"tailnet": {"tailscale"}, "tailscale": {"tailnet"},
 	"box": {"machine", "host", "server", "mini", "halo"}, "boxes": {"machines", "hosts", "halo", "halo2"},
 	"machine": {"box", "host", "mini"}, "host": {"machine", "box", "server"},
@@ -76,6 +77,92 @@ var synonyms = map[string][]string{
 	"gpu": {"halo", "inference", "vram"}, "inference": {"model", "halo", "llm"},
 	"phone": {"mobile", "ios", "android", "expo"}, "mobile": {"phone", "expo", "app"},
 	"email": {"gmail", "gog", "mail"}, "calendar": {"gog", "gcal"},
+
+	// How people ask about the same thing. Memory writes what a session
+	// said; a question is asked in the words of whoever is asking, and
+	// these are the pairs that kept missing each other.
+	"watching":    {"monitors", "monitor", "watch", "checks"},
+	"watches":     {"monitors", "monitor", "watch", "checks"},
+	"eye":         {"monitors", "watch", "checks", "monitoring"},
+	"monitor":     {"watch", "checks", "monitoring", "monitors"},
+	"outstanding": {"remaining", "missing", "left", "todo", "pending"},
+	"remaining":   {"outstanding", "missing", "left"},
+	"holding":     {"blocked", "blocker", "blocking", "long pole", "waiting"},
+	"blocker":     {"blocked", "blocking", "holding"},
+	"broke":       {"broken", "failed", "failure", "regression", "caused"},
+	"broken":      {"broke", "failed", "failure"},
+	"wrong":       {"failed", "failure", "error", "bug", "incorrect"},
+	"online":      {"live", "deployed", "reachable", "up", "serving"},
+	"live":        {"online", "deployed", "production", "serving"},
+	"bought":      {"registered", "purchased", "domain", "registrar"},
+	"buy":         {"registered", "purchase", "registrar"},
+	"allowed":     {"cap", "capped", "limit", "quota", "budget"},
+	"budget":      {"cap", "capped", "limit", "quota", "spend"},
+	"holds":       {"loaded", "resident", "memory", "capacity"},
+	"hold":        {"loaded", "resident", "capacity"},
+	"agent":       {"assistant", "worker", "session"},
+	"overnight":   {"nightly", "night", "scheduled", "cron"},
+	"criteria":    {"bar", "requirements", "acceptance", "definition of done"},
+	"acceptance":  {"criteria", "bar", "requirements"},
+	"disappeared": {"lost", "dropped", "silently", "missing", "never arrived"},
+	"lost":        {"dropped", "disappeared", "missing"},
+	"joined":      {"connect", "connected", "network", "wifi", "ssid"},
+	"join":        {"connect", "connected", "network", "ssid"},
+	"plugged":     {"attached", "connected", "usb", "adapter"},
+	"outage":      {"down", "unavailable", "unreachable", "offline"},
+	"traffic":     {"requests", "calls", "network", "http"},
+	"red":         {"failing", "failed", "broken"},
+	"gate":        {"check", "ci", "suite", "pipeline"},
+	"primary":     {"first", "default", "main model"},
+	"hiring":      {"recruiting", "candidates", "onboarding", "staffing"},
+	"trunk":       {"main", "master"},
+	"cloud":       {"eas", "hosted", "remote", "ci"},
+}
+
+// entityBoost is added to a fact's score for each entity the query names
+// that the fact touches. Naming an entity is the strongest signal a
+// question gives: the answer is nearly always a fact about the thing
+// asked about, and BM25 alone puts the store's loudest fact first
+// instead.
+// entityBoost is added to a fact's score for each entity the query names
+// that the fact touches. It is deliberately small: a bigger prior was
+// tried and made retrieval worse on both question sets, because lifting
+// every fact about the named thing pushes the one that answers the
+// question out of the window along with the rest.
+const entityBoost = 0.5
+
+// reasonBoost lifts a fact that carries a reason when the question asks
+// for one.
+// reasonBoost lifts a fact that carries a reason when the question asks
+// for one. Eight measured best on both sets; sixteen starts costing
+// questions that are not about reasons.
+const reasonBoost = 8.0
+
+// reasonRelations carry why something is the way it is, rather than what
+// it is. A question asking why, or what broke, is answered by one of
+// these far more often than by the most-mentioned fact about the subject.
+var reasonRelations = map[string]bool{
+	"causes": true, "caused_by": true, "blocked_by": true, "blocks": true,
+	"decided": true, "fixes": true, "prevents": true, "requires": true,
+	"lacks": true, "depends_on": true, "replaced_by": true,
+}
+
+// whyWords open, or appear in, a question about a reason or a failure.
+var whyWords = map[string]bool{
+	"why": true, "broke": true, "broken": true, "caused": true, "cause": true,
+	"failed": true, "failing": true, "fail": true, "wrong": true, "blocked": true,
+	"blocking": true, "holding": true, "happened": true, "decided": true,
+	"reason": true, "because": true, "prevented": true, "stopped": true,
+}
+
+// asksWhy reports whether a question is after a reason or a failure.
+func asksWhy(q string) bool {
+	for _, w := range strings.Fields(strings.ToLower(q)) {
+		if whyWords[strings.Trim(w, "?.,'\"")] {
+			return true
+		}
+	}
+	return false
 }
 
 // expand appends synonym words to q so the BM25 pass sees them. The
@@ -218,9 +305,13 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 		}
 		hits := ix.Search(expanded, []string{search.KindFact}, asOf, candidateFacts)
 		now := time.Now()
+		wantsReason := asksWhy(q)
 		for _, h := range hits {
 			f := h.Doc.Fact
 			s := h.Score
+			if wantsReason && reasonRelations[f.Relation] {
+				s += reasonBoost
+			}
 			for _, slug := range h.Doc.Slugs {
 				if w, ok := named[slug]; ok {
 					s += entityBoost * (1 + w/4)
