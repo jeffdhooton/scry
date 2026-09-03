@@ -664,3 +664,29 @@ the hermes-ops project were one entity; separating them moved the deploy
 facts onto the service, which is where they belong. The probe now expects
 `hermes`, and this note records the change so the seven-of-seven is not
 read as unbroken.
+
+
+## Durability measured against a real outage, 2026-09-03
+
+The grader for item 2 had to simulate a provider outage by pointing the
+chain at an unroutable address, because the clause asks for one. Both
+provider accounts then emptied on their own and stayed empty for five
+hours, which is a better test than the simulation.
+
+| After five hours with no provider | |
+|---|---|
+| Items held in the queue | 2,087 (335 ready, 1,752 backing off) |
+| Items parked | 0 |
+| Dead-letter files on the store's machine | 0 |
+| Highest retry attempt reached without being dropped | 88 |
+| Episodes or facts lost | none |
+
+A billing refusal does not spend an item's attempt budget, which is why
+an item can reach attempt 88 and still be waiting rather than parked.
+The seven dead-letter files on the laptop all predate this work
+(19–25 August) and were archived to
+`~/.scry/backups/dead-letter-archive-20260903/`.
+
+What still cannot be measured is the other half of the clause: that all
+twenty resolve into facts within ten minutes of the provider returning.
+No provider has returned.
