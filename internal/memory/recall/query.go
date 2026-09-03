@@ -52,32 +52,28 @@ const (
 // synonyms expands a query token with the words the facts tend to use
 // instead. Small and domain-specific on purpose: a general thesaurus would
 // flood the query. Lexical, local, and inspectable.
+// A synonym maps one English word to another. It never maps a word to
+// the name of an entity: "box" once expanded to mini and halo, and every
+// question containing the word came back full of facts about the two
+// loudest machines in the graph whatever it had asked. A grader measured
+// the table as negatively correlated with success on questions it had
+// not been fitted to, and that entry was the mechanism.
 var synonyms = map[string][]string{
 	"ssh": {"login", "access", "tailscale", "user"}, "login": {"ssh", "user", "access", "credential", "account", "key"},
 	"tailnet": {"tailscale"}, "tailscale": {"tailnet"},
-	"box": {"machine", "host", "server", "mini", "halo"}, "boxes": {"machines", "hosts", "halo", "halo2"},
-	"machine": {"box", "host", "mini"}, "host": {"machine", "box", "server"},
 	"wired": {"cable", "link", "connected", "10gbe"}, "cable": {"wired", "link"}, "link": {"cable", "wired"},
 	"charges": {"cost", "spend", "billing", "api key", "balance"}, "cost": {"price", "spend", "charges", "cheap"},
 	"spend": {"cost", "charges", "budget", "credit"}, "billing": {"balance", "cost", "402"},
-	"container": {"docker", "compose"}, "containers": {"docker", "compose"}, "docker": {"container", "compose"},
-	"natively": {"launchd", "brew", "docker"},
-	"commit":   {"push", "merge", "main"}, "lands": {"merge", "push", "deploy"}, "landed": {"merged", "pushed"},
+	"commit": {"push", "merge", "main"}, "lands": {"merge", "push", "deploy"}, "landed": {"merged", "pushed"},
 	"provider": {"model", "api", "endpoint"}, "fallback": {"falls back", "fall back"}, "fall": {"fallback"},
-	"database": {"postgres", "mysql", "sqlite", "db"}, "databases": {"postgres", "mysql", "db"},
-	"object store": {"minio", "s3", "r2"}, "storage": {"store", "disk", "bucket"},
 	"recording": {"audio", "record", "retain", "persist"}, "recordings": {"audio", "files"}, "voice": {"audio", "speech"},
 	"watchdog": {"monitor", "guard", "cron", "kill"}, "runaway": {"watchdog", "limit", "cap"},
-	"ingestion": {"sweep", "ingest", "launchd"}, "drives": {"runs", "sweep", "launchd", "cron"},
-	"process": {"launchd", "job", "daemon"}, "pipeline": {"chain", "stages", "extraction"},
-	"cheap": {"flash", "cost"}, "thinking": {"reasoning", "pro"}, "stages": {"chain", "pipeline"},
-	"environments": {"sites", "forge", "deploys", "staging", "production"}, "web": {"site", "forge"},
+	"ingestion": {"sweep", "ingest", "launchd"},
+	"process":   {"launchd", "job", "daemon"}, "pipeline": {"chain", "stages", "extraction"},
+	"thinking": {"reasoning", "pro"}, "stages": {"chain", "pipeline"},
 	"credentials": {"key", "token", "env"}, "secret": {"key", "token", "env"}, "password": {"keyring", "secret"},
 	"address": {"ip", "host", "url", "endpoint"}, "port": {"endpoint", "listen"},
 	"restart": {"kickstart", "launchctl"}, "schedule": {"cron", "launchd", "interval"},
-	"gpu": {"halo", "inference", "vram"}, "inference": {"model", "halo", "llm"},
-	"phone": {"mobile", "ios", "android", "expo"}, "mobile": {"phone", "expo", "app"},
-	"email": {"gmail", "gog", "mail"}, "calendar": {"gog", "gcal"},
 
 	// How people ask about the same thing. Memory writes what a session
 	// said; a question is asked in the words of whoever is asking, and
@@ -299,6 +295,8 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 	var scored []FactHit
 	if ix != nil {
 		expanded := expand(q)
+		// Borrow the store's own words for whatever this question is
+		// about, from the facts the question already reaches.
 		// Episodes whose summary matches: their facts get a boost scaled by
 		// the episode's share of the best episode score.
 		epScore := map[string]float64{}

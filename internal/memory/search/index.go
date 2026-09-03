@@ -13,8 +13,10 @@ package search
 
 import (
 	"math"
+	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -333,9 +335,9 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 			continue
 		}
 		idf := math.Log(1 + (float64(ix.live)-float64(df)+0.5)/(float64(df)+0.5))
-		weight := 1.0
+		w := 1.0
 		if strings.HasPrefix(t, "^") {
-			weight = prefixWeight
+			w = prefixWeight
 		}
 		for _, p := range pl {
 			d := ix.docs[p.doc]
@@ -344,7 +346,7 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 			}
 			tf := float64(p.tf)
 			norm := tf * (k1 + 1) / (tf + k1*(1-b+b*float64(ix.lengths[p.doc])/avg))
-			scores[p.doc] += weight * idf * norm
+			scores[p.doc] += w * idf * norm
 		}
 	}
 	hits := make([]Hit, 0, len(scores))
@@ -528,3 +530,26 @@ func TokenizeQuery(q string) []string {
 // maxJoinedToken bounds the join, so a run of long words does not produce
 // tokens no name would ever take.
 const maxJoinedToken = 24
+
+// tuneFloat reads a ranking constant from the environment so a sweep can
+// try values without a rebuild. Unset returns the default.
+func tuneFloat(name string, def float64) float64 {
+	if v := os.Getenv(name); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	}
+	return def
+}
+
+// TuneFloat reads a ranking constant from the environment so a sweep can
+// try values without a rebuild. Unset, which is how it runs everywhere
+// but a tuning session, returns the default.
+func TuneFloat(name string, def float64) float64 {
+	if v := os.Getenv(name); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	}
+	return def
+}
