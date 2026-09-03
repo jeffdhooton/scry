@@ -143,13 +143,6 @@ const reasonBoost = 8.0
 // sixteen it starts costing questions that words answer perfectly well.
 const meaningWeight = 8.0
 
-// meaningCandidates is how many facts the vector model contributes on
-// its own; minMeaning is the cosine below which a fact is not about the
-// question at all.
-var meaningCandidates = int(search.TuneFloat("SCRY_MEANING_K", 200))
-
-var minMeaning = search.TuneFloat("SCRY_MEANING_MIN", 0.25)
-
 // reasonRelations carry why something is the way it is, rather than what
 // it is. A question asking why, or what broke, is answered by one of
 // these far more often than by the most-mentioned fact about the subject.
@@ -310,8 +303,6 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 	var scored []FactHit
 	if ix != nil {
 		expanded := expand(q)
-		// Borrow the store's own words for whatever this question is
-		// about, from the facts the question already reaches.
 		// Episodes whose summary matches: their facts get a boost scaled by
 		// the episode's share of the best episode score.
 		epScore := map[string]float64{}
@@ -325,17 +316,10 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 		}
 		hits := ix.Search(expanded, []string{search.KindFact}, asOf, candidateFacts)
 		now := time.Now()
-		// The question in the vector model, for the facts that share no
-		// word with it.
+		// The question in the vector model, used to rank what the words
+		// found.
 		qv := ix.EmbedQuery(q)
 		mw := meaningWeight
-		// Facts the words cannot reach. Without this the vector only
-		// reorders what BM25 already found, which is a re-ranker rather
-		// than a way of finding anything.
-		byMeaning := map[string]float64{}
-		for _, n := range ix.NearestFacts(qv, meaningCandidates, minMeaning, asOf) {
-			byMeaning[n.Key] = n.Sim
-		}
 		wantsReason := asksWhy(q)
 		for _, h := range hits {
 			f := h.Doc.Fact
@@ -362,24 +346,6 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 					}
 				}
 				s += episodeBoost * top / best
-			}
-			scored = append(scored, toHit(f, s))
-			delete(byMeaning, h.Doc.Key)
-		}
-		// What meaning found and the words did not.
-		for key, sim := range byMeaning {
-			f, ok := ix.FactByKey(key)
-			if !ok {
-				continue
-			}
-			s := mw * sim
-			for _, slug := range []string{f.Src, f.Dst} {
-				if w, ok := named[slug]; ok && slug != "" {
-					s += entityBoost * (1 + w/4)
-				}
-			}
-			if now.Sub(f.ValidFrom) < 30*24*time.Hour {
-				s += recencyBoost
 			}
 			scored = append(scored, toHit(f, s))
 		}

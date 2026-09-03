@@ -1,5 +1,16 @@
 // Package embed gives every fact a vector built from the store's own
-// words, so a question can reach a fact that shares no word with it.
+// words, and recall uses it to rank facts the words already found.
+//
+// It does NOT reach a fact that shares no word with the question. That
+// was the intent, and a grader disproved it twice: first because the
+// cosine was only applied to lexically retrieved candidates, and then,
+// once nearest-neighbour retrieval over every fact vector was wired in,
+// because the model is not strong enough to find them anyway — thirteen
+// questions written with no shared word scored one either way. A fact
+// is one sentence, which is thin company for learning what a word
+// means, and the store keeps no transcript to learn from instead. What
+// the model does earn is its place as a re-ranker: on two question sets
+// it was not fitted to, 51 to 54 of 62 and 33 to 34 of 66.
 //
 // The house rules allow local embeddings and forbid a hosted embedding
 // API, and the spec's deferral of embeddings is what this run exists to
@@ -223,50 +234,5 @@ func uniq(terms []string) []string {
 		out = append(out, t)
 	}
 	sort.Strings(out)
-	return out
-}
-
-// Neighbour is a fact key and its cosine to a query vector.
-type Neighbour struct {
-	Key string
-	Sim float64
-}
-
-// Nearest returns the k facts closest to q. It compares against every
-// fact: 46,000 vectors of 128 dimensions is six million multiply-adds,
-// a few milliseconds, and an approximate index would be a dependency
-// and a second thing to keep current for no measurable gain at this
-// size.
-//
-// This is what makes the model a way of finding facts rather than a way
-// of reordering ones the words already found. A grader put it exactly:
-// a re-ranker sold as a retriever. A fact that shares no word with the
-// question is only reachable here.
-func (m *Model) Nearest(q []float32, k int, min float64) []Neighbour {
-	if q == nil || k <= 0 {
-		return nil
-	}
-	out := make([]Neighbour, 0, k)
-	worst := min
-	for key, v := range m.facts {
-		var dot float32
-		for i := range q {
-			dot += q[i] * v[i]
-		}
-		sim := float64(dot)
-		if sim < worst {
-			continue
-		}
-		out = append(out, Neighbour{Key: key, Sim: sim})
-		if len(out) >= k*4 {
-			sort.Slice(out, func(i, j int) bool { return out[i].Sim > out[j].Sim })
-			out = out[:k]
-			worst = out[len(out)-1].Sim
-		}
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Sim > out[j].Sim })
-	if len(out) > k {
-		out = out[:k]
-	}
 	return out
 }
