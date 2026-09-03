@@ -204,7 +204,7 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 		budgetChars = defaultOrientBudget
 	}
 
-	repoEntities, err := repoEntitiesForCwd(st, cwd)
+	repoPath, repoEntities, err := repoEntitiesForCwd(st, cwd)
 	if err != nil {
 		return "", err
 	}
@@ -212,13 +212,19 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 	for _, e := range repoEntities {
 		repoSlugs[e.Slug] = true
 	}
-	ranked, err := rankForOrient(st, repoEntities, maxRepoEntities)
+	// Episodes that ran in this repository. What happened here outranks
+	// what merely mentions it, whichever agent's session it came from.
+	local, err := episodesInRepo(st, repoPath)
+	if err != nil {
+		return "", err
+	}
+	ranked, err := rankForOrient(st, repoEntities, local, maxRepoEntities)
 	if err != nil {
 		return "", err
 	}
 	repoBullets := make([]string, 0, len(ranked))
 	for _, e := range ranked {
-		texts, err := recentFactTexts(st, e.Slug, maxRepoFacts)
+		texts, err := factTextsForRepo(st, e.Slug, maxRepoFacts, local)
 		if err != nil {
 			return "", err
 		}
@@ -278,14 +284,71 @@ func clipEach(texts []string, n int) []string {
 	return out
 }
 
-// rankForOrient picks the limit most worth mentioning: most recently seen
-// first, ties broken by how many current facts touch them. A typed entity
-// outranks a bare concept at the same recency, since a concept stub is
-// usually a phrase someone said once.
-func rankForOrient(st *store.Store, entities []store.Entity, limit int) ([]store.Entity, error) {
+// episodesInRepo returns the ids of episodes whose session ran in repo.
+// Episodes carry their working directory since 2026-09-03; older ones do
+// not, and simply do not count as local.
+func episodesInRepo(st *store.Store, repo string) (map[string]bool, error) {
+	if repo == "" {
+		return nil, nil
+	}
+	eps, err := st.AllEpisodes()
+	if err != nil {
+		return nil, err
+	}
+	local := map[string]bool{}
+	for _, e := range eps {
+		if e.CwdIsRepo && e.Cwd == repo {
+			local[e.ID] = true
+		}
+	}
+	return local, nil
+}
+
+// citesLocal reports whether f's provenance includes an episode that ran
+// in this repository.
+func citesLocal(f store.Fact, local map[string]bool) bool {
+	for _, id := range f.Episodes {
+		if local[id] {
+			return true
+		}
+	}
+	return false
+}
+
+// factTextsForRepo returns up to limit fact texts about slug, preferring
+// facts that came from a session in this repository, then the most recent.
+func factTextsForRepo(st *store.Store, slug string, limit int, local map[string]bool) ([]string, error) {
+	facts, err := st.FactsAbout(slug, false)
+	if err != nil {
+		return nil, err
+	}
+	sort.SliceStable(facts, func(i, j int) bool {
+		li, lj := citesLocal(facts[i], local), citesLocal(facts[j], local)
+		if li != lj {
+			return li
+		}
+		return facts[i].ValidFrom.After(facts[j].ValidFrom)
+	})
+	if len(facts) > limit {
+		facts = facts[:limit]
+	}
+	texts := make([]string, 0, len(facts))
+	for _, f := range facts {
+		texts = append(texts, f.Fact)
+	}
+	return texts, nil
+}
+
+// rankForOrient picks the limit most worth mentioning. What happened in
+// this repository comes first (facts whose provenance ran here), then
+// recency by day, then a typed entity over a bare concept, then how
+// specific the entity is to this repo — an entity claiming six
+// repositories is a category, not this repo's work — then degree.
+func rankForOrient(st *store.Store, entities []store.Entity, local map[string]bool, limit int) ([]store.Entity, error) {
 	type scored struct {
-		e      store.Entity
-		degree int
+		e         store.Entity
+		degree    int
+		localHits int
 	}
 	out := make([]scored, 0, len(entities))
 	for _, e := range entities {
@@ -296,7 +359,13 @@ func rankForOrient(st *store.Store, entities []store.Entity, limit int) ([]store
 		if len(facts) == 0 {
 			continue
 		}
-		out = append(out, scored{e: e, degree: len(facts)})
+		hits := 0
+		for _, f := range facts {
+			if citesLocal(f, local) {
+				hits++
+			}
+		}
+		out = append(out, scored{e: e, degree: len(facts), localHits: hits})
 	}
 	typedRank := func(t string) int {
 		if t == "" || t == "concept" {
@@ -306,14 +375,23 @@ func rankForOrient(st *store.Store, entities []store.Entity, limit int) ([]store
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
-		// Same day counts as the same recency, so degree and type decide
-		// among everything touched in one working session.
+		if (a.localHits > 0) != (b.localHits > 0) {
+			return a.localHits > 0
+		}
+		// Same day counts as the same recency, so the rest decides among
+		// everything touched in one working session.
 		da, db := a.e.LastSeen.Truncate(24*time.Hour), b.e.LastSeen.Truncate(24*time.Hour)
 		if !da.Equal(db) {
 			return da.After(db)
 		}
 		if ta, tb := typedRank(a.e.Type), typedRank(b.e.Type); ta != tb {
 			return ta > tb
+		}
+		if la, lb := len(a.e.RepoRefs), len(b.e.RepoRefs); la != lb {
+			return la < lb // more specific to this repo
+		}
+		if a.localHits != b.localHits {
+			return a.localHits > b.localHits
 		}
 		if a.degree != b.degree {
 			return a.degree > b.degree
@@ -351,18 +429,19 @@ func recentFactTexts(st *store.Store, slug string, limit int) ([]string, error) 
 // repoEntitiesForCwd tries EntitiesByRepoRef at cwd, then walks up one path
 // component at a time (stopping at the /Users/<name> level, i.e. once the
 // path is down to 2 components) until a match is found or candidates run
-// out.
-func repoEntitiesForCwd(st *store.Store, cwd string) ([]store.Entity, error) {
+// out. It also returns the path that matched, so the caller can ask which
+// episodes ran there.
+func repoEntitiesForCwd(st *store.Store, cwd string) (string, []store.Entity, error) {
 	for _, cand := range walkUpCandidates(cwd) {
 		entities, err := st.EntitiesByRepoRef(cand)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 		if len(entities) > 0 {
-			return entities, nil
+			return cand, entities, nil
 		}
 	}
-	return nil, nil
+	return "", nil, nil
 }
 
 func walkUpCandidates(cwd string) []string {

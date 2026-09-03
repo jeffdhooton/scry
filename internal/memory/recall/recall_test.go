@@ -257,3 +257,56 @@ func TestOrientRanksRecentAndConnectedFirst(t *testing.T) {
 		t.Errorf("an entity with no current fact must not appear:\n%s", md)
 	}
 }
+
+func TestOrientPrefersWhatHappenedInThisRepo(t *testing.T) {
+	s := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	repo := "/Users/jeff/workspace/thing"
+	// An episode that ran here, from an OpenCode session.
+	if err := s.PutEpisode(store.Episode{ID: "oc1", Source: "opencode-session", Summary: "local work",
+		OccurredAt: now, IngestedAt: now, Cwd: repo, CwdIsRepo: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PutEpisode(store.Episode{ID: "cl1", Source: "claude-session", Summary: "elsewhere",
+		OccurredAt: now, IngestedAt: now, Cwd: "/Users/jeff/workspace/other", CwdIsRepo: true}); err != nil {
+		t.Fatal(err)
+	}
+	put := func(slug, typ string, refs []string, facts []store.Fact) {
+		if err := s.PutEntity(store.Entity{Slug: slug, Name: slug, Type: typ, RepoRefs: refs, CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range facts {
+			f.Src, f.ValidFrom, f.Confidence = slug, now, 0.9
+			if err := s.PutFact(f); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	// A global entity claiming many repos, busier and typed, but nothing
+	// of it happened here.
+	many := []string{repo, "/a", "/b", "/c", "/d"}
+	global := make([]store.Fact, 0, 6)
+	for i := range 6 {
+		global = append(global, store.Fact{Relation: "status", Value: fmt.Sprintf("g%d", i), Fact: fmt.Sprintf("global fact %d", i), Episodes: []string{"cl1"}})
+	}
+	put("global-thing", "project", many, global)
+	// A small local entity whose fact came from the OpenCode session here.
+	put("local-thing", "project", []string{repo}, []store.Fact{
+		{Relation: "status", Value: "done", Fact: "the opencode session finished the local thing", Episodes: []string{"oc1"}},
+	})
+
+	md, err := Orient(s, repo, 2000, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iLocal, iGlobal := strings.Index(md, "local-thing"), strings.Index(md, "global-thing")
+	if iLocal < 0 {
+		t.Fatalf("orient omitted this repo's own work:\n%s", md)
+	}
+	if iGlobal >= 0 && iGlobal < iLocal {
+		t.Errorf("a global entity outranked work done here:\n%s", md)
+	}
+	if !strings.Contains(md, "the opencode session finished the local thing") {
+		t.Errorf("orient must surface the fact from the session that ran here:\n%s", md)
+	}
+}
