@@ -34,8 +34,11 @@ import (
 // DefaultExclusive names relations for which an entity may have at most one
 // current fact at a time: extracting a new dst invalidates the old one
 // (Rule 6) rather than letting both stand as current.
+// deployed_on is deliberately absent: one thing is deployed in more than
+// one place at once (staging and production, laptop and mini), and
+// treating it as exclusive silently invalidated 497 facts that were all
+// still true, including where a web app runs.
 var DefaultExclusive = map[string]bool{
-	"deployed_on": true,
 	"status":      true,
 	"replaced_by": true,
 }

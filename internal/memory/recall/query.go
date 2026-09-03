@@ -439,7 +439,7 @@ func diversify(in []FactHit) []FactHit {
 	kept := make([]FactHit, 0, len(in))
 	var demoted []FactHit
 	pair := map[string]int{}
-	var sigs []map[string]bool
+	var sigs []sig
 	for _, h := range in[:n] {
 		key := h.Src + "\x00" + h.Dst
 		sig := textSig(h.Fact)
@@ -464,23 +464,66 @@ func diversify(in []FactHit) []FactHit {
 	return append(kept, demoted...)
 }
 
-// textSig is a fact's set of content words, lowercased, short words and
-// punctuation dropped.
-func textSig(s string) map[string]bool {
-	out := map[string]bool{}
+// sig is a fact reduced for comparison: its content words, and its
+// numbers kept apart from them. Two facts about this machine differ in
+// an address octet, a port, or a version far more often than in their
+// prose, so numbers decide the question before words are weighed.
+type sig struct {
+	words map[string]bool
+	nums  map[string]bool
+}
+
+// textSig splits a fact into content words and numbers, lowercased, with
+// punctuation and one- and two-letter words dropped.
+func textSig(s string) sig {
+	out := sig{words: map[string]bool{}, nums: map[string]bool{}}
 	for _, w := range strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	}) {
+		if isNumber(w) {
+			out.nums[w] = true
+			continue
+		}
 		if len(w) > 2 {
-			out[w] = true
+			out.words[w] = true
 		}
 	}
 	return out
 }
 
-// sameSentence reports whether two facts say the same thing: most of the
-// shorter one's words appear in the longer.
-func sameSentence(a, b map[string]bool) bool {
+// isNumber reports whether a token is all digits.
+func isNumber(w string) bool {
+	if w == "" {
+		return false
+	}
+	for _, r := range w {
+		if !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// sameNums reports whether two facts carry the same numbers.
+func sameNums(a, b sig) bool {
+	if len(a.nums) != len(b.nums) {
+		return false
+	}
+	for n := range a.nums {
+		if !b.nums[n] {
+			return false
+		}
+	}
+	return true
+}
+
+// sameSentence reports whether two facts say the same thing: the same
+// numbers, and most of the shorter one's words appearing in the longer.
+func sameSentence(x, y sig) bool {
+	if !sameNums(x, y) {
+		return false
+	}
+	a, b := x.words, y.words
 	if len(a) == 0 || len(b) == 0 {
 		return false
 	}

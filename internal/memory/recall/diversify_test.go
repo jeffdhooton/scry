@@ -60,6 +60,10 @@ func TestSameSentenceIsNotFooledByShortFacts(t *testing.T) {
 		{"Scry uses BadgerDB", "Scry uses SQLite", false},
 		{"The mini runs the daemon", "The laptop runs the daemon", false},
 		{"Extraction runs on GLM", "Extraction runs on GLM first, then DeepSeek, and never on a third party", false},
+		// Two facts whose prose is identical and whose address is not.
+		{"halo enp191s0 has static IP 192.168.100.1/30 with MTU 9000", "halo2 enp191s0 has carrier and static IP 192.168.100.2/30 with MTU 9000", false},
+		{"The daemon listens on port 45679", "The daemon listens on port 7279", false},
+		{"The daemon listens on port 45679", "The daemon listens on port 45679.", true},
 	}
 	for _, c := range cases {
 		if got := sameSentence(textSig(c.a), textSig(c.b)); got != c.same {

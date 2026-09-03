@@ -294,3 +294,65 @@ func TestRunRestoresWronglyDemotedAttributes(t *testing.T) {
 		t.Errorf("measurement attribute must stay: %v", keys(got))
 	}
 }
+
+func TestRestoreDeployedOnBringsBackWhatExclusivityTook(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	later := now.Add(24 * time.Hour)
+	for _, e := range []string{"cockpit", "cockpit-daemon", "mac-mini", "advocates", "forge", "retired-app", "old-host"} {
+		if err := st.PutEntity(store.Entity{Slug: e, Name: e, Type: "project", CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put := func(f store.Fact) {
+		if err := st.PutFact(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Retired by exclusivity: its invalid_at is the ValidFrom of the fact
+	// that replaced it.
+	put(store.Fact{Src: "cockpit", Relation: "deployed_on", Dst: "cockpit-daemon", Fact: "Cockpit ships its own MCP daemon at http://127.0.0.1:45679/mcp", ValidFrom: now, InvalidAt: &later, Confidence: 1})
+	put(store.Fact{Src: "cockpit", Relation: "deployed_on", Dst: "mac-mini", Fact: "cockpit deployed to the mini", ValidFrom: later, Confidence: 1})
+	// Retired for another reason: nothing current starts at its invalid_at.
+	other := now.Add(72 * time.Hour)
+	put(store.Fact{Src: "retired-app", Relation: "deployed_on", Dst: "old-host", Fact: "retired-app ran on old-host until it was decommissioned", ValidFrom: now, InvalidAt: &other, Confidence: 1})
+	// Untouched current fact.
+	put(store.Fact{Src: "advocates", Relation: "deployed_on", Dst: "forge", Fact: "Advocates runs on forge", ValidFrom: now, Confidence: 1})
+
+	var rep Report
+	if err := restoreDeployedOn(st, false, &rep); err != nil {
+		t.Fatal(err)
+	}
+	if rep.DeployedOnRestored != 1 {
+		t.Fatalf("restored = %d, want 1", rep.DeployedOnRestored)
+	}
+	facts, err := st.FactsFrom("cockpit", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var current int
+	for _, f := range facts {
+		if f.InvalidAt == nil {
+			current++
+		}
+	}
+	if current != 2 {
+		t.Errorf("cockpit current deployed_on facts = %d, want both", current)
+	}
+	retired, err := st.FactsFrom("retired-app", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(retired) != 1 || retired[0].InvalidAt == nil {
+		t.Errorf("a fact retired for another reason must stay retired: %+v", retired)
+	}
+}
+
+func TestDeployedOnIsNotExclusive(t *testing.T) {
+	if resolve.DefaultExclusive["deployed_on"] {
+		t.Error("deployed_on must not be exclusive: one thing is deployed in more than one place")
+	}
+	if !resolve.DefaultExclusive["status"] {
+		t.Error("status must stay exclusive")
+	}
+}

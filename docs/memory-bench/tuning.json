@@ -73,7 +73,10 @@
   {
     "question": "How does the laptop reach the shared memory graph that lives on another machine?",
     "expect": {
-      "fact_substring": "through a launchd-managed SSH StreamLocalForward"
+      "any_of": [
+        "through a launchd-managed SSH StreamLocalForward",
+        "SSH StreamLocalForward at ~/.scry/shared-memory.sock"
+      ]
     },
     "note": "1538d183: jeffs-mac reaches the memory graph through a launchd-managed SSH StreamLocalForward"
   },

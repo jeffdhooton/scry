@@ -546,7 +546,8 @@ func TestApply_Supersedes_OnMergedFact(t *testing.T) {
 	}
 }
 
-// Rule 6: exclusive relation flip.
+// Rule 6: exclusive relation flip. replaced_by is exclusive: a thing has
+// one successor. deployed_on is not, so it is no longer the example here.
 func TestApply_ExclusiveFlip(t *testing.T) {
 	st := openTemp(t)
 	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -555,7 +556,7 @@ func TestApply_ExclusiveFlip(t *testing.T) {
 	ep1 := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: t1, IngestedAt: t1}
 	res1 := extract.Result{
 		Facts: []extract.Fct{
-			{Src: "hermes-mini", Relation: "deployed_on", Dst: "digitalocean", Fact: "deployed on DO", Confidence: 0.9},
+			{Src: "hermes-mini", Relation: "replaced_by", Dst: "digitalocean", Fact: "deployed on DO", Confidence: 0.9},
 		},
 	}
 	if _, err := Apply(st, ep1, "", res1, DefaultExclusive); err != nil {
@@ -565,7 +566,7 @@ func TestApply_ExclusiveFlip(t *testing.T) {
 	ep2 := store.Episode{ID: "ep-2", Source: "manual", SourceRef: "y", OccurredAt: t2, IngestedAt: t2}
 	res2 := extract.Result{
 		Facts: []extract.Fct{
-			{Src: "hermes-mini", Relation: "deployed_on", Dst: "jclaws-mac-mini", Fact: "deployed on the mini", Confidence: 0.95},
+			{Src: "hermes-mini", Relation: "replaced_by", Dst: "jclaws-mac-mini", Fact: "deployed on the mini", Confidence: 0.95},
 		},
 	}
 	stats2, err := Apply(st, ep2, "", res2, DefaultExclusive)
@@ -590,7 +591,7 @@ func TestApply_ExclusiveFlip(t *testing.T) {
 		}
 	}
 	if old == nil || old.InvalidAt == nil {
-		t.Fatalf("expected old deployed_on fact invalidated: %+v", old)
+		t.Fatalf("expected old replaced_by fact invalidated: %+v", old)
 	}
 	if !old.InvalidAt.Equal(t2) {
 		t.Fatalf("expected InvalidAt == ep2.OccurredAt, got %v", old.InvalidAt)
@@ -610,8 +611,8 @@ func TestApply_ExclusiveFlip_OrderIndependent(t *testing.T) {
 	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	t2 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	restatement := extract.Fct{Src: "hermes-mini", Relation: "deployed_on", Dst: "digitalocean", Fact: "still on DO", Confidence: 0.85}
-	flip := extract.Fct{Src: "hermes-mini", Relation: "deployed_on", Dst: "jclaws-mac-mini", Fact: "moved to the mini", Confidence: 0.95}
+	restatement := extract.Fct{Src: "hermes-mini", Relation: "replaced_by", Dst: "digitalocean", Fact: "still on DO", Confidence: 0.85}
+	flip := extract.Fct{Src: "hermes-mini", Relation: "replaced_by", Dst: "jclaws-mac-mini", Fact: "moved to the mini", Confidence: 0.95}
 
 	orderings := map[string][]extract.Fct{
 		"restatement_then_flip": {restatement, flip},
@@ -624,7 +625,7 @@ func TestApply_ExclusiveFlip_OrderIndependent(t *testing.T) {
 			ep0 := store.Episode{ID: "ep-0", Source: "manual", SourceRef: "seed", OccurredAt: t1, IngestedAt: t1}
 			res0 := extract.Result{
 				Facts: []extract.Fct{
-					{Src: "hermes-mini", Relation: "deployed_on", Dst: "digitalocean", Fact: "deployed on DO", Confidence: 0.9},
+					{Src: "hermes-mini", Relation: "replaced_by", Dst: "digitalocean", Fact: "deployed on DO", Confidence: 0.9},
 				},
 			}
 			if _, err := Apply(st, ep0, "", res0, DefaultExclusive); err != nil {
@@ -689,7 +690,7 @@ func TestApply_InvalidAtClampedToValidFrom(t *testing.T) {
 	ep1 := store.Episode{ID: "ep-1", Source: "manual", SourceRef: "x", OccurredAt: validFrom, IngestedAt: validFrom}
 	res1 := extract.Result{
 		Facts: []extract.Fct{
-			{Src: "hermes-mini", Relation: "deployed_on", Dst: "digitalocean", Fact: "deployed on DO", ValidFrom: "2026-05-01", Confidence: 0.9},
+			{Src: "hermes-mini", Relation: "replaced_by", Dst: "digitalocean", Fact: "deployed on DO", ValidFrom: "2026-05-01", Confidence: 0.9},
 		},
 	}
 	if _, err := Apply(st, ep1, "", res1, DefaultExclusive); err != nil {
@@ -701,7 +702,7 @@ func TestApply_InvalidAtClampedToValidFrom(t *testing.T) {
 	ep2 := store.Episode{ID: "ep-2", Source: "manual", SourceRef: "y", OccurredAt: backfillOccurred, IngestedAt: backfillOccurred}
 	res2 := extract.Result{
 		Facts: []extract.Fct{
-			{Src: "hermes-mini", Relation: "deployed_on", Dst: "jclaws-mac-mini", Fact: "deployed on the mini", ValidFrom: "2026-01-01", Confidence: 0.95},
+			{Src: "hermes-mini", Relation: "replaced_by", Dst: "jclaws-mac-mini", Fact: "deployed on the mini", ValidFrom: "2026-01-01", Confidence: 0.95},
 		},
 	}
 	if _, err := Apply(st, ep2, "", res2, DefaultExclusive); err != nil {

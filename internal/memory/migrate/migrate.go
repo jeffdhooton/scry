@@ -41,6 +41,10 @@ type Report struct {
 	AttributesRestored  int `json:"attributes_restored"`
 	ValueEntities       int `json:"value_entities"`
 	ValueFactsConverted int `json:"value_facts_converted"`
+	// DeployedOnRestored counts facts that exclusivity invalidated while
+	// deployed_on was still an exclusive relation, brought back because a
+	// thing is deployed in more than one place at once.
+	DeployedOnRestored int `json:"deployed_on_restored"`
 	// StatusEdgesRepointed counts status edges between two real entities
 	// turned back into related_to edges.
 	StatusEdgesRepointed int      `json:"status_edges_repointed"`
@@ -83,6 +87,11 @@ func Run(st *store.Store, o Options) (Report, error) {
 	}
 	logf("migrate: relations: %d scanned, %d rewritten, %d flipped, %d fallback",
 		rep.FactsScanned, rep.RelationsRewritten, rep.RelationsFlipped, rep.RelationFallback)
+
+	if err := restoreDeployedOn(st, o.DryRun, &rep); err != nil {
+		return rep, err
+	}
+	logf("migrate: deployed_on: %d facts restored", rep.DeployedOnRestored)
 
 	if err := migrateValues(st, o.DryRun, &rep); err != nil {
 		return rep, err
@@ -332,3 +341,47 @@ func retireable(name string) bool {
 // or a commit hash ("#140" → "140") even when the name itself has a prefix
 // the value detector does not know.
 func pureNumberOrHex(slug string) bool { return pureNumberOrHexRE.MatchString(slug) }
+
+// restoreDeployedOn brings back deployed_on facts that Rule 6 invalidated
+// while the relation counted as exclusive. Only the ones exclusivity
+// itself retired are touched: the signature is an invalidated deployed_on
+// fact whose invalid_at is exactly the ValidFrom of another current
+// deployed_on fact from the same entity, which is how Rule 6 stamped it.
+// A fact retired for any other reason keeps its invalidation.
+func restoreDeployedOn(st *store.Store, dry bool, rep *Report) error {
+	const relation = "deployed_on"
+	starts := map[string]map[int64]bool{} // src → ValidFrom of current facts
+	var retired []store.Fact
+	facts, err := st.AllFacts()
+	if err != nil {
+		return fmt.Errorf("migrate: scan deployed_on: %w", err)
+	}
+	for _, f := range facts {
+		if f.Relation != relation {
+			continue
+		}
+		if f.InvalidAt == nil {
+			if starts[f.Src] == nil {
+				starts[f.Src] = map[int64]bool{}
+			}
+			starts[f.Src][f.ValidFrom.UnixNano()] = true
+			continue
+		}
+		retired = append(retired, f)
+	}
+	for _, f := range retired {
+		if !starts[f.Src][f.InvalidAt.UnixNano()] {
+			continue
+		}
+		rep.DeployedOnRestored++
+		if dry {
+			continue
+		}
+		revived := f
+		revived.InvalidAt = nil
+		if err := st.PutFact(revived); err != nil {
+			return fmt.Errorf("migrate: restore %s deployed_on: %w", f.Src, err)
+		}
+	}
+	return nil
+}
