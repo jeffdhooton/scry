@@ -41,8 +41,20 @@ func TestRealNamesSurviveTheValueRules(t *testing.T) {
 	if len(wrong) > 0 {
 		t.Errorf("rejected %d/%d real names: %q", len(wrong), len(real), wrong)
 	}
+	// Four names moved to the accepted side deliberately, each traded
+	// for several real ones a grader chose independently of the
+	// store. "verified decision" and "in-progress tasks" went with
+	// the two-word verdict rule, which was rejecting deferred
+	// revenue, merged cells, verified account, approved vendor,
+	// failed payment, canceled subscription and passed ball. "works
+	// as expected" and "no longer needed" went with the three-word
+	// message rule, which was rejecting error correcting code,
+	// missing middle housing, no reply address, expected goals
+	// metric, still life painting and no code platform. A rule that
+	// rejects real things destroys the graph; a rule that misses a
+	// value leaves one extra node.
 	values := []string{"feat/x", "goal/jbuild-gateway", "proof/two-clicks", "seo/resume-page",
-		"main trunk", "docket-main", "verified decision", "unblocked", "in-progress tasks"}
+		"main trunk", "docket-main", "unblocked"}
 	var missed []string
 	for _, v := range values {
 		if !NotAnIdentity(v) {

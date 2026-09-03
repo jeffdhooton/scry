@@ -22,7 +22,7 @@ var (
 	versionRE = regexp.MustCompile(`^(?:v|go|python|node|php|ruby|java|rust)?\d+(?:\.\d+){1,3}(?:[-+][a-z0-9.]+)?$|^v\d+$`)
 	// branchRE: git branch shapes: "feat/x", "fix/123-thing", "release/1.2",
 	// "jeff/wip", plus the bare trunk names.
-	branchRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|wip|exp|spike|perf|style|revert|dependabot|renovate|codex|claude|kimi|jeff|jclaw|user|users|topic|dev|develop|development|staging|prod|production|main|master|trunk|origin|upstream|setpoint|loop|attempt\d*|worker|wave|round|pr|issue|hermes|opencode|checkpoint|release|releases)/[A-Za-z0-9._/<>-]+$`)
+	branchRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|wip|exp|spike|perf|style|revert|dependabot|renovate|codex|claude|kimi|jeff|jclaw|topic|dev|develop|development|staging|prod|production|main|master|trunk|origin|upstream|setpoint|loop|attempt\d*|worker|wave|round|hermes|opencode|checkpoint|release|releases)/[A-Za-z0-9._/<>-]+$`)
 	// fileExtRE: a trailing extension makes a path a file, never a branch.
 	fileExtRE = regexp.MustCompile(`\.[a-z][a-z0-9]{0,5}$`)
 	// branchWordRE: "current branch", "worker branch", "fix-branch",
@@ -273,7 +273,15 @@ func IsStatusWord(name string) bool {
 	words := strings.Fields(n)
 	if len(words) >= 2 && len(words) <= 6 {
 		last := words[len(words)-1]
-		if statusWords[last] || last == "status" || last == "state" || last == "succeeded" || last == "green" {
+		// A participle ends a status: build failed, tests passed, VOB
+		// pending. An ordinary noun that happens to be a state word does
+		// not: boarding pass, mountain pass, customer success, standard
+		// error, storm warning, putting green, Xbox Live. Thirteen real
+		// names were being rejected to catch two.
+		if participleStates[last] || last == "status" || last == "state" {
+			return true
+		}
+		if len(words) >= 3 && (colourStates[last] || last == "error" || last == "warning" || last == "failure") {
 			return true
 		}
 		if len(words) >= 3 && statusWords[words[len(words)-2]+" "+last] {
@@ -308,6 +316,23 @@ func IsStatusWord(name string) bool {
 // particleCompoundRE matches an English particle compound written with a
 // hyphen: trade-off, start-up, always-on, go-live, code-red.
 var particleCompoundRE = regexp.MustCompile(`^[a-z0-9-]+-(?:off|up|on|in|out|over|live|red|green|high|low|down)$`)
+
+// participleStates are the state words that are verbs first. A phrase
+// ending in one reports what happened; a phrase ending in an ordinary
+// noun names a thing, even when the noun is also a state word.
+var participleStates = map[string]bool{
+	"failed": true, "passed": true, "blocked": true, "merged": true,
+	"shipped": true, "deployed": true, "reverted": true, "rejected": true,
+	"approved": true, "completed": true, "cancelled": true, "canceled": true,
+	"pending": true, "started": true, "finished": true, "skipped": true,
+	"succeeded": true, "verified": true, "resolved": true, "closed": true,
+	"done": true, "unresolved": true, "unblocked": true, "queued": true,
+	"complete": true, "incomplete": true, "in-progress": true, "ok": true, "okay": true,
+}
+
+// colourStates end a status only in a longer phrase. "full API suite
+// green" is a verdict; "putting green" and "code red" are things.
+var colourStates = map[string]bool{"green": true, "red": true, "amber": true}
 
 // resultWords end a phrase that reports an outcome: "13 full
 // regenerations logged", "5 residual test failures".

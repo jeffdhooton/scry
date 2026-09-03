@@ -20,7 +20,10 @@ var (
 	// branchNamespaceRE: the first path segment of a git branch name.
 	// Two segments only: "internal/memory/resolve" is a directory, and
 	// "packages/shared" is a module.
-	branchNamespaceRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|wip|exp|spike|perf|style|revert|dependabot|renovate|codex|claude|kimi|topic|dev|develop|staging|prod|main|master|trunk|origin|upstream|setpoint|loop|attempt\d*|worker|wave|round|pr|issue|opencode|checkpoint|release|releases|wt|worktree)/[^/]+$`)
+	// pr/, issue/, users/ and qa/ are absent: they name directories at
+	// least as often as branches, and a directory rejected is a real
+	// thing destroyed.
+	branchNamespaceRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|wip|exp|spike|perf|style|revert|dependabot|renovate|codex|claude|kimi|topic|dev|develop|staging|prod|main|master|trunk|origin|upstream|setpoint|loop|attempt\d*|worker|wave|round|opencode|checkpoint|release|releases|wt|worktree)/[^/]+$`)
 	// perUnitRE: a rate written out. "11-tok-per-sec-shallow",
 	// "20 requests per minute".
 	perUnitRE = regexp.MustCompile(`\d[\w.]*[\s_-]*(?:[a-z]+[\s_-])?per[\s_-][a-z]+`)
@@ -82,7 +85,9 @@ var (
 	// carries letters, "#140" does not.
 	hexLetterRE = regexp.MustCompile(`[a-fA-F]`)
 	// monthYearRE: "Sep 2025", "January 2026", "Feb 14".
-	monthYearRE = regexp.MustCompile(`^(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?[\s_-]+\d{1,4}$`)
+	// The month must be the whole word: "Marketing 101", "Junction 9" and
+	// "Novation 61" are names, not dates.
+	monthYearRE = regexp.MustCompile(`^(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)\.?[\s_-]+\d{1,4}$`)
 	// unAdjectiveRE: "unaudited", "unmerged", "unshipped" — a state written
 	// as the negative of a past participle.
 	unAdjectiveRE = regexp.MustCompile(`^un[a-z]{3,}(?:ed|able|ible)$`)
@@ -145,10 +150,10 @@ var branchNamespaces = map[string]bool{
 	"topic": true, "dev": true, "develop": true, "staging": true, "prod": true,
 	"main": true, "master": true, "trunk": true, "origin": true, "upstream": true,
 	"setpoint": true, "loop": true, "worker": true, "wave": true, "round": true,
-	"pr": true, "issue": true, "checkpoint": true, "wt": true, "worktree": true,
-	"goal": true, "proof": true, "seo": true, "ux": true, "qa": true,
+	"checkpoint": true, "wt": true, "worktree": true,
+	"goal": true, "proof": true, "seo": true, "ux": true,
 	"codex": true, "claude": true, "kimi": true, "opencode": true, "jeff": true,
-	"jclaw": true, "user": true, "users": true, "attempt": true,
+	"jclaw": true, "attempt": true,
 }
 
 // codeDirs open a path inside a repository rather than a branch
@@ -177,7 +182,7 @@ var wordNumbers = map[string]bool{
 	"twenty": true, "thirty": true, "forty": true, "fifty": true, "sixty": true,
 	"seventy": true, "eighty": true, "ninety": true, "hundred": true,
 	"thousand": true, "million": true, "billion": true, "half": true,
-	"couple": true, "few": true, "several": true, "twice": true, "double": true,
+	"couple": true, "few": true, "several": true, "twice": true,
 }
 
 // timeUnits follow a number in a duration written out: "one hour".
@@ -509,6 +514,11 @@ func numberPhrase(n string) bool {
 // sentenceName reports whether a name is prose: too long, too many words,
 // more than one sentence, or a list of addresses.
 func sentenceName(n string) bool {
+	// A path is a name however long it is: 907 real file paths from these
+	// repositories were being rejected on length alone.
+	if strings.Contains(n, "/") || fileExtRE.MatchString(n) {
+		return false
+	}
 	if len(n) > maxNameChars {
 		return true
 	}
@@ -557,7 +567,14 @@ func verdictPhrase(n string) bool {
 	if unAdjectiveRE.MatchString(n) {
 		return true
 	}
-	if verdictWords[words[0]] {
+	// Two words opening with a verdict are a name more often than a
+	// verdict: deferred revenue, merged cells, verified account, approved
+	// vendor, failed payment, canceled subscription. Only a longer phrase
+	// with a preposition — "approved with audit trail" — reads as one.
+	if len(words) == 1 && verdictWords[words[0]] {
+		return true
+	}
+	if len(words) > 2 && verdictWords[words[0]] {
 		return true
 	}
 	// "un" + a state: unblocked, unshipped, unmerged.
@@ -608,10 +625,15 @@ var shellVerbs = map[string]bool{
 // thing — error boundary, expected value, still life, no code — so a
 // message needs three words as well, and a short name ending in a thing
 // is that thing whatever it opens with.
+// "failed" is ambiguous too — failed payment, failed login counter — so
+// it needs the four-word form: "Failed to parse product config".
+var hardErrorOpeners = map[string]bool{
+	"cannot": true, "could": true, "unable": true, "refused": true,
+	"timed": true, "crashed": true,
+}
+
 var errorOpeners = map[string]bool{
-	"failed": true, "cannot": true, "could": true, "unable": true,
-	"refused": true, "rejected": true, "timed": true, "crashed": true,
-	"is": true, "was": true, "were": true, "we": true, "it": true, "there": true,
+	"failed": true, "is": true, "was": true, "were": true, "we": true, "it": true, "there": true,
 	"not": true, "no": true, "works": true, "still": true, "already": true,
 	"expected": true, "unexpected": true, "warning": true, "missing": true,
 	"unknown": true, "error": true, "must": true,
@@ -653,12 +675,31 @@ func commandLine(n string) bool {
 	if !shellVerbs[strings.ToLower(words[0])] {
 		return false
 	}
+	// A subcommand: "npm run build", "composer install", "git worktree
+	// prune". Without one, a leading shell verb is just a word — "PHP
+	// session", "git worktree" and "python detection fix" are names.
+	for _, w := range words[1:] {
+		if commandVerbs[strings.ToLower(w)] {
+			return true
+		}
+	}
 	for _, w := range words[1:] {
 		if strings.HasPrefix(w, "-") || strings.Contains(w, "/") || strings.Contains(w, ".") || w == "*" {
 			return true
 		}
 	}
 	return false
+}
+
+// commandVerbs are the subcommands that follow a tool's name when it is
+// being run rather than named.
+var commandVerbs = map[string]bool{
+	"run": true, "install": true, "build": true, "test": true, "exec": true,
+	"update": true, "upgrade": true, "get": true, "restart": true, "start": true,
+	"stop": true, "add": true, "remove": true, "publish": true, "push": true,
+	"pull": true, "clone": true, "commit": true, "log": true, "status": true,
+	"migrate": true, "seed": true, "mod": true, "tidy": true, "prune": true,
+	"list": true, "show": true, "apply": true, "deploy": true, "serve": true,
 }
 
 // messageName reports whether a name reads as a sentence someone was
@@ -691,9 +732,15 @@ func messageName(n string) bool {
 	if len(words) < 2 || len(words) > 8 {
 		return false
 	}
-	// Three words at least: "error boundary" and "expected value" are
-	// names, "works as expected" and "not yet started" are messages.
-	if len(words) >= 3 && errorOpeners[words[0]] {
+	// An unambiguous opener is a message at any length. An ambiguous one
+	// — error, no, expected, still, missing, warning — opens a name at
+	// least as often, so it needs four words: "We have no reviews yet" is
+	// a message, "error correcting code" and "missing middle housing" are
+	// names.
+	if hardErrorOpeners[words[0]] {
+		return true
+	}
+	if len(words) >= 4 && errorOpeners[words[0]] {
 		return true
 	}
 	if len(words) <= 3 && timePhrases[words[0]] {

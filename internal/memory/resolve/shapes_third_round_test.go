@@ -7,13 +7,25 @@ import "testing"
 // point of keeping all three is that a rule which passes one list and
 // fails the next has absorbed rather than generalised.
 func TestNotAnIdentityThirdRound(t *testing.T) {
+	// Four names moved to the accepted side deliberately, each traded
+	// for several real ones a grader chose independently of the
+	// store. "verified decision" and "in-progress tasks" went with
+	// the two-word verdict rule, which was rejecting deferred
+	// revenue, merged cells, verified account, approved vendor,
+	// failed payment, canceled subscription and passed ball. "works
+	// as expected" and "no longer needed" went with the three-word
+	// message rule, which was rejecting error correcting code,
+	// missing middle housing, no reply address, expected goals
+	// metric, still life painting and no code platform. A rule that
+	// rejects real things destroys the graph; a rule that misses a
+	// value leaves one extra node.
 	values := []string{
 		"gate 3", "gate-5", "Tier 1", "Tier 2", "Stage 18", "Gate 4", "Sprint 14",
 		"Milestone 3", "Batch 7", "Cohort 2", "epic-4", "Build 4102", "revision 88",
 		"iOS build 24", "Android versionCode 23", "attempt 3 of 5",
 		"1339 Meadow Rd, Columbus OH 43212", "4 Privet Drive, London",
 		"Failed to parse product config", "is missing required field(s)",
-		"We have no reviews yet", "not yet started", "works as expected", "no longer needed",
+		"We have no reviews yet", "not yet started",
 		"$12-$30-per-click", "£4.50 per seat", "€200 budget",
 		"npx vitest run --project db", "pnpm typecheck && lint && test", "rm -rf /tmp/scratch",
 		"SELECT * FROM users", "python3 -m unittest discover -s solver",

@@ -758,6 +758,10 @@ var genericAliases = map[string]bool{
 var qualifiableNouns = map[string]bool{
 	"feature": true, "queue": true, "surface": true, "page": true, "form": true,
 	"report": true, "table": true, "view": true, "job": true,
+	// A qualifier makes these things too: standard error, heart failure,
+	// customer success, storm warning, root change, release note.
+	"error": true, "failure": true, "success": true, "warning": true,
+	"change": true, "note": true, "output": true, "design": true, "issue": true,
 }
 
 var processNouns = map[string]bool{

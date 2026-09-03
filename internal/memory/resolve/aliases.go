@@ -197,10 +197,10 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	// refused the first, and skipping the check whenever the name
 	// appeared admitted the other two.
 	if extra := extraWords(alias, e); len(extra) > 0 {
-		if roleLeak(extra, e) {
+		if roleLeak(extra, e) || pathAlias(alias) && e.Type == "person" {
 			return false, "names a role rather than a person", nil
 		}
-		if machineLeak(extra, e) {
+		if machineLeak(extra, e) || shortMachineWord(extra, e) {
 			return false, "names hardware on a non-machine", nil
 		}
 	}
@@ -446,22 +446,6 @@ func nameAsWord(alias string, e store.Entity) bool {
 	return len(ca) > len(n) && len(ca)-len(n) <= maxCompoundTail && strings.HasPrefix(ca, n)
 }
 
-// oneWordName reports whether a name is a single word once punctuation
-// is set aside: "gate", "AUDIT-6", "session-ts", "photo".
-func oneWordName(name string) bool {
-	raw := tokensOf(name)
-	if len(raw) == 0 {
-		return false
-	}
-	words := 0
-	for t := range raw {
-		if len(t) >= 3 {
-			words++
-		}
-	}
-	return words <= 1
-}
-
 // extrasAreKindWords reports whether everything an alias adds to an
 // entity's name describes a kind of thing.
 func extrasAreKindWords(alias string, e store.Entity) bool {
@@ -538,6 +522,30 @@ var roleNouns = map[string]bool{
 	"model": true, "coder": true, "planner": true, "auditor": true,
 }
 
+// pathAlias reports whether an alias is a filesystem path. extraWords
+// turns separators into spaces before the leak checks see them, so the
+// check has to look at the alias as written.
+func pathAlias(alias string) bool {
+	return strings.HasPrefix(strings.TrimSpace(alias), "/")
+}
+
+// shortMachineWord catches the hardware nouns that are too short for the
+// tokeniser, which drops anything under three characters: vm, pi, pc.
+// Three entries in machineNouns were unreachable, and "hermes-ops vm"
+// went onto the project on one episode.
+func shortMachineWord(extra string, e store.Entity) bool {
+	if e.Type == "machine" || e.Type == "" || e.Type == "concept" {
+		return false
+	}
+	for _, w := range strings.Fields(extra) {
+		switch w {
+		case "vm", "pi", "pc", "os", "gpu", "cpu", "ssd", "nas":
+			return true
+		}
+	}
+	return false
+}
+
 // extraWords returns the alias with the entity's own words removed, as a
 // space-joined string, so a leak check sees only what the alias adds.
 func extraWords(alias string, e store.Entity) string {
@@ -612,7 +620,12 @@ func ordinalPhrase(alias string) bool {
 func RevalidateAliases(st *store.Store, e *store.Entity) error {
 	kept := e.Aliases[:0]
 	for _, a := range e.Aliases {
-		if neverAlias(a) || machineLeak(a, *e) || roleLeak(a, *e) {
+		// The words the alias adds, the same as AdmitAlias. Judging the
+		// whole alias here dropped "Android Studio Ladybug" from Android
+		// Studio the moment a stub was upgraded, which is exactly the
+		// alias the added-words rule exists to keep.
+		extra := extraWords(a, *e)
+		if neverAlias(a) || machineLeak(extra, *e) || roleLeak(extra, *e) {
 			continue
 		}
 		if owner, ok, err := st.ResolveAlias(a); err != nil {

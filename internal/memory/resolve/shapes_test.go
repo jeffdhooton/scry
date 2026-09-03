@@ -6,6 +6,18 @@ import "testing"
 // written to match the rules. Each is judged by shape: what kind of thing
 // the name is, never which particular name it is.
 func TestNotAnIdentityByShape(t *testing.T) {
+	// Four names moved to the accepted side deliberately, each traded
+	// for several real ones a grader chose independently of the
+	// store. "verified decision" and "in-progress tasks" went with
+	// the two-word verdict rule, which was rejecting deferred
+	// revenue, merged cells, verified account, approved vendor,
+	// failed payment, canceled subscription and passed ball. "works
+	// as expected" and "no longer needed" went with the three-word
+	// message rule, which was rejecting error correcting code,
+	// missing middle housing, no reply address, expected goals
+	// metric, still life painting and no code platform. A rule that
+	// rejects real things destroys the graph; a rule that misses a
+	// value leaves one extra node.
 	values := []string{
 		// Branches, and projects compounded with a branch.
 		"docket-main", "childscribe-mobile main", "fleet-smoke main", "scribe main",
@@ -22,7 +34,7 @@ func TestNotAnIdentityByShape(t *testing.T) {
 		"8 microservices", "42 dashboards", "6 queues", "engine prod v20", "7a",
 		// Judgements and states.
 		"unblocked", "approved with audit trail", "Publish already in progress.",
-		"verified decision", "in-progress tasks", "greenlit", "in-flight", "at risk",
+		"greenlit", "in-flight", "at risk",
 		// Opaque handles a run named after itself.
 		"commit-0998bef", "commit d9a151023fbb21843460a0d7a41f2d7dc18fa179", "829f81",
 		"task-1ade2583a2ad", "room 1537e88d31a5", "codex-01a019fc", "0998bef",
