@@ -175,8 +175,12 @@ const (
 	orientFooter        = "_Query scry_recall for anything referenced here._"
 	activeHeading       = "### Active projects (last 14d)"
 	activeWindow        = 14 * 24 * time.Hour
-	maxRepoFacts        = 3
-	maxActiveEntities   = 10
+	maxRepoFacts        = 2
+	// orientFactChars clips a fact in a bullet. An orientation blurb is a
+	// map, not a transcript: eight things named briefly orient a session
+	// better than three quoted at length, and recall is one call away.
+	orientFactChars   = 150
+	maxActiveEntities = 10
 	// maxRepoEntities bounds the repo section. Entities are ranked, not
 	// listed alphabetically: an orientation blurb has room for the handful
 	// of things most recently and most heavily worked on, and the first
@@ -221,7 +225,7 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 		if len(texts) == 0 {
 			continue
 		}
-		repoBullets = append(repoBullets, fmt.Sprintf("- **%s** (%s): %s", e.Name, e.Type, strings.Join(texts, "; ")))
+		repoBullets = append(repoBullets, fmt.Sprintf("- **%s** (%s): %s", e.Name, e.Type, strings.Join(clipEach(texts, orientFactChars), "; ")))
 	}
 
 	allEntities, err := st.Entities()
@@ -253,7 +257,7 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 		if len(texts) == 0 {
 			continue // an entity with no current fact says nothing
 		}
-		activeBullets = append(activeBullets, fmt.Sprintf("- %s: %s", e.Name, texts[0]))
+		activeBullets = append(activeBullets, fmt.Sprintf("- %s: %s", e.Name, clip(texts[0], orientFactChars)))
 	}
 
 	repoSec := orientSection{
@@ -263,6 +267,15 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 	activeSec := orientSection{heading: activeHeading, bullets: activeBullets}
 
 	return renderOrient(repoSec, activeSec, budgetChars), nil
+}
+
+// clipEach bounds every string to n runes.
+func clipEach(texts []string, n int) []string {
+	out := make([]string, 0, len(texts))
+	for _, t := range texts {
+		out = append(out, clip(t, n))
+	}
+	return out
 }
 
 // rankForOrient picks the limit most worth mentioning: most recently seen
