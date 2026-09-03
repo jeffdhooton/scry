@@ -62,11 +62,16 @@ const (
 	// answered 300 of 300 requests with a rate-limit error at 24 in
 	// flight, and each rejection cost a retry with a backoff, so throughput
 	// collapsed to a fifth of what 8 in flight had managed.
-	startLimit      = 6
-	minLimit        = 2
-	growAfter       = 8 // consecutive successes before widening by one
-	rateBackoffBase = 5 * time.Second
-	rateBackoffMax  = 45 * time.Second
+	startLimit = 6
+	minLimit   = 2
+	growAfter  = 4 // consecutive successes before widening by one
+	// growQuiet is how long the provider must go without a rate-limit
+	// refusal before a saturated pool widens on time alone. Extraction
+	// takes minutes per item, so waiting for a run of successes would take
+	// an hour to walk from six in flight to the ceiling.
+	defaultGrowQuiet = 45 * time.Second
+	rateBackoffBase  = 5 * time.Second
+	rateBackoffMax   = 45 * time.Second
 )
 
 // itemDeadline grows with each attempt so a slow-but-finishing episode
@@ -121,10 +126,12 @@ type Worker struct {
 	done    chan struct{} // an item finished; a slot is free
 	backoff func(int) time.Duration
 
-	mu       sync.Mutex
-	inflight map[string]bool
-	limit    int // in-flight ceiling, adapted from the provider's answers
-	wins     int // consecutive successes since the last narrowing
+	mu         sync.Mutex
+	inflight   map[string]bool
+	limit      int       // in-flight ceiling, adapted from the provider's answers
+	wins       int       // consecutive successes since the last narrowing
+	lastNarrow time.Time // when the provider last refused
+	lastGrow   time.Time
 }
 
 // New builds a Worker; call Run to start it.
@@ -149,11 +156,16 @@ func New(o Options) *Worker {
 		backoff: Backoff, inflight: map[string]bool{}, limit: limit}
 }
 
+// growQuiet is how long the provider must stay quiet before a saturated
+// pool widens; a variable so a test can shorten it.
+var growQuiet = defaultGrowQuiet
+
 // narrow halves the in-flight limit; called when the provider rate-limits.
 func (w *Worker) narrow() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.wins = 0
+	w.lastNarrow = time.Now()
 	if w.limit <= minLimit {
 		return
 	}
@@ -173,8 +185,31 @@ func (w *Worker) widen() {
 		return
 	}
 	w.wins = 0
+	w.lastGrow = time.Now()
 	w.limit++
-	w.o.Logf("memory queue: widening to %d in flight", w.limit)
+	w.o.Logf("memory queue: widening to %d in flight (a run of successes)", w.limit)
+}
+
+// widenIfSaturatedAndQuiet grows the limit when the pool is the
+// constraint (every slot busy, work waiting) and the provider has not
+// refused for a while. Without it a pool that narrowed, or started low,
+// would take an hour to find the ceiling again at minutes per item.
+func (w *Worker) widenIfSaturatedAndQuiet(ready int) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if ready == 0 || len(w.inflight) < w.limit || w.limit >= w.o.Workers {
+		return
+	}
+	now := time.Now()
+	for _, t := range []time.Time{w.lastNarrow, w.lastGrow} {
+		if !t.IsZero() && now.Sub(t) < growQuiet {
+			return
+		}
+	}
+	w.lastGrow = now
+	w.limit++
+	w.o.Logf("memory queue: widening to %d in flight (%d waiting, no refusal for %s)",
+		w.limit, ready, growQuiet)
 }
 
 // Limit reports the current in-flight ceiling, for tests and status.
@@ -239,7 +274,9 @@ func (w *Worker) dispatch(ctx context.Context, sem, manualSem chan struct{}, wg 
 		return
 	}
 	now := time.Now()
-	for _, p := range order(items, now) {
+	ordered := order(items, now)
+	w.widenIfSaturatedAndQuiet(len(ordered))
+	for _, p := range ordered {
 		if p.Parked || p.NextAttempt.After(now) {
 			continue
 		}

@@ -649,6 +649,9 @@ type MemoryStatusResult struct {
 	// Queue and liveness. The timestamps are what `scry doctor` reads to
 	// decide whether ingestion is alive; they are pointers so "never" is
 	// distinguishable from a zero time.
+	// QueueLimit is the queue worker's current in-flight ceiling, which it
+	// adapts to the provider's rate limits.
+	QueueLimit      int        `json:"queue_limit,omitempty"`
 	QueueReady      int        `json:"queue_ready"`
 	QueueBackoff    int        `json:"queue_backoff"`
 	QueueParked     int        `json:"queue_parked"`
@@ -690,6 +693,9 @@ func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, 
 		QueueBackoff:  backoff,
 		QueueParked:   parked,
 		WorkerRunning: d.memoryWorker() != nil,
+	}
+	if w := d.memoryWorker(); w != nil {
+		res.QueueLimit = w.Limit()
 	}
 	for _, m := range []struct {
 		key string

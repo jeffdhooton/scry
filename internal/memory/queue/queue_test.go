@@ -469,3 +469,31 @@ func (g *gatedExtractor) Extract(ctx context.Context, ep distill.RawEpisode, glo
 	}
 	return g.inner.Extract(ctx, ep, glossary)
 }
+
+func TestSaturatedPoolWidensWhenTheProviderIsQuiet(t *testing.T) {
+	st := openTemp(t)
+	for i := range 40 {
+		_ = st.PutPending(pending(fmt.Sprintf("s%02d", i), "fact"))
+	}
+	// Every call hangs, so the pool stays saturated and no success can
+	// widen it: only the time-based rule can.
+	fx := &fakeExtractor{delay: time.Minute}
+	w := New(Options{Store: st, Extractor: fx, Workers: 24, Poll: 10 * time.Millisecond, ItemTimeout: time.Minute})
+	old := growQuietForTest(t, 40*time.Millisecond)
+	defer old()
+	runFor(t, w, 3*time.Second)
+	if !waitUntil(t, 3*time.Second, func() bool { return w.Limit() >= startLimit+3 }) {
+		t.Fatalf("a saturated pool with a quiet provider never widened (limit %d)", w.Limit())
+	}
+	if w.Limit() > 24 {
+		t.Errorf("limit passed the worker ceiling: %d", w.Limit())
+	}
+}
+
+// growQuietForTest shortens the quiet window and returns a restore func.
+func growQuietForTest(t *testing.T, d time.Duration) func() {
+	t.Helper()
+	old := growQuiet
+	growQuiet = d
+	return func() { growQuiet = old }
+}
