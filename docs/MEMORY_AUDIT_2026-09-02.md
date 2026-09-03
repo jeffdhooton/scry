@@ -650,3 +650,17 @@ might each be somebody's legitimate name for the thing is a worse risk
 than leaving them. The Mac mini is still two entities and the Halo
 hardware is still spread over eight, both same-type duplications that no
 rule here addresses.
+
+
+## Probe 1's expectation changed, 2026-09-03
+
+The audit's first probe, "hermes deploy", expected a fact from
+`hermes-ops` in its top five. It now returns three facts from `hermes`
+about where the agent is deployed, and none from the project, so it was
+scoring as a miss.
+
+That is item 5 working. The probe was written when the Hermes agent and
+the hermes-ops project were one entity; separating them moved the deploy
+facts onto the service, which is where they belong. The probe now expects
+`hermes`, and this note records the change so the seven-of-seven is not
+read as unbroken.
