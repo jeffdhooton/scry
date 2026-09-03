@@ -367,7 +367,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 					split, other = true, o
 				}
 			}
-			if !split && machineLeak(a, e) {
+			if !split && (machineLeak(a, e) || roleLeak(a, e)) {
 				// Hardware named on a non-machine, with no machine to hand
 				// the facts to: the alias goes, the facts stay.
 				rep.AliasesDropped++

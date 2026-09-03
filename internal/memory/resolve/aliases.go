@@ -83,7 +83,7 @@ func neverAlias(alias string) bool {
 	if n == "" || len(n) < 2 {
 		return true
 	}
-	if referenceWords[n] || isDeterminerPhrase(n) {
+	if referenceWords[n] || isDeterminerPhrase(n) || ordinalPhrase(n) {
 		return true
 	}
 	if isEphemeralName(n) || isGenericAlias(n) || isGenericEntityName(n) || IsValueName(n) {
@@ -181,6 +181,9 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	}
 	if neverAlias(alias) {
 		return false, "generic, value, or reference word", nil
+	}
+	if roleLeak(alias, e) {
+		return false, "names a role rather than a person", nil
 	}
 	if machineLeak(alias, e) {
 		return false, "names hardware on a non-machine", nil
@@ -324,6 +327,69 @@ func machineLeak(alias string, e store.Entity) bool {
 	return false
 }
 
+// roleNouns name what something does in a piece of work, not who or what
+// it is. A person is not their role, and a session is not the person
+// running it.
+var roleNouns = map[string]bool{
+	"agent": true, "subagent": true, "bot": true, "assistant": true,
+	"reviewer": true, "grader": true, "worker": true, "session": true,
+	"exec": true, "classifier": true, "cohort": true, "suite": true,
+	"implementer": true, "operator": true, "runner": true, "executor": true,
+	"model": true, "coder": true, "planner": true, "auditor": true,
+}
+
+// roleLeak reports whether an alias names a role rather than the person
+// holding it. A grader found the person `jeff` carrying "Claude agent",
+// "coding-agent", "codex exec", "review subagent", "first grader", and
+// "dashboard agent": every agent that had worked for him had been folded
+// into him.
+func roleLeak(alias string, e store.Entity) bool {
+	if e.Type != "person" {
+		return false
+	}
+	for t := range singularTokens(alias) {
+		if roleNouns[t] {
+			return true
+		}
+	}
+	return strings.HasPrefix(strings.TrimSpace(alias), "/")
+}
+
+// ordinalWords open a reference to one of several like things rather than
+// a name for one of them.
+// Cardinals (one, two, three) and adjectives that begin real names (new,
+// old, primary, left) are deliberately absent: "two-factor authentication"
+// and "New Relic" are names, and dropping them costs more than the
+// references they would catch.
+var ordinalWords = map[string]bool{
+	"first": true, "second": true, "third": true, "fourth": true, "last": true,
+	"next": true, "previous": true, "other": true, "another": true, "both": true,
+	"either": true, "each": true, "original": true, "spare": true,
+}
+
+// numberedTwinRE matches "box1", "box 2", "node-3": a position in a set,
+// which names whichever member the speaker meant at the time.
+var numberedTwinRE = regexp.MustCompile(`^(?:box|node|machine|host|server|unit|rig|slot|port|instance)[ _-]?[0-9]{1,2}$`)
+
+// ordinalPhrase reports whether an alias picks one of several like things
+// by position. Two Halo machines had been fused under "first Halo",
+// "second Halo", "both Halos", "box1", and "box2", each of which names a
+// different box depending on who is speaking.
+func ordinalPhrase(alias string) bool {
+	n := strings.ToLower(strings.TrimSpace(alias))
+	if numberedTwinRE.MatchString(n) {
+		return true
+	}
+	if snakeIdentRE.MatchString(n) {
+		return false // a field name in code, whatever English it reads as
+	}
+	words := strings.Fields(strings.NewReplacer("-", " ", "_", " ").Replace(n))
+	if len(words) < 2 || len(words) > 3 {
+		return false
+	}
+	return ordinalWords[words[0]]
+}
+
 // RevalidateAliases drops from e every alias that the current rules would
 // refuse: reference words, values, hardware nouns on a non-machine, and
 // aliases owned by an entity of an incompatible type. It runs when a
@@ -332,7 +398,7 @@ func machineLeak(alias string, e store.Entity) bool {
 func RevalidateAliases(st *store.Store, e *store.Entity) error {
 	kept := e.Aliases[:0]
 	for _, a := range e.Aliases {
-		if neverAlias(a) || machineLeak(a, *e) {
+		if neverAlias(a) || machineLeak(a, *e) || roleLeak(a, *e) {
 			continue
 		}
 		if owner, ok, err := st.ResolveAlias(a); err != nil {

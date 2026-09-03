@@ -311,3 +311,44 @@ func TestNewEntityNameBeatsAnIncompatibleAlias(t *testing.T) {
 		t.Errorf("cross-type collisions after the write: %d", rep.CrossTypeCollisions)
 	}
 }
+
+func TestRoleAndOrdinalAliasesAreRefused(t *testing.T) {
+	jeff := store.Entity{Slug: "jeff", Name: "Jeff", Type: "person"}
+	for _, a := range []string{
+		"Claude agent", "coding-agent", "codex exec", "review subagent",
+		"implementation agent", "first grader", "dashboard agent", "LOC cohort",
+		"safety classifier false positive", "/Users/jclaw",
+	} {
+		if !roleLeak(a, jeff) {
+			t.Errorf("roleLeak(%q, person) = false: a person is not the role that worked for them", a)
+		}
+	}
+	// A person's actual names and nicknames survive.
+	for _, a := range []string{"Jeff Hooton", "jhoot", "jeffdhooton", "the boss"} {
+		if roleLeak(a, jeff) {
+			t.Errorf("roleLeak(%q, person) = true, want false", a)
+		}
+	}
+	// The rule is about people; a service may well be named for its role.
+	svc := store.Entity{Slug: "hermes", Name: "Hermes", Type: "service"}
+	if roleLeak("Hermes agent", svc) {
+		t.Error("a service may be called an agent")
+	}
+
+	// One of several like things, picked by position, names no one of them.
+	for _, a := range []string{
+		"first Halo", "second Halo", "both Halos", "box1", "box 2", "node-3",
+		"the other box", "next machine", "original box",
+	} {
+		if !neverAlias(a) {
+			t.Errorf("neverAlias(%q) = false: it picks a member of a set, not a name", a)
+		}
+	}
+	// Cardinals and adjectives that open real names are left alone.
+	for _, a := range []string{"halo2", "AMD Halo", "mac-mini", "Halo Lemonade",
+		"two-factor authentication", "new_admin_email", "New Relic", "primary model"} {
+		if ordinalPhrase(a) {
+			t.Errorf("ordinalPhrase(%q) = true, want false", a)
+		}
+	}
+}
