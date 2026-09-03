@@ -849,3 +849,60 @@ to; the repair is in and `halo1` resolves again.
 
 Migration: a complete no-op on both passes. Strict benchmark 44 of 50,
 loose 47, cross-type collisions 304.
+
+
+## Round eight: the prune reverted, seven families of English rescued
+
+**The prune is gone.** Removing entities no fact mentions cost 3,215
+spellings the store used to answer to — `scry-episodes`, `10g-switch`,
+`gemini-2.5-pro`, `tl-sx105`, `iphone-17` — and the rescue that was
+meant to save them recovered none, because none spelled a live entity.
+The store was restored from the backup taken before the prune and the
+entities stay where they are. They are counted out of the collision
+audit instead, which gets the same number without losing a name.
+
+**Seven more families of ordinary English were being rejected**, all
+found by choosing names independently of the store, which is the only
+way this side can be measured:
+
+| Family | Examples | Now |
+|---|---|---|
+| Preposition compounds | `in-house`, `on-call`, `off-ramp`, `in-memory` | kept |
+| State word plus a concrete noun | `waiting room`, `pending tray`, `needs assessment`, `blocked shot` | kept |
+| Message openers that also open names | `error boundary`, `expected value`, `still life`, `no code` | kept |
+| Shell verbs without a command's shape | `docker hub`, `go router`, `rails engine`, `cat food` | kept |
+| Bare weekdays | `monday` — also a product this user runs | kept |
+| Lowercase prepositional names | `under armour`, `in situ`, `off broadway` | kept |
+| Number and plural methods | `5 whys`, `3 amigos`, `80/20 rule` | kept |
+
+What follows the opener now decides: a process noun makes a state
+(`awaiting review`, `needs investigation`), a concrete one makes a thing
+(`waiting room`). A command needs a flag, a pipeline, or a path — not
+just a verb. A message needs three words. A name ending in a thing is
+that thing.
+
+Two of those were bugs rather than judgements: `messageName` and
+`commandLine` never consulted the thing-word escape the other rules use.
+
+**Three admission fixes from the same round.** A leak check judges the
+words an alias *adds* rather than the whole alias, so Android Studio
+keeps "Android Studio Ladybug" while Jeff stops taking "Jeff reviewer"
+and "Jeff agent". Plurals in `-ies` work, so a policy can be called
+policies. The magnet guard has no upper word bound, so a four-word
+ordinary name is not a free pass.
+
+Applying the corrected rules restored **674 attributes** to entities.
+
+| Measure | Value |
+|---|---|
+| Migration second pass | every counter zero |
+| Cross-type collisions | 315, with fact-less entities counted out |
+| Entities no fact mentions | 2,573, reported and left alone |
+| Spellings lost | none |
+| Strict benchmark | 43 of 50 |
+| Loose benchmark | 47 of 50 |
+| Probes | 7 of 7 |
+
+The strict benchmark moved 44 to 43 on one question whose answering
+sentence changed: the fact is at rank 8 in a wording the loose file
+accepts and the strict one does not.
