@@ -107,6 +107,14 @@ var commonNouns = map[string]bool{
 	"project": true, "repo": true, "repository": true, "branch": true, "commit": true, "release": true,
 	"config": true, "configuration": true, "setting": true, "settings": true, "switch": true, "router": true,
 	"network": true, "system": true, "process": true, "job": true, "run": true, "runs": true, "loop": true,
+	// Ordinary nouns a graph names things after, each of which had
+	// collected everything said near it: audit, gate, guard, photo,
+	// session, chapter, dispatch, finding, evidence.
+	"audits": true, "gate": true, "gates": true, "guard": true, "guards": true,
+	"photo": true, "photos": true, "session": true, "sessions": true, "chapter": true, "chapters": true,
+	"dispatch": true, "finding": true, "findings": true, "evidence": true, "progress": true,
+	"outcome": true, "outcomes": true, "gap": true, "gaps": true, "goal": true, "goals": true,
+	"waves": true, "epic": true, "epics": true, "shared": true, "build": true, "builds": true,
 	"report": true, "audit": true, "review": true, "phase": true, "step": true, "wave": true, "round": true,
 	"mobile": true, "web": true, "site": true, "dashboard": true, "gateway": true, "worker": true,
 	"the": true, "and": true, "new": true, "old": true, "main": true, "core": true, "base": true,
@@ -252,13 +260,18 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	// daemon", "scryd", "context-stack/scry" for scry) is the entity's
 	// own. Nothing else is admitted on one episode: the check above has
 	// already established that no other entity is named in this alias.
-	// An entity whose name is a common noun takes only its own spelling:
-	// "gate" answered to "COPPA gate", "sex gate", and "Twilio gate", and
-	// collected a hundred unrelated names that way.
-	if !commonNouns[strings.ToLower(strings.TrimSpace(e.Name))] {
-		if n := compactName(e.Name); len(n) >= 4 && strings.Contains(compactName(alias), n) {
-			return true, "contains the entity's own name", nil
-		}
+	// An entity named by one word takes only aliases whose extra words
+	// describe a kind of thing. "gate" answered to COPPA gate, sex gate
+	// and Twilio gate; AUDIT-6 to every audit in the graph; session-ts to
+	// every session. This runs before the containment rule below, which
+	// is what made an earlier version of the guard unreachable, and it
+	// applies to every one-word name rather than to a list of common
+	// nouns, since gate was not on that list.
+	if genericOneWordName(e.Name) && !extrasAreKindWords(alias, e) {
+		return false, "would add unrelated words to a one-word name", nil
+	}
+	if n := compactName(e.Name); len(n) >= 4 && strings.Contains(compactName(alias), n) {
+		return true, "contains the entity's own name", nil
 	}
 	if len(en) > 0 && len(an) > len(en) {
 		contains := true
@@ -341,6 +354,54 @@ var kindWords = map[string]map[string]bool{
 	"concept":  {"the": true},
 	"decision": {"the": true, "decision": true, "call": true},
 	"runbook":  {"the": true, "runbook": true, "doc": true, "docs": true, "guide": true},
+}
+
+// genericOneWordName reports whether a name is a single ordinary word:
+// gate, audit, guard, photo, session. Such a name never carries an alias
+// that merely contains it, because everything said near the word ends up
+// on it. A single word that is a proper name — scry, hermes, docket —
+// still does, so "scryd" and "Scry memory" are scry's.
+func genericOneWordName(name string) bool {
+	if !oneWordName(name) {
+		return false
+	}
+	for t := range tokensOf(name) {
+		w := singular(t)
+		if commonNouns[t] || commonNouns[w] || anyKindWord[t] || anyKindWord[w] ||
+			processNouns[t] || processNouns[w] || thingWords[t] || thingWords[w] {
+			return true
+		}
+	}
+	return false
+}
+
+// oneWordName reports whether a name is a single word once punctuation
+// is set aside: "gate", "AUDIT-6", "session-ts", "photo".
+func oneWordName(name string) bool {
+	raw := tokensOf(name)
+	if len(raw) == 0 {
+		return false
+	}
+	words := 0
+	for t := range raw {
+		if len(t) >= 3 {
+			words++
+		}
+	}
+	return words <= 1
+}
+
+// extrasAreKindWords reports whether everything an alias adds to an
+// entity's name describes a kind of thing.
+func extrasAreKindWords(alias string, e store.Entity) bool {
+	en := singularTokens(e.Name)
+	kw := kindWords[e.Type]
+	for t := range singularTokens(alias) {
+		if !en[t] && !kw[t] && !anyKindWord[t] {
+			return false
+		}
+	}
+	return true
 }
 
 // distinctiveName reports whether a name is specific enough that an
@@ -595,19 +656,11 @@ func namedByKindWords(st *store.Store, alias string, e store.Entity) (string, er
 		// Judged on the tokens the match actually used: "lib.rs" reduces
 		// to the single short token "lib", which is no more distinctive
 		// than "gate".
-		// Judged on the name's own words rather than their stems: Hermes
-		// stems to "herm", and the four letters that stemming removed do
-		// not make the name less distinctive. "lib.rs" reduces to the one
-		// short word "lib", which is no more distinctive than "gate".
-		distinctive := distinctiveName(other.Name)
-		if raw := tokensOf(other.Name); distinctive && len(raw) == 1 {
-			for t := range raw {
-				if len(t) < 5 {
-					distinctive = false
-				}
-			}
-		}
-		if !distinctive {
+		// A name of one word never carries an alias on its own, whatever
+		// its length. Calling any five-letter word distinctive is what
+		// let guard, photo, session-ts and AUDIT-6 collect everything
+		// said near them.
+		if !distinctiveName(other.Name) || genericOneWordName(other.Name) {
 			kw := kindWords[other.Type]
 			ok := true
 			for t := range at {
@@ -620,8 +673,10 @@ func namedByKindWords(st *store.Store, alias string, e store.Entity) (string, er
 				continue
 			}
 		}
-		// Prefer the most specific name (the most tokens matched).
-		if len(nt) > bestLen {
+		// Prefer the most specific name, and the earlier slug when two are
+		// equally specific: ownership of a tied alias was a coin flip per
+		// process, because the candidates arrive in Go map order.
+		if len(nt) > bestLen || (len(nt) == bestLen && best != "" && slug < best) {
 			best, bestLen = slug, len(nt)
 		}
 	}

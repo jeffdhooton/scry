@@ -458,3 +458,90 @@ func TestAOneWordNameDoesNotCollectEverythingNearIt(t *testing.T) {
 		}
 	}
 }
+
+// A one-word name that is an ordinary noun collects everything said near
+// it; a one-word name that is a proper name does not. AUDIT-6 held 104
+// aliases this way, guard 57, session-ts 55.
+func TestAnOrdinaryWordCollectsNothing(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	for _, e := range []store.Entity{
+		{Slug: "audit-6", Name: "AUDIT-6", Type: "concept"},
+		{Slug: "guard", Name: "guard", Type: "tool"},
+		{Slug: "session-ts", Name: "session-ts", Type: "concept"},
+		{Slug: "photo", Name: "photo", Type: "tool"},
+		{Slug: "scry", Name: "scry", Type: "project"},
+		{Slug: "hermes", Name: "Hermes", Type: "service"},
+	} {
+		e.CreatedAt, e.LastSeen = now, now
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	refuse := []struct{ slug, alias string }{
+		{"audit-6", "a11y audit"}, {"audit-6", "marketing audit"}, {"audit-6", "PDF audit"},
+		{"guard", "cancellation guard"}, {"guard", "android picker guard"},
+		{"session-ts", "collaboration session"}, {"photo", "hero photo"},
+	}
+	for _, c := range refuse {
+		e, err := st.GetEntity(c.slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok, why, err := AdmitAlias(st, e, c.alias, "ep-1"); err != nil {
+			t.Fatal(err)
+		} else if ok {
+			t.Errorf("%s took %q on one episode: %s", c.slug, c.alias, why)
+		}
+	}
+	// A proper name keeps its own spellings and its kinds.
+	keep := []struct{ slug, alias string }{
+		{"scry", "scryd"}, {"scry", "Scry memory"}, {"scry", "context-stack/scry"},
+		{"hermes", "Hermes agent"}, {"hermes", "hermes gateway"},
+	}
+	for _, c := range keep {
+		e, err := st.GetEntity(c.slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok, why, err := AdmitAlias(st, e, c.alias, "ep-1"); err != nil {
+			t.Fatal(err)
+		} else if !ok {
+			t.Errorf("%s must keep %q: %s", c.slug, c.alias, why)
+		}
+	}
+}
+
+// Two entities equally named by an alias must not decide ownership by Go
+// map order: 200 calls used to split 35/165 between the same two.
+func TestAliasOwnershipIsDeterministic(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	for _, e := range []store.Entity{
+		{Slug: "pr-38-marketing", Name: "PR 38 marketing", Type: "project"},
+		{Slug: "marketing-plan", Name: "marketing plan", Type: "project"},
+		{Slug: "holder", Name: "holder", Type: "project"},
+	} {
+		e.CreatedAt, e.LastSeen = now, now
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	holder, err := st.GetEntity("holder")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := namedByKindWords(st, "marketing plan doc", holder)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 50; i++ {
+		got, err := namedByKindWords(st, "marketing plan doc", holder)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != first {
+			t.Fatalf("ownership changed between calls: %q then %q", first, got)
+		}
+	}
+}

@@ -144,6 +144,40 @@ func (ix *Index) EmbedQuery(q string) []float32 {
 	return ix.model.Query(Tokenize(q))
 }
 
+// NearestFacts returns the facts closest to a query vector in the model,
+// as (key, similarity) pairs, filtered to those valid at asOf. This is
+// the retrieval half of the model: these facts are reached by meaning
+// whether or not they share a word with the question.
+func (ix *Index) NearestFacts(q []float32, k int, min float64, asOf *time.Time) []embed.Neighbour {
+	ix.mu.RLock()
+	defer ix.mu.RUnlock()
+	if ix.model == nil {
+		return nil
+	}
+	out := ix.model.Nearest(q, k, min)
+	if asOf == nil {
+		return out
+	}
+	kept := out[:0]
+	for _, n := range out {
+		if i, ok := ix.byKey[n.Key]; ok && validAt(ix.docs[i], asOf) {
+			kept = append(kept, n)
+		}
+	}
+	return kept
+}
+
+// FactByKey returns the fact behind a document key.
+func (ix *Index) FactByKey(key string) (store.Fact, bool) {
+	ix.mu.RLock()
+	defer ix.mu.RUnlock()
+	i, ok := ix.byKey[key]
+	if !ok || ix.docs[i].Kind != KindFact {
+		return store.Fact{}, false
+	}
+	return ix.docs[i].Fact, true
+}
+
 // ModelSize reports how much the vector model covers, for status output.
 func (ix *Index) ModelSize() (terms, facts int) {
 	ix.mu.RLock()

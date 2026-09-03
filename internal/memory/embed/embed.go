@@ -225,3 +225,48 @@ func uniq(terms []string) []string {
 	sort.Strings(out)
 	return out
 }
+
+// Neighbour is a fact key and its cosine to a query vector.
+type Neighbour struct {
+	Key string
+	Sim float64
+}
+
+// Nearest returns the k facts closest to q. It compares against every
+// fact: 46,000 vectors of 128 dimensions is six million multiply-adds,
+// a few milliseconds, and an approximate index would be a dependency
+// and a second thing to keep current for no measurable gain at this
+// size.
+//
+// This is what makes the model a way of finding facts rather than a way
+// of reordering ones the words already found. A grader put it exactly:
+// a re-ranker sold as a retriever. A fact that shares no word with the
+// question is only reachable here.
+func (m *Model) Nearest(q []float32, k int, min float64) []Neighbour {
+	if q == nil || k <= 0 {
+		return nil
+	}
+	out := make([]Neighbour, 0, k)
+	worst := min
+	for key, v := range m.facts {
+		var dot float32
+		for i := range q {
+			dot += q[i] * v[i]
+		}
+		sim := float64(dot)
+		if sim < worst {
+			continue
+		}
+		out = append(out, Neighbour{Key: key, Sim: sim})
+		if len(out) >= k*4 {
+			sort.Slice(out, func(i, j int) bool { return out[i].Sim > out[j].Sim })
+			out = out[:k]
+			worst = out[len(out)-1].Sim
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Sim > out[j].Sim })
+	if len(out) > k {
+		out = out[:k]
+	}
+	return out
+}

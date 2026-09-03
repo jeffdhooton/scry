@@ -380,29 +380,17 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			// forbids: hermes-ops held "Hermes tmux", "Hermes Slack
 			// gateway", and "Jeff's own Hermes" long after the rule that
 			// admitted them was replaced.
-			// aliasOnly marks a split made because the write path would
-			// refuse the alias today. The alias goes to the entity it
-			// names, but the facts stay: an alias naming another entity
-			// says nothing about which entity the facts are about, and
-			// moving them on that basis misfiled two thousand of them.
-			aliasOnly := false
-			if !split {
-				named, err := namedByKindWords(st, a, e)
-				if err != nil {
-					return rep, err
-				}
-				if _, live := bySlug[named]; live && named != e.Slug {
-					split, other, aliasOnly = true, named, true
-				}
-			}
-			if !split && (machineLeak(a, e) || roleLeak(a, e)) {
-				// Hardware named on a non-machine, with no machine to hand
-				// the facts to: the alias goes, the facts stay.
-				rep.AliasesDropped++
-				rep.DroppedAliasList = append(rep.DroppedAliasList, e.Slug+": "+a+" (machine noun)")
-				changed = true
-				continue
-			}
+			// Applying the write path's naming rule to stored aliases was
+			// tried twice and measured worse than not doing it, both
+			// times. The first attempt handed 4,634 aliases to entities
+			// whose facts never mention them; the corrected rule handed
+			// 7,268, rebuilt a magnet entity from zero to 104 aliases,
+			// and destroyed 1,471 spellings the store used to answer to,
+			// two of them the Mac mini's. One decision about one alias
+			// can be judged; nineteen thousand of them compound every
+			// weakness in the rule at once. Cleanup and prevention
+			// disagreeing on an alias admitted under an older rule is the
+			// lesser problem, and it is the one this keeps.
 			if _, live := bySlug[other]; split && other != "" && !live {
 				// Whatever named this alias is gone: keep the alias where
 				// it is rather than handing it to nothing.
@@ -416,7 +404,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 				// "childscribe" facts on childscribe-laravel may be about
 				// either, and guessing is worse than a stray alias.
 				exactStranger := other != "" && other == store.Slugify(a) && !sharesToken(a, e.Name)
-				if !aliasOnly && other != "" && other != e.Slug && (!TypesCompatible(bySlug[other].Type, e.Type) || exactStranger) {
+				if other != "" && other != e.Slug && (!TypesCompatible(bySlug[other].Type, e.Type) || exactStranger) {
 					n, moves, err := reattachByMention(st, e, a, other, now, dryRun)
 					if err != nil {
 						return rep, err
