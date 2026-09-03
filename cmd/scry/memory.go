@@ -347,13 +347,16 @@ the models could not parse after three tries.`,
 // daemonClient implements ingest.Daemon by calling the daemon's memory.*
 // RPCs, using exactly the param/result structs internal/daemon/memory_methods.go
 // defines (task 7's RPC contract).
-type daemonClient struct{}
+type daemonClient struct {
+	// force re-applies episodes the store already holds (ingest --force).
+	force bool
+}
 
 var _ ingest.Daemon = daemonClient{}
 
-func (daemonClient) Enqueue(ctx context.Context, eps []distill.RawEpisode) (int, int, error) {
+func (c daemonClient) Enqueue(ctx context.Context, eps []distill.RawEpisode) (int, int, error) {
 	var result daemon.MemoryEnqueueResult
-	err := callMemoryDaemon(ctx, "memory.enqueue", &daemon.MemoryEnqueueParams{Episodes: eps}, &result)
+	err := callMemoryDaemon(ctx, "memory.enqueue", &daemon.MemoryEnqueueParams{Episodes: eps, Force: c.force}, &result)
 	return result.Queued, result.Known, err
 }
 
@@ -374,7 +377,7 @@ func (daemonClient) Glossary(ctx context.Context, limit int) ([]string, error) {
 func (daemonClient) Commit(ctx context.Context, ep memstore.Episode, cwd string, res extract.Result) (resolve.Stats, error) {
 	var stats resolve.Stats
 	err := callMemoryDaemon(ctx, "memory.commit", &daemon.MemoryCommitParams{
-		Episode: ep, Cwd: cwd, Result: res,
+		Episode: ep, Cwd: cwd, CwdIsRepo: distill.CwdIsRepo(cwd), Result: res,
 	}, &stats)
 	return stats, err
 }
@@ -417,6 +420,7 @@ func memoryIngestCmd() *cobra.Command {
 				return fmt.Errorf("--source must be one of claude|codex|kimi|opencode|loom|seed, got %q", source)
 			}
 			path, _ := cmd.Flags().GetString("path")
+			force, _ := cmd.Flags().GetBool("force")
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
@@ -424,7 +428,7 @@ func memoryIngestCmd() *cobra.Command {
 			sum, err := ingest.File(ctx, ingest.Options{
 				Source: source,
 				Path:   path,
-				Daemon: daemonClient{},
+				Daemon: daemonClient{force: force},
 			})
 			if err != nil {
 				return err
@@ -435,6 +439,7 @@ func memoryIngestCmd() *cobra.Command {
 	}
 	cmd.Flags().String("source", "", "source type: claude|codex|kimi|opencode|loom|seed (required)")
 	cmd.Flags().String("path", "", "path to the transcript file, run directory, or seed markdown file; for opencode, opencode:<db>:<session id> (required)")
+	cmd.Flags().Bool("force", false, "re-queue episodes the store already holds so they are re-applied under the current rules (repair)")
 	_ = cmd.MarkFlagRequired("source")
 	_ = cmd.MarkFlagRequired("path")
 	return cmd

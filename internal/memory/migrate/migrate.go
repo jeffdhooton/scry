@@ -35,6 +35,10 @@ type Report struct {
 	RelationMapping    map[string]int `json:"relation_mapping"` // canonical → facts
 	RelationFallback   int            `json:"relation_fallback"`
 
+	// AttributesRestored counts attribute facts whose value turned out to
+	// be an identity under the current rules and were turned back into
+	// edges to a (re)created entity.
+	AttributesRestored  int      `json:"attributes_restored"`
 	ValueEntities       int      `json:"value_entities"`
 	ValueFactsConverted int      `json:"value_facts_converted"`
 	ValueFactsDropped   int      `json:"value_facts_dropped"` // both endpoints values: invalidated
@@ -170,7 +174,7 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 	values := map[string]store.Entity{}
 	for _, e := range entities {
 		bySlug[e.Slug] = e
-		if resolve.IsValueName(e.Name) || resolve.IsEphemeralName(e.Name) || pureNumberOrHex(e.Slug) {
+		if retireable(e.Name) {
 			values[e.Slug] = e
 		}
 	}
@@ -192,6 +196,29 @@ func migrateValues(st *store.Store, dryRun bool, rep *Report) error {
 	}
 	for _, f := range facts {
 		if f.Dst == "" {
+			// An attribute whose value is not a value under the current
+			// rules (a file path demoted by an earlier, wider pattern) goes
+			// back to being an edge to an entity.
+			if f.Relation != resolve.RelStatus && f.Value != "" && !retireable(f.Value) {
+				slug := store.Slugify(f.Value)
+				if slug == "" {
+					continue
+				}
+				rep.AttributesRestored++
+				if dryRun {
+					continue
+				}
+				if _, err := st.GetEntity(slug); err != nil {
+					if err := st.PutEntity(store.Entity{Slug: slug, Name: f.Value, Type: "concept", CreatedAt: f.ValidFrom, LastSeen: f.ValidFrom}); err != nil {
+						return err
+					}
+				}
+				updated := f
+				updated.Dst, updated.Value = slug, ""
+				if err := st.RelocateFact(f, updated); err != nil {
+					return fmt.Errorf("restore %s -[%s]-> %q: %w", f.Src, f.Relation, f.Value, err)
+				}
+			}
 			continue // already an attribute
 		}
 		srcVal, dstVal := values[f.Src], values[f.Dst]
@@ -269,7 +296,7 @@ func audit(st *store.Store, rep *Report) error {
 		return err
 	}
 	for _, e := range entities {
-		if resolve.IsValueName(e.Name) || resolve.IsEphemeralName(e.Name) {
+		if retireable(e.Name) {
 			rep.ValueEntitiesAfter++
 		}
 	}
@@ -277,6 +304,13 @@ func audit(st *store.Store, rep *Report) error {
 }
 
 var pureNumberOrHexRE = regexp.MustCompile(`^\d+$|^[0-9a-f]{7,40}$`)
+
+// retireable is the one predicate both the retire step and the restore
+// step use, so a value can never be restored as an entity by one pass and
+// retired again by the next.
+func retireable(name string) bool {
+	return resolve.IsValueName(name) || resolve.IsEphemeralName(name) || pureNumberOrHex(store.Slugify(name))
+}
 
 // pureNumberOrHex catches entities whose name slugified to a bare number
 // or a commit hash ("#140" → "140") even when the name itself has a prefix

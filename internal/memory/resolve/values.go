@@ -22,10 +22,19 @@ var (
 	versionRE = regexp.MustCompile(`^(?:v|go|python|node|php|ruby|java|rust)?\d+(?:\.\d+){1,3}(?:[-+][a-z0-9.]+)?$|^v\d+$`)
 	// branchRE: git branch shapes: "feat/x", "fix/123-thing", "release/1.2",
 	// "jeff/wip", plus the bare trunk names.
-	branchRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|docs?|test|tests|release|releases|wip|exp|spike|ci|build|perf|style|revert|dependabot|renovate|codex|claude|kimi|jeff|jclaw|user|users|topic|dev|develop|development|staging|prod|production|main|master|trunk|origin|upstream|setpoint|loop|attempt\d*|worker|agent|task|wave|round|pr|issue|hermes|opencode)/[A-Za-z0-9._/-]+$`)
+	branchRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|wip|exp|spike|perf|style|revert|dependabot|renovate|codex|claude|kimi|jeff|jclaw|user|users|topic|dev|develop|development|staging|prod|production|main|master|trunk|origin|upstream|setpoint|loop|attempt\d*|worker|wave|round|pr|issue|hermes|opencode|checkpoint|release|releases)/[A-Za-z0-9._/<>-]+$`)
+	// fileExtRE: a trailing extension makes a path a file, never a branch.
+	fileExtRE = regexp.MustCompile(`\.[a-z][a-z0-9]{0,5}$`)
 	// branchWordRE: "current branch", "worker branch", "fix-branch",
-	// "the-working-branch", "main branch", "docs/x branch".
-	branchWordRE = regexp.MustCompile(`(?:^|[\s_-])branch$|^head(?:[~^]\d*)?$`)
+	// "the-working-branch", "main branch", "docs/x branch", "branch
+	// setpoint/ids", "branch-5cced0b", "main branch at 033ef4c".
+	branchWordRE = regexp.MustCompile(`(?:^|[\s_-])branch$|^branch[\s_-](?:[a-z0-9._-]+/|[0-9a-f]{7,}|loop|setpoint|fix|feat|feature|wip|main|master)|^head(?:[~^]\d*)?$|^(?:main|master|develop|trunk)[\s_-]branch(?:[\s_-]at[\s_-]|$)|(?:^|\s)branches$`)
+	// uuidAnywhereRE: an id embedded in a name ("approval-request-<uuid>").
+	uuidAnywhereRE = regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
+	// userAtHostRE: "jclaw@100.96.45.73", "jeff@mini".
+	userAtHostRE = regexp.MustCompile(`^[a-z0-9._-]+@[a-z0-9.-]+$`)
+	// httpStatusRE: "HTTP 429", "500 response", "route cache 500 error".
+	httpStatusRE = regexp.MustCompile(`(?:^|\s)(?:http\s+)?[1-5]\d\d(?:/[1-5]\d\d)*(?:\s+(?:response|error|errors|status|code))?$|^http\s+[1-5]\d\d`)
 	// hexRE: commit shas up to a full sha256, run ids.
 	hexRE = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
 	// uuidRE: session and thread ids.
@@ -34,6 +43,12 @@ var (
 	// status", "500 error", "54/54 passing", "1623-tests": a number and one
 	// or two words whose last word is a count noun or a state.
 	countRE = regexp.MustCompile(`^[+-]?\d[\d.,/_-]*[\s_-]+(?:[a-z]+[\s_-]+)?([a-z]+)$`)
+	// leadingNumberRE: names that start with a number, for the "number plus
+	// a unit, count, or state anywhere" rule ("116 GB of 125 GB", "793
+	// passed, 1 failed", "20.2 tok/s", "8-10").
+	leadingNumberRE = regexp.MustCompile(`^[~≈<>+-]?\d`)
+	numberRangeRE   = regexp.MustCompile(`^\d+(?:\.\d+)?\s*[-–]\s*\d+(?:\.\d+)?$`)
+	unitTokenRE     = regexp.MustCompile(`^\d[\d.,]*(?:[kmgtp]?i?b|[kmgt]?hz|ms|s|h|d|w|%|x|tok|tokens?|mb/s|gb/s|kb/s|tok/s|req/s|fps|rps|qps|tps)$|^(?:[kmgtp]?i?b|[kmgt]?hz|ms|mb/s|gb/s|kb/s|tok/s|req/s|%)$`)
 	// signedOrSciRE: "-1", "+5", "1e6", "40 percent", "version 1.2.1",
 	// "Version 2", "Q3 2026", "September 2026", "2026-09".
 	signedOrSciRE = regexp.MustCompile(`^[+-]\d+(?:\.\d+)?$|^\d+(?:\.\d+)?e[+-]?\d+$|^\d+(?:\.\d+)?\s*percent$|^version\s+\d[\w.]*$|^q[1-4]\s+\d{4}$|^(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}$|^\d{4}-\d{2}$`)
@@ -57,6 +72,9 @@ var countNouns = map[string]bool{
 	"cores": true, "threads": true, "nodes": true, "gpus": true, "cpus": true, "boxes": true,
 	"insertions": true, "deletions": true, "attempts": true, "retries": true, "rounds": true,
 	"waves": true, "phases": true, "questions": true, "hits": true, "misses": true,
+	"clicks": true, "impressions": true, "assertions": true, "specs": true, "spec": true, "typos": true,
+	"fails": true, "occurrences": true, "matches": true, "violations": true, "regressions": true,
+	"gb": true, "mb": true, "kb": true, "tb": true, "gib": true, "mib": true,
 }
 
 var (
@@ -117,7 +135,13 @@ func IsValueName(name string) bool {
 	if IsStatusWord(n) {
 		return true
 	}
-	if trunkBranches[n] || branchRE.MatchString(n) || branchWordRE.MatchString(n) {
+	if trunkBranches[n] || (branchRE.MatchString(n) && !fileExtRE.MatchString(n)) || branchWordRE.MatchString(n) {
+		return true
+	}
+	if uuidAnywhereRE.MatchString(n) || userAtHostRE.MatchString(n) || httpStatusRE.MatchString(n) || numberRangeRE.MatchString(n) {
+		return true
+	}
+	if leadingNumberRE.MatchString(n) && !fileExtRE.MatchString(n) && measurementPhrase(n) {
 		return true
 	}
 	if bareNumberOrMeasureRE.MatchString(n) || versionRE.MatchString(n) || hexRE.MatchString(n) || uuidRE.MatchString(n) || dateRE.MatchString(n) || timeRE.MatchString(n) || endpointRE.MatchString(n) || signedOrSciRE.MatchString(n) {
@@ -139,18 +163,27 @@ func IsStatusWord(name string) bool {
 	if statusWords[n] {
 		return true
 	}
-	// A phrase of up to three words that ends in a state ("build failed",
-	// "Phase 1 complete", "VOB Pending", "awaiting review"), or that names
-	// a status ("completed status", "READY status").
-	words := strings.Fields(strings.ReplaceAll(n, "_", " "))
-	if len(words) >= 2 && len(words) <= 3 {
+	// A short phrase that ends in a state ("build failed", "Phase 2 tasks
+	// 7-8 complete", "full API suite green", "VOB Pending"), names a
+	// status ("completed status", "READY status"), or starts with a state
+	// or a waiting word ("ready for merge", "pending-reload", "needs env",
+	// "awaiting review", "loop 2 in progress").
+	words := strings.Fields(strings.NewReplacer("_", " ", "-", " ").Replace(n))
+	if len(words) >= 2 && len(words) <= 6 {
 		last := words[len(words)-1]
-		if statusWords[last] || last == "status" || last == "state" {
+		if statusWords[last] || last == "status" || last == "state" || last == "succeeded" || last == "green" {
 			return true
 		}
-		if (words[0] == "awaiting" || words[0] == "pending" || words[0] == "needs") && len(words) == 2 {
+		if len(words) >= 3 && statusWords[words[len(words)-2]+" "+last] {
 			return true
 		}
+		first := words[0]
+		if (first == "awaiting" || first == "pending" || first == "needs" || first == "ready" || first == "blocked" || first == "waiting") && len(words) <= 4 {
+			return true
+		}
+	}
+	if n == "succeeded" || n == "failed" {
+		return true
 	}
 	// "status: done", "state=passing"
 	for _, sep := range []string{":", "="} {
@@ -162,4 +195,42 @@ func IsStatusWord(name string) bool {
 		}
 	}
 	return false
+}
+
+// measurementFillers are the words allowed between the numbers, units,
+// counts, and states of a measurement phrase ("116 GB of 125 GB", "284
+// lines across ~90 files", "9,629 passing tests, exit 0").
+var measurementFillers = map[string]bool{
+	"of": true, "on": true, "over": true, "across": true, "in": true, "per": true, "and": true, "or": true,
+	"exit": true, "with": true, "at": true, "to": true, "new": true, "total": true, "vs": true, "out": true,
+	"about": true, "approx": true, "approximately": true, "roughly": true, "than": true, "more": true, "less": true,
+}
+
+// measurementPhrase reports whether n (lowercase, starting with a number)
+// is a number followed directly by a unit, count noun, or state, with every
+// remaining word a number, unit, count, state, or filler. "3 nodes cluster
+// design" fails on "cluster": a title with a leading number is not a
+// measurement.
+func measurementPhrase(n string) bool {
+	words := strings.Fields(strings.NewReplacer("-", " ", "_", " ", ",", " ").Replace(n))
+	if len(words) < 2 || len(words) > 9 {
+		return false
+	}
+	isNum := func(w string) bool {
+		return leadingNumberRE.MatchString(w) && !unitTokenRE.MatchString(w) || numberRangeRE.MatchString(w)
+	}
+	isMeasure := func(w string) bool { return countNouns[w] || statusWords[w] || unitTokenRE.MatchString(w) }
+	if unitTokenRE.MatchString(words[0]) && len(words) <= 3 {
+		return true // "72h-window", "3.5s timeout": a quantity qualified by a noun
+	}
+	if !isMeasure(words[1]) && !(isNum(words[1]) && len(words) >= 3 && isMeasure(words[2])) {
+		return false
+	}
+	for _, w := range words[1:] {
+		if isNum(w) || isMeasure(w) || measurementFillers[w] {
+			continue
+		}
+		return false
+	}
+	return true
 }

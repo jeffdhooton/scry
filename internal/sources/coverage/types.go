@@ -15,8 +15,8 @@ type CoveredRange struct {
 
 // Stats summarizes what the coverage indexer found.
 type Stats struct {
-	Format       string `json:"format"`        // e.g. "gocover", "istanbul", "clover", "pycov"
-	FilesFound   int    `json:"files_found"`   // coverage data files detected
-	RangesParsed int    `json:"ranges_parsed"` // total CoveredRange entries parsed
-	SymbolsCovered int  `json:"symbols_covered"` // symbols with at least one covered line
+	Format         string `json:"format"`          // e.g. "gocover", "istanbul", "clover", "pycov"
+	FilesFound     int    `json:"files_found"`     // coverage data files detected
+	RangesParsed   int    `json:"ranges_parsed"`   // total CoveredRange entries parsed
+	SymbolsCovered int    `json:"symbols_covered"` // symbols with at least one covered line
 }

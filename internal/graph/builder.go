@@ -519,11 +519,20 @@ func detectCommunities(st *graphstore.Store) ([]graphstore.CommunityRecord, erro
 	}
 
 	// Build adjacency lists with weights
-	adj := make([][]struct{ node int; weight float64 }, n)
+	adj := make([][]struct {
+		node   int
+		weight float64
+	}, n)
 	totalWeight := 0.0
 	for _, e := range wEdges {
-		adj[e.i] = append(adj[e.i], struct{ node int; weight float64 }{e.j, e.weight})
-		adj[e.j] = append(adj[e.j], struct{ node int; weight float64 }{e.i, e.weight})
+		adj[e.i] = append(adj[e.i], struct {
+			node   int
+			weight float64
+		}{e.j, e.weight})
+		adj[e.j] = append(adj[e.j], struct {
+			node   int
+			weight float64
+		}{e.i, e.weight})
 		totalWeight += e.weight
 	}
 

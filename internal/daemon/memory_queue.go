@@ -15,6 +15,7 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/distill"
 	"github.com/jeffdhooton/scry/internal/memory/migrate"
 	"github.com/jeffdhooton/scry/internal/memory/queue"
+	"github.com/jeffdhooton/scry/internal/memory/resolve"
 	"github.com/jeffdhooton/scry/internal/memory/search"
 	"github.com/jeffdhooton/scry/internal/memory/store"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
@@ -159,6 +160,9 @@ func (d *Daemon) refreshGlossary() {
 	var lines []string
 	if err == nil {
 		lines, err = computeGlossary(st, defaultGlossaryLimit)
+		if rerr := resolve.RefreshCompactIndex(st); rerr != nil {
+			log.Printf("memory: compact name index refresh failed: %v", rerr)
+		}
 	}
 	d.memGlossary.mu.Lock()
 	defer d.memGlossary.mu.Unlock()
@@ -214,6 +218,8 @@ func computeGlossary(st *memstore.Store, limit int) ([]string, error) {
 // model.
 type MemoryEnqueueParams struct {
 	Episodes []distill.RawEpisode `json:"episodes"`
+	// Force re-applies episodes the store already holds (repair).
+	Force bool `json:"force,omitempty"`
 }
 
 // MemoryEnqueueResult reports how many episodes were newly queued and how
@@ -238,7 +244,7 @@ func (d *Daemon) handleMemoryEnqueue(_ context.Context, raw json.RawMessage) (an
 		if ep.ID == "" {
 			return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: "episode id is required"}
 		}
-		queued, err := enqueueEpisode(st, ep, nil, now)
+		queued, err := enqueueEpisode(st, ep, nil, now, p.Force)
 		if err != nil {
 			return nil, err
 		}
@@ -260,9 +266,11 @@ func (d *Daemon) handleMemoryEnqueue(_ context.Context, raw json.RawMessage) (an
 // enqueueEpisode writes ep to the pending queue unless it is already there
 // or already resolved. Text is redacted here as a backstop: every distiller
 // redacts too, but this is the one door into the store.
-func enqueueEpisode(st *memstore.Store, ep distill.RawEpisode, hints []string, now time.Time) (bool, error) {
-	if has, err := st.HasEpisode(ep.ID); err != nil || has {
-		return false, err
+func enqueueEpisode(st *memstore.Store, ep distill.RawEpisode, hints []string, now time.Time, force bool) (bool, error) {
+	if !force {
+		if has, err := st.HasEpisode(ep.ID); err != nil || has {
+			return false, err
+		}
 	}
 	if has, err := st.HasPending(ep.ID); err != nil || has {
 		return false, err
@@ -272,7 +280,7 @@ func enqueueEpisode(st *memstore.Store, ep distill.RawEpisode, hints []string, n
 		occurred = now
 	}
 	return true, st.PutPending(memstore.PendingEpisode{
-		ID: ep.ID, Source: ep.Source, SourceRef: ep.SourceRef, Text: distill.Redact(ep.Text), Cwd: ep.Cwd,
+		ID: ep.ID, Source: ep.Source, SourceRef: ep.SourceRef, Text: distill.Redact(ep.Text), Cwd: ep.Cwd, CwdIsRepo: ep.CwdIsRepo, Force: force,
 		OccurredAt: occurred, EnqueuedAt: now, NextAttempt: now, Hints: hints,
 	})
 }

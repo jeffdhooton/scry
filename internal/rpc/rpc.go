@@ -230,4 +230,3 @@ func (c *Client) Call(ctx context.Context, method string, params, out any) error
 	}
 	return nil
 }
-

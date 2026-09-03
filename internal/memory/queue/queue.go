@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,14 @@ const (
 	// are never parked on a timeout: their text is a sentence, so a timeout
 	// is always the provider's fault, and an agent is waiting for them.
 	MaxTimeoutAttempts = 3
+	// minSplitChars is the shortest text worth splitting when extraction
+	// keeps timing out. Below it, a timeout is the provider's problem and
+	// splitting would only multiply the calls.
+	minSplitChars = 3000
+	// maxSplitDepth bounds the recursion: an episode may be halved three
+	// times (eighths) before it is parked for good.
+	maxSplitDepth = 3
+
 	// manualWorkers are slots reserved for manual episodes, so twenty
 	// remembers made during an outage never wait behind transcript slices
 	// that are holding every general slot against a hung upstream. GLM
@@ -295,10 +304,14 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 		// drops the specifics the agent chose to write down.
 		summary = p.Text
 	}
-	stats, err := resolve.Apply(w.o.Store, store.Episode{
+	cwd := ""
+	if p.CwdIsRepo {
+		cwd = p.Cwd // attested as a repository by the machine that has it
+	}
+	stats, err := resolve.ApplyWith(w.o.Store, store.Episode{
 		ID: p.ID, Source: p.Source, SourceRef: p.SourceRef, Summary: summary,
 		OccurredAt: p.OccurredAt, IngestedAt: time.Now(),
-	}, p.Cwd, res, resolve.DefaultExclusive)
+	}, cwd, res, resolve.DefaultExclusive, resolve.ApplyOptions{Force: p.Force})
 	if err != nil {
 		w.fail(p, fmt.Errorf("resolve: %w", err))
 		return
@@ -329,6 +342,15 @@ func (w *Worker) fail(p store.PendingEpisode, cause error) {
 		w.o.Logf("memory queue: PARKED %s after %d unparseable replies: %v — replay with `scry memory queue retry %s`",
 			p.ID, p.Attempts, cause, p.ID)
 	case timeout && p.Source != "manual" && p.Attempts >= MaxTimeoutAttempts:
+		// An episode the chain cannot finish is halved and re-queued, so
+		// its content still lands: each half gets a fresh budget, and the
+		// halves carry source refs derived from the parent's. Only after
+		// maxSplitDepth halvings is it parked for good.
+		if split, err := w.splitPending(p); err != nil {
+			w.o.Logf("memory queue: split %s failed: %v", p.ID, err)
+		} else if split {
+			return
+		}
 		p.Parked = true
 		w.o.Logf("memory queue: PARKED %s after %d timeouts (last deadline %s): too long for the chain — replay with `scry memory queue retry %s`",
 			p.ID, p.Attempts, itemDeadline(w.o.ItemTimeout, p.Attempts-1), p.ID)
@@ -347,6 +369,65 @@ func (w *Worker) fail(p store.PendingEpisode, cause error) {
 		w.o.Logf("memory queue: record failure for %s: %v", p.ID, err)
 	}
 }
+
+// splitPending halves p's text at a turn boundary and queues both halves
+// as new pending episodes, then removes p. It reports false when p is too
+// short or already split too deeply, leaving the caller to park it.
+func (w *Worker) splitPending(p store.PendingEpisode) (bool, error) {
+	if len(p.Text) < minSplitChars || splitDepth(p.SourceRef) >= maxSplitDepth {
+		return false, nil
+	}
+	left, right := splitText(p.Text)
+	if left == "" || right == "" {
+		return false, nil
+	}
+	now := time.Now()
+	for i, half := range []string{left, right} {
+		ref := fmt.Sprintf("%s#split%d", p.SourceRef, i+1)
+		child := p
+		child.ID = distill.MakeID(ref)
+		child.SourceRef = ref
+		child.Text = half
+		child.Attempts = 0
+		child.Parked = false
+		child.LastError = "split from " + p.ID + " after repeated timeouts"
+		child.EnqueuedAt = now
+		child.NextAttempt = now
+		if has, err := w.o.Store.HasEpisode(child.ID); err != nil {
+			return false, err
+		} else if has {
+			continue
+		}
+		if err := w.o.Store.PutPending(child); err != nil {
+			return false, err
+		}
+	}
+	if err := w.o.Store.DeletePending(p.ID); err != nil {
+		return false, err
+	}
+	w.o.Logf("memory queue: split %s (%d chars, depth %d) into two halves after %d timeouts",
+		p.ID, len(p.Text), splitDepth(p.SourceRef), p.Attempts)
+	w.Kick()
+	return true, nil
+}
+
+// splitText cuts s near the middle, preferring a turn boundary (the blank
+// line distill leaves between turns), then a line break, then a space.
+func splitText(s string) (string, string) {
+	mid := len(s) / 2
+	for _, sep := range []string{"\n\n", "\n", " "} {
+		if i := strings.LastIndex(s[:mid], sep); i > len(s)/8 {
+			return strings.TrimSpace(s[:i]), strings.TrimSpace(s[i+len(sep):])
+		}
+		if i := strings.Index(s[mid:], sep); i >= 0 && mid+i < len(s)-len(s)/8 {
+			return strings.TrimSpace(s[:mid+i]), strings.TrimSpace(s[mid+i+len(sep):])
+		}
+	}
+	return "", ""
+}
+
+// splitDepth counts the "#splitN" suffixes on a source ref.
+func splitDepth(ref string) int { return strings.Count(ref, "#split") }
 
 func truncate(s string, n int) string {
 	if len(s) <= n {

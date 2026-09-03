@@ -193,6 +193,12 @@ func TestRunAppliesEveryRule(t *testing.T) {
 	if slug, _, _ := st.ResolveAlias("Hermes"); slug != "hermes" {
 		t.Errorf("Hermes resolves to %q", slug)
 	}
+	if slug, _, _ := st.ResolveAlias("Hermes agent"); slug != "hermes" {
+		t.Errorf("a split alias must be granted to the entity it names: Hermes agent → %q", slug)
+	}
+	if slug, _, _ := st.ResolveAlias("halo1"); slug != "halo-1" {
+		t.Errorf("halo1 → %q", slug)
+	}
 	qwen, _ := st.GetEntity("qwen")
 	if contains(qwen.Aliases, "gpt-oss-120b") {
 		t.Errorf("qwen still carries gpt-oss-120b: %v", qwen.Aliases)
@@ -245,3 +251,40 @@ func contains(list []string, s string) bool {
 }
 
 var _ = resolve.RelStatus
+
+func TestRunRestoresWronglyDemotedAttributes(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	_ = st.PutEntity(store.Entity{Slug: "scry", Name: "scry", Type: "project", CreatedAt: now, LastSeen: now})
+	facts := []store.Fact{
+		{Src: "scry", Relation: "documents", Value: "docs/DECISIONS.md", Fact: "decisions live in docs/DECISIONS.md", ValidFrom: now},
+		{Src: "scry", Relation: "status", Value: "in-progress", Fact: "in progress", ValidFrom: now.Add(time.Minute)},
+		{Src: "scry", Relation: "uses", Value: "46 GiB", Fact: "uses 46 GiB", ValidFrom: now.Add(2 * time.Minute)},
+	}
+	for _, f := range facts {
+		f.Confidence, f.Episodes = 0.9, []string{"e1"}
+		if err := st.PutFact(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rep, err := Run(st, Options{Backup: func() (string, error) { return "/tmp/b", nil }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.AttributesRestored != 1 {
+		t.Errorf("AttributesRestored = %d, want 1 (only the file path)", rep.AttributesRestored)
+	}
+	got := factsByKey(t, st)
+	if f, ok := got["scry documents docsdecisionsmd"]; !ok || f.Value != "" {
+		t.Errorf("file path not restored as an edge: %v", keys(got))
+	}
+	if _, err := st.GetEntity("docsdecisionsmd"); err != nil {
+		t.Errorf("entity not recreated: %v", err)
+	}
+	if _, ok := got["scry status =in-progress"]; !ok {
+		t.Errorf("status attribute must stay: %v", keys(got))
+	}
+	if _, ok := got["scry uses =46 GiB"]; !ok {
+		t.Errorf("measurement attribute must stay: %v", keys(got))
+	}
+}

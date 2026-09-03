@@ -86,6 +86,15 @@ tail -20 ~/.scry/logs/memory-sweep.log
 ssh mini 'tail -50 ~/.scry/logs/scryd-launchd.log | grep "memory queue"'
 ```
 
+## Repair
+
+`scry memory migrate` (dry run, then `--apply`) applies the current resolver
+rules to the whole store under a backup and is a no-op when nothing is
+left. `scry memory ingest --source kimi|opencode|claude|codex --path <p>
+--force` re-queues a transcript the store already holds so its episodes
+are re-applied (facts merge; entities refresh their repo refs and aliases).
+`scry memory queue retry <id>` replays a parked item.
+
 ## Roll back
 
 Binary: `mv ~/go/bin/scry.pre-<sha> ~/go/bin/scry` (laptop) or

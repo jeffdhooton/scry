@@ -197,3 +197,42 @@ func TestConceptUpgradeRevalidatesAliases(t *testing.T) {
 		t.Errorf("collisions after upgrade = %d", rep.CrossTypeCollisions)
 	}
 }
+
+func TestAdmitAliasRefusesNamesComposedFromAnotherEntity(t *testing.T) {
+	st := openTemp(t)
+	ops := putEntity(t, st, "hermes-ops", "hermes-ops", "project")
+	putEntity(t, st, "hermes", "Hermes", "service")
+	putEntity(t, st, "halo-1", "halo-1", "machine")
+	putEntity(t, st, "bryan-farney", "Bryan Farney", "person")
+	putEntity(t, st, "halo2", "halo2", "machine")
+	if err := RefreshCompactIndex(st); err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range []string{"Hermes agent", "Hermes gateway", "hermes-agent", "Hermes dashboard"} {
+		for _, ep := range []string{"e1", "e2", "e3"} {
+			if ok, reason, _ := AdmitAlias(st, ops, a, ep); ok {
+				t.Errorf("AdmitAlias(hermes-ops, %q, %s) admitted: %s", a, ep, reason)
+			}
+		}
+	}
+	fleet := putEntity(t, st, "halo-fleet", "Halo Fleet", "project")
+	tool := putEntity(t, st, "intake", "intake", "tool")
+	dec := putEntity(t, st, "dec", "dec", "decision")
+	for _, tc := range []struct {
+		e     store.Entity
+		alias string
+	}{{fleet, "halo1"}, {tool, "BryanFarney"}, {tool, "Bryan.Farney"}, {dec, "halo_2"}} {
+		for _, ep := range []string{"e1", "e2", "e3"} {
+			if ok, reason, _ := AdmitAlias(st, tc.e, tc.alias, ep); ok {
+				t.Errorf("AdmitAlias(%s, %q, %s) crossed types via a spelling variant: %s", tc.e.Slug, tc.alias, ep, reason)
+			}
+		}
+	}
+	stub := putEntity(t, st, "widget", "widget", "concept")
+	_ = putEntity(t, st, "mac-mini", "Mac mini", "machine")
+	for _, ep := range []string{"e1", "e2", "e3"} {
+		if ok, reason, _ := AdmitAlias(st, stub, "Mac mini", ep); ok {
+			t.Errorf("a concept stub took a typed entity's own name on %s: %s", ep, reason)
+		}
+	}
+}

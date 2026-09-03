@@ -71,7 +71,10 @@ func (d *Daemon) closeMemory() {
 type MemoryCommitParams struct {
 	Episode memstore.Episode `json:"episode"`
 	Cwd     string           `json:"cwd,omitempty"`
-	Result  extract.Result   `json:"result"`
+	// CwdIsRepo is the client's attestation that Cwd is a repository on
+	// the machine the session ran on; without it Cwd is not recorded.
+	CwdIsRepo bool           `json:"cwd_is_repo,omitempty"`
+	Result    extract.Result `json:"result"`
 }
 
 func (d *Daemon) handleMemoryCommit(_ context.Context, raw json.RawMessage) (any, error) {
@@ -86,7 +89,11 @@ func (d *Daemon) handleMemoryCommit(_ context.Context, raw json.RawMessage) (any
 	if err != nil {
 		return nil, err
 	}
-	stats, err := resolve.Apply(st, p.Episode, p.Cwd, p.Result, resolve.DefaultExclusive)
+	cwd := ""
+	if p.CwdIsRepo {
+		cwd = p.Cwd
+	}
+	stats, err := resolve.Apply(st, p.Episode, cwd, p.Result, resolve.DefaultExclusive)
 	if err != nil {
 		return nil, err
 	}
@@ -511,7 +518,7 @@ func (d *Daemon) handleMemoryRemember(_ context.Context, raw json.RawMessage) (a
 		Text:       redactedFact,
 		OccurredAt: now,
 	}
-	queued, err := enqueueEpisode(st, ep, p.Entities, now)
+	queued, err := enqueueEpisode(st, ep, p.Entities, now, false)
 	if err != nil {
 		return nil, err
 	}

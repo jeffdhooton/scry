@@ -502,7 +502,7 @@ func TestBuildResults_PerLanguageOutcomes(t *testing.T) {
 			// Both are still invoked: one indexer's failure must never stop
 			// the next one from running.
 			wantInvoked: []string{"go", "typescript"},
-			wantStatus: map[string]string{"go": IndexerFailed, "typescript": IndexerOK},
+			wantStatus:  map[string]string{"go": IndexerFailed, "typescript": IndexerOK},
 			// A crash carries a remedy too — a different one from a missing
 			// binary, since the tool is already installed, but never none.
 			wantRemedy:  map[string]bool{"go": true, "typescript": false},

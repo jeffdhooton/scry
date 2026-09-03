@@ -4,6 +4,8 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
@@ -183,22 +185,21 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		return false, "names hardware on a non-machine", nil
 	}
 
-	owner, owned, err := st.ResolveAlias(alias)
+	owner, owned, err := aliasOwner(st, alias)
 	if err != nil {
 		return false, "", err
 	}
 	if owned && owner == e.Slug {
 		return true, "already indexed to this entity", nil
 	}
-	if !owned {
-		// The alias might still be another entity's slug that was never
-		// alias-indexed (older stores); treat a live entity at that slug as
-		// the owner.
-		if other, gerr := st.GetEntity(store.Slugify(alias)); gerr == nil && other.Slug != e.Slug {
-			owner, owned = other.Slug, true
-		} else if gerr != nil && !errors.Is(gerr, store.ErrNotFound) {
-			return false, "", gerr
-		}
+
+	// Another entity's name plus its kind words names that entity: "Hermes
+	// agent" is the service Hermes, "Halo box" the machine, however many
+	// tokens they share with this entity's own name.
+	if named, err := namedByKindWords(st, alias, e); err != nil {
+		return false, "", err
+	} else if named != "" {
+		return false, "names " + named + " (its name plus kind words)", nil
 	}
 
 	if owned {
@@ -208,6 +209,11 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		}
 		if err == nil && !TypesCompatible(other.Type, e.Type) {
 			return false, "owned by " + owner + " of incompatible type " + other.Type, nil
+		}
+		// A concept stub (a wildcard) never takes a typed entity's own
+		// name, no matter how many episodes say so: it would swallow it.
+		if err == nil && (e.Type == "" || e.Type == "concept") && other.Type != "" && other.Type != "concept" && store.Normalize(alias) == store.Normalize(other.Name) {
+			return false, "is the name of the " + other.Type + " " + owner, nil
 		}
 		n, err := st.AttestAlias(e.Slug, norm, episodeID)
 		if err != nil {
@@ -322,5 +328,156 @@ func RevalidateAliases(st *store.Store, e *store.Entity) error {
 		kept = append(kept, a)
 	}
 	e.Aliases = kept
+	return nil
+}
+
+// aliasOwner finds the entity that owns alias: the alias index first, then
+// an entity whose slug spells the alias in any form ("halo1" for halo-1,
+// "Bryan.Farney" for bryan-farney, "halo_2" for halo2).
+func aliasOwner(st *store.Store, alias string) (string, bool, error) {
+	owner, ok, err := st.ResolveAlias(alias)
+	if err != nil || ok {
+		return owner, ok, err
+	}
+	for _, cand := range []string{store.Slugify(alias), store.Normalize(alias), compactName(alias)} {
+		if cand == "" {
+			continue
+		}
+		if other, gerr := st.GetEntity(cand); gerr == nil {
+			return other.Slug, true, nil
+		} else if !errors.Is(gerr, store.ErrNotFound) {
+			return "", false, gerr
+		}
+	}
+	// Compact match against every entity name: served from a per-store
+	// cache that refreshes itself when older than a minute, so the rule is
+	// never silently off after a cold start.
+	ci := compactIndex(st)
+	if ci.stale() {
+		if err := RefreshCompactIndex(st); err != nil {
+			return "", false, err
+		}
+	}
+	if slug, found := ci.lookup(compactName(alias)); found {
+		return slug, true, nil
+	}
+	return "", false, nil
+}
+
+// compactName removes separators so "halo-1", "halo_1", and "halo1"
+// compare equal.
+func compactName(s string) string { return compact(s) }
+
+// namedByKindWords returns the slug of an entity of a type incompatible
+// with e whose name tokens are all in alias and whose remaining tokens are
+// that type's kind words, or "".
+func namedByKindWords(st *store.Store, alias string, e store.Entity) (string, error) {
+	at := tokensOf(alias)
+	if len(at) < 2 {
+		return "", nil
+	}
+	// Candidates: entities whose name is one of the alias's tokens or the
+	// alias minus one kind word. Look them up by name rather than scanning.
+	for t := range at {
+		if kindWords[e.Type][t] {
+			continue
+		}
+		owner, ok, err := aliasOwner(st, t)
+		if err != nil {
+			return "", err
+		}
+		if !ok || owner == e.Slug {
+			continue
+		}
+		other, err := st.GetEntity(owner)
+		if err != nil || TypesCompatible(other.Type, e.Type) {
+			continue
+		}
+		nt := tokensOf(other.Name)
+		if len(nt) == 0 {
+			continue
+		}
+		ok2 := true
+		for x := range nt {
+			if !at[x] {
+				ok2 = false
+				break
+			}
+		}
+		if !ok2 {
+			continue
+		}
+		extras := 0
+		for x := range at {
+			if !nt[x] {
+				if !kindWords[other.Type][x] {
+					ok2 = false
+					break
+				}
+				extras++
+			}
+		}
+		if ok2 && extras > 0 {
+			return other.Slug, nil
+		}
+	}
+	return "", nil
+}
+
+// compactIdx is a cache of compact entity names → slug, refreshed at most
+// once a minute per store.
+type compactIdx struct {
+	mu    sync.Mutex
+	at    time.Time
+	names map[string]string
+}
+
+var (
+	compactIdxMu sync.Mutex
+	compactIdxBy = map[*store.Store]*compactIdx{}
+)
+
+func compactIndex(st *store.Store) *compactIdx {
+	compactIdxMu.Lock()
+	ci, ok := compactIdxBy[st]
+	if !ok {
+		ci = &compactIdx{}
+		compactIdxBy[st] = ci
+	}
+	compactIdxMu.Unlock()
+	return ci
+}
+
+func (ci *compactIdx) stale() bool {
+	ci.mu.Lock()
+	defer ci.mu.Unlock()
+	return time.Since(ci.at) > time.Minute
+}
+
+func (ci *compactIdx) lookup(key string) (string, bool) {
+	ci.mu.Lock()
+	defer ci.mu.Unlock()
+	if key == "" {
+		return "", false
+	}
+	slug, ok := ci.names[key]
+	return slug, ok
+}
+
+// RefreshCompactIndex rebuilds the compact-name cache for st.
+func RefreshCompactIndex(st *store.Store) error {
+	entities, err := st.Entities()
+	if err != nil {
+		return err
+	}
+	names := make(map[string]string, len(entities))
+	for _, e := range entities {
+		names[compactName(e.Name)] = e.Slug
+		names[compactName(e.Slug)] = e.Slug
+	}
+	ci := compactIndex(st)
+	ci.mu.Lock()
+	ci.names, ci.at = names, time.Now()
+	ci.mu.Unlock()
 	return nil
 }

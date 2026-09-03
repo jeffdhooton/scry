@@ -38,11 +38,16 @@ const (
 // when the provider chain is reachable. Nothing is lost when the provider
 // is down; the item just waits.
 type PendingEpisode struct {
-	ID          string    `json:"id"`
-	Source      string    `json:"source"`
-	SourceRef   string    `json:"source_ref"`
-	Text        string    `json:"text"`
-	Cwd         string    `json:"cwd,omitempty"`
+	ID        string `json:"id"`
+	Source    string `json:"source"`
+	SourceRef string `json:"source_ref"`
+	Text      string `json:"text"`
+	Cwd       string `json:"cwd,omitempty"`
+	CwdIsRepo bool   `json:"cwd_is_repo,omitempty"`
+	// Force makes the worker re-apply an episode the store already has,
+	// merging its facts and refreshing entity repo refs. Used to repair
+	// episodes resolved before a fix.
+	Force       bool      `json:"force,omitempty"`
 	OccurredAt  time.Time `json:"occurred_at"`
 	EnqueuedAt  time.Time `json:"enqueued_at"`
 	NextAttempt time.Time `json:"next_attempt"`

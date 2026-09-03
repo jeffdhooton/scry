@@ -55,7 +55,7 @@ func parseClover(path, repoPath string) ([]CoveredRange, error) {
 }
 
 type cloverCoverage struct {
-	XMLName  xml.Name       `xml:"coverage"`
+	XMLName  xml.Name        `xml:"coverage"`
 	Projects []cloverProject `xml:"project"`
 }
 

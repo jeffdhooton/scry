@@ -235,11 +235,10 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 		if err != nil {
 			return "", err
 		}
-		text := ""
-		if len(texts) > 0 {
-			text = texts[0]
+		if len(texts) == 0 {
+			continue // an entity with no current fact says nothing
 		}
-		activeBullets = append(activeBullets, fmt.Sprintf("- %s: %s", e.Name, text))
+		activeBullets = append(activeBullets, fmt.Sprintf("- %s: %s", e.Name, texts[0]))
 	}
 
 	repoSec := orientSection{
