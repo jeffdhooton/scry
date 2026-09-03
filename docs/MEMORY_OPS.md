@@ -86,6 +86,22 @@ tail -20 ~/.scry/logs/memory-sweep.log
 ssh mini 'tail -50 ~/.scry/logs/scryd-launchd.log | grep "memory queue"'
 ```
 
+## Throughput
+
+Extraction is the slow part: GLM-5.3-Flash takes one to six minutes per
+episode and cannot turn thinking off. The queue worker finds its own
+concurrency — it starts at six in flight, halves when the provider answers
+429, and widens by one when it is saturated and the provider has been
+quiet for forty-five seconds, up to twenty-four. `scry memory status`
+reports the current ceiling as `queue_limit`. A rate-limit refusal waits a
+few jittered seconds and does not spend the item's attempt budget.
+
+An episode the chain cannot finish after three escalating deadlines is
+halved at a turn boundary and both halves are re-queued with fresh
+budgets; only after three halvings is it parked. Manual remembers have
+eight reserved slots and are dispatched first, so an agent never waits
+behind a transcript backlog.
+
 ## Repair
 
 `scry memory migrate` (dry run, then `--apply`) applies the current resolver
@@ -93,7 +109,14 @@ rules to the whole store under a backup and is a no-op when nothing is
 left. `scry memory ingest --source kimi|opencode|claude|codex --path <p>
 --force` re-queues a transcript the store already holds so its episodes
 are re-applied (facts merge; entities refresh their repo refs and aliases).
-`scry memory queue retry <id>` replays a parked item.
+`scry memory queue retry <id>` replays a parked item (all of them with no
+id).
+
+`scry memory repair-repos` re-attaches repository refs: it walks the same
+roots as the sweep, re-distills each transcript locally, and tells the
+daemon which repository each episode ran in. No model is called, so it
+costs nothing. Run it on each machine after a change to how repositories
+are attested, and once on any machine whose sessions predate 2026-09-03.
 
 ## Roll back
 

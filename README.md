@@ -147,9 +147,10 @@ scry memory browse            # searchable HTML graph, opened in your browser
 scry memory backup            # Badger backup into ~/.scry/backups on the daemon's machine
 scry memory migrate           # dry-run the resolver rules over the whole store; --apply after a backup
 scry memory bench --file docs/memory-bench/probes.json   # is the answering fact in the top N?
+scry memory repair-repos      # re-attach repository refs from the transcripts (no model calls)
 ```
 
-Recall ranks facts (BM25 over fact text and entity names, boosted toward entities the query names) and returns twenty by default with a hard 24 KB cap, so an MCP host never truncates it. `scry doctor` has a Memory section that fails when the chain is dormant, the queue worker is down, or nothing has been queued for six hours.
+Recall ranks facts (BM25 over fact text, entity names and episode summaries, boosted toward entities the query names) and returns twenty by default with a hard 24 KB cap, so an MCP host never truncates it. `scry memory orient` shows what happened in the current repository first, ranked by whether a fact came from a session that ran there. `scry doctor` has a Memory section that fails when the chain is dormant, the queue worker is down, or nothing has been queued for six hours.
 
 While the daemon runs it also serves a live, always-fresh version of that UI at **http://127.0.0.1:7279**.
 
