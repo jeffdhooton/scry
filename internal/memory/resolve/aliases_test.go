@@ -651,3 +651,54 @@ func TestSingularTokensMeetAcrossInflections(t *testing.T) {
 		t.Error("hermes must keep its own spelling")
 	}
 }
+
+// A leak check judges what the alias adds, not the whole alias. Judging
+// the whole thing refused Android Studio its own version name; skipping
+// the check whenever the entity's name appeared let a person collect
+// every role that worked for them.
+func TestLeakChecksJudgeTheAddedWords(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	for _, e := range []store.Entity{
+		{Slug: "jeff", Name: "Jeff", Type: "person"},
+		{Slug: "hermes-ops", Name: "hermes-ops", Type: "project"},
+		{Slug: "android-studio", Name: "Android Studio", Type: "tool"},
+		{Slug: "policy", Name: "policy", Type: "concept"},
+	} {
+		e.CreatedAt, e.LastSeen = now, now
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	refuse := []struct{ slug, alias string }{
+		{"jeff", "Jeff reviewer"}, {"jeff", "Jeff agent"}, {"jeff", "Jeff bot"},
+		{"hermes-ops", "hermes-ops box"}, {"hermes-ops", "hermes-ops mini"},
+		{"hermes-ops", "hermes ops machine"}, {"hermes-ops", "hermes-ops server"},
+	}
+	for _, c := range refuse {
+		e, err := st.GetEntity(c.slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok, why, err := AdmitAlias(st, e, c.alias, "ep-1"); err != nil {
+			t.Fatal(err)
+		} else if ok {
+			t.Errorf("%s took %q: %s", c.slug, c.alias, why)
+		}
+	}
+	keep := []struct{ slug, alias string }{
+		{"android-studio", "Android Studio Ladybug"},
+		{"policy", "policies"},
+	}
+	for _, c := range keep {
+		e, err := st.GetEntity(c.slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok, why, err := AdmitAlias(st, e, c.alias, "ep-1"); err != nil {
+			t.Fatal(err)
+		} else if !ok {
+			t.Errorf("%s must keep %q: %s", c.slug, c.alias, why)
+		}
+	}
+}

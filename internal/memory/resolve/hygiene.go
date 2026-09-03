@@ -34,9 +34,11 @@ type HygieneReport struct {
 	// CollisionSample shows the first of them, so the number can be read
 	// rather than trusted.
 	CollisionSample []string `json:"collision_sample,omitempty"`
-	// EntitiesPruned counts entities removed because no fact, current or
-	// invalidated, referenced them.
-	EntitiesPruned int `json:"entities_pruned"`
+	// EntitiesUnreferenced counts entities no fact mentions. They are
+	// reported, never removed: removing them cost spellings the store
+	// answered to, and they are counted out of the collision audit
+	// instead.
+	EntitiesUnreferenced int `json:"entities_unreferenced"`
 	// StubClaimsDropped counts names an untyped stub was holding that a
 	// typed entity also answers to.
 	StubClaimsDropped int `json:"stub_claims_dropped"`
@@ -535,14 +537,21 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			}
 		}
 	}
-	// Entities nothing says anything about. They still hold aliases, so
-	// they still collide and still answer to names, while carrying no
-	// knowledge at all.
-	pruned, err := pruneUnreferenced(st, dryRun, now)
+	// Entities nothing says anything about used to be pruned here. It
+	// cost 3,215 spellings the store answered to — scry-episodes,
+	// 10g-switch, gemini-2.5-pro — for the sake of removing nodes that
+	// were only ever noise in a count. They stay, and the audit below
+	// counts them out instead.
+	referenced, err := referencedSlugs(st)
 	if err != nil {
 		return rep, err
 	}
-	rep.EntitiesPruned = pruned
+	rep.EntitiesUnreferenced = 0
+	for _, e := range entities {
+		if !referenced[e.Slug] {
+			rep.EntitiesUnreferenced++
+		}
+	}
 
 	// An untyped stub never keeps a name a typed entity also answers to.
 	// The write path refuses that outright; a stub that collected one
@@ -565,7 +574,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			audited = fresh
 		}
 	}
-	collisions, sample, conflated := auditNames(audited, realSlugs)
+	collisions, sample, conflated := auditNames(audited, realSlugs, referenced)
 	rep.CrossTypeCollisions = collisions
 	rep.CollisionSample = sample
 	rep.Conflated = conflated
@@ -600,11 +609,15 @@ func foldName(s string) string {
 // permissive admission is: a concept stub sharing a machine's name is how
 // a machine's name reaches a project, and counting it as harmless is what
 // let 370 of them accumulate.
-func auditNames(entities []store.Entity, realSlugs map[string]string) (int, []string, []ConflationReport) {
+func auditNames(entities []store.Entity, realSlugs map[string]string, referenced map[string]bool) (int, []string, []ConflationReport) {
 	type owner struct{ slug, typ, spelling string }
 	byName := map[string][]owner{}
 	var conflated []ConflationReport
 	for _, e := range entities {
+		// An entity no fact mentions is not a second identity for a name.
+		if len(referenced) > 0 && !referenced[e.Slug] {
+			continue
+		}
 		var collisions []string
 		seen := map[string]bool{}
 		for _, spelling := range append([]string{e.Name, e.Slug}, e.Aliases...) {
@@ -952,6 +965,23 @@ func dropStubClaims(st *store.Store, dryRun bool) (int, error) {
 		}
 	}
 	return dropped, nil
+}
+
+// referencedSlugs returns every entity slug a fact mentions at either
+// end, invalidated facts included.
+func referencedSlugs(st *store.Store) (map[string]bool, error) {
+	facts, err := st.AllFacts()
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]bool, len(facts))
+	for _, f := range facts {
+		out[f.Src] = true
+		if f.Dst != "" {
+			out[f.Dst] = true
+		}
+	}
+	return out, nil
 }
 
 // pruneAge is how long an entity may exist with nothing said about it

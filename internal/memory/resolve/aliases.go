@@ -190,15 +190,17 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	if neverAlias(alias) {
 		return false, "generic, value, or reference word", nil
 	}
-	// A leak check never refuses an alias that spells the holder's own
-	// name: "Android Studio Ladybug" is Android Studio's, whatever
-	// hardware noun it contains, and "Codex Reviewer #2" is that
-	// reviewer's.
-	if !nameAsWord(alias, e) && compactName(alias) != compactName(e.Name) {
-		if roleLeak(alias, e) {
+	// A leak check judges the words the alias ADDS to the entity's name.
+	// "Android Studio Ladybug" adds "ladybug" and is Android Studio's;
+	// "Jeff reviewer" adds "reviewer" and is not Jeff, and "hermes-ops
+	// box" adds "box" and is not the project. Judging the whole alias
+	// refused the first, and skipping the check whenever the name
+	// appeared admitted the other two.
+	if extra := extraWords(alias, e); len(extra) > 0 {
+		if roleLeak(extra, e) {
 			return false, "names a role rather than a person", nil
 		}
-		if machineLeak(alias, e) {
+		if machineLeak(extra, e) {
 			return false, "names hardware on a non-machine", nil
 		}
 	}
@@ -373,7 +375,7 @@ var kindWords = map[string]map[string]bool{
 // still does, so "scryd" and "Scry memory" are scry's.
 func genericOneWordName(name string) bool {
 	raw := tokensOf(name)
-	if len(raw) == 0 || len(raw) > 3 {
+	if len(raw) == 0 {
 		return false
 	}
 	// Every word ordinary, not just one: "audit gate" and "review
@@ -534,6 +536,20 @@ var roleNouns = map[string]bool{
 	"exec": true, "classifier": true, "cohort": true, "suite": true,
 	"implementer": true, "operator": true, "runner": true, "executor": true,
 	"model": true, "coder": true, "planner": true, "auditor": true,
+}
+
+// extraWords returns the alias with the entity's own words removed, as a
+// space-joined string, so a leak check sees only what the alias adds.
+func extraWords(alias string, e store.Entity) string {
+	en := singularTokens(e.Name)
+	var out []string
+	for _, w := range strings.Fields(strings.NewReplacer("-", " ", "_", " ", "/", " ").Replace(strings.ToLower(alias))) {
+		if en[w] || en[singular(w)] {
+			continue
+		}
+		out = append(out, w)
+	}
+	return strings.Join(out, " ")
 }
 
 // roleLeak reports whether an alias names a role rather than the person
@@ -869,6 +885,8 @@ func singularTokens(s string) map[string]bool {
 // audit.
 func singular(t string) string {
 	switch {
+	case len(t) > 4 && strings.HasSuffix(t, "ies"):
+		return t[:len(t)-3] + "y" // policies, stories, queries
 	case len(t) > 4 && strings.HasSuffix(t, "es") && sibilantBefore(t[:len(t)-2]):
 		return t[:len(t)-2]
 	case len(t) > 3 && strings.HasSuffix(t, "s") && !strings.HasSuffix(t, "ss") && !strings.HasSuffix(t, "us"):

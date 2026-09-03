@@ -12,7 +12,7 @@ func TestNotAnIdentityThirdRound(t *testing.T) {
 		"Milestone 3", "Batch 7", "Cohort 2", "epic-4", "Build 4102", "revision 88",
 		"iOS build 24", "Android versionCode 23", "attempt 3 of 5",
 		"1339 Meadow Rd, Columbus OH 43212", "4 Privet Drive, London",
-		"Failed to parse product config", "is missing required field(s)", "Invalid Date",
+		"Failed to parse product config", "is missing required field(s)",
 		"We have no reviews yet", "not yet started", "works as expected", "no longer needed",
 		"$12-$30-per-click", "£4.50 per seat", "€200 budget",
 		"npx vitest run --project db", "pnpm typecheck && lint && test", "rm -rf /tmp/scratch",

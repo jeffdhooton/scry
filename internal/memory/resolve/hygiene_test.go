@@ -189,6 +189,13 @@ func TestHygieneMergesADuplicateStubButNeverTwoTypedEntities(t *testing.T) {
 	put(store.Entity{Slug: "android-assetlinksjson", Name: "Android App Links", Type: "concept", Aliases: []string{"assetlinks.json"}, RepoRefs: []string{"/Users/jeff/workspace/mobile"}})
 	put(store.Entity{Slug: "mac-mini", Name: "widget rig", Type: "machine"})
 	put(store.Entity{Slug: "widget-rig-proj", Name: "widget rig", Type: "project"})
+	// Both need a fact, or the audit counts them out as entities nothing
+	// says anything about.
+	for _, slug := range []string{"mac-mini", "widget-rig-proj"} {
+		if err := st.PutFact(store.Fact{Src: slug, Relation: "uses", Value: "a thing", Fact: slug + " uses a thing", ValidFrom: now, Confidence: 1}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := st.PutFact(store.Fact{Src: "android-assetlinksjson", Relation: "uses", Dst: "mac-mini", Fact: "the file is served from the mini", ValidFrom: now, Confidence: 1}); err != nil {
 		t.Fatal(err)
 	}
@@ -380,29 +387,22 @@ func TestStubsGiveUpNamesATypedEntityAnswersTo(t *testing.T) {
 	}
 }
 
-// An eighth of the graph was entities no fact mentioned at either end.
-// They still held aliases, so they still collided and still answered to
-// names, while carrying nothing.
-func TestHygienePrunesEntitiesNothingSaysAnythingAbout(t *testing.T) {
+// Entities no fact mentions are counted out of the collision audit and
+// left where they are. Removing them cost 3,215 spellings the store
+// answered to, so they stay and simply stop counting as a second
+// identity for a name.
+func TestUnreferencedEntitiesAreCountedOutNotRemoved(t *testing.T) {
 	st := openTemp(t)
-	old := time.Now().Add(-72 * time.Hour)
-	fresh := time.Now()
-	put := func(slug, name string, created time.Time) {
-		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: "concept",
-			Aliases: []string{name + " alias"}, CreatedAt: created, LastSeen: created}); err != nil {
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	put := func(slug, name, typ string, aliases ...string) {
+		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: typ,
+			Aliases: aliases, CreatedAt: now, LastSeen: now}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	put("has-facts", "has facts", old)
-	put("only-history", "only history", old)
-	put("nothing-said", "nothing said", old)
-	put("just-created", "just created", fresh)
-	end := time.Now()
-	if err := st.PutFact(store.Fact{Src: "has-facts", Relation: "uses", Value: "a thing", Fact: "it uses a thing", ValidFrom: old, Confidence: 1}); err != nil {
-		t.Fatal(err)
-	}
-	// An entity whose only fact is invalidated is history and stays.
-	if err := st.PutFact(store.Fact{Src: "only-history", Relation: "uses", Value: "a thing", Fact: "it used to use a thing", ValidFrom: old, InvalidAt: &end, Confidence: 1}); err != nil {
+	put("real-tool", "widget tool", "tool", "widget")
+	put("empty-machine", "widget machine", "machine", "widget")
+	if err := st.PutFact(store.Fact{Src: "real-tool", Relation: "uses", Value: "a thing", Fact: "the widget tool uses a thing", ValidFrom: now, Confidence: 1}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -410,49 +410,15 @@ func TestHygienePrunesEntitiesNothingSaysAnythingAbout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.EntitiesPruned != 1 {
-		t.Fatalf("pruned = %d, want 1: %+v", rep.EntitiesPruned, rep)
+	if rep.EntitiesUnreferenced != 1 {
+		t.Errorf("unreferenced = %d, want 1", rep.EntitiesUnreferenced)
 	}
-	for _, slug := range []string{"has-facts", "only-history", "just-created"} {
-		if _, err := st.GetEntity(slug); err != nil {
-			t.Errorf("%s must survive: %v", slug, err)
-		}
+	if _, err := st.GetEntity("empty-machine"); err != nil {
+		t.Error("an entity nothing mentions must survive: its names still resolve")
 	}
-	if _, err := st.GetEntity("nothing-said"); err == nil {
-		t.Error("an entity nothing references must be pruned")
-	}
-	// Its alias goes with it rather than resolving to a dead slug.
-	if slug, ok, _ := st.ResolveAlias("nothing said alias"); ok {
-		t.Errorf("a pruned entity's alias still resolves, to %q", slug)
-	}
-}
-
-// A spelling of a live entity survives the dead one that was holding it.
-func TestPruningKeepsASpellingOfSomethingLive(t *testing.T) {
-	st := openTemp(t)
-	old := time.Now().Add(-72 * time.Hour)
-	put := func(slug, name string, aliases ...string) {
-		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: "machine",
-			Aliases: aliases, CreatedAt: old, LastSeen: old}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	put("halo-1", "halo-1")
-	put("empty-stub", "empty stub", "halo1", "something nothing spells")
-	if err := st.PutFact(store.Fact{Src: "halo-1", Relation: "runs_on", Value: "a desk", Fact: "halo-1 is on the desk", ValidFrom: old, Confidence: 1}); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := Hygiene(st, false); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := st.GetEntity("empty-stub"); err == nil {
-		t.Error("the empty stub must be pruned")
-	}
-	if slug, ok, _ := st.ResolveAlias("halo1"); !ok || slug != "halo-1" {
-		t.Errorf("halo1 resolves to %q, want halo-1: a spelling of a live entity must survive", slug)
-	}
-	if _, ok, _ := st.ResolveAlias("something nothing spells"); ok {
-		t.Error("a name that spells nothing live must go with its entity")
+	// A tool and a machine sharing "widget" is not a collision when
+	// nothing is said about the machine.
+	if rep.CrossTypeCollisions != 0 {
+		t.Errorf("collisions = %d, want 0: %v", rep.CrossTypeCollisions, rep.CollisionSample)
 	}
 }

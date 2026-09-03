@@ -247,16 +247,25 @@ func IsStatusWord(name string) bool {
 	if particleCompoundRE.MatchString(n) {
 		return false
 	}
-	// A hyphenated pair is a state too — needs-env, pending-reload — but
-	// a hyphenated triple is a name: pending-migration-lock is a lock and
-	// blocked-sender-registry is a registry. An all-capital opener is a
-	// state whatever follows it: PENDING-og-images.
+	// A two-part name opening with needs, pending, waiting or blocked used
+	// to count as a state. It caught needs-env and pending-reload and it
+	// rejected needs assessment, waiting room, pending tray and blocked
+	// shot, which are ordinary nouns. Twelve real names for two values is
+	// the wrong trade, so the rule is gone.
+	// A hyphenated compound is one word to the rules above, but a state
+	// can be written that way: needs-env, needs-investigation,
+	// pending-reload. Judged the same way — what follows the opener
+	// decides — so waiting-room stays a room.
 	if parts := strings.FieldsFunc(n, func(r rune) bool { return r == '-' || r == '_' }); len(parts) >= 2 {
-		head := parts[0]
-		// Only the openers that cannot begin a real name. Open, green,
-		// ready and live all do — open-webui and green-room are things.
-		if head == "needs" || head == "pending" || head == "blocked" || head == "awaiting" || head == "waiting" || head == "unresolved" {
-			if len(parts) == 2 || isUpper(strings.Fields(name)[0][:min(len(strings.Fields(name)[0]), len(head))]) {
+		switch parts[0] {
+		case "awaiting", "pending", "needs", "blocked", "waiting", "unresolved":
+			if len(parts) == 2 && (processNouns[parts[1]] || statusWords[parts[1]]) {
+				return true
+			}
+			// A state a session shouted is written in capitals, and that
+			// is the only thing telling PENDING-og-images from
+			// pending-migration-lock.
+			if f := strings.Fields(name); len(f) > 0 && len(f[0]) >= len(parts[0]) && isUpper(f[0][:len(parts[0])]) {
 				return true
 			}
 		}
@@ -271,7 +280,13 @@ func IsStatusWord(name string) bool {
 			return true
 		}
 		first := words[0]
-		if (first == "awaiting" || first == "pending" || first == "needs" || first == "ready" || first == "blocked" || first == "waiting") && len(words) <= 4 {
+		// What follows decides. A process noun makes a state — awaiting
+		// review, needs investigation, pending approval — while a concrete
+		// one makes a thing: waiting room, pending tray, blocked shot,
+		// needs assessment.
+		opener := first == "awaiting" || first == "pending" || first == "needs" ||
+			first == "ready" || first == "blocked" || first == "waiting"
+		if opener && len(words) <= 4 && (len(words) >= 3 || processNouns[last] || statusWords[last]) {
 			return true
 		}
 	}

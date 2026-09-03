@@ -217,11 +217,11 @@ var irregularPlurals = map[string]bool{
 // and current begin plenty of real names.
 var verdictWords = map[string]bool{
 	"approved": true, "rejected": true, "verified": true, "unverified": true,
-	"validated": true, "blocked": true, "unblocked": true, "merged": true,
+	"validated": true, "unblocked": true, "merged": true,
 	"unmerged": true, "resolved": true, "unresolved": true, "completed": true,
-	"failed": true, "passed": true, "pending": true, "deferred": true,
+	"failed": true, "passed": true, "deferred": true,
 	"cancelled": true, "canceled": true, "superseded": true, "greenlit": true,
-	"in-progress": true, "in-review": true, "needs": true, "abandoned": true,
+	"in-progress": true, "in-review": true, "abandoned": true,
 	"postponed": true, "escalated": true, "triaged": true, "reopened": true,
 }
 
@@ -566,14 +566,15 @@ func verdictPhrase(n string) bool {
 			return true
 		}
 	}
-	if len(words) == 2 && stateOpeners[words[0]] {
+	// The states written as a preposition and a word — in progress, on
+	// hold, at risk — are listed by name in statusWords and judged before
+	// this. Treating every such pair as a state rejected under armour, on
+	// deck, in situ and off broadway.
+	// A hyphenated preposition compound is judged by its second half:
+	// in-flight and on-hold are states, in-house and on-call are places
+	// and roles, so only the ones whose tail is itself a state count.
+	if len(words) == 2 && stateOpeners[words[0]] && (statusWords[words[1]] || verdictWords[words[1]]) {
 		return true
-	}
-	// The name as written joins a preposition to a state: "in-flight".
-	if len(words) == 1 {
-		if i := strings.IndexAny(n, "-_"); i > 0 && stateOpeners[n[:i]] && strings.Count(n, "-")+strings.Count(n, "_") == 1 {
-			return true
-		}
 	}
 	return false
 }
@@ -603,12 +604,17 @@ var shellVerbs = map[string]bool{
 // errorOpeners begin a message rather than a name: "Failed to parse
 // product config", "is missing required field(s)", "We have no reviews
 // yet", "not yet started".
+// Words that open a message. Several of them also open the name of a
+// thing — error boundary, expected value, still life, no code — so a
+// message needs three words as well, and a short name ending in a thing
+// is that thing whatever it opens with.
 var errorOpeners = map[string]bool{
-	"failed": true, "invalid": true, "cannot": true, "could": true,
-	"unable": true, "missing": true, "unknown": true, "error": true,
+	"failed": true, "cannot": true, "could": true, "unable": true,
+	"refused": true, "rejected": true, "timed": true, "crashed": true,
 	"is": true, "was": true, "were": true, "we": true, "it": true, "there": true,
 	"not": true, "no": true, "works": true, "still": true, "already": true,
-	"expected": true, "unexpected": true, "warning": true, "must": true,
+	"expected": true, "unexpected": true, "warning": true, "missing": true,
+	"unknown": true, "error": true, "must": true,
 }
 
 // timePhrases name a moment rather than a thing.
@@ -626,15 +632,33 @@ var streetSuffixes = map[string]bool{
 
 // commandLine reports whether a name is something you would type at a
 // shell or a database prompt.
+// commandLine reports whether a name is something you would type at a
+// prompt. A leading verb is not enough — docker hub, rails engine, go
+// router, create account and cat food are all names — so it also needs
+// the shape of a command: a flag, a pipeline, or a path argument.
 func commandLine(n string) bool {
 	words := strings.Fields(n)
 	if len(words) < 2 {
 		return false
 	}
-	if shellVerbs[strings.ToLower(words[0])] {
+	// A pipeline or a flag is a command whatever it ends in: "pnpm
+	// typecheck && lint && test" ends in a thing word and is still a
+	// command.
+	if strings.Contains(n, " --") || strings.Contains(n, "&&") || strings.Contains(n, " | ") {
 		return true
 	}
-	return strings.Contains(n, " --") || strings.Contains(n, "&&") || strings.Contains(n, " | ")
+	if namesAThing(n) {
+		return false
+	}
+	if !shellVerbs[strings.ToLower(words[0])] {
+		return false
+	}
+	for _, w := range words[1:] {
+		if strings.HasPrefix(w, "-") || strings.Contains(w, "/") || strings.Contains(w, ".") || w == "*" {
+			return true
+		}
+	}
+	return false
 }
 
 // messageName reports whether a name reads as a sentence someone was
@@ -642,6 +666,12 @@ func commandLine(n string) bool {
 func messageName(n string) bool {
 	if len(nameWords(n)) == 1 && timePhrases[nameWords(n)[0]] {
 		return true // "overnight", "today"
+	}
+	// A short name ending in a thing is that thing: "not found page" is a
+	// page and "warning banner" is a banner. A long one is prose however
+	// it ends: "failed to parse product config" is a message.
+	if len(nameWords(n)) <= 3 && namesAThing(n) {
+		return false
 	}
 	// Otherwise a message is prose, and prose has spaces in it. A
 	// hyphenated identifier is a name: failed-payment-retrier is a
@@ -661,7 +691,9 @@ func messageName(n string) bool {
 	if len(words) < 2 || len(words) > 8 {
 		return false
 	}
-	if errorOpeners[words[0]] {
+	// Three words at least: "error boundary" and "expected value" are
+	// names, "works as expected" and "not yet started" are messages.
+	if len(words) >= 3 && errorOpeners[words[0]] {
 		return true
 	}
 	if len(words) <= 3 && timePhrases[words[0]] {
@@ -709,9 +741,7 @@ func listName(n string) bool {
 	if len(words) == 2 && (ordinalWords[words[0]] || wordNumbers[words[0]]) && weekdays[words[1]] {
 		return true
 	}
-	if len(words) == 1 && weekdays[words[0]] {
-		return true
-	}
+
 	// One "#42" names a thing; several are a list of them.
 	return len(hashNumberRE.FindAllString(n, -1)) >= 2
 }
