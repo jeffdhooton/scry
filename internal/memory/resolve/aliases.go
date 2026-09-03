@@ -349,10 +349,16 @@ func aliasOwner(st *store.Store, alias string) (string, bool, error) {
 			return "", false, gerr
 		}
 	}
-	// Compact match against every entity is a full scan; entities are few
-	// enough (tens of thousands) that a per-alias scan is affordable only
-	// on the write path's rare cold miss, so it is bounded by a cache.
-	if slug, found := compactIndex(st).lookup(compactName(alias)); found {
+	// Compact match against every entity name: served from a per-store
+	// cache that refreshes itself when older than a minute, so the rule is
+	// never silently off after a cold start.
+	ci := compactIndex(st)
+	if ci.stale() {
+		if err := RefreshCompactIndex(st); err != nil {
+			return "", false, err
+		}
+	}
+	if slug, found := ci.lookup(compactName(alias)); found {
 		return slug, true, nil
 	}
 	return "", false, nil
@@ -442,14 +448,17 @@ func compactIndex(st *store.Store) *compactIdx {
 	return ci
 }
 
+func (ci *compactIdx) stale() bool {
+	ci.mu.Lock()
+	defer ci.mu.Unlock()
+	return time.Since(ci.at) > time.Minute
+}
+
 func (ci *compactIdx) lookup(key string) (string, bool) {
 	ci.mu.Lock()
 	defer ci.mu.Unlock()
 	if key == "" {
 		return "", false
-	}
-	if time.Since(ci.at) > time.Minute {
-		return "", false // refreshed lazily by refresh(); a cold miss is fine
 	}
 	slug, ok := ci.names[key]
 	return slug, ok

@@ -377,7 +377,7 @@ func (daemonClient) Glossary(ctx context.Context, limit int) ([]string, error) {
 func (daemonClient) Commit(ctx context.Context, ep memstore.Episode, cwd string, res extract.Result) (resolve.Stats, error) {
 	var stats resolve.Stats
 	err := callMemoryDaemon(ctx, "memory.commit", &daemon.MemoryCommitParams{
-		Episode: ep, Cwd: cwd, Result: res,
+		Episode: ep, Cwd: cwd, CwdIsRepo: distill.CwdIsRepo(cwd), Result: res,
 	}, &stats)
 	return stats, err
 }
