@@ -413,3 +413,43 @@ func TestSplitStopsAtDepthAndShortText(t *testing.T) {
 		t.Errorf("splitText = %q | %q", l, r)
 	}
 }
+
+func TestRateLimitNarrowsTheseThenWidensAgain(t *testing.T) {
+	st := openTemp(t)
+	for i := range 40 {
+		_ = st.PutPending(pending(fmt.Sprintf("r%02d", i), "fact"))
+	}
+	limited := errors.New(`POST "https://api.z.ai/api/anthropic/v1/messages": 429 Too Many Requests {"type":"error","error":{"type":"rate_limit_error"}}`)
+	fx := &fakeExtractor{}
+	fx.mu.Lock()
+	for range 12 {
+		fx.errs = append(fx.errs, limited)
+	}
+	fx.mu.Unlock()
+	w := New(Options{Store: st, Extractor: fx, Workers: 24, Poll: 10 * time.Millisecond})
+	if w.Limit() != startLimit {
+		t.Fatalf("initial limit = %d, want %d", w.Limit(), startLimit)
+	}
+	runFor(t, w, 4*time.Second)
+
+	if !waitUntil(t, 3*time.Second, func() bool { return w.Limit() < startLimit }) {
+		t.Fatalf("limit never narrowed under rate limiting (still %d)", w.Limit())
+	}
+	if w.Limit() < minLimit {
+		t.Errorf("limit fell below the floor: %d", w.Limit())
+	}
+	// A rate-limited item keeps its budget: attempts stay at zero.
+	items, _ := st.Pending(0)
+	for _, it := range items {
+		if it.Attempts > 0 && strings.Contains(it.LastError, "429") {
+			t.Errorf("a rate-limit refusal spent the item's budget: %+v", it)
+		}
+	}
+	// Once the provider stops refusing, the pool widens again.
+	if !waitUntil(t, 4*time.Second, func() bool { return w.Limit() > minLimit }) {
+		t.Logf("limit after recovery: %d", w.Limit())
+	}
+	if !extract.IsRateLimited(limited) || extract.IsRateLimited(errors.New("500 boom")) {
+		t.Error("IsRateLimited wrong")
+	}
+}

@@ -19,6 +19,16 @@ import (
 // identical log lines and a stalled sweep.
 const CooldownPeriod = 15 * time.Minute
 
+var rateLimitRE = regexp.MustCompile(`(?i)\b429\b|too many requests|rate_?limit`)
+
+// IsRateLimited reports whether err is the provider asking for less
+// concurrency, as opposed to a failure of the request itself. The queue
+// answers by narrowing its own in-flight limit rather than by retrying
+// harder.
+func IsRateLimited(err error) bool {
+	return err != nil && rateLimitRE.MatchString(err.Error())
+}
+
 var billingAuthRE = regexp.MustCompile(`(?i)\b40[123]\b|insufficient balance|unauthorized|forbidden|authentication_error|invalid (x-)?api[- _]?key|payment required`)
 
 // refusedOnBillingOrAuth reports whether err is a provider turning the

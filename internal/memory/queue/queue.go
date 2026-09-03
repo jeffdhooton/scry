@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"sort"
 	"strings"
 	"sync"
@@ -55,6 +56,17 @@ const (
 	defaultPoll        = 30 * time.Second
 	backoffBase        = 30 * time.Second
 	backoffCap         = 2 * time.Minute
+
+	// The in-flight limit finds itself: it starts low, grows by one after
+	// a run of successes, and halves when the provider says 429. Z.ai
+	// answered 300 of 300 requests with a rate-limit error at 24 in
+	// flight, and each rejection cost a retry with a backoff, so throughput
+	// collapsed to a fifth of what 8 in flight had managed.
+	startLimit      = 6
+	minLimit        = 2
+	growAfter       = 8 // consecutive successes before widening by one
+	rateBackoffBase = 5 * time.Second
+	rateBackoffMax  = 45 * time.Second
 )
 
 // itemDeadline grows with each attempt so a slow-but-finishing episode
@@ -111,6 +123,8 @@ type Worker struct {
 
 	mu       sync.Mutex
 	inflight map[string]bool
+	limit    int // in-flight ceiling, adapted from the provider's answers
+	wins     int // consecutive successes since the last narrowing
 }
 
 // New builds a Worker; call Run to start it.
@@ -127,7 +141,57 @@ func New(o Options) *Worker {
 	if o.Logf == nil {
 		o.Logf = log.Printf
 	}
-	return &Worker{o: o, kick: make(chan struct{}, 1), done: make(chan struct{}, 1), backoff: Backoff, inflight: map[string]bool{}}
+	limit := startLimit
+	if limit > o.Workers {
+		limit = o.Workers
+	}
+	return &Worker{o: o, kick: make(chan struct{}, 1), done: make(chan struct{}, 1),
+		backoff: Backoff, inflight: map[string]bool{}, limit: limit}
+}
+
+// narrow halves the in-flight limit; called when the provider rate-limits.
+func (w *Worker) narrow() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.wins = 0
+	if w.limit <= minLimit {
+		return
+	}
+	w.limit /= 2
+	if w.limit < minLimit {
+		w.limit = minLimit
+	}
+	w.o.Logf("memory queue: provider is rate-limiting — narrowing to %d in flight", w.limit)
+}
+
+// widen counts a success and grows the limit after a run of them.
+func (w *Worker) widen() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.wins++
+	if w.wins < growAfter || w.limit >= w.o.Workers {
+		return
+	}
+	w.wins = 0
+	w.limit++
+	w.o.Logf("memory queue: widening to %d in flight", w.limit)
+}
+
+// Limit reports the current in-flight ceiling, for tests and status.
+func (w *Worker) Limit() int {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.limit
+}
+
+// rateBackoff is the wait after a rate-limit refusal: short and jittered,
+// so a narrowed worker pool does not resynchronise into another burst.
+func (w *Worker) rateBackoff() time.Duration {
+	d := rateBackoffBase + time.Duration(rand.Int64N(int64(rateBackoffBase)))
+	if d > rateBackoffMax {
+		d = rateBackoffMax
+	}
+	return d
 }
 
 // Kick wakes the loop early, after an enqueue.
@@ -183,6 +247,10 @@ func (w *Worker) dispatch(ctx context.Context, sem, manualSem chan struct{}, wg 
 		if w.inflight[p.ID] {
 			w.mu.Unlock()
 			continue
+		}
+		if len(w.inflight) >= w.limit {
+			w.mu.Unlock()
+			return // at the adaptive ceiling; a completion will wake us
 		}
 		// A manual item takes a reserved slot, or a free general one; a
 		// transcript item only ever takes a general slot.
@@ -317,6 +385,7 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 		w.fail(p, fmt.Errorf("resolve: %w", err))
 		return
 	}
+	w.widen()
 	if err := w.o.Store.DeletePending(p.ID); err != nil {
 		w.o.Logf("memory queue: delete pending %s: %v", p.ID, err)
 	}
@@ -333,6 +402,19 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 // failure on a manual item that is not a parse failure — is retried
 // indefinitely, because none of those say anything about the episode.
 func (w *Worker) fail(p store.PendingEpisode, cause error) {
+	// A rate-limit refusal is not the item's fault and must not spend its
+	// budget: the pool narrows, the item waits briefly, and its attempt
+	// count stays where it was.
+	if extract.IsRateLimited(cause) {
+		w.narrow()
+		p.NextAttempt = time.Now().Add(w.rateBackoff())
+		p.LastError = truncate(cause.Error(), 500)
+		if err := w.o.Store.PutPending(p); err != nil {
+			w.o.Logf("memory queue: record rate limit for %s: %v", p.ID, err)
+		}
+		return
+	}
+
 	p.Attempts++
 	p.LastError = truncate(cause.Error(), 500)
 	parse := errors.Is(cause, extract.ErrParse)
