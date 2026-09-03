@@ -501,13 +501,21 @@ func TestRunSecondInstanceStepsAsideAndSuccessorSurvivesIncumbentCleanup(t *test
 		go func() { errCh <- New(layout).Run(ctx) }()
 		return errCh
 	}
-	waitSocket := func() {
+	waitSocket := func(errCh <-chan error) {
 		t.Helper()
 		// Generous on purpose: under `go test ./...` every package runs at
 		// once, and a daemon that opens Badger and builds a search index
 		// has taken more than ten seconds to answer on a loaded machine.
 		deadline := time.Now().Add(60 * time.Second)
 		for !pingSocket(layout.SocketPath) {
+			// A daemon that failed to start never opens the socket, and
+			// waiting the full minute to say "socket never came up" hides
+			// why. Report the daemon's own error instead.
+			select {
+			case err := <-errCh:
+				t.Fatalf("daemon exited before its socket came up: %v", err)
+			default:
+			}
 			if time.Now().After(deadline) {
 				t.Fatal("daemon socket never came up")
 			}
@@ -518,7 +526,7 @@ func TestRunSecondInstanceStepsAsideAndSuccessorSurvivesIncumbentCleanup(t *test
 	ctx1, cancel1 := context.WithCancel(context.Background())
 	defer cancel1()
 	first := runDaemon(ctx1)
-	waitSocket()
+	waitSocket(first)
 	sockFirst := socketIdentity(t, layout.SocketPath)
 
 	// A second start against a healthy incumbent steps aside.
@@ -530,16 +538,21 @@ func TestRunSecondInstanceStepsAsideAndSuccessorSurvivesIncumbentCleanup(t *test
 		t.Errorf("second Run replaced the incumbent's socket")
 	}
 
-	// Stop the first while a successor is already trying to start: the
-	// successor must wait for the incumbent's cleanup, not race it.
+	// Stop the first and start a successor. The successor is started once
+	// the incumbent's Run has returned, because a daemon that finds a
+	// live incumbent still serving is supposed to step aside — starting
+	// them at the same instant tests which of the two won the race, not
+	// whether the successor survives the cleanup. What is under test is
+	// the incumbent's deferred cleanup running after the successor has
+	// taken the socket, which the assertions below cover.
 	ctx3, cancel3 := context.WithCancel(context.Background())
 	defer cancel3()
 	cancel1()
-	third := runDaemon(ctx3)
 	if err := <-first; err != nil {
 		t.Fatalf("first Run returned %v", err)
 	}
-	waitSocket()
+	third := runDaemon(ctx3)
+	waitSocket(third)
 	if got := socketIdentity(t, layout.SocketPath); got == sockFirst {
 		t.Errorf("successor is serving on the incumbent's socket object")
 	}
