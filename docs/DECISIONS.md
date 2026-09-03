@@ -2401,3 +2401,40 @@ lines — which would handle the whole family consistently rather than
 patching the one suffix. That is worth doing when there is a question
 set big enough to tell a real gain from noise; at 250 questions a
 one-for-one trade is indistinguishable from either.
+
+
+## 2026-09-03 — Facts cannot be refiled by what their sentence names
+
+**Decision:** no rule moves a fact from one entity to another on the
+strength of what its text mentions. The misfiled facts a grader found —
+31 on the hermes-ops project describing the Mac mini or a Halo box —
+stay where they are, and the reason is recorded instead.
+
+**What was built and measured.** A migration step that moves a fact's
+endpoint when the sentence names exactly one other entity by its whole
+distinctive name, never names the entity it is filed under, and the two
+are of different kinds. On the live store it proposed **9,329 moves**,
+landing facts on entities called `allow`, `setup`, `defined` and
+`delivery` — ordinary words that happen to be entity names.
+
+Tightened to hardware only, and only hardware the store says at least
+ten things about, it proposed 54. Those were still wrong: `sandbox` is
+typed `machine` in this store, so every sentence about a sandbox
+*permission* pulled a fact onto it.
+
+**Why the signal is not there.** Two things it depends on are unreliable
+at once. Entity types are extraction output, and a grader counted a
+large share of the 319 "machines" as worktrees, directories, database
+tables and files. And a name distinctive enough to search for is not the
+same as a name distinctive enough to move data on: `sandbox`, `delivery`
+and `setup` all pass any test of specificity a regex can make.
+
+**What would close it:** correct types. The judgement "this sentence is
+about a machine" is one the extraction model can make while it is
+reading the transcript and a regex cannot make afterwards — the same
+conclusion the value rules reached. Until then a misfiled fact stays
+misfiled, and the audit says how many there are rather than pretending
+otherwise.
+
+**What would change our minds:** a fact carrying its own subject from
+extraction, rather than the resolver inferring one from a sentence.
