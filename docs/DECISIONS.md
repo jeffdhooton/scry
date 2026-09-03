@@ -2433,8 +2433,17 @@ and `setup` all pass any test of specificity a regex can make.
 about a machine" is one the extraction model can make while it is
 reading the transcript and a regex cannot make afterwards — the same
 conclusion the value rules reached. Until then a misfiled fact stays
-misfiled, and the audit says how many there are rather than pretending
-otherwise.
+misfiled.
+
+**Counting them is the same problem.** An earlier version of this entry
+said the audit reports how many there are. It did not, and building the
+counter showed why it cannot: the same "the sentence names another
+entity and not this one" test that proposed 9,329 moves counts 5,879
+facts as misfiled, because the test is what is weak, not the action
+taken on it. A grader counting by hand found 25 to 31 on one project. A
+number whose name does not match what it counts is worse than no number,
+so there is none, and this paragraph is the honest version of the
+sentence it replaces.
 
 **What would change our minds:** a fact carrying its own subject from
 extraction, rather than the resolver inferring one from a sentence.

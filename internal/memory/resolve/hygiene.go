@@ -405,7 +405,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			// forbids: hermes-ops held "Hermes tmux", "Hermes Slack
 			// gateway", and "Jeff's own Hermes" long after the rule that
 			// admitted them was replaced.
-			if !split && (machineLeak(a, e) || roleLeak(a, e)) {
+			if !split && leakReason(a, e) != "" {
 				// Hardware named on a non-machine, or a role named on a
 				// person, with no better owner to hand it to: the alias
 				// goes and the facts stay.
@@ -452,7 +452,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 				// An alias that names a third entity comes straight back
 				// out on the next pass, and the two passes trade it
 				// forever, moving facts each time.
-				if other != "" && other != e.Slug && store.Normalize(a) != store.Normalize(bySlug[other].Name) && !neverAlias(a) && !machineLeak(a, bySlug[other]) && !roleLeak(a, bySlug[other]) {
+				if other != "" && other != e.Slug && store.Normalize(a) != store.Normalize(bySlug[other].Name) && !neverAlias(a) && leakReason(a, bySlug[other]) == "" {
 					named, err := namedByKindWords(st, a, bySlug[other])
 					if err != nil {
 						return rep, err
@@ -1013,7 +1013,11 @@ var locatedNameRE = regexp.MustCompile(`(?i)^(.*?)\s+(?:at|on|@)\s+(\S+)$`)
 
 // addressRE matches the where: an IP, a host on a local or tailnet
 // domain, or a bare port.
-var addressRE = regexp.MustCompile(`(?i)^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?$|^[a-z0-9-]+\.(?:local|lan|ts\.net|internal)$|^:\d{2,5}$`)
+// A bare port is deliberately absent: a port is often exactly what
+// distinguishes two instances of one binary, and folding
+// "llama-server on :8080" into "llama-server on :8081" would erase the
+// difference.
+var addressRE = regexp.MustCompile(`(?i)^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?$|^[a-z0-9-]+\.(?:local|lan|ts\.net|internal)$`)
 
 // mergeLocatedDuplicates folds an entity named "<thing> at <address>"
 // into the thing, when the thing is an entity of the same type with more
@@ -1051,7 +1055,7 @@ func mergeLocatedDuplicates(st *store.Store, dryRun bool) (int, []string, error)
 			continue
 		}
 		target, ok := byName[strings.ToLower(strings.TrimSpace(m[1]))]
-		if !ok || target.Slug == e.Slug || !strings.EqualFold(target.Type, e.Type) {
+		if !ok || target.Slug == e.Slug || !strings.EqualFold(target.Type, e.Type) || !absorbs(target.Type) {
 			continue
 		}
 		if count[target.Slug] <= count[e.Slug] {

@@ -256,6 +256,13 @@ func IsStatusWord(name string) bool {
 	// can be written that way: needs-env, needs-investigation,
 	// pending-reload. Judged the same way — what follows the opener
 	// decides — so waiting-room stays a room.
+	// A hyphenated pair ending in a participle is a state: build-failed,
+	// tests-passed, migration-pending, release-approved, deploy-blocked.
+	// waiting-room and trade-off end in nouns and are things.
+	if parts := strings.FieldsFunc(n, func(r rune) bool { return r == '-' || r == '_' }); len(parts) == 2 &&
+		participleStates[parts[1]] {
+		return true
+	}
 	if parts := strings.FieldsFunc(n, func(r rune) bool { return r == '-' || r == '_' }); len(parts) >= 2 {
 		switch parts[0] {
 		case "awaiting", "pending", "needs", "blocked", "waiting", "unresolved":
@@ -278,7 +285,21 @@ func IsStatusWord(name string) bool {
 		// not: boarding pass, mountain pass, customer success, standard
 		// error, storm warning, putting green, Xbox Live. Thirteen real
 		// names were being rejected to catch two.
-		if participleStates[last] || last == "status" || last == "state" {
+		// "state" and "status" as bare last words rejected Ohio State,
+		// Washington State, solid state, steady state, game state,
+		// session state and exit status. Only a participle ends a status.
+		if participleStates[last] {
+			return true
+		}
+		// "X status" names a status; "exit status" and "Ohio State" do
+		// not, so the word before it has to be a state itself.
+		if last == "status" && (statusWords[words[0]] || participleStates[words[0]] || strings.HasSuffix(words[0], "_pending")) {
+			return true
+		}
+		// A participle and an adverb report how something went:
+		// "completed successfully", "failed silently", "passed cleanly",
+		// "deferred indefinitely".
+		if len(words) == 2 && participleStates[words[0]] && strings.HasSuffix(last, "ly") {
 			return true
 		}
 		if len(words) >= 3 && (colourStates[last] || last == "error" || last == "warning" || last == "failure") {
@@ -328,6 +349,8 @@ var participleStates = map[string]bool{
 	"succeeded": true, "verified": true, "resolved": true, "closed": true,
 	"done": true, "unresolved": true, "unblocked": true, "queued": true,
 	"complete": true, "incomplete": true, "in-progress": true, "ok": true, "okay": true,
+	"deferred": true, "escalated": true, "triaged": true, "reopened": true,
+	"abandoned": true, "superseded": true, "postponed": true,
 }
 
 // colourStates end a status only in a longer phrase. "full API suite

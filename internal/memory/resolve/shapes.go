@@ -31,6 +31,13 @@ var (
 	numberThenParenRE = regexp.MustCompile(`^[~≈<>+-]?[\d.,]+\s*\(`)
 	// moneyRE: a name that opens with a currency is an amount.
 	moneyRE = regexp.MustCompile(`^[~≈<>+-]?[$€£¥]\s?[\d.,]`)
+	// settingRE: "AUTH_MODE=dev", "durable=true", "STEP_LIMIT=150". A
+	// setting is the identity; the value it is bound to is data. No rule
+	// looked at "=" at all, and fifteen such names were live entities.
+	settingRE = regexp.MustCompile(`^[A-Za-z_.-][A-Za-z0-9_.-]*\s*=\s*\S`)
+	// isoStampRE: "20260903T000246Z" inside a name is a run's timestamp.
+	// hashLike cannot see it because of the t and the z.
+	isoStampRE = regexp.MustCompile(`(?i)\d{8}t\d{6}z`)
 	// quotedRE: "guard: 'self'", "'./primitives/*': './src/...'" — a
 	// quoted literal, or a key with one.
 	quotedRE = regexp.MustCompile(`'[^']{2,}'|"[^"]{2,}"`)
@@ -700,6 +707,10 @@ var commandVerbs = map[string]bool{
 	"pull": true, "clone": true, "commit": true, "log": true, "status": true,
 	"migrate": true, "seed": true, "mod": true, "tidy": true, "prune": true,
 	"list": true, "show": true, "apply": true, "deploy": true, "serve": true,
+	"vet": true, "ci": true, "bisect": true, "clippy": true, "ps": true,
+	"doctor": true, "check": true, "describe": true, "stash": true, "fmt": true,
+	"lint": true, "audit": true, "outdated": true, "rebase": true, "fetch": true,
+	"checkout": true, "branch": true, "diff": true, "init": true, "config": true,
 }
 
 // messageName reports whether a name reads as a sentence someone was
@@ -769,6 +780,9 @@ func listName(n string) bool {
 	if quotedRE.MatchString(n) || trailingScoreRE.MatchString(n) {
 		return true
 	}
+	if settingRE.MatchString(strings.TrimSpace(n)) {
+		return true
+	}
 	if strings.Contains(n, "|") || strings.Count(n, ",") >= 2 {
 		return true
 	}
@@ -797,7 +811,7 @@ func listName(n string) bool {
 // named after itself: an id under a run-shaped namespace, or any name
 // carrying an opaque hexadecimal handle.
 func runArtifact(n string) bool {
-	if hasHashToken(n) {
+	if hasHashToken(n) || isoStampRE.MatchString(n) {
 		return true
 	}
 	// A long run of digits anywhere is an id: a probe number, a task

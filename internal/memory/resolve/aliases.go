@@ -196,13 +196,8 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	// box" adds "box" and is not the project. Judging the whole alias
 	// refused the first, and skipping the check whenever the name
 	// appeared admitted the other two.
-	if extra := extraWords(alias, e); len(extra) > 0 {
-		if roleLeak(extra, e) || pathAlias(alias) && e.Type == "person" {
-			return false, "names a role rather than a person", nil
-		}
-		if machineLeak(extra, e) || shortMachineWord(extra, e) {
-			return false, "names hardware on a non-machine", nil
-		}
+	if why := leakReason(alias, e); why != "" {
+		return false, why, nil
 	}
 
 	owner, owned, err := aliasOwner(st, alias)
@@ -522,11 +517,32 @@ var roleNouns = map[string]bool{
 	"model": true, "coder": true, "planner": true, "auditor": true,
 }
 
+// leakReason is the one place that decides whether an alias names
+// another kind of thing than its holder. Admission, revalidation and
+// hygiene all ask it, so they cannot disagree — they did, and an
+// upgraded stub kept aliases admission refuses while a project lost one
+// containing its own name.
+func leakReason(alias string, e store.Entity) string {
+	extra := extraWords(alias, e)
+	if len(extra) == 0 {
+		return ""
+	}
+	if roleLeak(extra, e) || (pathAlias(alias) && e.Type == "person") {
+		return "names a role rather than a person"
+	}
+	if machineLeak(extra, e) || shortMachineWord(extra, e) {
+		return "names hardware on a non-machine"
+	}
+	return ""
+}
+
 // pathAlias reports whether an alias is a filesystem path. extraWords
 // turns separators into spaces before the leak checks see them, so the
 // check has to look at the alias as written.
 func pathAlias(alias string) bool {
-	return strings.HasPrefix(strings.TrimSpace(alias), "/")
+	a := strings.TrimSpace(alias)
+	return strings.HasPrefix(a, "/") || strings.HasPrefix(a, "~/") ||
+		strings.HasPrefix(a, "Users/") || strings.HasPrefix(a, "users/")
 }
 
 // shortMachineWord catches the hardware nouns that are too short for the
@@ -537,10 +553,19 @@ func shortMachineWord(extra string, e store.Entity) bool {
 	if e.Type == "machine" || e.Type == "" || e.Type == "concept" {
 		return false
 	}
+	// os, gpu, cpu and ssd are ordinary in software names — "Chrome OS",
+	// "llama.cpp GPU build", "scry CPU profile" — and were rejecting
+	// eight live aliases. Only the words that mean a box.
+	own := strings.ToLower(e.Name)
 	for _, w := range strings.Fields(extra) {
 		switch w {
-		case "vm", "pi", "pc", "os", "gpu", "cpu", "ssd", "nas":
-			return true
+		case "vm", "pi", "pc", "nas":
+			// Never the holder's own word: the tokeniser drops anything
+			// under three characters from an entity's name, so "pi-config"
+			// could not see that "pi" was its own.
+			if !strings.Contains(own, w) {
+				return true
+			}
 		}
 	}
 	return false
@@ -624,8 +649,7 @@ func RevalidateAliases(st *store.Store, e *store.Entity) error {
 		// whole alias here dropped "Android Studio Ladybug" from Android
 		// Studio the moment a stub was upgraded, which is exactly the
 		// alias the added-words rule exists to keep.
-		extra := extraWords(a, *e)
-		if neverAlias(a) || machineLeak(extra, *e) || roleLeak(extra, *e) {
+		if neverAlias(a) || leakReason(a, *e) != "" {
 			continue
 		}
 		if owner, ok, err := st.ResolveAlias(a); err != nil {
