@@ -369,50 +369,6 @@ func retireable(name string) bool {
 // the value detector does not know.
 func pureNumberOrHex(slug string) bool { return pureNumberOrHexRE.MatchString(slug) }
 
-// restoreDeployedOn brings back deployed_on facts that Rule 6 invalidated
-// while the relation counted as exclusive. Only the ones exclusivity
-// itself retired are touched: the signature is an invalidated deployed_on
-// fact whose invalid_at is exactly the ValidFrom of another current
-// deployed_on fact from the same entity, which is how Rule 6 stamped it.
-// A fact retired for any other reason keeps its invalidation.
-func restoreDeployedOn(st *store.Store, dry bool, rep *Report) error {
-	const relation = "deployed_on"
-	starts := map[string]map[int64]bool{} // src → ValidFrom of current facts
-	var retired []store.Fact
-	facts, err := st.AllFacts()
-	if err != nil {
-		return fmt.Errorf("migrate: scan deployed_on: %w", err)
-	}
-	for _, f := range facts {
-		if f.Relation != relation {
-			continue
-		}
-		if f.InvalidAt == nil {
-			if starts[f.Src] == nil {
-				starts[f.Src] = map[int64]bool{}
-			}
-			starts[f.Src][f.ValidFrom.UnixNano()] = true
-			continue
-		}
-		retired = append(retired, f)
-	}
-	for _, f := range retired {
-		if !starts[f.Src][f.InvalidAt.UnixNano()] {
-			continue
-		}
-		rep.DeployedOnRestored++
-		if dry {
-			continue
-		}
-		revived := f
-		revived.InvalidAt = nil
-		if err := st.PutFact(revived); err != nil {
-			return fmt.Errorf("migrate: restore %s deployed_on: %w", f.Src, err)
-		}
-	}
-	return nil
-}
-
 // inversionWindow is how soon after a fact begins its retirement counts as
 // an artifact of arrival order rather than a real change. Two facts about
 // the same thing that genuinely follow one another are minutes apart at
@@ -482,6 +438,64 @@ func repairInversions(st *store.Store, dry bool, rep *Report) error {
 			if err := st.PutFact(*winner); err != nil {
 				return fmt.Errorf("migrate: retire %s %s: %w", winner.Src, winner.Relation, err)
 			}
+		}
+	}
+	return nil
+}
+
+// restoreDeployedOn brings back deployed_on facts that were retired
+// because another deployment was recorded. The relation is not exclusive
+// any more — a thing runs in more than one place at once — so a fact
+// retired in favour of a sibling deployment was retired by a rule that no
+// longer exists.
+//
+// The test is that some other deployment of the same thing had already
+// begun when this one was retired. That is the shape Rule 6 left behind,
+// and also the shape an explicit "it moved" hint leaves; the two cannot
+// be told apart after the fact. Restoring both is the deliberate choice:
+// a deployment that really did end will be restated by the next session
+// that looks, while a fact silently retired stays gone. 336 of the 369
+// retired deployments carried this shape, among them where each web
+// application runs.
+func restoreDeployedOn(st *store.Store, dry bool, rep *Report) error {
+	const relation = "deployed_on"
+	starts := map[string][]time.Time{} // src → ValidFrom of every deployment
+	var retired []store.Fact
+	facts, err := st.AllFacts()
+	if err != nil {
+		return fmt.Errorf("migrate: scan deployed_on: %w", err)
+	}
+	for _, f := range facts {
+		if f.Relation != relation {
+			continue
+		}
+		starts[f.Src] = append(starts[f.Src], f.ValidFrom)
+		if f.InvalidAt != nil {
+			retired = append(retired, f)
+		}
+	}
+	for _, f := range retired {
+		superseded := false
+		for _, start := range starts[f.Src] {
+			if start.Equal(f.ValidFrom) {
+				continue // itself, or a fact recorded at the same instant
+			}
+			if !start.After(*f.InvalidAt) {
+				superseded = true
+				break
+			}
+		}
+		if !superseded {
+			continue
+		}
+		rep.DeployedOnRestored++
+		if dry {
+			continue
+		}
+		revived := f
+		revived.InvalidAt = nil
+		if err := st.PutFact(revived); err != nil {
+			return fmt.Errorf("migrate: restore %s deployed_on: %w", f.Src, err)
 		}
 	}
 	return nil

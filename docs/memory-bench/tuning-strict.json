@@ -1,0 +1,352 @@
+[
+ {
+  "question": "I need to SSH into the Hermes Mac mini over the tailnet. What user and address do I use?",
+  "expect": {
+   "fact_substring": "accessible via Tailscale at jclaw@100.96.45.73"
+  },
+  "note": "7554d6e6: hermes-ops accessible_via tailscale gives the jclaw@100.96.45.73 login target"
+ },
+ {
+  "question": "If the hosted model provider for the Hermes agent goes down, what does it fall back to and where does that run?",
+  "expect": {
+   "fact_substring": "Local OMLX gpt-oss-20b at 127.0.0.1:8000/v1 is fallback LLM"
+  },
+  "note": "00a73041: hermes depends_on gpt-oss-20b: local OMLX fallback at 127.0.0.1:8000/v1"
+ },
+ {
+  "question": "What URL does the cockpit MCP daemon listen on?",
+  "expect": {
+   "fact_substring": "Cockpit ships its own MCP daemon at http://127.0.0.1:45679/mcp"
+  },
+  "note": "60e0735f: cockpit deployed_on cockpit-daemon names the loopback MCP URL and port 45679"
+ },
+ {
+  "question": "Where did the initial contents of cockpit's config file come from when it was migrated?",
+  "expect": {
+   "fact_substring": "~/.config/cockpit/config.toml was populated from the union of Helm's"
+  },
+  "note": "8a946f9e: cockpit decided cockpit-config-migration: config.toml seeded from Helm registry + helm.yml files"
+ },
+ {
+  "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+  "expect": {
+   "fact_substring": "executes 'scry start --foreground' with RunAtLoad and KeepAlive"
+  },
+  "note": "4ab6c612: scryd runs scry: exact argv plus RunAtLoad/KeepAlive flags"
+ },
+ {
+  "question": "Which plist file is responsible for keeping the memory daemon running on the laptop?",
+  "expect": {
+   "fact_substring": "~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon"
+  },
+  "note": "148ee883: launchd-scryd-plist fact names the exact LaunchAgent path that owns scryd"
+ },
+ {
+  "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+  "expect": {
+   "fact_substring": "Extraction (distill + extract) runs on Haiku (cheaper), backfill on Batch API"
+  },
+  "note": "f968c50a: scry architecture fact: extraction on Haiku, backfill on Batch API, thinking only at recall"
+ },
+ {
+  "question": "Is the git-history intelligence tool still shipped as its own executable, or did it get folded into something?",
+  "expect": {
+   "fact_substring": "Scry is absorbing lore (git intelligence) into unified binary"
+  },
+  "note": "3b5332bb: scry absorbs lore: lore is being merged into the unified scry binary"
+ },
+ {
+  "question": "What process actually drives ingestion of sessions into the scry memory graph?",
+  "expect": {
+   "fact_substring": "is loaded and the source of truth for ingestion"
+  },
+  "note": "a8dcc04d: launchd-scry-memory-sweep: the com.jhoot.scry-memory-sweep LaunchAgent is the ingestion source of truth"
+ },
+ {
+  "question": "How does the laptop reach the shared memory graph that lives on another machine?",
+  "expect": {
+   "fact_substring": "through a launchd-managed SSH StreamLocalForward"
+  },
+  "note": "1538d183: jeffs-mac reaches the memory graph through a launchd-managed SSH StreamLocalForward"
+ },
+ {
+  "question": "What static address and MTU are set on halo2's direct-link interface enp191s0?",
+  "expect": {
+   "fact_substring": "static IP 192.168.100.2/30 with MTU 9000"
+  },
+  "note": "cf1f4e8d: halo2 connects_via enp191s0 with 192.168.100.2/30 and jumbo frames"
+ },
+ {
+  "question": "How are the two Strix Halo inference boxes physically wired to each other?",
+  "expect": {
+   "fact_substring": "connected to box 1 via a 12-inch Cat8 cable for 10GbE link"
+  },
+  "note": "cf2ac8c1: halo2 connects_to hermes-ops: short Cat8 cable for the 10GbE point-to-point link"
+ },
+ {
+  "question": "Where is the DeepSeek cluster's systemd unit file defined on halo?",
+  "expect": {
+   "fact_substring": "user systemd unit at ~/.config/systemd/user/ds4-cluster.service on halo"
+  },
+  "note": "ab0e275a: ds4-cluster fact gives the exact user-unit path"
+ },
+ {
+  "question": "Why was the ds4 cluster stopped from auto-starting on halo?",
+  "expect": {
+   "fact_substring": "cannot coexist with Flash-Next due to GTT capacity limits"
+  },
+  "note": "ab0e275a: jeff decided ds4-cluster: disabled autostart because it cannot coexist with Flash-Next (GTT limits)"
+ },
+ {
+  "question": "What endpoint does Open WebUI point at to reach the DeepSeek cluster, and which API shapes does it speak?",
+  "expect": {
+   "fact_substring": "http://100.77.13.39:8000/v1 (OpenAI-compatible) and /v1/messages (Anthropic)"
+  },
+  "note": "5332139f: deepseek-v4 exposed_on open-webui: tailnet IP :8000 with OpenAI and Anthropic-style routes"
+ },
+ {
+  "question": "Can flashnext-server and glm-server be up at the same time on halo?",
+  "expect": {
+   "fact_substring": "declare systemd Conflicts on each other so the running one is stopped"
+  },
+  "note": "c492a15b: deepseek-v4 conflicts_with glm-server: systemd Conflicts means starting one stops the other"
+ },
+ {
+  "question": "How do I free the memory lemond's idle checkpoint is holding on halo?",
+  "expect": {
+   "fact_substring": "exposes an unload endpoint at 127.0.0.1:13305"
+  },
+  "note": "59ad431d: lemond deployed_on hermes-ops: unload endpoint on loopback port 13305"
+ },
+ {
+  "question": "Which port is Open WebUI on the mini bound to, and what supervises it?",
+  "expect": {
+   "fact_substring": "under launchd on mini with KeepAlive, on port 9999"
+  },
+  "note": "7626c983: aihaloopenwebui: launchd with KeepAlive on port 9999"
+ },
+ {
+  "question": "Does the chat UI on the mini talk to the big model cluster directly, or is there something in between?",
+  "expect": {
+   "fact_substring": "proxy shim on the mini at :9998 which forwards"
+  },
+  "note": "39856b5d: open-webui connects through a :9998 proxy shim that forwards to the DeepSeek cluster"
+ },
+ {
+  "question": "Are coding agents permitted to run on the Halo machines?",
+  "expect": {
+   "fact_substring": "Jeff decided no agents on Halo boxes, shell access only"
+  },
+  "note": "00c8bd03: jeff decided halo2: no agents on Halo boxes, shell access only"
+ },
+ {
+  "question": "What role did Jeff assign to the Strix Halo machines?",
+  "expect": {
+   "fact_substring": "should be pure inference servers"
+  },
+  "note": "c7a1a492: jeff decided amd-halo: Halo boxes are pure inference servers"
+ },
+ {
+  "question": "Is ~/.claude/settings.json a real file on this machine, or does it point somewhere in a repo?",
+  "expect": {
+   "fact_substring": "dotfiles settings file is symlinked to ~/.claude/settings.json"
+  },
+  "note": "287bf9aa: dotfilesclaudesettingsjson: the dotfiles copy is symlinked to ~/.claude/settings.json"
+ },
+ {
+  "question": "gog just returned invalid_grant. What is the expected handling before bothering the user?",
+  "expect": {
+   "fact_substring": "silently retry the same command once or twice; never immediately"
+  },
+  "note": "2544999a: gog action_on_invalid_grant: retry silently, do not immediately ask for re-auth"
+ },
+ {
+  "question": "Why did a comma in a note string wreck neighbouring cells with gog sheets update, and what separators are safe?",
+  "expect": {
+   "fact_substring": "commas clobber adjacent rows; pipes clobber columns beyond H"
+  },
+  "note": "4155d70c: gog has_limitation gog-sheets-update: comma/pipe parsing; use semicolons, dashes, or slashes"
+ },
+ {
+  "question": "Where does the mini get the password that unlocks the gog keyring?",
+  "expect": {
+   "fact_substring": "GOG_KEYRING_PASSWORD (48 chars) exists in ~/.hermes/.env"
+  },
+  "note": "aea2307c: gog-keyring: GOG_KEYRING_PASSWORD lives in ~/.hermes/.env"
+ },
+ {
+  "question": "Where is the source of truth for Hermes skills on the mini, and how does Hermes discover them?",
+  "expect": {
+   "fact_substring": "Skills library at ~/hermes-ops/deploy/hermes-skills/ with symlinks into ~/.hermes/skills/"
+  },
+  "note": "a99c6883: hermes-skills: library under ~/hermes-ops/deploy/hermes-skills/ symlinked into ~/.hermes/skills/"
+ },
+ {
+  "question": "Which web search provider backs the deep research tool, and where does it read the API key from?",
+  "expect": {
+   "fact_substring": "Brave Search is the only search backend, key read from ~/hermes-ops/.env"
+  },
+  "note": "d1b8aa1f: deepresearch: Brave Search only, key in ~/hermes-ops/.env on the mini, 600 query budget"
+ },
+ {
+  "question": "How can I find out how much the recursive deep-research runs have spent so far?",
+  "expect": {
+   "fact_substring": "append-only ledger at ~/.local/share/recursive-deep/ledger.jsonl"
+  },
+  "note": "c62339d0: deep-researchpy maintains an append-only cost ledger at ~/.local/share/recursive-deep/ledger.jsonl"
+ },
+ {
+  "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+  "expect": {
+   "fact_substring": "Postgres, Redis, Qdrant v1.17.1, and MinIO via OrbStack docker-compose.slim.yml"
+  },
+  "note": "ccb5294b: mac-mini uses orbstack: Postgres/Redis/Qdrant/MinIO via docker-compose.slim.yml"
+ },
+ {
+  "question": "What happens to the Laravel app's web environments when a commit lands on main?",
+  "expect": {
+   "fact_substring": "Both childscribe web deploys track main on Forge; auto-deploy on push"
+  },
+  "note": "1d0a6395: forge deployed_on childscribe-main: advancing main is deploying because both deploys auto-deploy on push"
+ },
+ {
+  "question": "Why can't the production droplet send mail directly over SMTP?",
+  "expect": {
+   "fact_substring": "DigitalOcean blocks outbound SMTP ports 25/465/587 by default on droplets"
+  },
+  "note": "f6de8b11: forge blocks_outbound smtp-credentials: DigitalOcean blocks outbound SMTP ports by default"
+ },
+ {
+  "question": "Where is the Slack bot token for the #childscribe-ops channel kept on disk?",
+  "expect": {
+   "fact_substring": "xoxb-token stored at ~/.config/childscribe-slack-token (chmod 600, gitignored)"
+  },
+  "note": "9dd2e4d0: childscribe-ops: token at ~/.config/childscribe-slack-token, chmod 600"
+ },
+ {
+  "question": "Which environment variable holds the shared secret between the Laravel app and the engine, for both directions?",
+  "expect": {
+   "fact_substring": "single env var SCRIBE_ENGINE_API_KEY via config('services.scribe_engine.api_key')"
+  },
+  "note": "c470b51d: engine-auth: one env var SCRIBE_ENGINE_API_KEY serves inbound webhook and outbound client"
+ },
+ {
+  "question": "Does the interview detect when the speaker finishes talking automatically, or does the user signal it?",
+  "expect": {
+   "fact_substring": "always uses push-to-talk (tap mic icon), never VAD"
+  },
+  "note": "09d63952: interview-engine: push-to-talk only, never voice activity detection"
+ },
+ {
+  "question": "Do we retain any recording of the child's voice from a live interview?",
+  "expect": {
+   "fact_substring": "only text transcripts stored server-side. No on-device Whisper"
+  },
+  "note": "cae80a37: openai-realtime powers live-interview: only text transcripts stored, no audio storage or export"
+ },
+ {
+  "question": "What is the hold-the-line rule for AI agents touching patient records in Program Health?",
+  "expect": {
+   "fact_substring": "AI agents are read-only on clinical data"
+  },
+  "note": "fec84e8a: healthcare-platform rule: AI agents are read-only on clinical data"
+ },
+ {
+  "question": "The runbook says the demo box env file is under /etc/ph. Is that path right?",
+  "expect": {
+   "fact_substring": "Environment file location is /etc/program-health/demo.env, not /etc/ph/demo.env"
+  },
+  "note": "1e005b56: demoenv: actual location is /etc/program-health/demo.env; runbook path is wrong"
+ },
+ {
+  "question": "Why does the money-agent need a watchdog outside the harness for its cloud spend?",
+  "expect": {
+   "fact_substring": "Hetzner is postpaid; an external watchdog must destroy resources at the cap"
+  },
+  "note": "95dc0e78: hetzner requires hetzner-watchdog: postpaid billing cannot be hard-capped from inside"
+ },
+ {
+  "question": "Is the approvals API reachable from the public internet on the box, and what port does it bind?",
+  "expect": {
+   "fact_substring": "listens on 127.0.0.1:8081 with hardened systemd unit; externally unreachable through ufw"
+  },
+  "note": "a2fdf870: approval-api: loopback 8081, ufw blocks external access, systemd hardened"
+ },
+ {
+  "question": "Why is the Workers VPC private-origin approach parked instead of abandoned?",
+  "expect": {
+   "fact_substring": "strictly better if it starts working; the fallback is interim"
+  },
+  "note": "fed34608: money-agent decided cloudflare-workers-vpc: revisit later because it is strictly better; fallback is interim"
+ },
+ {
+  "question": "Where do inbound leads for the cleaning company site persist, and how do I query them from the CLI?",
+  "expect": {
+   "fact_substring": "Leads are stored in D1 and queried via wrangler d1 execute"
+  },
+  "note": "8ef91337: cleaning-company: leads in D1, queried via wrangler d1 execute"
+ },
+ {
+  "question": "Which colour theme does the personal site show a first-time visitor?",
+  "expect": {
+   "fact_substring": "Light mode is now the default theme; dark mode only applies"
+  },
+  "note": "252b9eff: personal-site-2026 changed_default_theme_to light"
+ },
+ {
+  "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+  "expect": {
+   "fact_substring": "applied Vale to commit messages, rejecting setpoint's lowercase commit subject"
+  },
+  "note": "51e25c4a: dotfiles blocked setpoint-fleet: global hooksPath runs Vale on commit messages"
+ },
+ {
+  "question": "What model scores the loom judge gate by default, and where is it served from?",
+  "expect": {
+   "fact_substring": "(qwen3.6:27b via ollama on localhost:11434) as the default deterministic rubric scorer"
+  },
+  "note": "84beafb0: judge-gate uses a local ollama model on localhost:11434 with reasoning_effort=none"
+ },
+ {
+  "question": "Which operating mode is the OUI-SPY device set to persist in?",
+  "expect": {
+   "fact_substring": "configured persistently for Mode 3 (Flock-You WiFi promiscuous detector)"
+  },
+  "note": "81470dc9: oui-spy configured_for flock-you: Mode 3 promiscuous detector"
+ },
+ {
+  "question": "What secrets need to be set before SMS lead alerts will fire?",
+  "expect": {
+   "fact_substring": "TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, OWNER_PHONE_PRIMARY"
+  },
+  "note": "e40e2024: sms-lead-alerts lists the five Twilio/owner-phone secrets"
+ },
+ {
+  "question": "Could a runaway job on the ops box accidentally rack up Anthropic charges?",
+  "expect": {
+   "fact_substring": "hermes has no ANTHROPIC_API_KEY and claude CLI is not installed"
+  },
+  "note": "81fd989f: hermes-ops blocked_by anthropic-api: no key and no claude CLI, so it structurally cannot spend"
+ },
+ {
+  "question": "Why did turning on route acceptance in Tailscale make the internet drop out?",
+  "expect": {
+   "fact_substring": "accept-routes installing a peer-advertised default route caused internet cutouts"
+  },
+  "note": "3f1ed948: tailscale caused_outage jeff: accept-routes installed a peer-advertised default route"
+ },
+ {
+  "question": "If the Stripe webhook secret is missing, does the whole Laravel app refuse to start?",
+  "expect": {
+   "fact_substring": "fails closed at route with alert instead of app-wide boot throw"
+  },
+  "note": "e6ce1927: stripe uses webhook-secret: validation fails closed at the route, not at boot"
+ },
+ {
+  "question": "Where does deal-desk keep its product watchlist and price history?",
+  "expect": {
+   "fact_substring": "SQLite at ~/deal-desk-data on the mini"
+  },
+  "note": "7fbf30cc: deal-desk stores watchlist/history in SQLite at ~/deal-desk-data on the mini"
+ }
+]

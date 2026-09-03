@@ -4,20 +4,15 @@
     "expect": {
       "any_of": [
         "accessible via Tailscale at jclaw@100.96.45.73",
-        "the Hermes box is mini at 100.96.45.73",
         "Mac mini at 100.96.45.73, user jclaw"
       ]
     },
     "note": "7554d6e6: hermes-ops accessible_via tailscale gives the jclaw@100.96.45.73 login target"
   },
   {
-    "question": "If the hosted model provider for the Hermes agent goes down, what does it fall back to and where does that run?",
+    "question": "When a local model endpoint is unavailable, what does the Hermes gateway fall back to first?",
     "expect": {
-      "any_of": [
-        "Local OMLX gpt-oss-20b at 127.0.0.1:8000/v1 is fallback LLM",
-        "falls back to hosted DeepSeek",
-        "falls back to halo2"
-      ]
+      "fact_substring": "falls back to halo2"
     },
     "note": "00a73041: hermes depends_on gpt-oss-20b: local OMLX fallback at 127.0.0.1:8000/v1"
   },
@@ -218,8 +213,7 @@
     "expect": {
       "any_of": [
         "Both childscribe web deploys track main on Forge; auto-deploy on push",
-        "auto-deploy on push via Forge",
-        "auto-deployed by Forge to production"
+        "auto-deploy on push via Forge"
       ]
     },
     "note": "1d0a6395: forge deployed_on childscribe-main: advancing main is deploying because both deploys auto-deploy on push"

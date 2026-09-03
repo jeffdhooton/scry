@@ -313,7 +313,8 @@ func TestRestoreDeployedOnBringsBackWhatExclusivityTook(t *testing.T) {
 	// that replaced it.
 	put(store.Fact{Src: "cockpit", Relation: "deployed_on", Dst: "cockpit-daemon", Fact: "Cockpit ships its own MCP daemon at http://127.0.0.1:45679/mcp", ValidFrom: now, InvalidAt: &later, Confidence: 1})
 	put(store.Fact{Src: "cockpit", Relation: "deployed_on", Dst: "mac-mini", Fact: "cockpit deployed to the mini", ValidFrom: later, Confidence: 1})
-	// Retired for another reason: nothing current starts at its invalid_at.
+	// Retired with no other deployment of the same thing: nothing suggests
+	// a rule retired it, so it stays retired.
 	other := now.Add(72 * time.Hour)
 	put(store.Fact{Src: "retired-app", Relation: "deployed_on", Dst: "old-host", Fact: "retired-app ran on old-host until it was decommissioned", ValidFrom: now, InvalidAt: &other, Confidence: 1})
 	// Untouched current fact.
