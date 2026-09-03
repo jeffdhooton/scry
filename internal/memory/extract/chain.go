@@ -76,6 +76,23 @@ func (c *Chain) cooledDown(i int) bool {
 	return c.now().Before(c.cooling[i])
 }
 
+// Refusing lists the steps currently skipped because the provider turned
+// them away over billing or authentication, and reports whether that is
+// every step in the chain. A chain in that state is not extracting
+// anything: the queue keeps the work, and `scry doctor` says so out loud
+// rather than reporting a healthy worker with nothing to do.
+func (c *Chain) Refusing() (names []string, all bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	now := c.now()
+	for i, s := range c.steps {
+		if now.Before(c.cooling[i]) {
+			names = append(names, s.Name)
+		}
+	}
+	return names, len(names) > 0 && len(names) == len(c.steps)
+}
+
 // coolDown marks step i as skipped for CooldownPeriod.
 func (c *Chain) coolDown(i int) {
 	c.mu.Lock()

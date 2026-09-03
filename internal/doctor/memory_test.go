@@ -96,3 +96,54 @@ func TestCheckMemoryUnreachableIsOneFailure(t *testing.T) {
 		t.Errorf("checks = %+v", checks)
 	}
 }
+
+func TestEvalMemoryStatusCallsOutAProviderRefusal(t *testing.T) {
+	now := time.Date(2026, 9, 3, 13, 30, 0, 0, time.UTC)
+	recent := now.Add(-5 * time.Minute)
+	sweep := now.Add(-10 * time.Minute)
+	base := daemon.MemoryStatusResult{
+		Models: []string{"glm-5.3-flash", "deepseek-v4-flash"}, WorkerRunning: true,
+		LastIngestAt: &recent, LastSweepAt: &sweep, LastExtractOKAt: &recent,
+	}
+
+	// The whole chain refused: a running worker is not enough.
+	all := base
+	all.ModelsRefusing = []string{"glm-5.3-flash", "deepseek-v4-flash"}
+	all.AllModelsRefusing = true
+	if got := findCheck(t, evalMemoryStatus(&all, now), "memory.extraction"); got.Status != StatusFail {
+		t.Errorf("a fully refused chain = %s, want fail: %s", got.Status, got.Detail)
+	}
+
+	// One of two refused is a warning, not a failure: the chain still runs.
+	one := base
+	one.ModelsRefusing = []string{"deepseek-v4-flash"}
+	if got := findCheck(t, evalMemoryStatus(&one, now), "memory.extraction"); got.Status != StatusWarn {
+		t.Errorf("one refused model = %s, want warn: %s", got.Status, got.Detail)
+	}
+
+	// Nothing refused stays a pass.
+	if got := findCheck(t, evalMemoryStatus(&base, now), "memory.extraction"); got.Status != StatusPass {
+		t.Errorf("a healthy chain = %s: %s", got.Status, got.Detail)
+	}
+}
+
+func TestEvalMemoryStatusFailsAStoppedQueue(t *testing.T) {
+	now := time.Date(2026, 9, 3, 13, 30, 0, 0, time.UTC)
+	recent := now.Add(-5 * time.Minute)
+	stale := now.Add(-90 * time.Minute)
+	res := daemon.MemoryStatusResult{
+		Models: []string{"glm-5.3-flash"}, WorkerRunning: true,
+		LastIngestAt: &recent, LastSweepAt: &recent,
+		QueueReady: 1120, LastExtractOKAt: &stale,
+	}
+	if got := findCheck(t, evalMemoryStatus(&res, now), "memory.queue"); got.Status != StatusFail {
+		t.Errorf("a queue with work and no progress for 90m = %s, want fail: %s", got.Status, got.Detail)
+	}
+
+	// An empty queue that has been quiet is idle, not stopped.
+	idle := res
+	idle.QueueReady = 0
+	if got := findCheck(t, evalMemoryStatus(&idle, now), "memory.queue"); got.Status != StatusPass {
+		t.Errorf("an empty queue = %s, want pass: %s", got.Status, got.Detail)
+	}
+}

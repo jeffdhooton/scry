@@ -26,6 +26,11 @@ const (
 	// maxQueueReady is a queue depth that means the worker is not keeping
 	// up, or is not running at all.
 	maxQueueReady = 50
+	// maxExtractGap is how long a non-empty queue may go without a single
+	// successful extraction before the pipeline counts as stopped. The
+	// worker can look perfectly healthy while every attempt fails, so
+	// liveness is measured by work completed, not by a running goroutine.
+	maxExtractGap = 30 * time.Minute
 )
 
 // memorySocket resolves the memory daemon's socket the same way the CLI
@@ -85,6 +90,14 @@ func evalMemoryStatus(res *daemon.MemoryStatusResult, now time.Time) []Check {
 		extraction.Status = StatusFail
 		extraction.Detail = "dormant: no extraction model configured, queued writes never become facts"
 		extraction.Remedy = "set memory.models in ~/.scry/config.yaml on the store's machine and export the key in its launchd environment"
+	case res.AllModelsRefusing:
+		extraction.Status = StatusFail
+		extraction.Detail = fmt.Sprintf("every model in the chain %v is being refused over billing or authentication; queued work is held, not lost", res.ModelsRefusing)
+		extraction.Remedy = "recharge the provider account, or point memory.models in the store machine's ~/.scry/config.yaml at a chain that has credit"
+	case len(res.ModelsRefusing) > 0:
+		extraction.Status = StatusWarn
+		extraction.Detail = fmt.Sprintf("chain %v, worker running, but %v is being refused over billing or authentication", res.Models, res.ModelsRefusing)
+		extraction.Remedy = "recharge that provider before the rest of the chain runs out too"
 	case !res.WorkerRunning:
 		extraction.Status = StatusFail
 		extraction.Detail = fmt.Sprintf("chain %v configured but the queue worker is not running", res.Models)
@@ -131,7 +144,12 @@ func evalMemoryStatus(res *daemon.MemoryStatusResult, now time.Time) []Check {
 	out = append(out, sweep)
 
 	queue := Check{ID: "memory.queue", Category: CategoryMemory, Name: "extraction queue"}
+	stalled := res.QueueReady > 0 && res.LastExtractOKAt != nil && now.Sub(*res.LastExtractOKAt) > maxExtractGap
 	switch {
+	case stalled:
+		queue.Status = StatusFail
+		queue.Detail = fmt.Sprintf("%d items waiting and nothing extracted for %s; the queue is stopped", res.QueueReady, ageString(now.Sub(*res.LastExtractOKAt)))
+		queue.Remedy = "read the daemon log on the store's machine for the failure every attempt is hitting"
 	case res.QueueParked > 0:
 		queue.Status = StatusWarn
 		queue.Detail = fmt.Sprintf("%d parked (unparseable after %d tries), %d ready, %d backing off", res.QueueParked, 3, res.QueueReady, res.QueueBackoff)

@@ -659,6 +659,12 @@ type MemoryStatusResult struct {
 	LastIngestAt    *time.Time `json:"last_ingest_at,omitempty"`
 	LastSweepAt     *time.Time `json:"last_sweep_at,omitempty"`
 	LastExtractOKAt *time.Time `json:"last_extract_ok_at,omitempty"`
+	// ModelsRefusing names the models the provider is currently turning
+	// away over billing or authentication; AllModelsRefusing is true when
+	// that is the whole chain, which means nothing is being extracted at
+	// all however healthy the worker looks.
+	ModelsRefusing    []string `json:"models_refusing,omitempty"`
+	AllModelsRefusing bool     `json:"all_models_refusing,omitempty"`
 }
 
 func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, error) {
@@ -674,25 +680,29 @@ func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, 
 	if err != nil {
 		return nil, err
 	}
-	var models []string
+	var models, refusing []string
+	var allRefusing bool
 	if ch, ok := d.memExtractor.(*extract.Chain); ok {
 		models = ch.Names()
+		refusing, allRefusing = ch.Refusing()
 	}
 	ready, backoff, parked, err := st.PendingCounts(time.Now())
 	if err != nil {
 		return nil, err
 	}
 	res := &MemoryStatusResult{
-		Episodes:      episodes,
-		Entities:      entities,
-		Facts:         facts,
-		Dormant:       d.memExtractor == nil,
-		Cursors:       len(cursors),
-		Models:        models,
-		QueueReady:    ready,
-		QueueBackoff:  backoff,
-		QueueParked:   parked,
-		WorkerRunning: d.memoryWorker() != nil,
+		Episodes:          episodes,
+		Entities:          entities,
+		Facts:             facts,
+		Dormant:           d.memExtractor == nil,
+		Cursors:           len(cursors),
+		Models:            models,
+		QueueReady:        ready,
+		QueueBackoff:      backoff,
+		QueueParked:       parked,
+		WorkerRunning:     d.memoryWorker() != nil,
+		ModelsRefusing:    refusing,
+		AllModelsRefusing: allRefusing,
 	}
 	if w := d.memoryWorker(); w != nil {
 		res.QueueLimit = w.Limit()
