@@ -690,3 +690,44 @@ The seven dead-letter files on the laptop all predate this work
 What still cannot be measured is the other half of the clause: that all
 twenty resolve into facts within ten minutes of the provider returning.
 No provider has returned.
+
+
+## Round five, re-measured: two ideas built and reverted
+
+Both of this round's larger ideas were built, measured, and taken out
+again. Recording them so the next session does not spend the afternoon.
+
+**Applying the write path's naming rule to stored aliases.** Tried twice.
+The first version handed 4,634 aliases to new owners, 4,340 of them to
+entities whose facts never mention the name. The corrected version, with
+the type-skip removed, handed 7,268 — 6,975 to entities that never
+mention them — rebuilt a magnet entity from 0 to 104 aliases, and
+destroyed 1,471 spellings the store used to answer to, two of them the
+Mac mini's. It converged, onto a worse store than it started from. The
+store was restored from the backup taken before it and the pass was
+reverted. What is kept from it is the drop that measured well: hardware
+named on a non-machine and a role named on a person.
+
+| | before the experiment | after it | after the revert |
+|---|---|---|---|
+| Aliases the owner's facts never mention | 65% | 74% | 65% |
+| Aliases on the magnet entity AUDIT-6 | 0 | 104 | 0 |
+| Spellings of the Mac mini | 6 | 3 | 6 |
+| Aliases on the person Jeff | 37 | 18 | 22 |
+| Cross-type collisions | 522 | 428 | 514 |
+
+The collision count went *down* during the experiment, which is worth
+saying plainly: the metric improved while the store got worse, because
+moving an alias off an entity removes a collision whether or not the
+alias landed anywhere sensible.
+
+**Vector retrieval.** Every fact carries a vector learned from the
+store's own words. A grader showed the cosine was only applied to facts
+the words had already found — a re-ranker sold as a retriever — so
+nearest-neighbour retrieval over all 46,000 vectors was added. On the
+grader's thirteen questions written with no shared word it scored one
+either way; on three other sets it moved nothing at any candidate count.
+Facts are one sentence each, which is thin company for learning what a
+word means, and the store keeps no transcript to learn from instead. The
+retrieval path is out; the re-ranking stays, where it does measure: 51 to
+54 of 62 and 33 to 35 of 66 on the two sets it was not fitted to.
