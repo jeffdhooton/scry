@@ -85,6 +85,11 @@ func renderTurn(t turn) string {
 	return label + ": " + t.text + "\n\n"
 }
 
+// MakeID derives a stable episode ID from a source ref. Exported so the
+// daemon's queue can mint ids for episodes it derives from another (a
+// transcript slice split in half after repeated extraction timeouts).
+func MakeID(sourceRef string) string { return makeID(sourceRef) }
+
 // makeID derives a stable episode ID from its SourceRef.
 func makeID(sourceRef string) string {
 	sum := sha256.Sum256([]byte(sourceRef))

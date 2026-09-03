@@ -350,3 +350,66 @@ func TestManualItemsNeverParkOnTimeoutAndHaveTheirOwnSlots(t *testing.T) {
 		t.Errorf("manual item parked on timeout: %+v", p)
 	}
 }
+
+func TestRepeatedTimeoutsSplitTheEpisodeInsteadOfParking(t *testing.T) {
+	st := openTemp(t)
+	long := pending("big", strings.Repeat("User: a long turn about the deploy path\n\nAssistant: a long answer\n\n", 120))
+	long.Source = "claude-session"
+	long.SourceRef = "/tmp/session.jsonl#0-99999"
+	if len(long.Text) < minSplitChars {
+		t.Fatalf("fixture text is only %d chars", len(long.Text))
+	}
+	_ = st.PutPending(long)
+	fx := &fakeExtractor{delay: time.Second}
+	w := New(Options{Store: st, Extractor: fx, Workers: 2, Poll: 10 * time.Millisecond, ItemTimeout: 20 * time.Millisecond})
+	w.backoff = func(int) time.Duration { return 0 }
+	runFor(t, w, 3*time.Second)
+
+	if !waitUntil(t, 3*time.Second, func() bool { has, _ := st.HasPending("big"); return !has }) {
+		p, _ := st.GetPending("big")
+		t.Fatalf("parent never split: %+v", p)
+	}
+	var halves []store.PendingEpisode
+	items, _ := st.Pending(0)
+	for _, it := range items {
+		if strings.Contains(it.SourceRef, "#split") {
+			halves = append(halves, it)
+		}
+	}
+	if len(halves) != 2 {
+		t.Fatalf("halves = %d, want 2 (of %d pending)", len(halves), len(items))
+	}
+	joined := halves[0].Text + halves[1].Text
+	for _, want := range []string{"a long turn about the deploy path", "a long answer"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("split lost content: %q missing", want)
+		}
+	}
+	if halves[0].ID == halves[1].ID || halves[0].ID == "big" {
+		t.Error("halves must have their own derived ids")
+	}
+	if halves[0].Attempts != 0 || halves[0].Parked {
+		t.Errorf("halves start fresh: %+v", halves[0])
+	}
+	if splitDepth(halves[0].SourceRef) != 1 {
+		t.Errorf("split depth = %d", splitDepth(halves[0].SourceRef))
+	}
+}
+
+func TestSplitStopsAtDepthAndShortText(t *testing.T) {
+	st := openTemp(t)
+	w := New(Options{Store: st, Extractor: &fakeExtractor{}, Poll: time.Hour})
+	short := pending("s", "too short to split")
+	if ok, err := w.splitPending(short); ok || err != nil {
+		t.Errorf("short text: %v %v", ok, err)
+	}
+	deep := pending("d", strings.Repeat("word ", 2000))
+	deep.SourceRef = "/tmp/x.jsonl#0-1#split1#split2#split1"
+	if ok, err := w.splitPending(deep); ok || err != nil {
+		t.Errorf("max depth: %v %v", ok, err)
+	}
+	l, r := splitText("User: one\n\nAssistant: two\n\nUser: three\n\nAssistant: four")
+	if l == "" || r == "" || strings.Contains(l, "four") {
+		t.Errorf("splitText = %q | %q", l, r)
+	}
+}
