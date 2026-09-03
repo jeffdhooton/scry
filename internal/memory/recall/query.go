@@ -135,6 +135,14 @@ const entityBoost = 0.5
 // questions that are not about reasons.
 const reasonBoost = 8.0
 
+// meaningWeight is how much the vector model counts against the word
+// match. Lexical scores run to a few tens, so eight is a nudge rather
+// than a takeover: it moves a fact that means the right thing up past a
+// fact that merely repeats a word, and leaves the rest of the order
+// alone. Swept from zero to thirty-two on three question sets; above
+// sixteen it starts costing questions that words answer perfectly well.
+const meaningWeight = 8.0
+
 // reasonRelations carry why something is the way it is, rather than what
 // it is. A question asking why, or what broke, is answered by one of
 // these far more often than by the most-mentioned fact about the subject.
@@ -310,12 +318,19 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 		}
 		hits := ix.Search(expanded, []string{search.KindFact}, asOf, candidateFacts)
 		now := time.Now()
+		// The question in the vector model, for the facts that share no
+		// word with it.
+		qv := ix.EmbedQuery(q)
+		mw := meaningWeight
 		wantsReason := asksWhy(q)
 		for _, h := range hits {
 			f := h.Doc.Fact
 			s := h.Score
 			if wantsReason && reasonRelations[f.Relation] {
 				s += reasonBoost
+			}
+			if mw > 0 && qv != nil {
+				s += mw * ix.Meaning(qv, search.FactKey(f))
 			}
 			for _, slug := range h.Doc.Slugs {
 				if w, ok := named[slug]; ok {

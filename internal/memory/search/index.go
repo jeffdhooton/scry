@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jeffdhooton/scry/internal/memory/embed"
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
@@ -73,8 +74,12 @@ type Index struct {
 	postings map[string][]posting
 	lengths  []int
 	totalLen int
-	live     int // docs not removed
-	dead     int // tombstoned slots since the last compaction
+	// model gives every fact a vector built from the store's own word
+	// company, so a question can reach a fact that shares no word with
+	// it. Nil until BuildEmbedding runs.
+	model *embed.Model
+	live  int // docs not removed
+	dead  int // tombstoned slots since the last compaction
 	// names maps entity slugs to display names so a fact indexed later
 	// still carries "Mac mini" for mac-mini.
 	names map[string]string
@@ -93,7 +98,60 @@ func Build(st *store.Store) (*Index, error) {
 	if err := ix.Load(st); err != nil {
 		return nil, err
 	}
+	ix.BuildEmbedding()
 	return ix, nil
+}
+
+// BuildEmbedding learns the vector model from the facts already loaded.
+// It is separate from Load so a caller that only needs lexical search
+// can skip the work, and so a rebuild after an update is one call.
+func (ix *Index) BuildEmbedding() {
+	ix.mu.RLock()
+	docs := make([]embed.Doc, 0, len(ix.docs))
+	for _, d := range ix.docs {
+		if d.Key == "" {
+			continue
+		}
+		// Episodes and entity descriptions teach the model what words go
+		// together; only facts are things recall returns.
+		docs = append(docs, embed.Doc{Key: d.Key, Terms: Tokenize(d.Text), Index: d.Kind == KindFact})
+	}
+	ix.mu.RUnlock()
+	m := embed.Build(docs)
+	ix.mu.Lock()
+	ix.model = m
+	ix.mu.Unlock()
+}
+
+// Meaning scores how close a fact is to a question in the vector model,
+// in [-1, 1]. Zero when the model has not been built, or knows neither.
+func (ix *Index) Meaning(q []float32, key string) float64 {
+	ix.mu.RLock()
+	defer ix.mu.RUnlock()
+	if ix.model == nil {
+		return 0
+	}
+	return ix.model.Similarity(q, key)
+}
+
+// EmbedQuery embeds a question, or returns nil when there is no model.
+func (ix *Index) EmbedQuery(q string) []float32 {
+	ix.mu.RLock()
+	defer ix.mu.RUnlock()
+	if ix.model == nil {
+		return nil
+	}
+	return ix.model.Query(Tokenize(q))
+}
+
+// ModelSize reports how much the vector model covers, for status output.
+func (ix *Index) ModelSize() (terms, facts int) {
+	ix.mu.RLock()
+	defer ix.mu.RUnlock()
+	if ix.model == nil {
+		return 0, 0
+	}
+	return ix.model.Terms(), ix.model.Facts()
 }
 
 // Load fills ix from st. It holds the write lock for the duration, so an

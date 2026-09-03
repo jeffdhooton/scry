@@ -2245,3 +2245,42 @@ rather than something to arrange quietly.
 **What would change our minds:** a local embedding model on the store's
 machine, at which point the lexical index becomes the first stage of a
 hybrid rather than the whole of it.
+
+
+## 2026-09-03 — Meaning comes from the store's own word company
+
+**Decision:** every fact carries a 128-dimension vector learned from the
+store itself by random indexing, and recall adds a small multiple of the
+cosine between the question's vector and the fact's to the word score.
+
+**Context:** the spec deferred embeddings; this run's goal un-defers them.
+Three graders in a row showed the same thing: every miss was a ranking
+failure with the answering fact live in the store, and the remaining ones
+are conceptual rather than lexical. A question about someone who "cannot
+fake his way through" a subject has to reach a fact about having "no
+sports domain knowledge", and no thesaurus, reweighting, or feedback pass
+gets there — all three were built and measured, and two were deleted.
+
+**Why random indexing and not a model:** the house rules allow local
+embeddings and forbid a hosted embedding API. A downloaded model is local
+but is still a model someone has to install on the store's machine, a
+decision that belongs to its owner and a dependency this project does not
+want. Random indexing needs none: each word gets a sparse random vector
+from its own hash, a word's meaning is the sum of the vectors of the
+words it appears with, and a fact is the sum of its words' meanings.
+Words that keep the same company end up pointing the same way. It is one
+pass, pure Go, no CGO, no network, about two seconds over 46,000 facts
+and 30 MB in memory. Episode summaries and entity descriptions are read
+as company but never returned, so the model learns from more text than
+recall answers with.
+
+**The weight is small on purpose.** Swept from zero to thirty-two against
+three question sets: at eight the strict tuning set is unchanged at 44 of
+50 while the two sets it was not fitted to gain, 51 to 54 of 62 and 33 to
+34 of 66. Above sixteen it starts costing questions that words answer
+perfectly well. Meaning is a nudge past a fact that merely repeats a
+word, not a replacement for matching one.
+
+**What would change our minds:** an embedding model the store's owner
+already runs locally, at which point this becomes the fallback for words
+that model has never seen rather than the whole of the semantic layer.

@@ -82,8 +82,12 @@ type Daemon struct {
 	memQueueWG   sync.WaitGroup
 	memGlossary  glossaryCache
 	memIndexOnce sync.Once
-	memIndex     *search.Index
-	memIndexErr  error
+	// memStop closes when the memory domain shuts down, stopping the
+	// background relearn of the vector model.
+	memStop     chan struct{}
+	memStopOnce sync.Once
+	memIndex    *search.Index
+	memIndexErr error
 
 	memUIMu  sync.Mutex
 	memUISrv *http.Server

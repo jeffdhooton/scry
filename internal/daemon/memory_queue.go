@@ -47,6 +47,7 @@ func (d *Daemon) memoryIndex() (*search.Index, error) {
 	}
 	d.memIndexOnce.Do(func() {
 		start := time.Now()
+		d.memStop = make(chan struct{})
 		ix := search.New()
 		// Subscribe before loading: a write that lands mid-build blocks on
 		// the index lock and applies after the snapshot, so nothing written
@@ -75,11 +76,47 @@ func (d *Daemon) memoryIndex() (*search.Index, error) {
 			d.memIndexErr = err
 			return
 		}
+		ix.BuildEmbedding()
+		terms, facts := ix.ModelSize()
 		d.memIndex = ix
-		log.Printf("memory: search index built: %d documents in %s", ix.Len(), time.Since(start).Round(time.Millisecond))
+		log.Printf("memory: search index built: %d documents in %s (vector model: %d words, %d facts)",
+			ix.Len(), time.Since(start).Round(time.Millisecond), terms, facts)
+		// A fact written after the build joins the lexical index at once
+		// but has no vector until the model is relearned, so relearn it
+		// periodically. The work is a second or two and nothing waits on
+		// it; a fact without a vector simply scores zero on meaning until
+		// the next pass.
+		d.memQueueWG.Add(1)
+		go d.relearnMeaning(ix)
 	})
 	return d.memIndex, d.memIndexErr
 }
+
+// relearnMeaning rebuilds the vector model on a slow timer, so facts
+// written since the last build can be reached by meaning and not only by
+// their words.
+func (d *Daemon) relearnMeaning(ix *search.Index) {
+	defer d.memQueueWG.Done()
+	t := time.NewTicker(meaningRelearnEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-d.memStop:
+			return
+		case <-t.C:
+			start := time.Now()
+			ix.BuildEmbedding()
+			terms, facts := ix.ModelSize()
+			log.Printf("memory: vector model relearned: %d words, %d facts in %s",
+				terms, facts, time.Since(start).Round(time.Millisecond))
+		}
+	}
+}
+
+// meaningRelearnEvery is how often the vector model is rebuilt. Facts
+// arrive in bursts as the queue drains; half an hour keeps the model
+// within one sweep of the store without spending the daemon's time on it.
+const meaningRelearnEvery = 30 * time.Minute
 
 // startMemoryWorker builds and runs the queue worker for the lifetime of
 // ctx. With no extractor the daemon is dormant: writes still queue, and a

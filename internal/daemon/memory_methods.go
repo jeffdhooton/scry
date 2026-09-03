@@ -59,6 +59,11 @@ func (d *Daemon) registerMemoryMethods() {
 // from the daemon's shutdown path alongside closeHTTP and the per-repo
 // registries.
 func (d *Daemon) closeMemory() {
+	d.memStopOnce.Do(func() {
+		if d.memStop != nil {
+			close(d.memStop)
+		}
+	})
 	d.memQueueWG.Wait()
 	if d.memStore != nil {
 		_ = d.memStore.Close()
