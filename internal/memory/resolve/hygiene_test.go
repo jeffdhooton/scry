@@ -104,3 +104,138 @@ func TestHygiene_ReportsEphemeralEntitiesWithoutDeleting(t *testing.T) {
 		t.Fatalf("entity must not be deleted: %v", err)
 	}
 }
+
+// The grader's disproof: hygiene reported zero collisions for a machine
+// and a project sharing a name byte for byte, because a dry run skipped
+// every alias it believed it would clean before counting.
+func TestHygieneCountsCollisionsItPlansToClean(t *testing.T) {
+	cases := []struct{ machine, project string }{
+		{"widget rig alpha", "widget rig alpha"},
+		{"widget-rig-alpha", "widget rig alpha"},
+		{"widgetrigalpha", "widget rig alpha"},
+		{"widget rig alphas", "widget rig alpha"},
+		{"halo/flashnext", "halo-flashnext"},
+	}
+	for _, c := range cases {
+		st := openTemp(t)
+		now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+		if err := st.PutEntity(store.Entity{Slug: "m1", Name: c.machine, Type: "machine", CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.PutEntity(store.Entity{Slug: "p1", Name: c.project, Type: "project", CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+		for _, dry := range []bool{true, false} {
+			rep, err := Hygiene(st, dry)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rep.CrossTypeCollisions == 0 {
+				t.Errorf("machine %q and project %q, dryRun=%v: collisions = 0, want at least one", c.machine, c.project, dry)
+			}
+		}
+	}
+}
+
+// A concept stub sharing a machine's name is counted: it is the path a
+// machine's name takes to reach a project.
+func TestHygieneCountsAConceptStubAgainstARealType(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	if err := st.PutEntity(store.Entity{Slug: "mac-mini", Name: "Mac mini", Type: "machine", Aliases: []string{"mini"}, CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutEntity(store.Entity{Slug: "mothership-thing", Name: "mothership thing", Type: "concept", Aliases: []string{"mini"}, CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatal(err)
+	}
+	rep, err := Hygiene(st, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.CrossTypeCollisions == 0 {
+		t.Errorf("a concept holding a machine's name counts as a collision, got 0: %+v", rep.CollisionSample)
+	}
+}
+
+func TestFoldNameFoldsSpellingAndPlurals(t *testing.T) {
+	same := [][2]string{
+		{"Mac mini", "mac-mini"}, {"Mac mini", "macmini"}, {"Mac minis", "mac mini"},
+		{"halo/flashnext", "halo-flashnext"}, {"Qwen3.8-27B", "qwen38 27b"},
+		{"scry_status", "scry status"},
+	}
+	for _, p := range same {
+		if foldName(p[0]) != foldName(p[1]) {
+			t.Errorf("foldName(%q) = %q, foldName(%q) = %q, want the same", p[0], foldName(p[0]), p[1], foldName(p[1]))
+		}
+	}
+	differ := [][2]string{{"halo", "halo2"}, {"mac mini", "mac studio"}, {"hermes", "hermes-ops"}}
+	for _, p := range differ {
+		if foldName(p[0]) == foldName(p[1]) {
+			t.Errorf("foldName folded %q and %q together", p[0], p[1])
+		}
+	}
+}
+
+func TestHygieneMergesADuplicateStubButNeverTwoTypedEntities(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	put := func(e store.Entity) {
+		e.CreatedAt, e.LastSeen = now, now
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put(store.Entity{Slug: "android-assetlinks", Name: "Android App Links", Type: "service"})
+	put(store.Entity{Slug: "android-assetlinksjson", Name: "Android App Links", Type: "concept", Aliases: []string{"assetlinks.json"}, RepoRefs: []string{"/Users/jeff/workspace/mobile"}})
+	put(store.Entity{Slug: "mac-mini", Name: "widget rig", Type: "machine"})
+	put(store.Entity{Slug: "widget-rig-proj", Name: "widget rig", Type: "project"})
+	if err := st.PutFact(store.Fact{Src: "android-assetlinksjson", Relation: "uses", Dst: "mac-mini", Fact: "the file is served from the mini", ValidFrom: now, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+
+	rep, err := Hygiene(st, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.StubsMerged != 1 {
+		t.Fatalf("stubs merged = %d, want 1: %v", rep.StubsMerged, rep.StubMergeSample)
+	}
+	if _, err := st.GetEntity("android-assetlinksjson"); err == nil {
+		t.Error("the stub must be gone after its facts move")
+	}
+	target, err := st.GetEntity("android-assetlinks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hasAlias, hasRef bool
+	for _, a := range target.Aliases {
+		if a == "assetlinks.json" {
+			hasAlias = true
+		}
+	}
+	for _, r := range target.RepoRefs {
+		if r == "/Users/jeff/workspace/mobile" {
+			hasRef = true
+		}
+	}
+	if !hasAlias || !hasRef {
+		t.Errorf("the stub's aliases and repository refs must come with it: %+v", target)
+	}
+	facts, err := st.FactsFrom("android-assetlinks", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(facts) != 1 || facts[0].Dst != "mac-mini" {
+		t.Errorf("the stub's fact must move to the typed entity: %+v", facts)
+	}
+	// Two typed entities sharing a name are never merged.
+	if _, err := st.GetEntity("mac-mini"); err != nil {
+		t.Error("a machine must survive a project of the same name")
+	}
+	if _, err := st.GetEntity("widget-rig-proj"); err != nil {
+		t.Error("a project must survive a machine of the same name")
+	}
+	if rep.CrossTypeCollisions == 0 {
+		t.Error("the machine and the project still collide and must still be counted")
+	}
+}

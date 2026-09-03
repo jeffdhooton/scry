@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -25,9 +26,19 @@ type HygieneReport struct {
 	// SelfLoopsInvalidated counts current facts whose src and dst were the
 	// same entity.
 	SelfLoopsInvalidated int `json:"self_loops_invalidated"`
-	// CrossTypeCollisions is the number of aliases shared by entities of
-	// incompatible types after the pass. It must be zero after an apply.
+	// CrossTypeCollisions is the number of pairs of entities of different
+	// kinds that answer to the same name, counting every spelling: the
+	// entity's own name, its slug, and its aliases. It counts what the
+	// store holds, not what would be left after the pass.
 	CrossTypeCollisions int `json:"cross_type_collisions"`
+	// CollisionSample shows the first of them, so the number can be read
+	// rather than trusted.
+	CollisionSample []string `json:"collision_sample,omitempty"`
+	// StubsMerged counts untyped stubs folded into the typed entity they
+	// were a second spelling of.
+	StubsMerged int `json:"stubs_merged"`
+	// StubMergeSample names the first of those merges.
+	StubMergeSample []string `json:"stub_merge_sample,omitempty"`
 	// Conflated are entities carrying an alias that is ALSO another entity's
 	// own name, of a compatible type, after the pass. Reported only; a
 	// compatible-type overlap may be a genuine duplicate that a human
@@ -70,6 +81,19 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 	entities, err := st.Entities()
 	if err != nil {
 		return rep, err
+	}
+	// Duplicate spellings first: an untyped stub folded into the typed
+	// entity it repeats takes its facts with it, and the alias passes
+	// below then see one entity where there were two.
+	merged, mergeSample, err := mergeDuplicateStubs(st, entities, dryRun)
+	if err != nil {
+		return rep, err
+	}
+	rep.StubsMerged, rep.StubMergeSample = merged, mergeSample
+	if merged > 0 && !dryRun {
+		if entities, err = st.Entities(); err != nil {
+			return rep, err
+		}
 	}
 	bySlug := make(map[string]store.Entity, len(entities))
 	realSlugs := make(map[string]string, len(entities))
@@ -465,31 +489,65 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			}
 		}
 	}
-	collisions, conflated := auditAliases(st, entities, realSlugs, dryRun)
+	// Re-read: an apply changed the aliases, and the audit must count what
+	// the store holds now rather than the view the pass started from.
+	audited := entities
+	if !dryRun {
+		if fresh, err := st.Entities(); err == nil {
+			audited = fresh
+		}
+	}
+	collisions, sample, conflated := auditNames(audited, realSlugs)
 	rep.CrossTypeCollisions = collisions
+	rep.CollisionSample = sample
 	rep.Conflated = conflated
 	return rep, nil
 }
 
-// auditAliases counts aliases shared across incompatible types and lists
-// compatible-type overlaps with another entity's own name. In a dry run
-// the entities passed in still carry the aliases the pass would drop, so
-// the count is computed on the post-drop view.
-func auditAliases(st *store.Store, entities []store.Entity, realSlugs map[string]string, dryRun bool) (int, []ConflationReport) {
-	type owner struct{ slug, typ string }
-	byAlias := map[string][]owner{}
+// foldName reduces a name to the form two entities would have to share
+// for a reader to call them the same: case, punctuation, spacing, and
+// plurals all folded away. "Mac mini", "mac-mini", "macmini", and "Mac
+// minis" fold to one string, and so do "halo/flashnext" and
+// "halo-flashnext".
+func foldName(s string) string {
+	var b strings.Builder
+	for _, t := range strings.Fields(nonAlnumRE.ReplaceAllString(strings.ToLower(s), " ")) {
+		b.WriteString(singular(t))
+	}
+	return b.String()
+}
+
+// auditNames counts the names two entities both answer to. Every spelling
+// counts — an entity's own name, its slug, and each alias — because a
+// project named the same as a machine is the same fusion as a project
+// carrying the machine's name as an alias.
+//
+// Nothing is subtracted for being about to be cleaned. An earlier version
+// skipped, in a dry run, every alias the pass believed it would drop, and
+// so could not report a collision it thought it would fix; it returned
+// zero for two entities sharing a name byte for byte. A measurement that
+// cannot come out nonzero is not a measurement.
+//
+// A concept is not treated as compatible with a real type here, however
+// permissive admission is: a concept stub sharing a machine's name is how
+// a machine's name reaches a project, and counting it as harmless is what
+// let 370 of them accumulate.
+func auditNames(entities []store.Entity, realSlugs map[string]string) (int, []string, []ConflationReport) {
+	type owner struct{ slug, typ, spelling string }
+	byName := map[string][]owner{}
 	var conflated []ConflationReport
 	for _, e := range entities {
 		var collisions []string
-		for _, a := range e.Aliases {
-			norm := store.Normalize(a)
-			if norm == "" || norm == store.Normalize(e.Name) {
+		seen := map[string]bool{}
+		for _, spelling := range append([]string{e.Name, e.Slug}, e.Aliases...) {
+			key := foldName(spelling)
+			if key == "" || seen[key] {
 				continue
 			}
-			if dryRun && (neverAlias(a) || realSlugs[store.Slugify(a)] != "" && store.Slugify(a) != e.Slug) {
-				continue // would be dropped or split
-			}
-			byAlias[norm] = append(byAlias[norm], owner{e.Slug, e.Type})
+			seen[key] = true
+			byName[key] = append(byName[key], owner{e.Slug, e.Type, spelling})
+		}
+		for _, a := range e.Aliases {
 			if name, ok := realSlugs[store.Slugify(a)]; ok && store.Slugify(a) != e.Slug {
 				collisions = append(collisions, name)
 			}
@@ -499,20 +557,35 @@ func auditAliases(st *store.Store, entities []store.Entity, realSlugs map[string
 		}
 	}
 	cross := 0
-	for _, os := range byAlias {
+	var sample []string
+	for key, os := range byName {
 		if len(os) < 2 {
 			continue
 		}
 		for i := range os {
 			for j := i + 1; j < len(os); j++ {
-				if !TypesCompatible(os[i].typ, os[j].typ) {
-					cross++
+				if sameKind(os[i].typ, os[j].typ) {
+					continue
+				}
+				cross++
+				if len(sample) < 40 {
+					sample = append(sample, fmt.Sprintf("%s: %s:%s (%q) / %s:%s (%q)",
+						key, os[i].typ, os[i].slug, os[i].spelling, os[j].typ, os[j].slug, os[j].spelling))
 				}
 			}
 		}
 	}
+	sort.Strings(sample)
 	sort.Slice(conflated, func(i, j int) bool { return conflated[i].Slug < conflated[j].Slug })
-	return cross, conflated
+	return cross, sample, conflated
+}
+
+// sameKind reports whether two entity types name the same kind of thing.
+// Unlike TypesCompatible it gives a concept no wildcard: for counting,
+// an untyped stub that shares a machine's name is a collision.
+func sameKind(a, b string) bool {
+	a, b = strings.ToLower(strings.TrimSpace(a)), strings.ToLower(strings.TrimSpace(b))
+	return a == b || a == "" || b == ""
 }
 
 // reattachByMention moves current facts on e whose text mentions alias as
@@ -619,3 +692,120 @@ func compact(s string) string {
 }
 
 var nonAlnumRE = regexp.MustCompile(`[^a-z0-9]+`)
+
+// mergeDuplicateStubs folds a concept stub into the typed entity whose
+// name it is another spelling of. "Android App Links" written once as a
+// service and once as a concept is one thing said twice, and the store
+// answered about it twice, splitting its facts between the two.
+//
+// Only a group with exactly one typed entity is touched. Two typed
+// entities sharing a name are the case this whole item exists to protect
+// — a machine and a project are never merged, whatever they are called —
+// so those are counted and left for a person.
+func mergeDuplicateStubs(st *store.Store, entities []store.Entity, dryRun bool) (int, []string, error) {
+	groups := map[string][]store.Entity{}
+	for _, e := range entities {
+		if isEphemeralName(e.Name) || IsValueName(e.Name) {
+			continue
+		}
+		groups[foldName(e.Name)] = append(groups[foldName(e.Name)], e)
+	}
+	merged := 0
+	var sample []string
+	for _, g := range groups {
+		if len(g) < 2 {
+			continue
+		}
+		var typed []store.Entity
+		var stubs []store.Entity
+		for _, e := range g {
+			if t := strings.ToLower(strings.TrimSpace(e.Type)); t == "" || t == "concept" {
+				stubs = append(stubs, e)
+				continue
+			}
+			typed = append(typed, e)
+		}
+		if len(typed) != 1 || len(stubs) == 0 {
+			continue
+		}
+		for _, stub := range stubs {
+			merged++
+			if len(sample) < 30 {
+				sample = append(sample, stub.Slug+" ("+stub.Type+") -> "+typed[0].Slug+" ("+typed[0].Type+")")
+			}
+			if dryRun {
+				continue
+			}
+			if err := mergeStub(st, stub, typed[0]); err != nil {
+				return merged, sample, err
+			}
+		}
+	}
+	sort.Strings(sample)
+	return merged, sample, nil
+}
+
+// mergeStub moves a stub's facts, aliases, and repository references onto
+// target and removes the stub. A fact that joined the two becomes a self
+// loop and is invalidated rather than moved, since a thing does not
+// relate to itself.
+func mergeStub(st *store.Store, stub, target store.Entity) error {
+	facts, err := st.FactsAbout(stub.Slug, true)
+	if err != nil {
+		return err
+	}
+	for _, f := range facts {
+		updated := f
+		if updated.Src == stub.Slug {
+			updated.Src = target.Slug
+		}
+		if updated.Dst == stub.Slug {
+			updated.Dst = target.Slug
+		}
+		if updated.Src == updated.Dst {
+			if f.InvalidAt == nil {
+				at := time.Now()
+				if err := st.InvalidateFact(f.Src, f.Relation, f.KeyDst(), f.ValidFrom, at); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+		if err := st.RelocateFact(f, updated); err != nil {
+			return fmt.Errorf("merge %s into %s: %w", stub.Slug, target.Slug, err)
+		}
+	}
+	have := map[string]bool{store.Normalize(target.Name): true}
+	for _, a := range target.Aliases {
+		have[store.Normalize(a)] = true
+	}
+	for _, a := range append([]string{stub.Name}, stub.Aliases...) {
+		if n := store.Normalize(a); n != "" && !have[n] && !neverAlias(a) {
+			have[n] = true
+			target.Aliases = append(target.Aliases, a)
+		}
+	}
+	refs := map[string]bool{}
+	for _, r := range target.RepoRefs {
+		refs[r] = true
+	}
+	for _, r := range stub.RepoRefs {
+		if !refs[r] {
+			refs[r] = true
+			target.RepoRefs = append(target.RepoRefs, r)
+		}
+	}
+	sort.Strings(target.RepoRefs)
+	if err := st.PutEntity(target); err != nil {
+		return err
+	}
+	if err := st.DeleteEntity(stub.Slug); err != nil {
+		return err
+	}
+	for _, a := range append([]string{stub.Name, stub.Slug}, stub.Aliases...) {
+		if err := st.ClaimAlias(a, target.Slug); err != nil {
+			return err
+		}
+	}
+	return nil
+}
