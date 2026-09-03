@@ -489,7 +489,30 @@ func restoreDeployedOn(st *store.Store, dry bool, rep *Report) error {
 			retired = append(retired, f)
 		}
 	}
+	// An endpoint that is not an identity is about to be retired by the
+	// value pass, so restoring the fact only sets up the same restore
+	// next run: 39 facts were being revived and re-retired on every
+	// migration.
+	ents, err := st.Entities()
+	if err != nil {
+		return fmt.Errorf("migrate: entities: %w", err)
+	}
+	real := make(map[string]bool, len(ents))
+	for _, e := range ents {
+		if !resolve.NotAnIdentity(e.Name) {
+			real[e.Slug] = true
+		}
+	}
 	for _, f := range retired {
+		if !real[f.Src] || (f.Dst != "" && !real[f.Dst]) {
+			continue
+		}
+		// A thing is not deployed on itself. Hygiene retires self loops,
+		// and reviving them here is what made 39 facts come back on every
+		// run and go straight out again.
+		if f.Src == f.Dst {
+			continue
+		}
 		superseded := false
 		for _, start := range starts[f.Src] {
 			if start.Equal(f.ValidFrom) {

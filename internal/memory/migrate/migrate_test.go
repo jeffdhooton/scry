@@ -463,3 +463,37 @@ func TestMigrateValuesTakesFactsPointingAtNothing(t *testing.T) {
 		t.Errorf("current facts on docket = %d, want 1", kept)
 	}
 }
+
+func TestRestoreDeployedOnLeavesSelfLoopsRetired(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	later := now.Add(48 * time.Hour)
+	for _, e := range []string{"api", "mac-mini", "app"} {
+		if err := st.PutEntity(store.Entity{Slug: e, Name: e, Type: "project", CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// A self loop hygiene retired, and a real deployment beside it.
+	if err := st.PutFact(store.Fact{Src: "api", Relation: "deployed_on", Dst: "api", Fact: "the router is mounted in the api", ValidFrom: now, InvalidAt: &later, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutFact(store.Fact{Src: "api", Relation: "deployed_on", Dst: "mac-mini", Fact: "the api runs on the mini", ValidFrom: later, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+	var rep Report
+	if err := restoreDeployedOn(st, false, &rep); err != nil {
+		t.Fatal(err)
+	}
+	if rep.DeployedOnRestored != 0 {
+		t.Fatalf("restored %d self loops, want none", rep.DeployedOnRestored)
+	}
+	facts, err := st.FactsFrom("api", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range facts {
+		if f.Src == f.Dst && f.InvalidAt == nil {
+			t.Errorf("a self loop came back: %+v", f)
+		}
+	}
+}
