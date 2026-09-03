@@ -76,6 +76,22 @@ ssh mini 'cd ~/workspace/context-stack/scry && git pull --ff-only && \
 Plists: copy from `~/dotfiles/launchd/` to the LaunchAgents directory, then
 `launchctl bootout gui/$(id -u)/<label>; launchctl bootstrap gui/$(id -u) <path>`.
 
+## Measuring retrieval
+
+Two question files, always reported together:
+
+    scry memory bench --file docs/memory-bench/tuning-strict.json --top 20
+    scry memory bench --file docs/memory-bench/tuning.json --top 20
+
+The strict file pins each answer to one wording. The other allows a
+question to list several phrasings of its answer under `any_of`, because
+memory keeps more than one sentence for the same thing. The loose number
+is always the higher one, which is exactly why the strict number is
+reported beside it: six questions loosened once raised the score by six,
+and reporting only that number would have measured the questions rather
+than the retrieval. `--dir <store>` runs offline against a copy, which is
+how ranking changes are tried without touching the live daemon.
+
 ## Check
 
 ```sh
@@ -112,11 +128,20 @@ are re-applied (facts merge; entities refresh their repo refs and aliases).
 `scry memory queue retry <id>` replays a parked item (all of them with no
 id).
 
-`scry memory repair-repos` re-attaches repository refs: it walks the same
-roots as the sweep, re-distills each transcript locally, and tells the
-daemon which repository each episode ran in. No model is called, so it
-costs nothing. Run it on each machine after a change to how repositories
-are attested, and once on any machine whose sessions predate 2026-09-03.
+`scry memory repair-repos --apply` re-attaches repository refs: it walks
+the same roots as the sweep, re-distills each transcript locally, and
+tells the daemon which repository each episode ran in. No model is
+called, so it costs nothing. Without `--apply` it reports what it found
+and writes nothing; with it, it takes a store backup first. Run it on
+each machine after a change to how repositories are attested, and once on
+any machine whose sessions predate 2026-09-03.
+
+`scry memory queue drop --match <text> --apply` removes queued work that
+should never have been queued, a load test's synthetic lines being the
+case it exists for. Without `--apply` it lists what it would remove.
+Matching happens in the daemon, so it sees the whole queue rather than
+the first fifty items `scry memory queue` prints. A queued transcript is
+the only copy of that reading of a session; nothing else belongs here.
 
 ## Roll back
 
