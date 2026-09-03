@@ -969,3 +969,37 @@ also found that a longer, more natural question ranks the answer *worse*
 than a terse one, because nothing penalises query terms the fact lacks.
 Coverage weighting is the textbook fix for that and has now been
 measured three times, each time neutral or harmful.
+
+
+## Round ten
+
+**The Mac mini duplicate is closed.** "Mac mini at 100.96.45.73" had
+survived four rounds as a second machine holding one fact, because two
+typed entities are never merged on a name alone and nothing looked at
+the address. A name that is another same-type entity's name plus an
+address — an IP, a host on a local or tailnet domain, a bare port — is
+that entity named by where it is. Exactly one pair in the store matches,
+which is the point: narrow enough to be safe, general enough to catch
+the next one. Its fact is now on `mac-mini` and the name still resolves.
+
+**Refiling misfiled facts was built and rejected.** The 31 facts on
+hermes-ops that describe the mini or a Halo box are the oldest open
+finding. A rule that moves a fact to the entity its own sentence names
+proposed **9,329 moves** on the live store, landing facts on entities
+called `allow`, `setup` and `delivery`. Tightened to hardware only, and
+only hardware with ten or more facts, it proposed 54 — still wrong,
+because `sandbox` is typed `machine` here and every sentence about a
+sandbox permission pulled a fact onto it.
+
+**Why it cannot be fixed here.** Two inputs are unreliable at once.
+Entity types are extraction output, and of 319 entities typed `machine`
+only 78 have any hardware vocabulary in their facts; the rest are
+worktrees, directories, database tables and files. And a name specific
+enough to search for is not specific enough to move data on. Retyping on
+the hardware-vocabulary signal was measured too: it would mistype real
+hardware — `jbox`, `wlan0`, `u-blox GPS`, `money-agent-host` — so it was
+not done either.
+
+The judgement "this sentence is about a machine" belongs to the
+extraction model, which is reading the transcript when it can still tell.
+That is the same conclusion the value rules reached, from the other end.
