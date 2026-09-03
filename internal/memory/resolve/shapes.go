@@ -101,7 +101,7 @@ var (
 	// Every word capitalised, ending on a word that starts with a letter:
 	// "Five Guys", "Boeing 737 MAX". "HTTP 429" ends on a number and is a
 	// status code, not a name.
-	properPhraseRE = regexp.MustCompile(`^[A-Z][A-Za-z0-9.&'-]*(?:[ -][A-Za-z0-9.&'-]+){0,1}[ -][A-Z][A-Za-z0-9.&'-]*$`)
+	properPhraseRE = regexp.MustCompile(`^[A-Z0-9][A-Za-z0-9.&'-]*(?:[ -][A-Za-z0-9.&'-]+){0,2}[ -][A-Z][A-Za-z0-9.&'-]*$`)
 	// trailingPercentRE: "stall at 0%", "coverage 87.5 %".
 	trailingPercentRE = regexp.MustCompile(`[\s_-][\d.,]+\s*%$|^[\d.,]+\s*%$`)
 )
@@ -111,13 +111,44 @@ var (
 // the four that are always branches are listed. An environment name such
 // as production or staging compounds into real entity names
 // ("hoopless-production"), so it is not here.
-var trunkNames = map[string]bool{"main": true, "master": true, "develop": true, "trunk": true}
+// Only main and develop compound into a branch name. Master and trunk
+// are ordinary English words first — scrum-master, quiz-master,
+// tree-trunk — and reading them as branches cost more than it caught.
+var trunkNames = map[string]bool{"main": true, "develop": true}
+
+// allGitWords reports whether every word of a name is git vocabulary.
+func allGitWords(words []string) bool {
+	for _, w := range words {
+		if !trunkNames[w] && !gitNouns[w] && w != "master" && w != "trunk" {
+			return false
+		}
+	}
+	return len(words) > 0
+}
 
 // gitNouns are the words that follow a branch name when someone is
 // talking about the branch itself.
 var gitNouns = map[string]bool{
 	"tip": true, "head": true, "branch": true, "branches": true, "commit": true,
 	"sha": true, "ref": true, "rev": true, "hash": true, "tag": true,
+}
+
+// branchNamespaces are the first segments that make a two-segment name a
+// branch. The list is open-ended by nature — a team invents a prefix
+// whenever it likes — so a name whose head is not here is read as a
+// path, which is the cheaper mistake.
+var branchNamespaces = map[string]bool{
+	"feat": true, "feature": true, "features": true, "fix": true, "fixes": true,
+	"bugfix": true, "hotfix": true, "chore": true, "refactor": true, "wip": true,
+	"exp": true, "spike": true, "perf": true, "style": true, "revert": true,
+	"dependabot": true, "renovate": true, "release": true, "releases": true,
+	"topic": true, "dev": true, "develop": true, "staging": true, "prod": true,
+	"main": true, "master": true, "trunk": true, "origin": true, "upstream": true,
+	"setpoint": true, "loop": true, "worker": true, "wave": true, "round": true,
+	"pr": true, "issue": true, "checkpoint": true, "wt": true, "worktree": true,
+	"goal": true, "proof": true, "seo": true, "ux": true, "qa": true,
+	"codex": true, "claude": true, "kimi": true, "opencode": true, "jeff": true,
+	"jclaw": true, "user": true, "users": true, "attempt": true,
 }
 
 // codeDirs open a path inside a repository rather than a branch
@@ -259,6 +290,17 @@ var unitLetters = map[string]bool{
 	"x": true, "bn": true, "usd": true, "eur": true, "gbp": true,
 }
 
+// numberThenUnit reports whether a name is a number and a unit, which a
+// capitalised unit would otherwise pass off as a name: "46 GiB" is a
+// quantity, "500 Startups" is a company.
+func numberThenUnit(n string) bool {
+	words := nameWords(n)
+	if len(words) != 2 || !isAllDigits(words[0]) {
+		return false
+	}
+	return unitLetters[words[1]] || countNouns[words[1]] || timeUnits[words[1]]
+}
+
 // brandName reports whether a digit-then-capital name is a brand rather
 // than a measurement: 7Up is, 12GB is not.
 func brandName(s string) bool {
@@ -290,12 +332,16 @@ func branchPhrase(n string) bool {
 	if fileExtRE.MatchString(n) || modulePathRE.MatchString(n) {
 		return false
 	}
-	// Any two-segment name is a branch unless its first segment names part
-	// of a repository. The last word does not change that: seo/resume-page
-	// and ux/onboarding-polish are the same shape and are judged the same
-	// way, which they were not while a thing word could exempt one.
+	// A two-segment name is a directory unless its first segment is a
+	// branch namespace. This default was inverted for a while, on the
+	// reasoning that branch namespaces cannot be enumerated, and it cost
+	// far more than it caught: terraform/modules, k8s/overlays,
+	// helm/charts, proto/billing and eleven of twelve real directories
+	// taken from these repositories were all being called branches.
+	// Missing a branch leaves one extra node; rejecting a directory
+	// destroys a real one.
 	if slashNameRE.MatchString(n) {
-		if head, _, _ := strings.Cut(n, "/"); !codeDirs[head] {
+		if head, _, _ := strings.Cut(n, "/"); branchNamespaces[head] {
 			return true
 		}
 	}
@@ -312,8 +358,9 @@ func branchPhrase(n string) bool {
 				others++
 			}
 		}
-		// A name made only of trunk words is a branch: "main trunk".
-		if trunks > 0 && others == 0 {
+		// A name made only of git words is a branch: "main trunk",
+		// "master head".
+		if allGitWords(words) {
 			return true
 		}
 		// Otherwise the trunk word must come last, the way a project's
@@ -485,8 +532,23 @@ func verdictPhrase(n string) bool {
 	if snakeIdentRE.MatchString(n) {
 		return false // a field name in code, whatever English it reads as
 	}
-	words := nameWords(n)
-	if len(words) == 0 || len(words) > 4 {
+	// Judged on space-separated words, because a hyphenated compound is
+	// one word: "in-progress tasks" is a verdict about tasks, while
+	// deferred-revenue-ledger is a ledger, approved-vendor-registry a
+	// registry and failed-payment-retrier a retrier. Eighteen of eighteen
+	// such names were being rejected while the hyphens were being read as
+	// spaces.
+	words := strings.Fields(n)
+	// Two words, unless a preposition makes it prose: "approved with
+	// audit trail" is a verdict, deferred-revenue-ledger is a ledger.
+	limit := 2
+	for _, w := range words {
+		switch w {
+		case "with", "for", "in", "on", "at", "by", "of", "to":
+			limit = 4
+		}
+	}
+	if len(words) == 0 || len(words) > limit {
 		return false
 	}
 	if namesAThing(n) {
@@ -498,13 +560,8 @@ func verdictPhrase(n string) bool {
 	if verdictWords[words[0]] {
 		return true
 	}
-	// The judgement may be written as one hyphenated word: "in-progress
-	// tasks" splits to three words but reads as two.
-	if spaced := strings.Fields(n); len(spaced) > 0 && verdictWords[spaced[0]] {
-		return true
-	}
 	// "un" + a state: unblocked, unshipped, unmerged.
-	if len(words) == 1 {
+	if len(words) == 1 && !strings.ContainsAny(words[0], "-_") {
 		if rest, ok := strings.CutPrefix(words[0], "un"); ok && statusWords[rest] {
 			return true
 		}
@@ -514,7 +571,7 @@ func verdictPhrase(n string) bool {
 	}
 	// The name as written joins a preposition to a state: "in-flight".
 	if len(words) == 1 {
-		if i := strings.IndexAny(n, "-_"); i > 0 && stateOpeners[n[:i]] {
+		if i := strings.IndexAny(n, "-_"); i > 0 && stateOpeners[n[:i]] && strings.Count(n, "-")+strings.Count(n, "_") == 1 {
 			return true
 		}
 	}
@@ -583,6 +640,15 @@ func commandLine(n string) bool {
 // messageName reports whether a name reads as a sentence someone was
 // shown rather than the name of a thing.
 func messageName(n string) bool {
+	if len(nameWords(n)) == 1 && timePhrases[nameWords(n)[0]] {
+		return true // "overnight", "today"
+	}
+	// Otherwise a message is prose, and prose has spaces in it. A
+	// hyphenated identifier is a name: failed-payment-retrier is a
+	// retrier, not a report that a payment failed.
+	if !strings.Contains(n, " ") {
+		return false
+	}
 	words := nameWords(strings.Map(func(r rune) rune {
 		if r == ',' || r == '.' || r == ':' || r == ';' {
 			return ' '

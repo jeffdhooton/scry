@@ -2336,12 +2336,30 @@ but not words, `feat/` but not `goal/`, `approved` but not `confirmed`,
 description is that they encode what earlier rounds found rather than a
 theory of what a name is.
 
-**What the false-positive side is worth.** It is genuinely good and it
-is what matters most: 80 of 81 hard real names survive, including
-`modernc.org/sqlite`, `42 CFR Part 2`, `Boeing 737 MAX`, `Xbox 360`,
-`packages/shared`, `claude-sonnet-4-20250514`. A rule that rejects real
-things destroys the graph; a rule that misses a value leaves one extra
-node. The rules err in the cheap direction on purpose.
+**What the false-positive side is worth — corrected 2026-09-03.** This
+entry claimed the false-positive side was "genuinely good", 80 of 81
+hard names surviving, and concluded the rules erred in the cheap
+direction. A grader showed the measurement was circular: every list of
+"hard real names" had been drawn from or checked against the store, and
+the store cannot contain a name the rules reject, because such a name
+was pruned or never created. Measured on names chosen independently —
+invented but plausible, and real directories from these repositories —
+the survival rate was **19 of 56**. Sixteen of sixteen two-segment paths
+such as `terraform/modules` and `helm/charts` were called branches,
+eighteen of eighteen names opening with a verdict word such as
+`deferred-revenue-ledger` were called verdicts, and twenty-five of
+thirty-two ordinary compounds such as `trade-off` and `start-up` were
+called statuses.
+
+So the rules erred in the *expensive* direction, and the sentence
+asserting the opposite was the load-bearing reason this item was treated
+as nearly closed. Four defaults were inverted in response: a two-segment
+name is a directory unless its head is a branch namespace, a verdict
+phrase is at most two words unless a preposition makes it prose, a
+hyphenated compound is one word rather than a phrase, and a particle
+compound is a noun. The test for this lives in
+`shapes_real_names_test.go` and is built from names that are *not* in
+the store, which is the only version of the test that means anything.
 
 **What would actually close it:** the judgement belongs where the
 language is understood. The extraction model reads the transcript and

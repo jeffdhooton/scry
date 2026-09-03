@@ -163,13 +163,16 @@ func IsValueName(name string) bool {
 	if quotedRE.MatchString(name) {
 		return true
 	}
-	if IsStatusWord(n) {
+	// The original spelling, not the lowercased one: a state a session
+	// shouted is written in capitals, and that is the only thing telling
+	// PENDING-og-images from pending-migration-lock.
+	if IsStatusWord(name) {
 		return true
 	}
 	// A phrase in which every word is capitalised is a name, unless it is
 	// one of the shapes a name cannot take. Status phrases are judged
 	// above, since "In Progress" is capitalised too.
-	if properPhraseRE.MatchString(strings.TrimSpace(name)) &&
+	if properPhraseRE.MatchString(strings.TrimSpace(name)) && !numberThenUnit(n) &&
 		!sentenceName(n) && !runArtifact(n) && !listName(n) && !branchPhrase(n) &&
 		!commandLine(n) && !messageName(n) && !chainName(n) {
 		return false
@@ -208,6 +211,15 @@ func NotAnIdentity(name string) bool {
 	return IsValueName(name) || isEphemeralName(name) || isGenericEntityName(name)
 }
 
+// isUpper reports whether a word is written in capitals, which marks a
+// state a session shouted rather than a name.
+func isUpper(s string) bool {
+	if s == "" {
+		return false
+	}
+	return s == strings.ToUpper(s) && s != strings.ToLower(s)
+}
+
 // IsStatusWord reports whether name is a bare state value.
 func IsStatusWord(name string) bool {
 	n := strings.ToLower(strings.TrimSpace(name))
@@ -223,10 +235,33 @@ func IsStatusWord(name string) bool {
 	// name ending in a thing is that thing: pending-payments-api is an
 	// api, blocked_by_id is a column, ready-check-endpoint is an
 	// endpoint. Rejecting those cost real entities.
-	if snakeIdentRE.MatchString(n) || namesAThing(n) {
+	// A code identifier is a name whatever English it reads as, a name
+	// ending in a thing is that thing, and a path is a path:
+	// operations/task-state is a file, not a state.
+	if snakeIdentRE.MatchString(n) || namesAThing(n) || strings.Contains(n, "/") {
 		return false
 	}
-	words := strings.Fields(strings.NewReplacer("_", " ", "-", " ").Replace(n))
+	// A hyphenated compound ending in a particle is an ordinary noun:
+	// trade-off, hand-off, stand-up, follow-up, add-on, go-live. The
+	// last-word rule was rejecting twenty-five of them.
+	if particleCompoundRE.MatchString(n) {
+		return false
+	}
+	// A hyphenated pair is a state too — needs-env, pending-reload — but
+	// a hyphenated triple is a name: pending-migration-lock is a lock and
+	// blocked-sender-registry is a registry. An all-capital opener is a
+	// state whatever follows it: PENDING-og-images.
+	if parts := strings.FieldsFunc(n, func(r rune) bool { return r == '-' || r == '_' }); len(parts) >= 2 {
+		head := parts[0]
+		// Only the openers that cannot begin a real name. Open, green,
+		// ready and live all do — open-webui and green-room are things.
+		if head == "needs" || head == "pending" || head == "blocked" || head == "awaiting" || head == "waiting" || head == "unresolved" {
+			if len(parts) == 2 || isUpper(strings.Fields(name)[0][:min(len(strings.Fields(name)[0]), len(head))]) {
+				return true
+			}
+		}
+	}
+	words := strings.Fields(n)
 	if len(words) >= 2 && len(words) <= 6 {
 		last := words[len(words)-1]
 		if statusWords[last] || last == "status" || last == "state" || last == "succeeded" || last == "green" {
@@ -254,6 +289,10 @@ func IsStatusWord(name string) bool {
 	}
 	return false
 }
+
+// particleCompoundRE matches an English particle compound written with a
+// hyphen: trade-off, start-up, always-on, go-live, code-red.
+var particleCompoundRE = regexp.MustCompile(`^[a-z0-9-]+-(?:off|up|on|in|out|over|live|red|green|high|low|down)$`)
 
 // resultWords end a phrase that reports an outcome: "13 full
 // regenerations logged", "5 residual test failures".
