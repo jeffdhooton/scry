@@ -1960,3 +1960,46 @@ service and project traded it every pass.
 **Why kind words are per type:** "agent" makes a service, "box" makes a
 machine, "repo" makes a project. The lists are short and in code
 (`resolve.kindWords`), where a table test can hold them.
+
+
+## 2026-09-03 — Orient shows what happened in this repository
+
+**Decision:** `scry memory orient` ranks a repository's entities by
+whether their facts came from a session that ran there (episodes carry
+their working directory), then by the day the entity was last seen, then a
+typed entity over a bare concept, then how few repositories the entity
+claims, then degree. Facts within a bullet prefer the same local
+provenance. Bullets are clipped to 150 characters, two facts per entity,
+eight entities.
+
+**Context:** the blurb listed entities alphabetically and quoted three
+facts at full length, so an orientation for the cleaning-company repo
+opened with "36px-card-layout" and a thread-pitch table and named three
+things in 2,000 characters. It also could not distinguish the work done
+in a repo from a category entity that merely claims six repositories.
+
+**Why local provenance and not a fact count:** an entity like `jeff` or
+`docket` touches every repo; the question an orientation answers is "what
+happened here", and the episode's own working directory is the only
+honest answer to that.
+
+**What would change our minds:** an orientation that needs the whole fact
+text (then the budget rises rather than the clip).
+
+
+## 2026-09-03 — A Kimi step is a turn
+
+**Decision:** `distill.KimiWire` closes the assistant turn at each
+`step.end`, not at the end of the whole model turn.
+
+**Context:** a Kimi subagent session is one prompt followed by dozens of
+tool-driven steps. Accumulating all of it into a single assistant turn
+left such a session with two substantive turns, below the three-turn floor
+every distiller applies, so the log produced nothing: 112 of 125 Kimi
+logs on this machine, every one larger than 100 KB, were silently
+dropped. Per-step flushing matches how a Claude transcript is already
+shaped (one message per model call) and takes the same logs to 101 files
+and 126 episodes. Reasoning parts are still never stored.
+
+**What would change our minds:** a source whose steps are so fine-grained
+that a step is not a unit of work worth its own episode turn.

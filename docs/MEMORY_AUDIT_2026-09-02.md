@@ -371,3 +371,40 @@ workers. Manual remembers are dispatched ahead of it, and sources are
 taken round-robin so the Kimi and OpenCode episodes do not wait behind
 the Claude ones. `scry memory status` reports `queue_ready`,
 `queue_backoff`, `queue_parked`, and the last successful extraction.
+
+---
+
+## Second re-measurement, 2026-09-03 (after the graders)
+
+Six fresh-context graders, one per done-bar item, ran against the live
+store on the mini. Items 1 and 3 passed. Items 4, 5 and 6 failed on
+specifics, all of them real; what they found and what changed:
+
+| Grader finding | Cause | Fix |
+|---|---|---|
+| ~100 value-named entities survived (`setpoint/x` branches, "275 passing", "build succeeded", sha256, uuids) | the value detector's shapes were too narrow | more shapes, with the migration retiring them |
+| 119 facts demoted and their entities deleted (`docs/DECISIONS.md`, `tests/*.php`) | my branch pattern swallowed file paths | a path with an extension is never a branch, and the migration restores attributes whose value is an identity |
+| "hermes agent" was back on the hermes-ops project minutes after the migration moved it | the write path admitted an alias that shares a token with the holder's name | an alias that is another entity's name plus that entity's kind words names that entity, and is refused elsewhere |
+| `halo1`, `Bryan.Farney`, `halo_2` crossed types on two episodes | ownership lookups compared exact spellings only | ownership compares compact spellings |
+| a concept stub could take a typed entity's own name | "concept" is a wildcard type | a stub never takes a typed entity's name, and re-validates its aliases when it gains a type |
+| `scry memory orient` surfaced nothing from any laptop session | a repo ref was recorded only when `cwd/.git` existed on the machine *resolving* the episode, which is the mini | the distiller attests the repository where the path exists; `scry memory repair-repos` re-attached refs for 2,639 existing episodes (8,820 entities, 9,560 refs) without asking a model anything |
+| 55 transcript slices parked on repeated timeouts | an episode the chain cannot finish had nowhere to go | it is halved at a turn boundary and both halves re-queued with fresh budgets |
+| only 29 Kimi episodes existed | the Kimi distiller collapsed a subagent session into two turns, below the three-turn floor, dropping 112 of 125 logs | a step is a turn; the same logs now yield 126 episodes across five repositories |
+
+Live store after the second migration (2026-09-03, backup taken first):
+
+| Measure | Value |
+|---|---|
+| Episodes | 6,560 (claude 2,314+, codex, kimi, opencode, manual, seed, loom) |
+| Facts | 51,839, growing as the queue drains |
+| Distinct relations among current facts | 39, none outside the vocabulary |
+| Value-named entities | 0 |
+| Cross-type alias collisions | 0 |
+| Entities hygiene reports as run artifacts | 0 (previously 300+, reported but never cleaned) |
+| Migration second run | a complete no-op |
+| Entities with a repository ref | 8,820 |
+
+`scry memory orient` in a laptop repository now opens with that
+repository's own recent work, and in cleaning-company surfaces a fact
+from an OpenCode session. Kimi's 126 episodes were queued at 11:58 and
+extract at roughly two minutes each.
