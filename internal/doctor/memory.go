@@ -144,11 +144,17 @@ func evalMemoryStatus(res *daemon.MemoryStatusResult, now time.Time) []Check {
 	out = append(out, sweep)
 
 	queue := Check{ID: "memory.queue", Category: CategoryMemory, Name: "extraction queue"}
-	stalled := res.QueueReady > 0 && res.LastExtractOKAt != nil && now.Sub(*res.LastExtractOKAt) > maxExtractGap
+	// A queue that has never extracted anything counts as stopped as soon
+	// as it holds work: nothing has ever come out of it.
+	stalled := res.QueueReady > 0 && (res.LastExtractOKAt == nil || now.Sub(*res.LastExtractOKAt) > maxExtractGap)
 	switch {
 	case stalled:
 		queue.Status = StatusFail
-		queue.Detail = fmt.Sprintf("%d items waiting and nothing extracted for %s; the queue is stopped", res.QueueReady, ageString(now.Sub(*res.LastExtractOKAt)))
+		since := "ever"
+		if res.LastExtractOKAt != nil {
+			since = ageString(now.Sub(*res.LastExtractOKAt))
+		}
+		queue.Detail = fmt.Sprintf("%d items waiting and nothing extracted for %s; the queue is stopped", res.QueueReady, since)
 		queue.Remedy = "read the daemon log on the store's machine for the failure every attempt is hitting"
 	case res.QueueParked > 0:
 		queue.Status = StatusWarn

@@ -367,6 +367,76 @@ func (d *Daemon) handleMemoryQueueRetry(_ context.Context, raw json.RawMessage) 
 	return map[string]int{"retried": retried}, nil
 }
 
+// --- memory.queue.drop ---
+
+// MemoryQueueDropParams names queued items to remove: one by id, or every
+// item whose text contains Match. Dropping is for work that should never
+// have been queued — a load test's synthetic text, say — and nothing
+// else: a queued transcript is the only copy of that reading of a
+// session.
+type MemoryQueueDropParams struct {
+	ID    string `json:"id,omitempty"`
+	Match string `json:"match,omitempty"`
+	// DryRun lists what would go and removes nothing. Matching happens
+	// here rather than in the caller because the queue listing is capped
+	// and the items in question are usually below the cap.
+	DryRun bool `json:"dry_run,omitempty"`
+}
+
+func (d *Daemon) handleMemoryQueueDrop(_ context.Context, raw json.RawMessage) (any, error) {
+	var p MemoryQueueDropParams
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: err.Error()}
+		}
+	}
+	if p.ID == "" && p.Match == "" {
+		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: "memory.queue.drop needs an id or a match"}
+	}
+	st, err := d.memoryStore()
+	if err != nil {
+		return nil, err
+	}
+	items, err := st.Pending(0)
+	if err != nil {
+		return nil, err
+	}
+	dropped := 0
+	var texts []string
+	for _, it := range items {
+		if p.ID != "" && it.ID != p.ID {
+			continue
+		}
+		if p.Match != "" && !strings.Contains(it.Text, p.Match) {
+			continue
+		}
+		if !p.DryRun {
+			if err := st.DeletePending(it.ID); err != nil {
+				return nil, err
+			}
+		}
+		dropped++
+		if len(texts) < 10 {
+			texts = append(texts, it.ID+": "+firstLine(it.Text, 80))
+		}
+	}
+	if p.DryRun {
+		return map[string]any{"dry_run": true, "would_drop": dropped, "sample": texts}, nil
+	}
+	return map[string]any{"dropped": dropped, "sample": texts}, nil
+}
+
+// firstLine returns at most n characters of the first line of s.
+func firstLine(s string, n int) string {
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		s = s[:i]
+	}
+	if len(s) > n {
+		s = s[:n]
+	}
+	return s
+}
+
 // --- memory.sweepReport ---
 
 // MemorySweepReport is what a sweep tells the daemon when it finishes, so

@@ -451,3 +451,69 @@ this file.
 The second of those had named a fact a later session superseded: the
 20-billion local fallback was removed from the Hermes configuration, so
 the question had been scoring against history.
+
+
+## Re-measured 2026-09-03, after grading round three
+
+Four graders and a house-rules reviewer ran against the live store. Three
+of the five found something real, and this section records what the
+numbers were before and after, including the ones that got worse when
+measured honestly.
+
+**The collision count was not a measurement.** The hygiene report said
+zero cross-type collisions all day. In a dry run the audit skipped every
+alias it believed it would clean before counting, and it compared
+aliases to aliases only, so two entities sharing a name byte for byte
+scored zero. Counting every spelling, folded past case, punctuation,
+spacing, and plurals, the store held 712. Merging the untyped stubs that
+merely repeat a typed entity took it to 558. The rest are pairs of typed
+entities and are left for a person; the sample ships with the number.
+
+| Measure | Before | After |
+|---|---|---|
+| Cross-type collisions, as reported | 0 | 0 |
+| Cross-type collisions, counted honestly | 712 | 558 |
+| Duplicate stubs folded into the entity they repeat | — | 132 |
+| Value-named entities, by a grader's hand-picked list | ≥568 | 0 of that list |
+| Value entities retired by the shape rules | — | 1,095 |
+| Non-identities accepted, of 45 hand-picked | 38 | 0 |
+| Identities wrongly rejected, of 34 hand-picked | 0 | 0 |
+| Facts pointing at an entity that no longer exists | 320 | 0 |
+| Deployments retired in favour of a sibling | 369 | 63 |
+| Tuning benchmark, strict expectations | 40 of 50 | 42 of 50 |
+| Tuning benchmark, alternate phrasings allowed | 46 of 50 | 47 of 50 |
+| Held-out benchmark, a grader's own 62 questions | 39 of 62 | 39 of 62 |
+| Largest recall response | 11.0 KB | 12.2 KB |
+
+**The benchmark number was not like-for-like, and is now reported both
+ways.** Six questions were loosened to accept another phrasing and the
+score rose by exactly six, so the reported gain measured the questions.
+The strict file is kept at `docs/memory-bench/tuning-strict.json` and
+both numbers are reported together from now on. Three of the six
+alternates accepted an answer that did not answer the question and are
+gone: one named an address without the user the question asked for, one
+named production when the question asked about both environments, and
+one accepted three different fallbacks including a superseded one.
+
+**Remember is durable and fast, and its recovery is untested.** A grader
+issued twenty remembers through the real MCP path: p50 88 ms, p95 107 ms.
+It then pointed the chain at an unroutable address and issued twenty
+more: p50 83 ms, p95 98 ms, all twenty accepted, all forty found on disk
+by id with their text intact, still present after a daemon restart, no
+dead-letter files, no duplicate episodes. What could not be tested is
+that they resolve into facts within ten minutes of the provider
+returning, because both provider accounts are empty. That clause stays
+open, and is recorded as untested rather than passed.
+
+**Agent coverage passed.** A grader traced kimi-session and
+opencode-session episodes to their byte offsets in the original logs,
+confirmed both are produced by the same sweep as the Claude and Codex
+roots, and found orient surfacing facts from those sessions in five of
+ten repositories. Kimi's coverage rests on one repository and flickers
+between runs, which is dilution rather than a defect.
+
+**Retrieval is the open gap.** A grader wrote its own 62 questions from
+the store and scored 44 by meaning, 39 by exact expectation, against a
+bar of 45 in 50. Every one of the 18 misses was a ranking failure: the
+answering fact was live in the store in every single case. That is the
+next thing to fix, and it is not fixed yet.

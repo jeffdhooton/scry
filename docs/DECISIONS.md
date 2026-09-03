@@ -2092,5 +2092,118 @@ not the retrieval.
 
 **The risk, stated plainly:** this makes it possible to move the bar
 instead of meeting it. The guard is that the graders write their own
-held-out questions and never see this file, and every alternate added
-here is recorded in the audit with the reason.
+held-out questions and never see this file, that the strict question
+file is kept beside the loosened one and both numbers are always
+reported, and that every alternate is recorded in the audit with the
+reason.
+
+**What would change our minds:** a question whose alternates cannot be
+justified one by one, or a strict score that stops being reported
+alongside the loose one. Either means the file has become a way of
+scoring rather than a way of measuring.
+
+
+## 2026-09-03 — An alias belongs to the entity it names
+
+**Decision:** an alias is the holder's own only when it spells the
+holder's name or contains every word of it. An alias that spells another
+entity's whole name, and does not spell its holder's, belongs to that
+other entity whatever the extra words are, matched past plurals and
+spelling variants. A new entity named after another entity's alias takes
+that name from it.
+
+**Context:** this replaces the rule from 2026-09-02 in which sharing one
+token with the holder's name admitted an alias immediately. A grader
+watched the live write path put "Hermes repo", "Hermes tmux", and
+"Jeff's own Hermes" onto the hermes-ops project under that rule, which is
+how unrelated things fused: one shared word is not evidence.
+
+**Reversal noted:** the earlier entries "Alias admission needs evidence
+and matching types" and "Kind words, spelling variants, and the alias
+keeper" still hold on evidence and types. What changed is the immediate
+path: extras are no longer required to be kind words, because the test is
+now which entity the alias names rather than what the extra words are.
+
+**What would change our minds:** a real alias that names a second entity
+in passing and belongs to neither — a compound product name, say, where
+both halves are already entities.
+
+
+## 2026-09-03 — A name beats an alias
+
+**Decision:** an entity whose own name is another entity's alias takes
+that name, and the alias is dropped from the holder, when the two types
+are incompatible.
+
+**Context:** a machine called "Mac mini" appearing after a project had
+already collected "Mac mini" as an alias otherwise leaves the alias
+pointing at the project forever, and every later mention resolves to the
+wrong thing. A name is stronger evidence than an alias: it is what a
+session called the thing when introducing it.
+
+**What would change our minds:** an entity created from a passing mention
+whose name is wrong, which would then take an alias from the entity that
+deserved it. Type incompatibility is the guard.
+
+
+## 2026-09-03 — A status edge to a real entity is not a status
+
+**Decision:** when a `status` fact points at an entity rather than a
+value, the relation becomes `related_to` and the edge is kept.
+
+**Context:** `status` is exclusive, so making one entity another's status
+means the next status invalidates it. A model writing "the dotfiles
+status is the setpoint fleet" then quietly retires a real relationship. A
+status is a value; an edge between two things is a relationship.
+
+**What would change our minds:** nothing seen so far. The conversion is
+lossless, and the fact keeps its sentence.
+
+
+## 2026-09-03 — The queue finds its own concurrency
+
+**Decision:** the extraction worker starts at six items in flight, halves
+on a rate-limit refusal down to a floor of two, and widens by one after a
+run of successes or after 45 quiet seconds while saturated, up to 24.
+
+**Context:** a fixed 24 produced 300 refusals in 300 attempts against
+Z.ai, and a fixed small number wastes a provider that is willing. Neither
+the provider's limit nor its mood is knowable in advance, and it changes
+with the plan and the hour. Additive growth with multiplicative backoff
+is the standard answer and needs no configuration.
+
+**What would change our minds:** a provider that publishes its limit,
+which would be worth reading instead of discovering.
+
+
+## 2026-09-03 — A pass that writes takes a backup and asks
+
+**Decision:** every store-mutating pass takes a backup into
+`~/.scry/backups` first and writes only under `--apply`.
+
+**Context:** `scry memory repair-repos` shipped writing by default with an
+opt-in `--dry-run` and no backup, and was run against the live shared
+store. It was additive and no harm came of it, but the house rule covers
+every hygiene pass and the shape of the flag decides what happens on a
+mistyped command.
+
+**What would change our minds:** nothing. The cost is one backup file per
+repair.
+
+
+## 2026-09-03 — Doctor measures work done, not workers running
+
+**Decision:** the extraction check fails when the whole model chain is
+being refused over billing or authentication, warns when part of it is,
+and the queue check fails when it holds work and nothing has been
+extracted for thirty minutes — or ever.
+
+**Context:** both provider accounts emptied on 2026-09-03 and the health
+check reported a passing chain with a running worker for hours, while the
+daemon wrote 12,906 refusal lines. A worker can be perfectly alive and
+producing nothing. Thirty minutes is chosen against the queue's own
+retry schedule: a backlog that has not moved in thirty minutes is not
+between attempts.
+
+**What would change our minds:** a provider outage long enough to be
+normal, which would make the check noise rather than news.

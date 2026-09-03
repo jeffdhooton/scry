@@ -194,3 +194,37 @@ func TestChainKeepsATimeoutVisibleFromAnyStep(t *testing.T) {
 		t.Fatalf("err = %v, want a deadline error that is not a parse error", err)
 	}
 }
+
+// Refusing is what the health check reads: a chain the provider is
+// turning away must say so, whatever the worker looks like from outside.
+func TestChainRefusingNamesTheModelsBeingTurnedAway(t *testing.T) {
+	billing := errors.New(`extract: haiku request failed: 429 Too Many Requests {"error":{"code":"1113","message":"Insufficient balance or no resource package"}}`)
+	a := &countingExtractor{err: billing}
+	b := &countingExtractor{res: Result{EpisodeSummary: "ok"}}
+	c := NewChain(Step{"glm-5.3-flash", a}, Step{"deepseek-v4-flash", b})
+
+	if names, all := c.Refusing(); len(names) != 0 || all {
+		t.Fatalf("a fresh chain refuses nothing, got %v %v", names, all)
+	}
+
+	if _, err := c.Extract(context.Background(), distill.RawEpisode{}, nil); err != nil {
+		t.Fatalf("the second model answered, so the call must succeed: %v", err)
+	}
+	names, all := c.Refusing()
+	if len(names) != 1 || names[0] != "glm-5.3-flash" {
+		t.Errorf("refusing = %v, want the first model only", names)
+	}
+	if all {
+		t.Error("one refused model of two is not the whole chain")
+	}
+
+	// Now the fallback runs out too.
+	b.err, b.res = billing, Result{}
+	if _, err := c.Extract(context.Background(), distill.RawEpisode{}, nil); err == nil {
+		t.Fatal("with every model refused the call must fail")
+	}
+	names, all = c.Refusing()
+	if len(names) != 2 || !all {
+		t.Errorf("refusing = %v all = %v, want both models and the whole chain", names, all)
+	}
+}

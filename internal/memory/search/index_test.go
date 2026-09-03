@@ -168,3 +168,36 @@ func TestUpsertFactUsesKnownNames(t *testing.T) {
 		t.Errorf("fact indexed through UpsertFact must carry the entity display name: %+v", hits)
 	}
 }
+
+func TestScoreDocScoresOneDocumentLikeSearchDoes(t *testing.T) {
+	ix := New()
+	docs := []Doc{
+		{Key: "fa:1", Kind: KindFact, Text: "The mini is reached at jclaw@100.96.45.73 over the tailnet", Slugs: []string{"mac-mini"}},
+		{Key: "fa:2", Kind: KindFact, Text: "The mini runs Go 1.23 and tmux", Slugs: []string{"mac-mini"}},
+		{Key: "fa:3", Kind: KindFact, Text: "Forge deploys the Laravel application", Slugs: []string{"forge"}},
+	}
+	for _, d := range docs {
+		ix.Upsert(d)
+	}
+	q := "how do I reach the mini over the tailnet"
+	scored := ix.ScoreDoc(q, "fa:1")
+	other := ix.ScoreDoc(q, "fa:2")
+	unrelated := ix.ScoreDoc(q, "fa:3")
+	if scored <= other {
+		t.Errorf("the answering fact must score highest: %.3f vs %.3f", scored, other)
+	}
+	if unrelated != 0 && unrelated >= other {
+		t.Errorf("an unrelated fact must score lowest: %.3f", unrelated)
+	}
+	if ix.ScoreDoc(q, "fa:missing") != 0 {
+		t.Error("an unknown key scores zero")
+	}
+	if ix.ScoreDoc("", "fa:1") != 0 {
+		t.Error("an empty query scores zero")
+	}
+	// The ranking agrees with a full search over the same corpus.
+	hits := ix.Search(q, []string{KindFact}, nil, 3)
+	if len(hits) == 0 || hits[0].Doc.Key != "fa:1" {
+		t.Errorf("Search disagrees with ScoreDoc: %+v", hits)
+	}
+}

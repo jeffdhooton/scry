@@ -48,6 +48,7 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.enqueue", d.handleMemoryEnqueue)
 	d.server.Register("memory.queue", d.handleMemoryQueue)
 	d.server.Register("memory.queue.retry", d.handleMemoryQueueRetry)
+	d.server.Register("memory.queue.drop", d.handleMemoryQueueDrop)
 	d.server.Register("memory.sweepReport", d.handleMemorySweepReport)
 	d.server.Register("memory.backup", d.handleMemoryBackup)
 	d.server.Register("memory.migrate", d.handleMemoryMigrate)

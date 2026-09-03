@@ -169,11 +169,15 @@ episode ran in. Entities touched by those episodes gain the ref, so
 
 Needed once because repo refs used to be recorded only when the working
 directory existed on the machine resolving the episode, which since the
-store moved to a shared daemon is the wrong machine.`,
+store moved to a shared daemon is the wrong machine.
+
+Reports and changes nothing without --apply, and takes a store backup
+before writing.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pretty, _ := cmd.Flags().GetBool("pretty")
-			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			apply, _ := cmd.Flags().GetBool("apply")
+			dryRun := !apply
 			claudeFiles, codexFiles, loomDirs, kimiFiles, ocRefs, errs := sweep.AllCandidates(sweep.Roots{}, 0)
 			refs := map[string]string{}
 			add := func(eps []distill.RawEpisode) {
@@ -224,6 +228,17 @@ store moved to a shared daemon is the wrong machine.`,
 				return printJSON(out, pretty)
 			}
 
+			// Every pass that writes to the store takes a backup first, so
+			// there is always something to roll back to.
+			backupCtx, cancelBackup := context.WithTimeout(context.Background(), 10*time.Minute)
+			var backup daemon.MemoryBackupResult
+			err := callMemoryDaemon(backupCtx, "memory.backup", &daemon.MemoryBackupParams{}, &backup)
+			cancelBackup()
+			if err != nil {
+				return fmt.Errorf("backup before repairing: %w", err)
+			}
+			out["backup_path"] = backup.Path
+
 			ids := make([]string, 0, len(refs))
 			for id := range refs {
 				ids = append(ids, id)
@@ -252,7 +267,7 @@ store moved to a shared daemon is the wrong machine.`,
 			return printJSON(out, pretty)
 		},
 	}
-	cmd.Flags().Bool("dry-run", false, "report how many episodes have a repository cwd without telling the daemon")
+	cmd.Flags().Bool("apply", false, "write the refs; without this the pass reports what it found and changes nothing")
 	return cmd
 }
 
@@ -443,6 +458,40 @@ the models could not parse after three tries.`,
 			return printJSON(result, pretty)
 		},
 	})
+	drop := &cobra.Command{
+		Use:   "drop [episode-id]",
+		Short: "Remove queued items that should never have been queued",
+		Long: `Removes queued work by id, or every item whose text contains --match.
+
+A queued transcript is the only copy of that reading of a session, so
+this is for text that should not have been queued at all: a load test's
+synthetic lines, say. Requires --apply; without it the matching items
+are listed and nothing is removed.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+			var p daemon.MemoryQueueDropParams
+			if len(args) == 1 {
+				p.ID = args[0]
+			}
+			p.Match, _ = cmd.Flags().GetString("match")
+			if p.ID == "" && p.Match == "" {
+				return fmt.Errorf("give an episode id or --match")
+			}
+			apply, _ := cmd.Flags().GetBool("apply")
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			p.DryRun = !apply
+			var result map[string]any
+			if err := callMemoryDaemon(ctx, "memory.queue.drop", &p, &result); err != nil {
+				return err
+			}
+			return printJSON(result, pretty)
+		},
+	}
+	drop.Flags().String("match", "", "drop every queued item whose text contains this substring")
+	drop.Flags().Bool("apply", false, "actually remove the items")
+	cmd.AddCommand(drop)
 	return cmd
 }
 

@@ -754,3 +754,53 @@ func TestMemoryBackupWritesAFile(t *testing.T) {
 		t.Errorf("backup file missing: %v", err)
 	}
 }
+
+func TestMemoryQueueDropRemovesOnlyWhatMatches(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	st, err := d.memoryStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	for _, p := range []memstore.PendingEpisode{
+		{ID: "synthetic-1", Source: "manual", SourceRef: "a", Text: "GRADERUN-ALPHA the synthetic host runs a probe", OccurredAt: now, EnqueuedAt: now},
+		{ID: "synthetic-2", Source: "manual", SourceRef: "b", Text: "GRADERUN-BETA another synthetic line", OccurredAt: now, EnqueuedAt: now},
+		{ID: "real-1", Source: "claude-session", SourceRef: "c", Text: "Jeff deployed the daemon to the mini", OccurredAt: now, EnqueuedAt: now},
+	} {
+		if err := st.PutPending(p); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// A dry run removes nothing.
+	res, err := d.handleMemoryQueueDrop(ctx, mustJSON(t, MemoryQueueDropParams{Match: "GRADERUN", DryRun: true}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := res.(map[string]any)["would_drop"]; got != 2 {
+		t.Errorf("would_drop = %v, want 2", got)
+	}
+	if items, _ := st.Pending(0); len(items) != 3 {
+		t.Fatalf("a dry run removed %d items", 3-len(items))
+	}
+
+	res, err = d.handleMemoryQueueDrop(ctx, mustJSON(t, MemoryQueueDropParams{Match: "GRADERUN"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := res.(map[string]any)["dropped"]; got != 2 {
+		t.Errorf("dropped = %v, want 2", got)
+	}
+	items, err := st.Pending(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].ID != "real-1" {
+		t.Errorf("the real transcript must survive: %+v", items)
+	}
+
+	if _, err := d.handleMemoryQueueDrop(ctx, mustJSON(t, MemoryQueueDropParams{})); err == nil {
+		t.Error("dropping with neither an id nor a match must be refused")
+	}
+}

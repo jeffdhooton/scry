@@ -147,3 +147,19 @@ func TestEvalMemoryStatusFailsAStoppedQueue(t *testing.T) {
 		t.Errorf("an empty queue = %s, want pass: %s", got.Status, got.Detail)
 	}
 }
+
+// A queue that has never extracted anything is the worst case, not an
+// exempt one: a pipeline that has produced nothing since it started looks
+// identical to one that stopped.
+func TestEvalMemoryStatusFailsAQueueThatNeverSucceeded(t *testing.T) {
+	now := time.Date(2026, 9, 3, 13, 30, 0, 0, time.UTC)
+	recent := now.Add(-5 * time.Minute)
+	res := daemon.MemoryStatusResult{
+		Models: []string{"glm-5.3-flash"}, WorkerRunning: true,
+		LastIngestAt: &recent, LastSweepAt: &recent,
+		QueueReady: 1120, LastExtractOKAt: nil,
+	}
+	if got := findCheck(t, evalMemoryStatus(&res, now), "memory.queue"); got.Status != StatusFail {
+		t.Errorf("a queue with work that has never extracted = %s, want fail: %s", got.Status, got.Detail)
+	}
+}
