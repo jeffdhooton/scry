@@ -92,7 +92,7 @@ var countNouns = map[string]bool{
 
 var (
 	// dateRE: "2026-09-02", "2026-09-02T12:00:00Z", "09/02/2026".
-	dateRE = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}(?:[t ]\d{2}:\d{2}(?::\d{2})?z?)?$|^\d{1,2}/\d{1,2}/\d{2,4}$`)
+	dateRE = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}(?:[t ]\d{2}:\d{2}(?::\d{2})?(?:z|[+-]\d{2}:?\d{2})?)?$|^\d{1,2}/\d{1,2}/\d{2,4}$`)
 	// timeRE: "12:30", "08:00 AM".
 	timeRE = regexp.MustCompile(`^\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?$`)
 	// endpointRE: "halo:13306", "0.0.0.0:8787", "host.tail6e45c2.ts.net:10000",
@@ -158,6 +158,11 @@ func IsValueName(name string) bool {
 	if modulePathRE.MatchString(n) || brandName(strings.TrimSpace(name)) {
 		return false
 	}
+	// Checked against the name as written: the trim above strips the
+	// outer quotes, and "guard: 'self'" needs both of its own.
+	if quotedRE.MatchString(name) {
+		return true
+	}
 	if IsStatusWord(n) {
 		return true
 	}
@@ -165,7 +170,8 @@ func IsValueName(name string) bool {
 	// one of the shapes a name cannot take. Status phrases are judged
 	// above, since "In Progress" is capitalised too.
 	if properPhraseRE.MatchString(strings.TrimSpace(name)) &&
-		!sentenceName(n) && !runArtifact(n) && !listName(n) && !branchPhrase(n) {
+		!sentenceName(n) && !runArtifact(n) && !listName(n) && !branchPhrase(n) &&
+		!commandLine(n) && !messageName(n) && !chainName(n) {
 		return false
 	}
 

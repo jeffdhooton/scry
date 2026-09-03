@@ -352,3 +352,60 @@ func TestRoleAndOrdinalAliasesAreRefused(t *testing.T) {
 		}
 	}
 }
+
+// A grader watched hygiene hand 4,634 aliases to entities whose facts
+// never mention them, because the kind-word constraint was skipped
+// whenever the two entity types differed. A name plus arbitrary words is
+// a different thing that happens to contain a name.
+func TestAnAliasMovesOnlyToTheThingItNames(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	put := func(slug, name, typ string) {
+		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: typ, CreatedAt: now, LastSeen: now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put("gate", "gate", "service")
+	put("kimi", "kimi", "person")
+	put("lib-rs", "lib.rs", "tool")
+	put("hermes", "Hermes", "service")
+	put("coppa-work", "COPPA compliance work", "project")
+	put("wire-wave", "kimi-wire-wave33-mounts", "project")
+	put("schedule-modules", "schedule modules", "project")
+	put("hermes-ops", "hermes-ops", "project")
+
+	// A common-noun name takes nothing that merely contains it.
+	for _, c := range []struct{ holder, alias string }{
+		{"coppa-work", "COPPA gate"},
+		{"coppa-work", "sex gate"},
+		{"wire-wave", "kimi-wire-wave33"},
+		{"schedule-modules", "src/lib/schedule"},
+	} {
+		e, err := st.GetEntity(c.holder)
+		if err != nil {
+			t.Fatal(err)
+		}
+		named, err := namedByKindWords(st, c.alias, e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if named != "" {
+			t.Errorf("%q on %s was handed to %s; it names no such thing", c.alias, c.holder, named)
+		}
+	}
+
+	// A distinctive name still carries its alias with it.
+	ops, err := st.GetEntity("hermes-ops")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, alias := range []string{"Hermes tmux", "Hermes Slack gateway", "Hermes repo"} {
+		named, err := namedByKindWords(st, alias, ops)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if named != "hermes" {
+			t.Errorf("%q names the service Hermes, got %q", alias, named)
+		}
+	}
+}

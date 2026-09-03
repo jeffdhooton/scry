@@ -700,7 +700,9 @@ const maxRepoRefs = 6
 // `setpoint-wt-9e6jz82r` became an alias of a real project, and a throwaway
 // `/tmp` experiment became an entity.
 var (
-	tempWorktreeRe = regexp.MustCompile(`(?i)-wt-[a-z0-9]{6,}$|^setpoint-wt-|^loom-wt-`)
+	// The word may be spelled out: setpoint-worktree-m6yzax_e is the same
+	// scratch directory as setpoint-wt-m6yzax_e.
+	tempWorktreeRe = regexp.MustCompile(`(?i)-(?:wt|worktree)-[a-z0-9_]{6,}$|^(?:setpoint|loom|docket|scry)-(?:wt|worktree)-`)
 	bareHexRe      = regexp.MustCompile(`^[0-9a-f]{8,}$`)
 	// Session/thread UUIDs: durable to nothing, and they were being stored as
 	// aliases of real agents.

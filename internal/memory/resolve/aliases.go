@@ -252,8 +252,13 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	// daemon", "scryd", "context-stack/scry" for scry) is the entity's
 	// own. Nothing else is admitted on one episode: the check above has
 	// already established that no other entity is named in this alias.
-	if n := compactName(e.Name); len(n) >= 4 && strings.Contains(compactName(alias), n) {
-		return true, "contains the entity's own name", nil
+	// An entity whose name is a common noun takes only its own spelling:
+	// "gate" answered to "COPPA gate", "sex gate", and "Twilio gate", and
+	// collected a hundred unrelated names that way.
+	if !commonNouns[strings.ToLower(strings.TrimSpace(e.Name))] {
+		if n := compactName(e.Name); len(n) >= 4 && strings.Contains(compactName(alias), n) {
+			return true, "contains the entity's own name", nil
+		}
 	}
 	if len(en) > 0 && len(an) > len(en) {
 		contains := true
@@ -314,12 +319,44 @@ var machineNouns = map[string]bool{
 // for the service Hermes, "Halo box" for the machine AMD Halo) names that
 // entity, whatever it was listed on.
 var kindWords = map[string]map[string]bool{
-	"service": {"agent": true, "gateway": true, "dashboard": true, "dash": true, "transport": true, "profiles": true, "profile": true, "serve": true, "service": true, "daemon": true, "bot": true, "monitor": true, "cron": true, "job": true, "api": true, "server": true, "app": true, "ai": true, "the": true, "own": true},
-	"machine": {"box": true, "machine": true, "mini": true, "host": true, "server": true, "node": true, "laptop": true, "desktop": true, "mac": true, "pc": true, "vm": true, "the": true, "first": true, "second": true, "new": true, "old": true},
-	"tool":    {"cli": true, "tool": true, "binary": true, "command": true, "model": true, "engine": true, "the": true, "endpoint": true},
-	"project": {"repo": true, "project": true, "codebase": true, "app": true, "the": true},
-	"person":  {"the": true, "user": true},
+	"service":  {"agent": true, "gateway": true, "dashboard": true, "dash": true, "transport": true, "profiles": true, "profile": true, "serve": true, "service": true, "daemon": true, "bot": true, "monitor": true, "cron": true, "job": true, "api": true, "server": true, "app": true, "ai": true, "the": true, "own": true},
+	"machine":  {"box": true, "machine": true, "mini": true, "host": true, "server": true, "node": true, "laptop": true, "desktop": true, "mac": true, "pc": true, "vm": true, "the": true, "first": true, "second": true, "new": true, "old": true},
+	"tool":     {"cli": true, "tool": true, "binary": true, "command": true, "model": true, "engine": true, "the": true, "endpoint": true},
+	"project":  {"repo": true, "repository": true, "project": true, "codebase": true, "app": true, "the": true, "design": true, "doc": true, "docs": true, "spec": true, "plan": true, "site": true, "web": true},
+	"person":   {"the": true, "own": true, "user": true, "account": true},
+	"concept":  {"the": true},
+	"decision": {"the": true, "decision": true, "call": true},
+	"runbook":  {"the": true, "runbook": true, "doc": true, "docs": true, "guide": true},
 }
+
+// distinctiveName reports whether a name is specific enough that an
+// alias containing it is about it. A common noun is not, and neither is
+// a single word of four characters or fewer.
+func distinctiveName(name string) bool {
+	n := strings.ToLower(strings.TrimSpace(name))
+	if n == "" || commonNouns[n] || anyKindWord[n] || machineNouns[n] {
+		return false
+	}
+	if len(strings.Fields(n)) > 1 {
+		return true
+	}
+	return len(compactName(n)) >= 5
+}
+
+// anyKindWord is every type's kind words together. What makes an alias
+// belong to the entity it names is that the extra words describe a kind
+// of thing rather than a different thing: "Hermes repo" and "Hermes
+// agent" both name Hermes, while "COPPA gate" and "sex gate" are two
+// different gates.
+var anyKindWord = func() map[string]bool {
+	out := map[string]bool{}
+	for _, kw := range kindWords {
+		for w := range kw {
+			out[w] = true
+		}
+	}
+	return out
+}()
 
 // machineLeak reports whether alias names hardware while e is not a
 // machine.
@@ -518,16 +555,43 @@ func namedByKindWords(st *store.Store, alias string, e store.Entity) (string, er
 			continue // the alias IS that name; the owner check covers it
 		}
 		// An alias that spells another entity's whole name, and does not
-		// spell its holder's, belongs to that entity — whatever the extra
-		// words are ("Hermes repo", "Jeff's own Hermes", "State License
-		// Lookup design doc"). Between entities of the same type the extras
-		// must be kind words, since two projects can legitimately share a
-		// word.
-		if TypesCompatible(other.Type, e.Type) {
+		// spell its holder's, belongs to that entity — but only when the
+		// words it adds are that type's kind words. "Hermes agent" names
+		// the service Hermes; "COPPA gate" and "sex gate" do not name the
+		// gate service, and "src/lib/schedule" does not name lib.rs.
+		//
+		// This constraint used to be skipped whenever the two types
+		// differed, on the reasoning that a machine's name on a project is
+		// misfiled whatever the extra words. Applied to stored aliases at
+		// store scale that handed 4,634 aliases to entities whose facts
+		// never mention them. A name plus arbitrary words is a different
+		// thing that happens to contain a name.
+		// A distinctive name carries the alias with it whatever the extra
+		// words are: "Hermes tmux" and "Hermes Slack gateway" are both
+		// about Hermes. A name that is a common noun, or a single short
+		// word, carries nothing on its own — "COPPA gate" and "sex gate"
+		// are two different gates, and "kimi-wire-wave33" is not Kimi —
+		// so there the extras must describe a kind of thing.
+		// Judged on the tokens the match actually used: "lib.rs" reduces
+		// to the single short token "lib", which is no more distinctive
+		// than "gate".
+		// Judged on the name's own words rather than their stems: Hermes
+		// stems to "herm", and the four letters that stemming removed do
+		// not make the name less distinctive. "lib.rs" reduces to the one
+		// short word "lib", which is no more distinctive than "gate".
+		distinctive := distinctiveName(other.Name)
+		if raw := tokensOf(other.Name); distinctive && len(raw) == 1 {
+			for t := range raw {
+				if len(t) < 5 {
+					distinctive = false
+				}
+			}
+		}
+		if !distinctive {
 			kw := kindWords[other.Type]
 			ok := true
 			for t := range at {
-				if !nt[t] && !kw[t] {
+				if !nt[t] && !kw[t] && !anyKindWord[t] {
 					ok = false
 					break
 				}

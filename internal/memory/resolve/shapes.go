@@ -23,9 +23,16 @@ var (
 	branchNamespaceRE = regexp.MustCompile(`^(?:feat|feature|features|fix|fixes|bugfix|hotfix|chore|refactor|wip|exp|spike|perf|style|revert|dependabot|renovate|codex|claude|kimi|topic|dev|develop|staging|prod|main|master|trunk|origin|upstream|setpoint|loop|attempt\d*|worker|wave|round|pr|issue|opencode|checkpoint|release|releases|wt|worktree)/[^/]+$`)
 	// perUnitRE: a rate written out. "11-tok-per-sec-shallow",
 	// "20 requests per minute".
-	perUnitRE = regexp.MustCompile(`\d[\w.]*[\s_-]*[a-z]+[\s_-]per[\s_-][a-z]+`)
+	perUnitRE = regexp.MustCompile(`\d[\w.]*[\s_-]*(?:[a-z]+[\s_-])?per[\s_-][a-z]+`)
 	// numberThenParenRE: "100 (flat minimum with ceiling-buffer)".
 	numberThenParenRE = regexp.MustCompile(`^[~≈<>+-]?[\d.,]+\s*\(`)
+	// moneyRE: a name that opens with a currency is an amount.
+	moneyRE = regexp.MustCompile(`^[~≈<>+-]?[$€£¥]\s?[\d.,]`)
+	// quotedRE: "guard: 'self'", "'./primitives/*': './src/...'" — a
+	// quoted literal, or a key with one.
+	quotedRE = regexp.MustCompile(`'[^']{2,}'|"[^"]{2,}"`)
+	// trailingScoreRE: "Old wins (3-0)".
+	trailingScoreRE = regexp.MustCompile(`\(\d{1,3}[-–]\d{1,3}\)$`)
 	// scoreRE: "3-0", "2-1 in favour".
 	scoreRE = regexp.MustCompile(`^\d{1,3}[-–]\d{1,3}(?:[\s_-]|$)`)
 	// itemLabelRE: "7a", "3b" — an item in a list, not a thing.
@@ -62,7 +69,11 @@ var (
 	// A pull request and an issue are absent on purpose: "PR #87" names a
 	// specific change that sessions say things about, while "Decision 1"
 	// and "Wave 4" name a position in a list.
-	numberedItemRE = regexp.MustCompile(`^(?:decision|item|step|phase|wave|round|attempt|try|option|slice|lane)[\s_-]*#?\d+$|^ports?[\s_-]*:?\s*\d+`)
+	// A position in a process, with or without a qualifier in front of it:
+	// "Gate 3", "iOS build 24", "attempt 3 of 5", "seq 12/15".
+	// The qualifier must be a separate word: "iOS build 24" is a build
+	// number, while "docket-wave-35" is what a run is called.
+	numberedItemRE = regexp.MustCompile(`^(?:\S+ +){0,2}(?:decision|item|step|phase|wave|round|attempt|try|option|slice|lane|gate|tier|stage|sprint|milestone|batch|cohort|epic|checkpoint|revision|build|versioncode|seq|iteration|cycle|question|task)[\s_-]*#?\d+(?:[\s_-]*(?:of|/)[\s_-]*\d+)?$|^ports?[\s_-]*:?\s*\d+`)
 	// hashNumberRE: "#42" — one names a change, several make a list.
 	hashNumberRE = regexp.MustCompile(`#\d+`)
 	// hashColorRE: "#D4793C", "color #D4793C".
@@ -340,6 +351,9 @@ func numberPhrase(n string) bool {
 	if fileExtRE.MatchString(n) || brandName(strings.TrimSpace(n)) {
 		return false
 	}
+	if moneyRE.MatchString(n) {
+		return true // an amount of money is a quantity, not a thing
+	}
 	words := nameWords(strings.TrimPrefix(strings.TrimPrefix(n, "a "), "an "))
 	// A name that opens with a quantity is a count even when it ends in a
 	// noun; the veto is for names that merely contain one.
@@ -426,6 +440,9 @@ func sentenceName(n string) bool {
 // little else: "verified decision", "approved with audit trail",
 // "in-progress tasks", "at risk", "in flight".
 func verdictPhrase(n string) bool {
+	if snakeIdentRE.MatchString(n) {
+		return false // a field name in code, whatever English it reads as
+	}
 	words := nameWords(n)
 	if len(words) == 0 || len(words) > 4 {
 		return false
@@ -471,9 +488,100 @@ func looksMeasured(n string) bool {
 	return trailingPercentRE.MatchString(n) || trailingVersionRE.MatchString(n) || perUnitRE.MatchString(n)
 }
 
+// shellVerbs open a command line. A command is something you run, not
+// something the graph says things about.
+var shellVerbs = map[string]bool{
+	"npx": true, "npm": true, "pnpm": true, "yarn": true, "bun": true,
+	"go": true, "git": true, "curl": true, "wget": true, "brew": true,
+	"python": true, "python3": true, "pip": true, "docker": true, "kubectl": true,
+	"ssh": true, "scp": true, "rsync": true, "rm": true, "cp": true, "mv": true,
+	"cd": true, "ls": true, "cat": true, "sudo": true, "make": true, "cargo": true,
+	"composer": true, "php": true, "artisan": true, "rails": true, "bundle": true,
+	"launchctl": true, "systemctl": true, "select": true, "insert": true,
+	"update": true, "delete": true, "alter": true, "create": true, "drop": true,
+}
+
+// errorOpeners begin a message rather than a name: "Failed to parse
+// product config", "is missing required field(s)", "We have no reviews
+// yet", "not yet started".
+var errorOpeners = map[string]bool{
+	"failed": true, "invalid": true, "cannot": true, "could": true,
+	"unable": true, "missing": true, "unknown": true, "error": true,
+	"is": true, "was": true, "were": true, "we": true, "it": true, "there": true,
+	"not": true, "no": true, "works": true, "still": true, "already": true,
+	"expected": true, "unexpected": true, "warning": true, "must": true,
+}
+
+// timePhrases name a moment rather than a thing.
+var timePhrases = map[string]bool{
+	"last": true, "this": true, "next": true, "overnight": true, "tonight": true,
+	"today": true, "yesterday": true, "tomorrow": true, "recently": true,
+}
+
+// streetSuffixes end a postal address.
+var streetSuffixes = map[string]bool{
+	"rd": true, "road": true, "st": true, "street": true, "ave": true, "avenue": true,
+	"dr": true, "drive": true, "blvd": true, "ln": true, "lane": true, "way": true,
+	"ct": true, "court": true, "pl": true, "place": true, "suite": true, "apt": true,
+}
+
+// commandLine reports whether a name is something you would type at a
+// shell or a database prompt.
+func commandLine(n string) bool {
+	words := strings.Fields(n)
+	if len(words) < 2 {
+		return false
+	}
+	if shellVerbs[strings.ToLower(words[0])] {
+		return true
+	}
+	return strings.Contains(n, " --") || strings.Contains(n, "&&") || strings.Contains(n, " | ")
+}
+
+// messageName reports whether a name reads as a sentence someone was
+// shown rather than the name of a thing.
+func messageName(n string) bool {
+	words := nameWords(strings.Map(func(r rune) rune {
+		if r == ',' || r == '.' || r == ':' || r == ';' {
+			return ' '
+		}
+		return r
+	}, n))
+	if len(words) == 1 && timePhrases[words[0]] {
+		return true
+	}
+	if len(words) < 2 || len(words) > 8 {
+		return false
+	}
+	if errorOpeners[words[0]] {
+		return true
+	}
+	if len(words) <= 3 && timePhrases[words[0]] {
+		return true
+	}
+	// A postal address: a number, then a street.
+	if leadingNumberRE.MatchString(n) {
+		for _, w := range words {
+			if streetSuffixes[w] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// chainName reports whether a name is a path drawn between things:
+// "User→Family→ChildProfile", "charges.task_id → invoice_lines".
+func chainName(n string) bool {
+	return strings.Contains(n, "→") || strings.Contains(n, "->") || strings.Contains(n, "⇒")
+}
+
 // listName reports whether a name is several values written as one: a
 // union of literals, a run of issue numbers, a colour, a numbered item.
 func listName(n string) bool {
+	if quotedRE.MatchString(n) || trailingScoreRE.MatchString(n) {
+		return true
+	}
 	if strings.Contains(n, "|") || strings.Count(n, ",") >= 2 {
 		return true
 	}
@@ -548,15 +656,16 @@ func isAllDigits(w string) bool {
 // the generalising half of IsValueName: IsValueName knows particular
 // forms, this knows kinds of form.
 func ValueShape(n string) bool {
-	if snakeIdentRE.MatchString(n) || datedDocRE.MatchString(n) || modulePathRE.MatchString(n) {
+	if datedDocRE.MatchString(n) || modulePathRE.MatchString(n) {
 		return false
 	}
 	// Every word capitalised is a name, whatever the words mean: "Five
 	// Guys" counts nothing. The shapes a name cannot take are still
 	// checked, since a sentence or a commit sha may be capitalised too.
 	if properPhraseRE.MatchString(n) {
-		return sentenceName(n) || runArtifact(n) || listName(n)
+		return sentenceName(n) || runArtifact(n) || listName(n) || commandLine(n) || chainName(n)
 	}
 	return sentenceName(n) || runArtifact(n) || branchPhrase(n) ||
-		numberPhrase(n) || verdictPhrase(n) || looksMeasured(n) || listName(n)
+		numberPhrase(n) || verdictPhrase(n) || looksMeasured(n) || listName(n) ||
+		commandLine(n) || messageName(n) || chainName(n)
 }
