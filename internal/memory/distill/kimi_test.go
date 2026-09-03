@@ -1,6 +1,7 @@
 package distill
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,5 +88,53 @@ func TestKimiWireTooShortSessionYieldsNothingButAdvances(t *testing.T) {
 func TestKimiSessionCwdMissingStateIsEmpty(t *testing.T) {
 	if got := kimiSessionCwd(filepath.Join(t.TempDir(), "a", "agents", "main", "wire.jsonl")); got != "" {
 		t.Errorf("cwd = %q, want empty", got)
+	}
+}
+
+// A Kimi subagent session is one prompt and many tool-driven steps. Before
+// the per-step flush, all of it collapsed into one assistant turn, the
+// session fell below minSubstantiveTurns, and the whole log was dropped:
+// 112 of 125 logs on the author's machine yielded nothing.
+func TestKimiWireSubagentSessionYieldsEpisodes(t *testing.T) {
+	dir := t.TempDir()
+	agent := filepath.Join(dir, "sess", "agents", "agent-1")
+	if err := os.MkdirAll(agent, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "sess", "state.json"), []byte(`{"cwd":"/Users/jeff/workspace/cockpit"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var b strings.Builder
+	b.WriteString(`{"type":"turn.prompt","agentId":"agent-1","input":[{"type":"text","text":"You are a grading agent. Disprove that the work meets its bar."}],"time":1787886400000}` + "\n")
+	for step := 1; step <= 6; step++ {
+		b.WriteString(fmt.Sprintf(`{"type":"context.append_loop_event","event":{"type":"step.begin","step":%d},"time":%d}`+"\n", step, 1787886400000+int64(step)*1000))
+		b.WriteString(fmt.Sprintf(`{"type":"context.append_loop_event","event":{"type":"content.part","step":%d,"part":{"type":"think","think":"secret reasoning %d"}},"time":%d}`+"\n", step, step, 1787886400500+int64(step)*1000))
+		b.WriteString(fmt.Sprintf(`{"type":"context.append_loop_event","event":{"type":"tool.call","step":%d,"name":"Bash","args":{"command":"go test ./..."}},"time":%d}`+"\n", step, 1787886400600+int64(step)*1000))
+		b.WriteString(fmt.Sprintf(`{"type":"context.append_loop_event","event":{"type":"content.part","step":%d,"part":{"type":"text","text":"step %d found the cockpit grid renders mini tiles"}},"time":%d}`+"\n", step, step, 1787886400700+int64(step)*1000))
+		b.WriteString(fmt.Sprintf(`{"type":"context.append_loop_event","event":{"type":"step.end","step":%d,"finishReason":"tool_use"},"time":%d}`+"\n", step, 1787886400900+int64(step)*1000))
+	}
+	path := filepath.Join(agent, "wire.jsonl")
+	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	episodes, offset, err := KimiWire(path, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(episodes) == 0 {
+		t.Fatalf("a one-prompt subagent session with six steps produced no episodes (offset %d)", offset)
+	}
+	text := episodes[0].Text
+	if !strings.Contains(text, "grading agent") || !strings.Contains(text, "cockpit grid renders") {
+		t.Errorf("episode text lost the prompt or the steps:\n%s", text)
+	}
+	if strings.Contains(text, "secret reasoning") {
+		t.Errorf("reasoning must never be stored:\n%s", text)
+	}
+	if strings.Count(text, "Assistant:") < 3 {
+		t.Errorf("each step should be its own turn:\n%s", text)
+	}
+	if episodes[0].Cwd != "/Users/jeff/workspace/cockpit" || !episodes[0].CwdIsRepo == (CwdIsRepo("/Users/jeff/workspace/cockpit")) {
+		t.Errorf("cwd attestation wrong: %+v", episodes[0])
 	}
 }

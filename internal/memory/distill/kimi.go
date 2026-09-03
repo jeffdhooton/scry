@@ -35,6 +35,7 @@ type kimiLoopEvent struct {
 	Type string    `json:"type"`
 	Name string    `json:"name"` // tool.call
 	Part *kimiPart `json:"part"` // content.part
+	Step int       `json:"step"` // content.part, tool.call, step.begin/end
 }
 
 type kimiPart struct {
@@ -77,7 +78,11 @@ func KimiWire(path string, offset int64) ([]RawEpisode, int64, error) {
 	var turns []turn
 
 	// The assistant turn under construction: text pieces and breadcrumbs
-	// accumulate until the turn ends or the next prompt arrives.
+	// accumulate until the step ends, the turn ends, or the next prompt
+	// arrives. Flushing per step matters: a subagent session is one prompt
+	// and dozens of tool-driven steps, and accumulating all of it into a
+	// single turn left the session below minSubstantiveTurns, so 112 of
+	// 125 Kimi logs on this machine yielded nothing at all.
 	var (
 		cur      strings.Builder
 		curStart int64 = -1
@@ -131,6 +136,10 @@ func KimiWire(path string, offset int64) ([]RawEpisode, int64, error) {
 						if ev.Event.Name != "" {
 							piece = "[tool: " + ev.Event.Name + "]"
 						}
+					}
+					if ev.Event.Type == "step.end" {
+						flush(pos)
+						break
 					}
 					if piece != "" {
 						if curStart < 0 {
