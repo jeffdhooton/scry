@@ -426,3 +426,33 @@ func TestHygienePrunesEntitiesNothingSaysAnythingAbout(t *testing.T) {
 		t.Errorf("a pruned entity's alias still resolves, to %q", slug)
 	}
 }
+
+// A spelling of a live entity survives the dead one that was holding it.
+func TestPruningKeepsASpellingOfSomethingLive(t *testing.T) {
+	st := openTemp(t)
+	old := time.Now().Add(-72 * time.Hour)
+	put := func(slug, name string, aliases ...string) {
+		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: "machine",
+			Aliases: aliases, CreatedAt: old, LastSeen: old}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put("halo-1", "halo-1")
+	put("empty-stub", "empty stub", "halo1", "something nothing spells")
+	if err := st.PutFact(store.Fact{Src: "halo-1", Relation: "runs_on", Value: "a desk", Fact: "halo-1 is on the desk", ValidFrom: old, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Hygiene(st, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.GetEntity("empty-stub"); err == nil {
+		t.Error("the empty stub must be pruned")
+	}
+	if slug, ok, _ := st.ResolveAlias("halo1"); !ok || slug != "halo-1" {
+		t.Errorf("halo1 resolves to %q, want halo-1: a spelling of a live entity must survive", slug)
+	}
+	if _, ok, _ := st.ResolveAlias("something nothing spells"); ok {
+		t.Error("a name that spells nothing live must go with its entity")
+	}
+}

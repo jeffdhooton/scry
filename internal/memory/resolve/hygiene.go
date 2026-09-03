@@ -981,6 +981,16 @@ func pruneUnreferenced(st *store.Store, dryRun bool, now time.Time) (int, error)
 	if err != nil {
 		return 0, err
 	}
+	// A name that spells a live entity outlives the dead one holding it:
+	// "halo1" is how sessions write halo-1, and losing the spelling
+	// because some empty stub happened to hold it helps nobody.
+	byName := map[string]string{}
+	for _, e := range entities {
+		if referenced[e.Slug] {
+			byName[compact(e.Name)] = e.Slug
+			byName[compact(e.Slug)] = e.Slug
+		}
+	}
 	pruned := 0
 	for _, e := range entities {
 		if referenced[e.Slug] || now.Sub(e.CreatedAt) < pruneAge {
@@ -992,6 +1002,13 @@ func pruneUnreferenced(st *store.Store, dryRun bool, now time.Time) (int, error)
 		}
 		if err := st.DeleteEntity(e.Slug); err != nil {
 			return pruned, err
+		}
+		for _, a := range append([]string{e.Name}, e.Aliases...) {
+			if owner, ok := byName[compact(a)]; ok {
+				if err := st.ClaimAlias(a, owner); err != nil {
+					return pruned, err
+				}
+			}
 		}
 	}
 	return pruned, nil
