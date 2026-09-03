@@ -319,3 +319,63 @@ func TestHygieneStillDropsRolesAndHardware(t *testing.T) {
 		}
 	}
 }
+
+// Every identical-alias collision in the store had a concept on one
+// side. A stub never keeps a name a typed entity answers to, and
+// dropping it is safe where transferring was not: the name still
+// resolves, to the entity that has a type.
+func TestStubsGiveUpNamesATypedEntityAnswersTo(t *testing.T) {
+	st := openTemp(t)
+	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	put := func(e store.Entity) {
+		e.CreatedAt, e.LastSeen = now, now
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put(store.Entity{Slug: "photon-node-sidecar", Name: "photon node sidecar", Type: "service", Aliases: []string{"sidecar"}})
+	put(store.Entity{Slug: "meta", Name: "-meta", Type: "concept", Aliases: []string{"sidecar", "its own thing"}})
+	put(store.Entity{Slug: "db-migrations", Name: "db-migrations", Type: "decision", Aliases: []string{"migration"}})
+	put(store.Entity{Slug: "add-is-beta", Name: "add is beta to users table", Type: "concept", Aliases: []string{"migration"}})
+
+	if _, err := Hygiene(st, false); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ slug, gone, kept string }{
+		{"meta", "sidecar", "its own thing"},
+		{"add-is-beta", "migration", ""},
+	} {
+		e, err := st.GetEntity(c.slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, a := range e.Aliases {
+			if a == c.gone {
+				t.Errorf("%s kept %q, which a typed entity answers to", c.slug, c.gone)
+			}
+		}
+		if c.kept != "" {
+			var found bool
+			for _, a := range e.Aliases {
+				if a == c.kept {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("%s lost %q, which nothing else claims", c.slug, c.kept)
+			}
+		}
+	}
+	// The typed entities keep theirs.
+	svc, err := st.GetEntity("photon-node-sidecar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(svc.Aliases) != 1 || svc.Aliases[0] != "sidecar" {
+		t.Errorf("the service must keep its own alias: %v", svc.Aliases)
+	}
+	// The name still resolves.
+	if slug, ok, _ := st.ResolveAlias("sidecar"); !ok || slug != "photon-node-sidecar" {
+		t.Errorf("sidecar resolves to %q, want the service", slug)
+	}
+}

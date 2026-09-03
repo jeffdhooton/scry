@@ -34,6 +34,9 @@ type HygieneReport struct {
 	// CollisionSample shows the first of them, so the number can be read
 	// rather than trusted.
 	CollisionSample []string `json:"collision_sample,omitempty"`
+	// StubClaimsDropped counts names an untyped stub was holding that a
+	// typed entity also answers to.
+	StubClaimsDropped int `json:"stub_claims_dropped"`
 	// StubsMerged counts untyped stubs folded into the typed entity they
 	// were a second spelling of.
 	StubsMerged int `json:"stubs_merged"`
@@ -529,6 +532,19 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			}
 		}
 	}
+	// An untyped stub never keeps a name a typed entity also answers to.
+	// The write path refuses that outright; a stub that collected one
+	// earlier keeps it, and every one of the store's identical-alias
+	// collisions has a concept on one side. Dropping is safe where
+	// transferring was not: the name still resolves, to the entity that
+	// has a type.
+	dropped, err := dropStubClaims(st, dryRun)
+	if err != nil {
+		return rep, err
+	}
+	rep.AliasesDropped += dropped
+	rep.StubClaimsDropped = dropped
+
 	// Re-read: an apply changed the aliases, and the audit must count what
 	// the store holds now rather than the view the pass started from.
 	audited := entities
@@ -871,4 +887,51 @@ func mergeStub(st *store.Store, stub, target store.Entity) error {
 		}
 	}
 	return nil
+}
+
+// dropStubClaims removes from every concept, and every untyped entity,
+// each alias that a typed entity answers to by name or by alias. It
+// never moves anything: the typed entity already answers to the name, so
+// nothing stops resolving.
+func dropStubClaims(st *store.Store, dryRun bool) (int, error) {
+	entities, err := st.Entities()
+	if err != nil {
+		return 0, err
+	}
+	typed := map[string]string{} // folded name → the typed entity holding it
+	for _, e := range entities {
+		if t := strings.ToLower(strings.TrimSpace(e.Type)); t == "" || t == "concept" {
+			continue
+		}
+		for _, spelling := range append([]string{e.Name}, e.Aliases...) {
+			if k := foldName(spelling); k != "" {
+				typed[k] = e.Slug
+			}
+		}
+	}
+	dropped := 0
+	for _, e := range entities {
+		if t := strings.ToLower(strings.TrimSpace(e.Type)); t != "" && t != "concept" {
+			continue
+		}
+		kept := make([]string, 0, len(e.Aliases))
+		changed := false
+		for _, a := range e.Aliases {
+			k := foldName(a)
+			if owner, ok := typed[k]; ok && owner != e.Slug && k != foldName(e.Name) {
+				dropped++
+				changed = true
+				continue
+			}
+			kept = append(kept, a)
+		}
+		if !changed || dryRun {
+			continue
+		}
+		e.Aliases = kept
+		if err := st.PutEntity(e); err != nil {
+			return dropped, err
+		}
+	}
+	return dropped, nil
 }
