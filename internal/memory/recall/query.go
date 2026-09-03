@@ -363,10 +363,18 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 			seen[hitKey(h)] = true
 		}
 		now := time.Now()
-		for slug, w := range named {
+		expanded := expand(q)
+		var qv []float32
+		if ix != nil {
+			qv = ix.EmbedQuery(q)
+		}
+		// Scored the same way as the global candidates, meaning included:
+		// a fact on the entity the question names should not be ranked by
+		// a different rule than one that arrived through search.
+		scoreFacts := func(slug string, w float64) error {
 			facts, err := st.FactsAbout(slug, asOf != nil)
 			if err != nil {
-				return res, err
+				return err
 			}
 			facts = filterAsOf(facts, asOf)
 			for _, f := range facts {
@@ -377,13 +385,22 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 				seen[hitKey(h)] = true
 				s := 0.1 * w
 				if ix != nil {
-					s += ix.ScoreDoc(expand(q), search.FactKey(f)) + entityBoost*(1+w/4)
+					s += ix.ScoreDoc(expanded, search.FactKey(f)) + entityBoost*(1+w/4)
 					if now.Sub(f.ValidFrom) < 30*24*time.Hour {
 						s += recencyBoost
+					}
+					if qv != nil {
+						s += meaningWeight * ix.Meaning(qv, search.FactKey(f))
 					}
 				}
 				h.Score = round3(s)
 				scored = append(scored, h)
+			}
+			return nil
+		}
+		for slug, w := range named {
+			if err := scoreFacts(slug, w); err != nil {
+				return res, err
 			}
 		}
 	}

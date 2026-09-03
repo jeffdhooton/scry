@@ -2284,3 +2284,15 @@ word, not a replacement for matching one.
 **What would change our minds:** an embedding model the store's owner
 already runs locally, at which point this becomes the fallback for words
 that model has never seen rather than the whole of the semantic layer.
+
+**Graph traversal was tried and is not here.** The reference designs pair
+entity and fact search with a hop through the graph, and the goal names
+them. Facts on entities one hop from the ones a question names were
+scored at every weight from a third to four fifths, and the three
+question sets did not move by a single answer at any of them. A
+neighbour's facts are already in the lexical candidate window when they
+match, and below it when they do not. It is out rather than kept at a
+weight where it does nothing, which is the same call made for relevance
+feedback and entity-name expansion. What the attempt did surface is that
+facts on a named entity were scored without the meaning term while
+searched facts had it; that inconsistency is fixed.
