@@ -2163,6 +2163,34 @@ proves that a lowercase `in-progress` mislabeled as `concept`, measurements,
 and branches remain rejected; the context escape is not a general model veto
 over hard value shapes.
 
+### Second status/value review also disproved prevention
+
+The next fresh-context grader disproved `8f1c2f7` before deployment. The exact
+pinned statuses were not lexical values, so their missing, parser-fallback,
+direct invented-type, and undeclared-endpoint forms could still establish
+nodes. An already established `PYTHON_ARGCOMPLETE_OK` survived a later bad
+`value` verdict but its new graph edge was demoted to an attribute. The grader
+also selected five real executable paths and a real `release/mac-arm64`
+directory outside the store; the branch/value checks ran before artifact
+protection and rejected them. Nothing was deployed.
+
+The correction treats every missing/fallback/invented type as untrusted for a
+new identity and carries that decision through fact endpoints. Exact
+established identities resolve before value handling and are returned without
+metadata mutation, which preserves later edges. An undeclared destination of
+a `status` relation remains an attribute unless the episode resolved it or an
+exact established identity proves it. Artifact protection now precedes
+branch/value spelling. Regressions reproduce both pinned names through all
+malformed paths, the established marker's second-episode edge, five executable
+paths, `release/mac-arm64`, hard measurements and branch phrases.
+
+The unchanged-prompt arm64 end-to-end GLM gate was rerun after these second
+review corrections and again passed all twelve names through provider,
+parser, resolver, and temporary-store exact lookup. It completed in 105.06
+seconds (34.54 seconds for the six values and 70.52 seconds for the six
+identities). The full uncached Go suite and `go vet ./...` also passed with
+the new malformed-path regressions present.
+
 ### Prevention deployment
 
 Fresh-context merge review round four returned VERIFIED at `695b8e1`. The

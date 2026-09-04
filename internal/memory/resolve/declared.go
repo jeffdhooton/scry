@@ -9,9 +9,11 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
-// DeclaredValues is the set of names the extraction model typed as "value":
-// things that describe something rather than being something. Keys are
-// store.Normalize'd so a fact endpoint matches the entity's exact name.
+// DeclaredValues is the set of exact names the extraction model typed as a
+// value or failed to give a documented identity type. An unknown type is not
+// affirmative identity evidence and therefore cannot open the fact-endpoint
+// path around resolveEntity. Keys are store.Normalize'd so a fact endpoint
+// matches the entity's exact name.
 // Aliases are intentionally excluded: one value declaration must not poison
 // a separately declared identity that happens to share one of its aliases.
 //
@@ -24,7 +26,7 @@ import (
 func DeclaredValues(ents []extract.Ent) map[string]bool {
 	var out map[string]bool
 	for _, ent := range ents {
-		if ent.Type != "value" {
+		if ent.Type != "value" && trustedIdentityType(ent) {
 			continue
 		}
 		if out == nil {
@@ -33,6 +35,18 @@ func DeclaredValues(ents []extract.Ent) map[string]bool {
 		out[store.Normalize(ent.Name)] = true
 	}
 	return out
+}
+
+func trustedIdentityType(ent extract.Ent) bool {
+	if ent.TypeFallback {
+		return false
+	}
+	switch ent.Type {
+	case "project", "service", "machine", "tool", "person", "decision", "runbook", "concept":
+		return true
+	default:
+		return false
+	}
 }
 
 // declaredValue reports whether the model typed name as a value AND the
@@ -54,6 +68,14 @@ func declaredValue(st *store.Store, declared map[string]bool, name string) bool 
 		return false
 	}
 	return !namesAnArtifact(name)
+}
+
+func exactEstablishedIdentity(st *store.Store, name string) (store.Entity, bool) {
+	exact, err := st.GetEntity(store.Slugify(name))
+	if err != nil || store.Normalize(exact.Name) != store.Normalize(name) {
+		return store.Entity{}, false
+	}
+	return exact, true
 }
 
 // ticketRE matches the ways a ticket, issue or pull request gets named:

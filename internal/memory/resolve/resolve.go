@@ -123,15 +123,30 @@ func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result
 
 // resolveEntity implements Rule 2 for a single extracted entity.
 func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, declared map[string]bool, stats *Stats) (string, error) {
+	// A malformed/value verdict cannot demote or reroute an exact identity
+	// established by earlier episodes. Return it unchanged so this episode's
+	// facts still resolve as edges, without allowing the bad verdict to mutate
+	// its type, aliases, or description.
+	if exact, found := exactEstablishedIdentity(st, ent.Name); found && (ent.Type == "value" || !trustedIdentityType(ent)) {
+		return exact.Slug, nil
+	}
 	// A run artifact is not an identity. Storing one pollutes recall forever
 	// and can never be usefully recalled later. Neither is a value: "main",
 	// "in-progress", and "46 GiB" describe things, they are not things.
-	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || (IsValueName(ent.Name) && !contextualStatusIdentity(ent)) {
+	artifact := namesAnArtifact(ent.Name)
+	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || (IsValueName(ent.Name) && !artifact && !contextualStatusIdentity(ent)) {
 		return "", nil
 	}
 	if declaredValue(st, declared, ent.Name) {
 		stats.ValuesRejected++
 		return "", nil
+	}
+	// An explicit value/unknown verdict reaches here only for an artifact,
+	// which the resolver deliberately protects as a durable identity. Store it
+	// in the neutral bucket rather than persisting an invalid entity type.
+	if ent.Type == "value" || !trustedIdentityType(ent) {
+		ent.Type = "concept"
+		ent.TypeFallback = false
 	}
 	slug, found, err := st.ResolveAlias(ent.Name)
 	if err != nil {
@@ -255,16 +270,11 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 // artifacts, malformed type fallbacks, and undeclared fact endpoints never
 // reach this override.
 func contextualStatusIdentity(ent extract.Ent) bool {
-	if ent.TypeFallback {
+	if !trustedIdentityType(ent) {
 		return false
 	}
-	switch ent.Type {
-	case "project", "service", "machine", "tool", "person", "decision", "runbook", "concept":
-		name := strings.TrimSpace(ent.Name)
-		return enumValue(name) || (properPhraseRE.MatchString(name) && IsStatusWord(name))
-	default:
-		return false
-	}
+	name := strings.TrimSpace(ent.Name)
+	return enumValue(name) || (properPhraseRE.MatchString(name) && IsStatusWord(name))
 }
 
 // resolvedFact is one extract.Fct after Rule 3's endpoint/ValidFrom
@@ -347,7 +357,9 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 			// something else by it; keep the edge rather than turning a
 			// project into this entity's status, which exclusivity would
 			// then invalidate on the next status fact.
-			if dstIsValue {
+			_, exactDst := exactEstablishedIdentity(st, fct.Dst)
+			declaredDst := resolvedEntities[store.Normalize(fct.Dst)] != ""
+			if !declaredDst && !exactDst {
 				dstIsValue = true
 			} else {
 				relation, fct.Relation = RelRelatedTo, RelRelatedTo

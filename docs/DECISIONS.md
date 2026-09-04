@@ -2955,6 +2955,17 @@ whose name matches—not any alias routing hit—and a value entity's aliases do
 not declare other exact names to be values. These boundaries follow the rule
 that routing state is not identity authority.
 
+**Second review correction.** Missing, parser-fallback, and direct invented
+types are non-identity declarations for new names; they may resolve an exact
+established identity or preserve a syntactic artifact, but cannot establish a
+new node. An erroneous later `value` verdict on an exact established identity
+returns that identity unchanged so its episode-local fact edges are retained.
+For a `status` relation, an undeclared destination is an attribute unless the
+episode resolved it as an identity or an exact established entity proves it.
+Finally, artifact protection precedes branch/value spelling: a real path such
+as `release/mac-arm64` is not demoted merely because its first component also
+names a branch namespace.
+
 ## Alias routing state is not identity authority (2026-09-04)
 
 **Decision.** An ordinary `store.PutEntity` may create an unclaimed name or

@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -73,7 +74,7 @@ func TestContextBearingAmbiguousStatusPairs(t *testing.T) {
 			{Name: "PYTHON_ARGCOMPLETE_OK", Type: "concept", Description: "a durable protocol marker identifier"},
 			{Name: "Ready Player One", Type: "concept", Description: "a cataloged novel"},
 			{Name: "46 GiB", Type: "concept", Description: "a memory measurement mislabeled as an identity"},
-			{Name: "feat/example", Type: "concept", Description: "a branch mislabeled as an identity"},
+			{Name: "on feature/example", Type: "concept", Description: "a branch phrase mislabeled as an identity"},
 			{Name: "argcomplete", Type: "tool", Description: "the shell completion tool"},
 		},
 		Facts: []extract.Fct{{
@@ -92,7 +93,7 @@ func TestContextBearingAmbiguousStatusPairs(t *testing.T) {
 			t.Errorf("context-declared status %q became an entity: found=%v err=%v", name, found, err)
 		}
 	}
-	for _, name := range []string{"46 GiB", "feat/example"} {
+	for _, name := range []string{"46 GiB", "on feature/example"} {
 		if _, found, err := st.ResolveAlias(name); err != nil || found {
 			t.Errorf("hard value %q bypassed its veto: found=%v err=%v", name, found, err)
 		}
@@ -108,33 +109,107 @@ func TestContextBearingAmbiguousStatusPairs(t *testing.T) {
 	}
 }
 
-func TestFallbackOrUnknownTypesCannotOverrideEnumValueGuard(t *testing.T) {
-	for _, entityJSON := range []string{
+func TestFallbackOrUnknownTypesCannotCreateSuspiciousIdentities(t *testing.T) {
+	for i, entityJSON := range []string{
 		`{"name":"QUALITY_OK","description":"the run verdict"}`,
 		`{"name":"QUALITY_OK","type":"status","description":"the run verdict"}`,
+		`{"name":"validation_failed","description":"the run verdict"}`,
+		`{"name":"validation_failed","type":"status","description":"the run verdict"}`,
+		`{"name":"DONE_WITH_CONCERNS","description":"the review verdict"}`,
+		`{"name":"DONE_WITH_CONCERNS","type":"status","description":"the review verdict"}`,
 	} {
 		st := openTemp(t)
 		parsed, err := extract.ParseResult(`{"episode_summary":"quality run","entities":[` + entityJSON + `],"facts":[]}`)
 		if err != nil {
 			t.Fatal(err)
 		}
-		ep := store.Episode{ID: "ep-" + store.Slugify(entityJSON), Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+		ep := store.Episode{ID: fmt.Sprintf("ep-fallback-%d", i), Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
 		if _, err := Apply(st, ep, "", parsed, nil); err != nil {
 			t.Fatal(err)
 		}
-		if _, found, err := st.ResolveAlias("QUALITY_OK"); err != nil || found {
+		name := parsed.Entities[0].Name
+		if _, found, err := st.ResolveAlias(name); err != nil || found {
 			t.Errorf("fallback enum status became an entity: found=%v err=%v parsed=%+v", found, err, parsed.Entities)
 		}
 	}
 	// Raw RPC callers can bypass ParseResult, so an invented direct type must
 	// also fail the contextual identity allowlist.
+	for i, name := range []string{"QUALITY_OK", "validation_failed", "DONE_WITH_CONCERNS"} {
+		st := openTemp(t)
+		ep := store.Episode{ID: fmt.Sprintf("ep-direct-unknown-%d", i), Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+		if _, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{Name: name, Type: "status"}}}, nil); err != nil {
+			t.Fatal(err)
+		}
+		if _, found, _ := st.ResolveAlias(name); found {
+			t.Errorf("direct invented type created %q", name)
+		}
+	}
+}
+
+func TestUndeclaredStatusDestinationsRemainAttributes(t *testing.T) {
+	for i, status := range []string{"validation_failed", "DONE_WITH_CONCERNS"} {
+		st := openTemp(t)
+		ep := store.Episode{ID: fmt.Sprintf("ep-undeclared-%d", i), Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+		result := extract.Result{
+			Entities: []extract.Ent{{Name: "scry", Type: "project"}},
+			Facts:    []extract.Fct{{Src: "scry", Relation: "status", Dst: status, Fact: "Scry status is " + status, Confidence: .9}},
+		}
+		if _, err := Apply(st, ep, "", result, nil); err != nil {
+			t.Fatal(err)
+		}
+		if _, found, _ := st.ResolveAlias(status); found {
+			t.Errorf("undeclared status destination %q became an entity", status)
+		}
+		facts := mustFacts(t, st, "scry")
+		if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != status {
+			t.Errorf("undeclared status %q was not preserved as an attribute: %+v", status, facts)
+		}
+	}
+}
+
+func TestEstablishedIdentitySurvivesValueVerdictWithItsEdge(t *testing.T) {
 	st := openTemp(t)
-	ep := store.Episode{ID: "ep-direct-unknown", Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
-	if _, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{Name: "QUALITY_OK", Type: "status"}}}, nil); err != nil {
+	at := time.Now()
+	first := store.Episode{ID: "ep-marker-first", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+	if _, err := Apply(st, first, "", extract.Result{Entities: []extract.Ent{
+		{Name: "PYTHON_ARGCOMPLETE_OK", Type: "concept"}, {Name: "argcomplete", Type: "tool"},
+	}}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, found, _ := st.ResolveAlias("QUALITY_OK"); found {
-		t.Error("direct invented type overrode enum value guard")
+	second := store.Episode{ID: "ep-marker-second", Source: "manual", SourceRef: "x", OccurredAt: at.Add(time.Minute), IngestedAt: at.Add(time.Minute)}
+	result := extract.Result{
+		Entities: []extract.Ent{{Name: "PYTHON_ARGCOMPLETE_OK", Type: "value"}, {Name: "argcomplete", Type: "tool"}},
+		Facts:    []extract.Fct{{Src: "PYTHON_ARGCOMPLETE_OK", Relation: "part_of", Dst: "argcomplete", Fact: "PYTHON_ARGCOMPLETE_OK is an argcomplete protocol marker", Confidence: .9}},
+	}
+	if _, err := Apply(st, second, "", result, nil); err != nil {
+		t.Fatal(err)
+	}
+	marker := mustSlug(t, st, "PYTHON_ARGCOMPLETE_OK")
+	facts := mustFacts(t, st, marker)
+	if len(facts) != 1 || facts[0].Dst != mustSlug(t, st, "argcomplete") {
+		t.Errorf("established identity survived but its new edge was demoted: %+v", facts)
+	}
+	entity, err := st.GetEntity(marker)
+	if err != nil || entity.Type != "concept" {
+		t.Errorf("value verdict changed established identity metadata: entity=%+v err=%v", entity, err)
+	}
+}
+
+func TestArtifactVetoPrecedesBranchAndStatusSpelling(t *testing.T) {
+	st := openTemp(t)
+	names := []string{"/usr/bin/true", "/usr/bin/false", "/usr/bin/open", "/usr/bin/head", "/usr/bin/yes", "release/mac-arm64"}
+	entities := make([]extract.Ent, 0, len(names))
+	for _, name := range names {
+		entities = append(entities, extract.Ent{Name: name, Type: "tool", Description: "a real executable or directory identity"})
+	}
+	ep := store.Episode{ID: "ep-artifact-boundary", Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+	if _, err := Apply(st, ep, "", extract.Result{Entities: entities}, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		if _, found, err := st.ResolveAlias(name); err != nil || !found {
+			t.Errorf("artifact identity %q was rejected: found=%v err=%v", name, found, err)
+		}
 	}
 }
 
