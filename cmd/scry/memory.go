@@ -1142,11 +1142,13 @@ func memoryOrientCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cwd, _ := cmd.Flags().GetString("cwd")
 			if cwd == "" {
-				wd, err := os.Getwd()
-				if err != nil {
-					return err
-				}
-				cwd = wd
+				cwd = "."
+			}
+			// Resolve on the client: the memory daemon may be on another
+			// machine, where a relative cwd cannot identify this repository.
+			cwd, err := filepath.Abs(cwd)
+			if err != nil {
+				return fmt.Errorf("resolve orientation cwd: %w", err)
 			}
 			budget, _ := cmd.Flags().GetInt("budget")
 

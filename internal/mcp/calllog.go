@@ -18,13 +18,15 @@ const (
 )
 
 type callLogEntry struct {
-	Timestamp string `json:"ts"`
-	Tool      string `json:"tool"`
-	Symbol    string `json:"symbol,omitempty"`
-	Repo      string `json:"repo"`
-	Results   int    `json:"results"`
-	LatencyMs int64  `json:"latency_ms"`
-	Error     string `json:"error,omitempty"`
+	Timestamp    string   `json:"ts"`
+	Tool         string   `json:"tool"`
+	Symbol       string   `json:"symbol,omitempty"`
+	Repo         string   `json:"repo"`
+	Results      int      `json:"results"`
+	TopScore     *float64 `json:"top_score,omitempty"`
+	PayloadBytes int      `json:"payload_bytes,omitempty"`
+	LatencyMs    int64    `json:"latency_ms"`
+	Error        string   `json:"error,omitempty"`
 }
 
 func logCall(entry callLogEntry) {
@@ -61,6 +63,28 @@ func extractResultCount(raw json.RawMessage) int {
 		return result.Total
 	}
 	return -1
+}
+
+// Recall logs only aggregate response metadata, never queries, fact text,
+// entity names, or episode content. Count delivered facts, not total_matches
+// (which includes candidates removed by the limit or payload cap).
+func recallCallMetrics(raw json.RawMessage) (int, *float64) {
+	var result struct {
+		Facts json.RawMessage `json:"facts"`
+	}
+	if json.Unmarshal(raw, &result) != nil || len(result.Facts) == 0 {
+		return -1, nil
+	}
+	var facts []struct {
+		Score *float64 `json:"score"`
+	}
+	if json.Unmarshal(result.Facts, &facts) != nil {
+		return -1, nil
+	}
+	if len(facts) == 0 {
+		return 0, nil
+	}
+	return len(facts), facts[0].Score
 }
 
 func nowUTC() time.Time {

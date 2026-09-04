@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,7 +14,8 @@ import (
 // fakeMemoryDialer records the RPC method + params of each Call so tests can
 // assert on what callMemoryQuery forwarded, without needing a real daemon.
 type fakeMemoryDialer struct {
-	calls []fakeMemoryCall
+	calls    []fakeMemoryCall
+	response json.RawMessage
 }
 
 type fakeMemoryCall struct {
@@ -22,6 +25,9 @@ type fakeMemoryCall struct {
 
 func (f *fakeMemoryDialer) Call(_ context.Context, method string, params, out any) error {
 	f.calls = append(f.calls, fakeMemoryCall{method: method, params: params})
+	if f.response != nil {
+		return json.Unmarshal(f.response, out)
+	}
 	b, _ := json.Marshal(map[string]any{"ok": true})
 	return json.Unmarshal(b, out)
 }
@@ -207,6 +213,46 @@ func TestCallMemoryQueryForwardsRecall(t *testing.T) {
 
 	if strings.Contains(out.String(), `"isError":true`) {
 		t.Errorf("unexpected tool error in response: %s", out.String())
+	}
+}
+
+func TestRecallCallLogCountsDeliveredFactsWithoutContent(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	raw := json.RawMessage(`{"query":"private question","facts":[{"fact":"private answer","score":0.75},{"fact":"other private answer","score":0.5}],"total_matches":37,"truncated":true}`)
+	fd := &fakeMemoryDialer{response: raw}
+	s := New(func() (Dialer, error) { return fd, nil })
+	var out bytes.Buffer
+	in := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"scry_recall","arguments":{"query":"private question"}}}` + "\n")
+	if err := s.Serve(context.Background(), in, &out); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, ".scry", "logs", "mcp-calls.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var entry callLogEntry
+	if err := json.Unmarshal(bytes.TrimSpace(data), &entry); err != nil {
+		t.Fatal(err)
+	}
+	if entry.Results != 2 || entry.TopScore == nil || *entry.TopScore != .75 || entry.PayloadBytes != len(raw) {
+		t.Fatalf("wrong recall metrics: %+v", entry)
+	}
+	if bytes.Contains(data, []byte("private")) || bytes.Contains(data, []byte("question")) || bytes.Contains(data, []byte("answer")) {
+		t.Fatalf("content leaked to log: %s", data)
+	}
+	var response struct {
+		Result struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Result.Content) != 1 || response.Result.Content[0].Text != string(raw) {
+		t.Fatalf("metrics changed forwarded response: %s", out.String())
 	}
 }
 

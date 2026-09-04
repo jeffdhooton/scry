@@ -63,3 +63,27 @@ func TestExtractResultCount(t *testing.T) {
 		t.Errorf("extractResultCount on missing total = %d, want 0", n)
 	}
 }
+
+func TestRecallCallMetrics(t *testing.T) {
+	for _, tc := range []struct {
+		raw   string
+		count int
+		score *float64
+	}{
+		{`{"facts":[],"total_matches":3}`, 0, nil},
+		{`{"facts":null}`, 0, nil},
+		{`{"facts":[{},{}]}`, 2, nil},
+		{`{"facts":[{"score":0}]}`, 1, new(float64)},
+		{`{"ok":true}`, -1, nil},
+		{`{"facts":{}}`, -1, nil},
+		{`{"facts":[{"score":"bad"}]}`, -1, nil},
+		{`not json`, -1, nil},
+	} {
+		t.Run(tc.raw, func(t *testing.T) {
+			count, score := recallCallMetrics(json.RawMessage(tc.raw))
+			if count != tc.count || (score == nil) != (tc.score == nil) || (score != nil && *score != *tc.score) {
+				t.Fatalf("got count=%d score=%v, want count=%d score=%v", count, score, tc.count, tc.score)
+			}
+		})
+	}
+}

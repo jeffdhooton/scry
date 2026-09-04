@@ -9,8 +9,58 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jeffdhooton/scry/internal/daemon"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
+
+func TestMemoryOrientResolvesCwdBeforeRemoteRPC(t *testing.T) {
+	socket := shortSocketPath(t)
+	listener, err := net.Listen("unix", socket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	received := make(chan daemon.MemoryOrientParams, 1)
+	server := rpc.NewServer()
+	server.Register("memory.orient", func(_ context.Context, raw json.RawMessage) (any, error) {
+		var p daemon.MemoryOrientParams
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return nil, err
+		}
+		received <- p
+		return map[string]string{"markdown": "orientation fixture"}, nil
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = server.Serve(ctx, listener) }()
+	t.Setenv(memorySocketEnv, socket)
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"default", nil, wd},
+		{"dot", []string{"--cwd", "."}, wd},
+		{"relative", []string{"--cwd", "../scry"}, filepath.Clean(filepath.Join(wd, "../scry"))},
+		{"absolute", []string{"--cwd", "/client/repo"}, "/client/repo"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := memoryOrientCmd()
+			cmd.SetArgs(append(tc.args, "--budget", "731"))
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+			p := <-received
+			if p.Cwd != tc.want || p.Budget != 731 {
+				t.Fatalf("RPC params = %+v, want cwd=%q budget=731", p, tc.want)
+			}
+		})
+	}
+}
 
 func TestDialMemoryDaemonUsesConfiguredSocket(t *testing.T) {
 	socket := shortSocketPath(t)
