@@ -2254,3 +2254,57 @@ key-collision refusal, full-manifest no-partial preflight, safe raw-RPC
 default, and backup existence. No live retirement manifest has been created
 or applied; the primitive still requires fresh-context review and restored
 live-replica proof.
+
+### Retirement review corrections before deployment
+
+Fresh review repeatedly found reverse-index state that the fact/entity-only
+contract did not cover. The retirement expected snapshot now hashes every
+`adj:` key and raw value that names the retired entity, plus any exact future
+adjacency key a replacement would occupy. Stale, malformed, nonempty, and
+future-key occupants require explicit key/hash/reason review. They are deleted
+before canonical replacement mirrors are written, and every resulting mirror
+must exist with an empty value inside the transaction.
+
+One review then passed, but an independent second review disproved commit
+`3b29ae7`: public `PutEntity` accepted `bad:slug`, while adjacency parsing split
+on `:` and omitted its nonempty canonical mirror. Apply still deleted that
+exact key. Commit `1cc8892` rejects ambiguous entity/fact keys, refuses legacy
+noncanonical retirement targets, and inventories adjacency keys from raw slug
+references plus exact fact payloads. The complete suite and vet passed; no
+retirement was deployed or applied. Room posts 47–50 preserve the review
+sequence rather than treating the superseded pass as final.
+
+### Contextual value evidence and stale-route corrections
+
+Commit `d1dbe15` added additive schema-1 `ve:<normalized-name>` records holding
+the spellings and episode IDs explicitly typed `value`. The prior failing
+parser-to-resolver reproduction now keeps all three values
+`dirty_working_tree`, `READY-AFTER-FIXES`, and `pause-resume-completed` as later
+`reports` attributes without nodes. Value aliases and supersedes use the same
+evidence; exact/same-episode identities and artifact vetoes remain stronger.
+
+The next grader confirmed that lifecycle but disproved identity preservation:
+a stale alias-index claim could route a later compatible concept/service or
+parser-fallback identity into an unrelated owner. Commit `c94cc7c` verifies
+that the indexed owner actually lists the mention. A further adversarial case
+put the unrelated owner at the incoming name's natural slug; commit `ee1844d`
+adds the corresponding resolver and ordinary-write ownership refusal. Each
+correction passed the full suite and vet before commit. None has been deployed;
+fresh review restarted at the latest head.
+
+### First complete semantic retirement review
+
+The 65-item preliminary status inventory was disproved on the restored
+99,201,482-byte replica (24,498 entities, 62,245 facts, 7,562 episodes). Eight
+entries are durable identities under the written boundary: the named
+north-star run, two tested behaviors, two invariants/contracts, the ChildScribe
+recap-email policy, the outputs-field contract, and the named Gate 5 restart
+test. They were removed rather than forced into attributes.
+
+The reviewer found 65 additional current status/outcome/measurement nodes plus
+four source-bearing ones: `changes`, `gates-passing`, `updated`, and
+`clean-slate`. `changes` has four outgoing facts spanning unrelated projects,
+so no single source owner is defensible. The corrected candidate inventory has
+126 entries (57 retained plus 69 added) and explicitly blocks apply until each
+outgoing fact has an evidence-backed owner. No fingerprints were copied from
+the changing live store and no candidate was applied.

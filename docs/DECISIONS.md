@@ -3088,3 +3088,74 @@ are cleared even when a legacy stale index names the wrong owner; a spelling
 survives only through an explicit rehome to an existing entity that already
 lists it. CLI and raw RPC default to dry-run, preflight the full manifest, and
 take a verified nonempty backup before the first group commits.
+
+## Contextual value verdicts are durable evidence, not ownership (2026-09-04)
+
+**Decision.** An explicit extraction `type:value` verdict records a normalized,
+episode-provenanced evidence entry for the value's name and reviewed aliases.
+Later episodes may use that evidence to keep an otherwise ambiguous endpoint as
+an attribute even when the later extraction omits the value declaration. The
+entry is not an alias-index claim and does not name an owner.
+
+Exact established entities, same-episode affirmative identity declarations,
+and protected files, paths, and tickets remain stronger evidence. A later
+explicit identity may therefore establish the spelling without erasing the
+historical value observation; once exact, it wins future routing. Parser
+fallbacks and lexical status guesses never create durable value evidence.
+Store-read errors abort rather than silently creating a node.
+
+**Why.** Episode-local typing fixed the current fact but forgot its judgement
+before the next episode. A later ordinary relation such as `reports` could then
+recreate `dirty_working_tree`, `READY-AFTER-FIXES`, or
+`pause-resume-completed` as a concept. Persisting contextual evidence closes
+that lifecycle without adding another suffix/prefix name rule.
+
+## A routing key and a natural slug are not identity evidence (2026-09-04)
+
+**Decision.** The resolver follows an alias-index entry only when the indexed
+entity still lists that normalized spelling. If it does not, episode-local
+routing ignores the stale claim. Ordinary `PutEntity` still refuses to steal
+the claim, so ingestion stops with `ErrAliasClaimed` until a reviewed repair
+settles ownership.
+
+The same rule applies at the incoming name's natural slug. An unrelated entity
+already occupying that key is not merged or mutated merely because its type is
+compatible. `PutEntity` updates an existing slug only through a name the
+existing entity already lists; changing identity at a colliding slug belongs to
+the reviewed merge path.
+
+**Why.** Stale index entries were able to redirect explicit concept/service and
+ordinary parser-fallback declarations into compatible unrelated entities. A
+second form survived the first correction when the unrelated owner occupied
+the incoming name's natural slug. Both produced fact hijacks and metadata
+mutation without an identity decision.
+
+## Store keys admit only canonical entity slugs (2026-09-04)
+
+**Decision.** Public entity and edge-fact writes reject empty or noncanonical
+entity slugs; fact relations reject the store's `:` delimiter. Retirement also
+refuses a legacy noncanonical target. Its adjacency inventory does not rely on
+parsing, however: it matches raw retired-slug occurrences and treats exact keys
+derived from fact payloads as authoritative. Thus even a legacy ambiguous key
+and its nonempty bytes are visible and fingerprinted before refusal.
+
+**Why.** A colon-bearing slug could be written through `PutEntity`; the reverse
+adjacency parser then split its canonical mirror at the wrong delimiter.
+Retirement deleted the exact mirror derived from the fact while its preview and
+postcondition both missed the unreviewed bytes. Preventing ambiguous new keys
+and independently inventorying exact old keys close both halves.
+
+## Status retirement is semantic and source ownership is per fact (2026-09-04)
+
+**Decision.** A status-shaped spelling remains an entity when the facts make it
+an independently referable test, behavior contract, invariant, policy, or named
+run. A genuine status node may be retired, but every fact where that node is the
+source receives its own reviewed owner. One global owner for a generic verdict
+is forbidden.
+
+**Why.** The first candidate list contained eight durable identities and missed
+69 current status/outcome nodes. `CHANGES` alone has outgoing facts in four
+unrelated contexts, proving that source ownership cannot be inferred once per
+retired spelling. The corrected candidate inventory is still not an apply
+manifest; unresolved source facts block it until their individual owners are
+documented.
