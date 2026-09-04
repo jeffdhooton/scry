@@ -111,6 +111,12 @@ func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result
 	if err := resolveFacts(st, ep, res.Facts, exclusive, declared, resolvedEntities, &stats); err != nil {
 		return stats, err
 	}
+	// Preserve the model's context-bearing value verdicts for later episodes.
+	// Do this only after entity/fact resolution succeeds; the current episode
+	// already uses declared directly, while future episodes use this evidence.
+	if err := recordExplicitValueEvidence(st, ep.ID, res.Entities, declared); err != nil {
+		return stats, err
+	}
 
 	// Rule 7: record the episode last, so a failure above never marks a
 	// partially-applied episode as ingested.
@@ -382,8 +388,21 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		_, exactDst := exactEstablishedIdentity(st, fct.Dst)
 		srcDeclared := resolvedEntities[store.Normalize(fct.Src)] != ""
 		dstDeclared := resolvedEntities[store.Normalize(fct.Dst)] != ""
-		srcIsValue := (!srcKnown && (NotAnIdentity(fct.Src) || untrustedStatusShape(fct.Src))) || (!srcDeclared && !exactSrc && declaredValue(st, declared, fct.Src))
-		dstIsValue := (!dstKnown && (NotAnIdentity(fct.Dst) || untrustedStatusShape(fct.Dst))) || (!dstDeclared && !exactDst && declaredValue(st, declared, fct.Dst))
+		var srcContextValue, dstContextValue bool
+		if !srcDeclared && !exactSrc {
+			srcContextValue, err = contextualValue(st, declared, fct.Src)
+			if err != nil {
+				return err
+			}
+		}
+		if !dstDeclared && !exactDst {
+			dstContextValue, err = contextualValue(st, declared, fct.Dst)
+			if err != nil {
+				return err
+			}
+		}
+		srcIsValue := (!srcKnown && (NotAnIdentity(fct.Src) || untrustedStatusShape(fct.Src))) || (!srcDeclared && !exactSrc && srcContextValue)
+		dstIsValue := (!dstKnown && (NotAnIdentity(fct.Dst) || untrustedStatusShape(fct.Dst))) || (!dstDeclared && !exactDst && dstContextValue)
 		if relation == RelStatus {
 			// "status" almost always points at a state word, and those are
 			// attributes. When it points at a real identity the model meant
@@ -591,8 +610,21 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, decl
 	_, exactDst := exactEstablishedIdentity(st, dst)
 	srcDeclared := resolvedEntities[store.Normalize(src)] != ""
 	dstDeclared := resolvedEntities[store.Normalize(dst)] != ""
-	srcIsValue := (!srcKnown && (IsValueName(src) || untrustedStatusShape(src))) || (!srcDeclared && !exactSrc && declaredValue(st, declared, src))
-	dstIsValue := (!dstKnown && (IsValueName(dst) || untrustedStatusShape(dst))) || (!dstDeclared && !exactDst && declaredValue(st, declared, dst))
+	var srcContextValue, dstContextValue bool
+	if !srcDeclared && !exactSrc {
+		srcContextValue, err = contextualValue(st, declared, src)
+		if err != nil {
+			return err
+		}
+	}
+	if !dstDeclared && !exactDst {
+		dstContextValue, err = contextualValue(st, declared, dst)
+		if err != nil {
+			return err
+		}
+	}
+	srcIsValue := (!srcKnown && (IsValueName(src) || untrustedStatusShape(src))) || (!srcDeclared && !exactSrc && srcContextValue)
+	dstIsValue := (!dstKnown && (IsValueName(dst) || untrustedStatusShape(dst))) || (!dstDeclared && !exactDst && dstContextValue)
 	if srcIsValue && !dstIsValue && relation != RelStatus {
 		src, dst = dst, src
 		srcKnown, dstKnown = dstKnown, false

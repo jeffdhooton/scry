@@ -105,6 +105,46 @@ func declaredValue(st *store.Store, declared map[string]bool, name string) bool 
 	return !namesAnArtifact(name)
 }
 
+// contextualValue extends the current extraction's explicit value verdicts
+// with durable verdicts from earlier episodes. Evidence is deliberately
+// weaker than an exact entity or a same-episode identity declaration; it is
+// deliberately stronger than alias routing, because a leaking alias must not
+// turn a repeatedly observed status/value into a node.
+func contextualValue(st *store.Store, declared map[string]bool, name string) (bool, error) {
+	if declaredValue(st, declared, name) {
+		return true, nil
+	}
+	if namesAnArtifact(name) {
+		return false, nil
+	}
+	return st.HasValueEvidence(name)
+}
+
+// recordExplicitValueEvidence persists only the model's affirmative
+// type:value judgements. Parser fallbacks and lexical guesses are excluded:
+// they do not carry enough context to become durable classification evidence.
+func recordExplicitValueEvidence(st *store.Store, episodeID string, ents []extract.Ent, declared map[string]bool) error {
+	for _, ent := range ents {
+		if ent.Type != "value" {
+			continue
+		}
+		spellings := append([]string{ent.Name}, ent.Aliases...)
+		for _, spelling := range spellings {
+			norm := store.Normalize(spelling)
+			if norm == "" || !declared[norm] || namesAnArtifact(spelling) {
+				continue
+			}
+			if _, exact := exactEstablishedIdentity(st, spelling); exact {
+				continue
+			}
+			if err := st.RecordValueEvidence(spelling, episodeID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func exactEstablishedIdentity(st *store.Store, name string) (store.Entity, bool) {
 	exact, err := st.GetEntity(store.Slugify(name))
 	if err != nil || store.Normalize(exact.Name) != store.Normalize(name) {

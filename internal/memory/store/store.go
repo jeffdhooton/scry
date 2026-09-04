@@ -14,6 +14,7 @@
 //	adj:<dst>:<src>:<relation>:<validfrom-unixnano>     → empty (reverse index for FactsAbout; edges only)
 //	cur:<sha256(path)>                                  → Cursor
 //	pq:<id>                                             → PendingEpisode (see pending.go)
+//	ve:<normalized-name>                                → ValueEvidence (see value_evidence.go)
 //	meta:<key>                                          → timestamps and reports (see pending.go)
 //
 // All values are JSON (except al: values, which are raw slug strings, and

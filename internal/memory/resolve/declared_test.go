@@ -113,7 +113,7 @@ func TestParsedDeclaredValuesCannotAccumulateAliasAttestations(t *testing.T) {
 		if owner, found, err := st.ResolveAlias(value); err != nil || found {
 			t.Fatalf("declared value %q accumulated a routing alias: owner=%q found=%v err=%v", value, owner, found, err)
 		}
-		parsed, err := extract.ParseResult(fmt.Sprintf(`{"episode_summary":"status report","entities":[{"name":"scry","type":"project","description":"memory system"}],"facts":[{"src":"scry","relation":"status","dst":%q,"fact":"current status","confidence":0.9}]}`, value))
+		parsed, err := extract.ParseResult(fmt.Sprintf(`{"episode_summary":"status report","entities":[{"name":"scry","type":"project","description":"memory system"}],"facts":[{"src":"scry","relation":"reports","dst":%q,"fact":"current status","confidence":0.9}]}`, value))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -125,6 +125,70 @@ func TestParsedDeclaredValuesCannotAccumulateAliasAttestations(t *testing.T) {
 		if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != value {
 			t.Fatalf("declared value %q later routed as an edge: %+v", value, facts)
 		}
+	}
+}
+
+func TestDurableValueEvidenceYieldsToLaterExactIdentity(t *testing.T) {
+	st := openTemp(t)
+	at := time.Unix(140, 0).UTC()
+	valueEpisode, err := extract.ParseResult(`{"episode_summary":"review state","entities":[{"name":"READY-AFTER-FIXES","type":"value","description":"review verdict"}],"facts":[]}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Apply(st, store.Episode{ID: "value-first", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", valueEpisode, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	identityEpisode, err := extract.ParseResult(`{"episode_summary":"catalog entry","entities":[{"name":"READY-AFTER-FIXES","type":"concept","description":"a named fixture"},{"name":"fixture catalog","type":"service"}],"facts":[{"src":"fixture catalog","relation":"contains","dst":"READY-AFTER-FIXES","fact":"the catalog contains the fixture","confidence":0.9}]}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Apply(st, store.Episode{ID: "identity-later", Source: "manual", SourceRef: "x", OccurredAt: at.Add(time.Second), IngestedAt: at.Add(time.Second)}, "", identityEpisode, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.GetEntity("ready-after-fixes"); err != nil {
+		t.Fatalf("explicit identity did not override old value evidence: %v", err)
+	}
+	facts := mustFacts(t, st, "fixture-catalog")
+	if len(facts) != 1 || facts[0].Dst != "ready-after-fixes" || facts[0].Value != "" {
+		t.Fatalf("explicit identity fact was not kept as an edge: %+v", facts)
+	}
+}
+
+func TestDurableValueEvidenceDoesNotPersistArtifactVerdict(t *testing.T) {
+	st := openTemp(t)
+	at := time.Unix(150, 0).UTC()
+	result := extract.Result{Entities: []extract.Ent{{Name: "internal/status.go", Type: "value"}}}
+	if _, err := Apply(st, store.Episode{ID: "artifact-value", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", result, nil); err != nil {
+		t.Fatal(err)
+	}
+	if found, err := st.HasValueEvidence("internal/status.go"); err != nil || found {
+		t.Fatalf("artifact value verdict became durable evidence: found=%v err=%v", found, err)
+	}
+}
+
+func TestSupersedesUsesDurableValueEvidenceWithoutRedeclaration(t *testing.T) {
+	st := openTemp(t)
+	at := time.Unix(160, 0).UTC()
+	initial := extract.Result{
+		Entities: []extract.Ent{{Name: "Scry", Type: "project"}, {Name: "completion-state", Type: "value", Aliases: []string{"ready-after-fixes"}}},
+		Facts:    []extract.Fct{{Src: "Scry", Relation: "reports", Dst: "ready-after-fixes", Fact: "old completion state", Confidence: .9}},
+	}
+	if _, err := Apply(st, store.Episode{ID: "durable-supersedes-first", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", initial, nil); err != nil {
+		t.Fatal(err)
+	}
+	replacement := extract.Result{
+		Entities: []extract.Ent{{Name: "Replacement", Type: "concept"}},
+		Facts: []extract.Fct{{Src: "Replacement", Relation: "related_to", Dst: "Scry", Fact: "replacement observation", Confidence: .9,
+			Supersedes: &extract.SupRef{Src: "Scry", Relation: "reports", Dst: "ready-after-fixes"}}},
+	}
+	stats, err := Apply(st, store.Episode{ID: "durable-supersedes-second", Source: "manual", SourceRef: "x", OccurredAt: at.Add(time.Second), IngestedAt: at.Add(time.Second)}, "", replacement, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	facts := mustFacts(t, st, "scry")
+	if stats.FactsInvalidated != 1 || len(facts) != 1 || facts[0].InvalidAt == nil || facts[0].Value != "ready-after-fixes" {
+		t.Fatalf("durable value evidence did not route supersedes: stats=%+v facts=%+v", stats, facts)
 	}
 }
 
