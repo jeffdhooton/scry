@@ -37,6 +37,12 @@ type fakeExtractor struct {
 	delay     time.Duration
 }
 
+type fixedExtractor struct{ result extract.Result }
+
+func (f fixedExtractor) Extract(context.Context, distill.RawEpisode, []string) (extract.Result, error) {
+	return f.result, nil
+}
+
 func (f *fakeExtractor) Extract(ctx context.Context, ep distill.RawEpisode, glossary []string) (extract.Result, error) {
 	atomic.AddInt32(&f.calls, 1)
 	f.mu.Lock()
@@ -172,6 +178,7 @@ func TestTransportFailureBacksOffWithoutParking(t *testing.T) {
 func TestDeterministicResolverFailureParksImmediately(t *testing.T) {
 	for _, cause := range []error{
 		fmt.Errorf("resolve entity: %w: qwen belongs to qwen-3", store.ErrAliasClaimed),
+		fmt.Errorf("resolve entity: %w: bad:slug", store.ErrInvalidSlug),
 		fmt.Errorf("resolve entity: %w: retired-status", store.ErrEntityRetired),
 	} {
 		t.Run(cause.Error(), func(t *testing.T) {
@@ -192,6 +199,47 @@ func TestDeterministicResolverFailureParksImmediately(t *testing.T) {
 				t.Error("LastError must preserve the actionable resolver error")
 			}
 		})
+	}
+}
+
+func TestResolverAttemptToRecreateRetiredEntityParksWithoutEpisode(t *testing.T) {
+	st := openTemp(t)
+	if err := st.PutEntity(store.Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); err != nil {
+		t.Fatal(err)
+	}
+	req := store.EntityRetirementRequest{Entity: "obsolete", Why: "reviewed status value"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+	p := pending("retired-recreation", "Obsolete is a project")
+	if err := st.PutPending(p); err != nil {
+		t.Fatal(err)
+	}
+	w := New(Options{
+		Store: st,
+		Extractor: fixedExtractor{result: extract.Result{
+			Entities: []extract.Ent{{Name: "Obsolete", Type: "project"}},
+		}},
+		Poll: 10 * time.Millisecond,
+	})
+	runFor(t, w, 2*time.Second)
+	if !waitUntil(t, time.Second, func() bool { got, _ := st.GetPending(p.ID); return got.Parked }) {
+		t.Fatal("retired-entity resolver result was not parked")
+	}
+	got, err := st.GetPending(p.ID)
+	if err != nil || !strings.Contains(got.LastError, store.ErrEntityRetired.Error()) {
+		t.Fatalf("pending=%+v err=%v", got, err)
+	}
+	if has, err := st.HasEpisode(p.ID); err != nil || has {
+		t.Fatalf("failed episode recorded: has=%v err=%v", has, err)
+	}
+	if _, err := st.GetEntity("obsolete"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("retired entity recreated: %v", err)
 	}
 }
 
