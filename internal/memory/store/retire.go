@@ -7,7 +7,9 @@ import (
 	"io"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dgraph-io/badger/v4"
 )
@@ -49,24 +51,37 @@ type EntityRetirementExpected struct {
 	Entities    map[string]string `json:"entities,omitempty"`
 	Facts       string            `json:"facts,omitempty"`
 	AliasClaims string            `json:"alias_claims,omitempty"`
+	Adjacencies string            `json:"adjacencies,omitempty"`
+}
+
+// EntityRetirementAdjacencyFingerprint exposes every reverse-index record
+// whose encoded source or destination is the retired entity. Stale records
+// have no matching canonical fact, but are still reviewed, fingerprinted,
+// and removed by the retirement transaction.
+type EntityRetirementAdjacencyFingerprint struct {
+	Key              string `json:"key"`
+	SHA256           string `json:"sha256"`
+	CanonicalFactKey string `json:"canonical_fact_key"`
+	Stale            bool   `json:"stale"`
 }
 
 type EntityRetirementPreview struct {
-	ID                string                        `json:"id,omitempty"`
-	Entity            Entity                        `json:"entity_snapshot"`
-	Expected          EntityRetirementExpected      `json:"expected"`
-	FactFingerprints  []EntityMergeFactFingerprint  `json:"fact_fingerprints"`
-	Replacements      []EntityRetirementReplacement `json:"replacements,omitempty"`
-	CurrentFacts      int                           `json:"current_facts"`
-	InvalidatedFacts  int                           `json:"invalidated_facts"`
-	AliasClaims       map[string]string             `json:"alias_claims"`
-	RehomeAliases     []EntityRetirementAliasRehome `json:"rehome_aliases,omitempty"`
-	ExternalListings  []string                      `json:"external_listings,omitempty"`
-	SelfLoops         []string                      `json:"self_loops,omitempty"`
-	FactKeyCollisions []string                      `json:"fact_key_collisions,omitempty"`
-	Problems          []string                      `json:"problems,omitempty"`
-	Ready             bool                          `json:"ready"`
-	Applied           bool                          `json:"applied"`
+	ID                string                                 `json:"id,omitempty"`
+	Entity            Entity                                 `json:"entity_snapshot"`
+	Expected          EntityRetirementExpected               `json:"expected"`
+	FactFingerprints  []EntityMergeFactFingerprint           `json:"fact_fingerprints"`
+	Adjacencies       []EntityRetirementAdjacencyFingerprint `json:"adjacency_fingerprints"`
+	Replacements      []EntityRetirementReplacement          `json:"replacements,omitempty"`
+	CurrentFacts      int                                    `json:"current_facts"`
+	InvalidatedFacts  int                                    `json:"invalidated_facts"`
+	AliasClaims       map[string]string                      `json:"alias_claims"`
+	RehomeAliases     []EntityRetirementAliasRehome          `json:"rehome_aliases,omitempty"`
+	ExternalListings  []string                               `json:"external_listings,omitempty"`
+	SelfLoops         []string                               `json:"self_loops,omitempty"`
+	FactKeyCollisions []string                               `json:"fact_key_collisions,omitempty"`
+	Problems          []string                               `json:"problems,omitempty"`
+	Ready             bool                                   `json:"ready"`
+	Applied           bool                                   `json:"applied"`
 }
 
 type entityRetirementAnalysis struct {
@@ -78,6 +93,7 @@ type entityRetirementAnalysis struct {
 	rehomeNorms   map[string]string
 	rehomeTargets map[string]Entity
 	allFactCount  int
+	adjacencyKeys [][]byte
 }
 
 func (s *Store) PreviewEntityRetirement(req EntityRetirementRequest) (EntityRetirementPreview, error) {
@@ -222,6 +238,13 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 			}
 		}
 	}
+	// Delete every reviewed reverse-index record that names the retired
+	// entity, including legacy ghosts without a canonical fa: record.
+	for _, key := range analysis.adjacencyKeys {
+		if err := txn.Delete(key); err != nil {
+			return err
+		}
+	}
 	for norm := range analysis.claimNorms {
 		// Every relevant claim was fingerprinted and reviewed. Clear it
 		// regardless of its legacy owner, then restore only explicit rehomes;
@@ -268,6 +291,13 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 		if fact.Src == req.Entity || fact.Dst == req.Entity {
 			return fmt.Errorf("memory: retirement postcondition: fact still references %s", req.Entity)
 		}
+	}
+	remainingAdjacencies, err := adjacencyReferencesTxn(txn, req.Entity, nil)
+	if err != nil {
+		return err
+	}
+	if len(remainingAdjacencies) != 0 {
+		return fmt.Errorf("memory: retirement postcondition: adjacency still references %s: %s", req.Entity, remainingAdjacencies[0].Key)
 	}
 	for _, want := range analysis.replacements {
 		item, err := txn.Get(factKey(want.Src, want.Relation, want.KeyDst(), want.ValidFrom))
@@ -380,10 +410,12 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 	}
 	a.allFactCount = len(facts)
 	allFactKeys := make(map[string]bool, len(facts))
+	allFactsByKey := make(map[string]Fact, len(facts))
 	oldByKey := map[string]Fact{}
 	for _, fact := range facts {
 		key := string(factKey(fact.Src, fact.Relation, fact.KeyDst(), fact.ValidFrom))
 		allFactKeys[key] = true
+		allFactsByKey[key] = fact
 		if fact.Src != req.Entity && fact.Dst != req.Entity {
 			continue
 		}
@@ -401,6 +433,14 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 		} else {
 			a.preview.InvalidatedFacts++
 		}
+	}
+	adjacencies, err := adjacencyReferencesTxn(txn, req.Entity, allFactsByKey)
+	if err != nil {
+		return a, err
+	}
+	a.preview.Adjacencies = adjacencies
+	for _, adjacency := range adjacencies {
+		a.adjacencyKeys = append(a.adjacencyKeys, []byte(adjacency.Key))
 	}
 	seenOld := map[string]bool{}
 	targetKeys := map[string]string{}
@@ -484,12 +524,75 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 		}
 	}
 	a.preview.Expected = EntityRetirementExpected{
-		Entities: expectedEntities, Facts: hashJSON(a.facts), AliasClaims: hashAliasSubset(a.claimNorms, claims),
+		Entities: expectedEntities, Facts: hashJSON(a.facts), AliasClaims: hashAliasSubset(a.claimNorms, claims), Adjacencies: hashJSON(adjacencies),
 	}
 	sort.Strings(a.preview.ExternalListings)
 	sort.Strings(a.preview.Problems)
 	a.preview.Ready = len(a.preview.Problems) == 0
 	return a, nil
+}
+
+func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[string]Fact) ([]EntityRetirementAdjacencyFingerprint, error) {
+	var fingerprints []EntityRetirementAdjacencyFingerprint
+	prefix := []byte(prefixAdj)
+	opts := badger.DefaultIteratorOptions
+	opts.PrefetchValues = true
+	it := txn.NewIterator(opts)
+	defer it.Close()
+	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+		item := it.Item()
+		key := item.KeyCopy(nil)
+		dst, src, relation, validFrom, valid := parseAdjacencyKey(key)
+		if dst != retired && src != retired {
+			continue
+		}
+		var value []byte
+		if err := item.Value(func(raw []byte) error {
+			value = append(value, raw...)
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+		canonicalKey := ""
+		corresponds := false
+		if valid {
+			canonicalKey = string(factKey(src, relation, dst, validFrom))
+			fact, found := factsByKey[canonicalKey]
+			corresponds = found && fact.Src == src && fact.Dst == dst && fact.Relation == relation && fact.ValidFrom.Equal(validFrom)
+		}
+		fingerprints = append(fingerprints, EntityRetirementAdjacencyFingerprint{
+			Key: string(key), SHA256: hashJSON(struct {
+				Key   string `json:"key"`
+				Value []byte `json:"value"`
+			}{Key: string(key), Value: value}), CanonicalFactKey: canonicalKey, Stale: !corresponds,
+		})
+	}
+	if fingerprints == nil {
+		fingerprints = []EntityRetirementAdjacencyFingerprint{}
+	}
+	return fingerprints, nil
+}
+
+func parseAdjacencyKey(key []byte) (dst, src, relation string, validFrom time.Time, ok bool) {
+	rest := strings.TrimPrefix(string(key), prefixAdj)
+	parts := strings.SplitN(rest, ":", 4)
+	if len(parts) > 0 {
+		dst = parts[0]
+	}
+	if len(parts) > 1 {
+		src = parts[1]
+	}
+	if len(parts) > 2 {
+		relation = parts[2]
+	}
+	if len(parts) != 4 || dst == "" || src == "" || relation == "" {
+		return dst, src, relation, time.Time{}, false
+	}
+	nano, err := strconv.ParseInt(parts[3], 10, 64)
+	if err != nil {
+		return dst, src, relation, time.Time{}, false
+	}
+	return parts[0], parts[1], parts[2], time.Unix(0, nano).UTC(), true
 }
 
 func sameRetirementFactPayload(old, updated Fact) bool {
@@ -545,8 +648,8 @@ func invalidRetirementFactShape(retired string, old, updated Fact) string {
 }
 
 func verifyRetirementExpected(got, want EntityRetirementExpected) error {
-	if got.Facts == "" || got.AliasClaims == "" || len(got.Entities) == 0 {
-		return errors.New("memory: retirement expected entity, fact, and alias fingerprints are required for apply")
+	if got.Facts == "" || got.AliasClaims == "" || got.Adjacencies == "" || len(got.Entities) == 0 {
+		return errors.New("memory: retirement expected entity, fact, alias, and adjacency fingerprints are required for apply")
 	}
 	if !reflect.DeepEqual(got, want) {
 		return fmt.Errorf("memory: retirement snapshot changed: got %+v, want %+v", want, got)

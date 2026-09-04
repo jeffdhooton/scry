@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -260,6 +261,119 @@ func TestRetireEntityRemovesHollowNodeAndStaleWrongOwnerClaim(t *testing.T) {
 	}
 	if owner, found, err := st.ResolveAlias("old-state"); err != nil || found {
 		t.Fatalf("stale wrong-owner claim remains: owner=%q found=%v err=%v", owner, found, err)
+	}
+}
+
+func TestRetireEntityReviewsAndRemovesStaleAdjacencyReferences(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []Entity{
+		{Slug: "obsolete", Name: "Obsolete", Type: "concept"},
+		{Slug: "owner", Name: "Owner", Type: "project"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ghostKey := adjKey("obsolete", "owner", "status", time.Unix(19, 0).UTC())
+	if err := st.db.Update(func(txn *badger.Txn) error { return txn.Set(ghostKey, []byte("legacy-ghost")) }); err != nil {
+		t.Fatal(err)
+	}
+
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow non-identity"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready || len(preview.Adjacencies) != 1 || !preview.Adjacencies[0].Stale {
+		t.Fatalf("stale adjacency was not exposed for review: preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.db.View(func(txn *badger.Txn) error {
+		_, err := txn.Get(ghostKey)
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			return nil
+		}
+		return fmt.Errorf("stale adjacency remains: %w", err)
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRetireEntityReviewsAndRemovesMalformedAdjacencyReferences(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []Entity{
+		{Slug: "obsolete", Name: "Obsolete", Type: "concept"},
+		{Slug: "owner", Name: "Owner", Type: "project"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ghostKeys := [][]byte{
+		[]byte(prefixAdj + "obsolete:owner:status:not-a-time"),
+		[]byte(prefixAdj + "other:obsolete:status"),
+	}
+	if err := st.db.Update(func(txn *badger.Txn) error {
+		for _, key := range ghostKeys {
+			if err := txn.Set(key, nil); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow non-identity"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready || len(preview.Adjacencies) != len(ghostKeys) {
+		t.Fatalf("malformed adjacencies were not exposed: preview=%+v err=%v", preview, err)
+	}
+	for _, row := range preview.Adjacencies {
+		if !row.Stale || row.CanonicalFactKey != "" {
+			t.Fatalf("malformed adjacency was not classified stale: %+v", row)
+		}
+	}
+	req.Expected = preview.Expected
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.db.View(func(txn *badger.Txn) error {
+		for _, key := range ghostKeys {
+			if _, err := txn.Get(key); !errors.Is(err, badger.ErrKeyNotFound) {
+				return fmt.Errorf("malformed adjacency remains: %q: %w", key, err)
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRetireEntityAdjacencyDriftAbortsAtomically(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []Entity{
+		{Slug: "obsolete", Name: "Obsolete", Type: "concept"},
+		{Slug: "owner", Name: "Owner", Type: "project"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow non-identity"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	ghostKey := adjKey("obsolete", "owner", "status", time.Unix(21, 0).UTC())
+	if err := st.db.Update(func(txn *badger.Txn) error { return txn.Set(ghostKey, nil) }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.RetireEntity(req); err == nil || !strings.Contains(err.Error(), "snapshot changed") {
+		t.Fatalf("want adjacency snapshot drift, got %v", err)
+	}
+	if _, err := st.GetEntity("obsolete"); err != nil {
+		t.Fatalf("drifted retirement deleted entity: %v", err)
 	}
 }
 
