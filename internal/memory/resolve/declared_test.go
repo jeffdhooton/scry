@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -189,6 +190,53 @@ func TestSupersedesUsesDurableValueEvidenceWithoutRedeclaration(t *testing.T) {
 	facts := mustFacts(t, st, "scry")
 	if stats.FactsInvalidated != 1 || len(facts) != 1 || facts[0].InvalidAt == nil || facts[0].Value != "ready-after-fixes" {
 		t.Fatalf("durable value evidence did not route supersedes: stats=%+v facts=%+v", stats, facts)
+	}
+}
+
+func TestStaleAliasCannotHijackLaterIdentityDeclaration(t *testing.T) {
+	cases := []struct {
+		name         string
+		identityJSON string
+		ownerType    string
+	}{
+		{name: "READY-AFTER-FIXES", identityJSON: `{"name":"READY-AFTER-FIXES","type":"concept","description":"a named fixture"}`, ownerType: "concept"},
+		{name: "SQLite CLI", identityJSON: `{"name":"SQLite CLI","description":"the database command-line tool"}`, ownerType: "concept"},
+		{name: "Beacon Agent", identityJSON: `{"name":"Beacon Agent","type":"service","description":"the beacon service"}`, ownerType: "service"},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			st := openTemp(t)
+			at := time.Unix(int64(170+i*10), 0).UTC()
+			value := extract.Result{Entities: []extract.Ent{{Name: tc.name, Type: "value"}}}
+			if _, err := Apply(st, store.Episode{ID: "value-first", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", value, nil); err != nil {
+				t.Fatal(err)
+			}
+			interceptor := store.Entity{Slug: "interceptor", Name: "Interceptor", Type: tc.ownerType, Description: "must remain unchanged", LastSeen: at}
+			if err := st.PutEntity(interceptor); err != nil {
+				t.Fatal(err)
+			}
+			if err := st.ClaimAlias(tc.name, interceptor.Slug); err != nil {
+				t.Fatal(err)
+			}
+			parsed, err := extract.ParseResult(fmt.Sprintf(`{"episode_summary":"identity catalog","entities":[%s,{"name":"Catalog","type":"service"}],"facts":[{"src":"Catalog","relation":"contains","dst":%q,"fact":"catalog contains the identity","confidence":0.9}]}`, tc.identityJSON, tc.name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = Apply(st, store.Episode{ID: "identity-later", Source: "manual", SourceRef: "x", OccurredAt: at.Add(time.Second), IngestedAt: at.Add(time.Second)}, "", parsed, nil)
+			if !errors.Is(err, store.ErrAliasClaimed) {
+				t.Fatalf("stale alias did not produce safe ownership refusal: %v", err)
+			}
+			got, err := st.GetEntity(interceptor.Slug)
+			if err != nil || got.Description != interceptor.Description || !got.LastSeen.Equal(interceptor.LastSeen) {
+				t.Fatalf("stale owner was mutated: got=%+v err=%v", got, err)
+			}
+			if facts := mustFacts(t, st, interceptor.Slug); len(facts) != 0 {
+				t.Fatalf("stale owner received identity facts: %+v", facts)
+			}
+			if ingested, err := st.HasEpisode("identity-later"); err != nil || ingested {
+				t.Fatalf("refused episode was recorded: ingested=%v err=%v", ingested, err)
+			}
+		})
 	}
 }
 

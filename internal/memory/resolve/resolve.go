@@ -160,6 +160,22 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		return "", err
 	}
 	naturalSlug := store.Slugify(ent.Name)
+	// An alias-index entry is routing evidence only when its owner still lists
+	// the spelling. Legacy and manually introduced stale claims must not mutate
+	// a compatible but unrelated entity. Ignoring the stale route lets
+	// PutEntity's ownership preflight refuse the new identity cleanly until a
+	// reviewed alias repair settles the global claim.
+	var indexedOwner store.Entity
+	if found {
+		indexedOwner, err = st.GetEntity(slug)
+		if errors.Is(err, store.ErrNotFound) {
+			found = false
+		} else if err != nil {
+			return "", err
+		} else if !entityListsMention(indexedOwner, store.Normalize(ent.Name)) {
+			found = false
+		}
+	}
 	// A generic name must never pull an entity in by alias: that is the
 	// runaway-merge path. Give it its own slug and let it stand alone.
 	if found && isGenericAlias(ent.Name) {
@@ -178,15 +194,15 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		if exact, gerr := st.GetEntity(naturalSlug); gerr == nil && store.Normalize(exact.Name) == store.Normalize(ent.Name) {
 			found = false
 		}
-		owner, gerr := st.GetEntity(slug)
-		if gerr == nil && found && !TypesCompatible(owner.Type, ent.Type) {
+		owner := indexedOwner
+		if found && !TypesCompatible(owner.Type, ent.Type) {
 			found = false
 		}
 		// Concept is an extraction fallback, not proof of compatibility. A
 		// typed mention reached only through a concept's alias cannot promote
 		// that concept, even when it is empty; the reviewed merge path must
 		// decide whether they are one identity. Exact-slug stubs still upgrade.
-		if gerr == nil && found && concepts(owner.Type) && !concepts(ent.Type) {
+		if found && concepts(owner.Type) && !concepts(ent.Type) {
 			found = false
 		}
 	}

@@ -175,12 +175,19 @@ func establishedMentionIdentity(st *store.Store, name string, resolvedEntities m
 		}
 		return "", false, err
 	}
-	for _, spelling := range append([]string{owner.Name}, owner.Aliases...) {
-		if store.Normalize(spelling) == norm {
-			return owner.Slug, true, nil
-		}
+	if entityListsMention(owner, norm) {
+		return owner.Slug, true, nil
 	}
 	return "", false, nil
+}
+
+func entityListsMention(entity store.Entity, normalized string) bool {
+	for _, spelling := range append([]string{entity.Name}, entity.Aliases...) {
+		if store.Normalize(spelling) == normalized {
+			return true
+		}
+	}
+	return false
 }
 
 // ticketRE matches the ways a ticket, issue or pull request gets named:
