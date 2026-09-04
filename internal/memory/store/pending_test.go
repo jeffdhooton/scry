@@ -234,6 +234,7 @@ func TestAttestAliasCountsDistinctEpisodes(t *testing.T) {
 
 func TestRelocateFactMovesKeyAndMergesOnCollision(t *testing.T) {
 	s := openTemp(t)
+	putTestEntities(t, s, "a", "b", "c", "d")
 	now := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	old := Fact{Src: "a", Relation: "used_by", Dst: "b", Fact: "b uses a", ValidFrom: now, Confidence: 0.5, Episodes: []string{"e1"}}
 	_ = s.PutFact(old)

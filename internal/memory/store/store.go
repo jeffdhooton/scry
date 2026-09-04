@@ -28,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -595,14 +596,18 @@ func adjKey(dst, src, relation string, validFrom time.Time) []byte {
 // An attribute fact has no reverse index: a value is not a node anyone
 // traverses to.
 func (s *Store) PutFact(f Fact) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
+	return s.putFactUnlocked(f)
+}
+
+func (s *Store) putFactUnlocked(f Fact) error {
 	if !validEntitySlug(f.Src) || (f.Dst != "" && !validEntitySlug(f.Dst)) {
 		return fmt.Errorf("%w in fact endpoint: src=%q dst=%q", ErrInvalidSlug, f.Src, f.Dst)
 	}
 	if f.Relation == "" || strings.Contains(f.Relation, ":") {
 		return fmt.Errorf("memory: invalid fact relation %q", f.Relation)
 	}
-	s.maintenanceMu.RLock()
-	defer s.maintenanceMu.RUnlock()
 	if (f.Dst == "") == (f.Value == "") {
 		return fmt.Errorf("memory: fact %s -[%s]-> must have exactly one of dst or value", f.Src, f.Relation)
 	}
@@ -611,13 +616,8 @@ func (s *Store) PutFact(f Fact) error {
 		return err
 	}
 	err = s.db.Update(func(txn *badger.Txn) error {
-		if _, err := getEntityTxn(txn, f.Src); err != nil {
-			return fmt.Errorf("memory: fact source %q: %w", f.Src, err)
-		}
-		if f.Dst != "" {
-			if _, err := getEntityTxn(txn, f.Dst); err != nil {
-				return fmt.Errorf("memory: fact destination %q: %w", f.Dst, err)
-			}
+		if err := validateFactEndpointsTxn(txn, f); err != nil {
+			return err
 		}
 		if err := txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b); err != nil {
 			return err
@@ -631,6 +631,18 @@ func (s *Store) PutFact(f Fact) error {
 		s.notify(Event{Kind: "fact", Op: "put", Fact: f})
 	}
 	return err
+}
+
+func validateFactEndpointsTxn(txn *badger.Txn, f Fact) error {
+	if _, err := getEntityTxn(txn, f.Src); err != nil {
+		return fmt.Errorf("memory: fact source %q: %w", f.Src, err)
+	}
+	if f.Dst != "" {
+		if _, err := getEntityTxn(txn, f.Dst); err != nil {
+			return fmt.Errorf("memory: fact destination %q: %w", f.Dst, err)
+		}
+	}
+	return nil
 }
 
 // FactsFrom returns every fact with Src == slug.
@@ -1143,24 +1155,49 @@ func (s *Store) DropAliasRehome(slug, alias, rehomeTo string) (bool, error) {
 // until its key is free, so both facts survive with their own text and
 // their own validity. The old key is deleted either way.
 func (s *Store) RelocateFact(old, updated Fact) error {
+	if !validEntitySlug(updated.Src) || (updated.Dst != "" && !validEntitySlug(updated.Dst)) {
+		return fmt.Errorf("%w in relocated fact endpoint: src=%q dst=%q", ErrInvalidSlug, updated.Src, updated.Dst)
+	}
+	if updated.Relation == "" || strings.Contains(updated.Relation, ":") {
+		return fmt.Errorf("memory: invalid relocated fact relation %q", updated.Relation)
+	}
+	if (updated.Dst == "") == (updated.Value == "") {
+		return fmt.Errorf("memory: relocated fact %s -[%s]-> must have exactly one of dst or value", updated.Src, updated.Relation)
+	}
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
 	oldKey := factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom)
 	newKey := factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
-	if string(oldKey) == string(newKey) {
-		return s.PutFact(updated)
-	}
 	err := s.db.Update(func(txn *badger.Txn) error {
-		for {
-			_, err := txn.Get(newKey)
-			if errors.Is(err, badger.ErrKeyNotFound) {
-				break
+		item, err := txn.Get(oldKey)
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		var stored Fact
+		if err := item.Value(func(value []byte) error { return json.Unmarshal(value, &stored) }); err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(stored, old) {
+			return errors.New("memory: relocated fact snapshot changed")
+		}
+		if err := validateFactEndpointsTxn(txn, updated); err != nil {
+			return err
+		}
+		if string(oldKey) != string(newKey) {
+			for {
+				_, err := txn.Get(newKey)
+				if errors.Is(err, badger.ErrKeyNotFound) {
+					break
+				}
+				if err != nil {
+					return err
+				}
+				updated.ValidFrom = updated.ValidFrom.Add(time.Nanosecond)
+				newKey = factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
 			}
-			if err != nil {
-				return err
-			}
-			updated.ValidFrom = updated.ValidFrom.Add(time.Nanosecond)
-			newKey = factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
 		}
 		if err := txn.Delete(oldKey); err != nil {
 			return err

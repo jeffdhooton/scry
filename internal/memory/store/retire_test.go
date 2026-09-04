@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -435,6 +436,62 @@ func TestRetireEntityExcludesConcurrentFactWriter(t *testing.T) {
 	facts, err := st.AllFacts()
 	if err != nil || len(facts) != 0 {
 		t.Fatalf("concurrent writer left dangling fact: facts=%+v err=%v", facts, err)
+	}
+}
+
+func TestRetireEntityExcludesConcurrentFactRelocation(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []Entity{
+		{Slug: "obsolete", Name: "Obsolete", Type: "concept"},
+		{Slug: "owner", Name: "Owner", Type: "project"},
+		{Slug: "target", Name: "Target", Type: "tool"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := Fact{Src: "owner", Relation: "related_to", Dst: "target", Fact: "existing unrelated fact", ValidFrom: time.Unix(24, 0).UTC()}
+	if err := st.PutFact(old); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow value"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	retireDone := make(chan error, 1)
+	go func() {
+		_, err := st.RetireEntityChecked(req, func(_ []Entity, _ []Fact) error {
+			close(entered)
+			<-release
+			return nil
+		})
+		retireDone <- err
+	}()
+	<-entered
+	updated := old
+	updated.Dst = "obsolete"
+	writeDone := make(chan error, 1)
+	go func() { writeDone <- st.RelocateFact(old, updated) }()
+	select {
+	case err := <-writeDone:
+		t.Fatalf("fact relocation was not excluded during retirement: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	if err := <-retireDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-writeDone; !errors.Is(err, ErrNotFound) {
+		t.Fatalf("relocation did not reject retired endpoint: %v", err)
+	}
+	facts, err := st.AllFacts()
+	if err != nil || len(facts) != 1 || !reflect.DeepEqual(facts[0], old) {
+		t.Fatalf("failed relocation changed existing fact: facts=%+v err=%v", facts, err)
 	}
 }
 
