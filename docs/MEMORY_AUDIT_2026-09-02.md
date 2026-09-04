@@ -1368,3 +1368,66 @@ backup   /Users/jclaw/.scry/backups/memory-20260904T010634Z.badger
 store    21,176 entities, 53,117 facts, 6,647 episodes
 bench    tuning 47/50, strict 44/50, probes 7/7
 ```
+
+### Round thirteen, addendum: the largest fusion, measured
+
+The identities grader named `childscribe-laravel` — 130 aliases, 2,206 facts —
+as the biggest identity problem in the store and the one invisible to every
+metric reported here, because the paths it holds do not fold to the names of
+the projects they belong to.
+
+Reading all 130 by hand found one family that is not a judgement call at all:
+**seven aliases that are other projects' paths, mistyped.**
+
+```
+~,/workspace/docket          ~ / workspace / docket
+~/,workspace/docket          ~, / workspace / docket
+~, /workspace/docket         ~ /workspace/childscribe-mobile
+~  /workspace/scribe
+```
+
+Each made `docket`'s, `childscribe-mobile`'s or `scribe`'s path resolve to a
+different project. A path never holds a comma and a home directory never has a
+space after the tilde, so `neverAlias` refuses both shapes now. Deliberately
+excluded: whitespace around an inner slash, which would also catch
+`/forms/ API` and `check-in / check-out`. Those are names — the first draft of
+this rule caught them, which is how the clause came out.
+
+Store-wide the rule matches exactly seven aliases, all seven on this entity,
+and the live dry run predicted them by name before the apply:
+
+```
+apply    aliases_dropped 7, nothing else
+pass 2   complete no-op
+backup   /Users/jclaw/.scry/backups/memory-20260904T011316Z.badger
+store    21,176 entities, 53,117 facts, 6,647 episodes
+bench    tuning 47/50, strict 44/50, probes 7/7
+```
+
+Seven aliases is a small number against 2,206 facts, and the rest of that
+entity's fusion — `CS`, `RN`, `frontend`, `homepage`, `scratchpad`,
+`competitor`, `product name`, `deprecated alias`, `Mock Docket`, `docket
+workspace`, `legacy loom`, `setpoint orchestrator` — is untouched. Those need
+either a judgement about what the entity is, or the store-scale alias pass
+that has now failed three times. Recorded as open.
+
+### Where the two failing items actually stand
+
+Both residues are now characterised rather than merely counted, and both are
+blocked on the same thing.
+
+**Item 4.** The families that remain — 42 status values, 13 measurements, 15
+code positions, 8 colon settings — are ones where the name alone does not
+carry the answer. `CHANGES_REQUIRED` and `CMAKE_MINIMUM_REQUIRED` are the same
+shape; `QUALITY_OK` and `PYTHON_ARGCOMPLETE_OK` are the same shape. Thirteen
+rounds of rules have converged on a false-rejection rate of 0.7% against names
+from outside the store, down from 4.0%, and every further catch now costs a
+real name. The `value` entity type exists for exactly this and has never run:
+both providers have refused on billing since 17:02Z.
+
+**Item 5.** The mechanism is understood — mention resolution and the
+already-indexed shortcut — and one half is closed. The other half is the
+store-scale alias repair, which has been built and thrown away three times on
+measured evidence.
+
+Both wait on provider credit, which is Jeff's call and not the builder's.
