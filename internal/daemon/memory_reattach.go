@@ -25,6 +25,11 @@ type MemoryReattachMove struct {
 	// that was about something else.
 	Fact string `json:"fact,omitempty"`
 	To   string `json:"to"`
+	// Side names the endpoint to move, "src" (the default) or "dst". A
+	// fact can be filed under the wrong entity from either end: "the
+	// feedback digest job runs on the hermes Mac mini" was stored with
+	// the project as its destination.
+	Side string `json:"side,omitempty"`
 	Why  string `json:"why,omitempty"`
 }
 
@@ -84,7 +89,20 @@ func (d *Daemon) handleMemoryReattach(_ context.Context, raw json.RawMessage) (a
 	}
 
 	for _, m := range p.Moves {
-		if m.To == "" || m.To == m.Src {
+		side := m.Side
+		if side == "" {
+			side = "src"
+		}
+		if side != "src" && side != "dst" {
+			res.Refused++
+			res.Details = append(res.Details, "refused: side must be src or dst, got "+side)
+			continue
+		}
+		moving := m.Src
+		if side == "dst" {
+			moving = m.Dst
+		}
+		if m.To == "" || m.To == moving {
 			res.Refused++
 			res.Details = append(res.Details, "refused: destination missing or unchanged: "+m.Relation)
 			continue
@@ -94,7 +112,7 @@ func (d *Daemon) handleMemoryReattach(_ context.Context, raw json.RawMessage) (a
 			res.Details = append(res.Details, "refused: destination "+m.To+" does not exist")
 			continue
 		}
-		if m.To == m.Dst {
+		if (side == "src" && m.To == m.Dst) || (side == "dst" && m.To == m.Src) {
 			res.Refused++
 			res.Details = append(res.Details, "refused: would be a self-loop: "+m.Src+" -> "+m.Dst)
 			continue
@@ -130,14 +148,22 @@ func (d *Daemon) handleMemoryReattach(_ context.Context, raw json.RawMessage) (a
 		// resolves that by nudging the timestamp a nanosecond until the
 		// key is free. That is a silent answer to a real question, so the
 		// question is asked here instead.
-		dupes, err := st.FactsFrom(m.To, false)
+		// Both directions, because a dst move lands an edge pointing AT
+		// the destination and FactsFrom only walks outward from it.
+		dupes, err := st.FactsAbout(m.To, false)
 		if err != nil {
 			return nil, err
 		}
 		var clash, sameEdge *memstore.Fact
 		for i := range dupes {
 			f := &dupes[i]
-			if f.Relation != m.Relation || f.Dst != m.Dst || f.Value != m.Value {
+			if side == "dst" {
+				// Moving the far end: a duplicate is the same source
+				// asserting the same relation at the new destination.
+				if f.Relation != m.Relation || f.Src != m.Src || f.Dst != m.To {
+					continue
+				}
+			} else if f.Src != m.To || f.Relation != m.Relation || f.Dst != m.Dst || f.Value != m.Value {
 				continue
 			}
 			sameEdge = f
@@ -155,9 +181,13 @@ func (d *Daemon) handleMemoryReattach(_ context.Context, raw json.RawMessage) (a
 			res.Details = append(res.Details, "warning: "+m.To+" already says "+m.Relation+" "+m.Dst+m.Value+": "+truncate(sameEdge.Fact, 60))
 		}
 		updated := *found
-		updated.Src = m.To
+		if side == "dst" {
+			updated.Dst = m.To
+		} else {
+			updated.Src = m.To
+		}
 		res.Moved++
-		res.Details = append(res.Details, m.Src+" -> "+m.To+": "+m.Relation+" "+m.Dst+m.Value)
+		res.Details = append(res.Details, moving+" -> "+m.To+" ("+side+"): "+m.Relation+" "+m.Dst+m.Value)
 		if p.DryRun {
 			continue
 		}

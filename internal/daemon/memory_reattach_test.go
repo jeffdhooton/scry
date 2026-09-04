@@ -200,3 +200,50 @@ func TestMemoryReattachRefusesWhatItCannotVerify(t *testing.T) {
 		}
 	})
 }
+
+// A fact can be filed under the wrong entity from either end. "The feedback
+// digest job runs on the hermes Mac mini" was stored with the project as its
+// destination, and moving the source would have been the wrong repair.
+func TestMemoryReattachMovesTheFarEnd(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	st, _ := d.memoryStore()
+	at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	for _, e := range []memstore.Entity{
+		{Slug: "ops", Name: "ops", Type: "project"},
+		{Slug: "mini", Name: "mini", Type: "machine"},
+		{Slug: "job", Name: "job", Type: "service"},
+	} {
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := st.PutFact(memstore.Fact{
+		Src: "job", Relation: "deployed_on", Dst: "ops",
+		Fact: "the digest job runs on the mini", ValidFrom: at, Episodes: []string{"e"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	move := MemoryReattachMove{
+		Src: "job", Relation: "deployed_on", Dst: "ops", ValidFrom: at,
+		Fact: "the digest job runs on the mini", To: "mini", Side: "dst",
+	}
+	out, err := d.handleMemoryReattach(ctx, mustJSON(t, MemoryReattachParams{Moves: []MemoryReattachMove{move}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res := out.(*MemoryReattachResult); res.Moved != 1 {
+		t.Fatalf("%+v", res)
+	}
+	onOps, _ := st.FactsAbout("ops", false)
+	if len(onOps) != 0 {
+		t.Errorf("the project still holds it: %+v", onOps)
+	}
+	got, _ := st.FactsFrom("job", false)
+	if len(got) != 1 || got[0].Dst != "mini" || got[0].Src != "job" {
+		t.Errorf("the far end did not move: %+v", got)
+	}
+	if got[0].Fact != "the digest job runs on the mini" {
+		t.Errorf("the fact changed: %+v", got[0])
+	}
+}
