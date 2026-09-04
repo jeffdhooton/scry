@@ -163,6 +163,15 @@ func IsValueName(name string) bool {
 	if quotedRE.MatchString(name) {
 		return true
 	}
+	// A capitalised phrase whose opening word is a state, and whose
+	// remaining words are ordinary nouns, is a title: "Ready Player One",
+	// "Blocked Punt Media", "Needs More Cowbell". A verdict keeps its own
+	// vocabulary all the way through — "Ready With Caveats" carries the
+	// preposition — so the escape asks for the rest of the phrase to be
+	// free of status words and fillers before it fires.
+	if titleOpeningOnAState(name) {
+		return false
+	}
 	// The original spelling, not the lowercased one: a state a session
 	// shouted is written in capitals, and that is the only thing telling
 	// PENDING-og-images from pending-migration-lock.
@@ -431,6 +440,33 @@ func measurementPhrase(n string) bool {
 			continue
 		}
 		return false
+	}
+	return true
+}
+
+// titleOpeningOnAState reports whether name is a capitalised phrase of three
+// or more words that merely begins with a state word.
+//
+// IsStatusWord runs before the proper-phrase escape, because "In Progress"
+// is capitalised too, and that ordering was costing real names: five titles
+// opening on ready, blocked, waiting or needs were all read as verdicts.
+// The signal that separates them is what follows. A verdict goes on being a
+// verdict — "Ready With Caveats", "Completed Successfully" — while a title
+// turns to ordinary nouns after its first word.
+func titleOpeningOnAState(name string) bool {
+	trimmed := strings.TrimSpace(name)
+	if !properPhraseRE.MatchString(trimmed) {
+		return false
+	}
+	words := strings.Fields(trimmed)
+	if len(words) < 3 {
+		return false
+	}
+	for _, w := range words[1:] {
+		lw := strings.ToLower(w)
+		if statusWords[lw] || measurementFillers[lw] || participleStates[lw] {
+			return false
+		}
 	}
 	return true
 }

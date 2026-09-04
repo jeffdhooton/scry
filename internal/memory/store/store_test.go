@@ -1,8 +1,10 @@
 package store
 
 import (
+	"bytes"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -581,3 +583,56 @@ func TestNormalizeAndSlugify(t *testing.T) {
 		t.Errorf("Slugify(%q) = %q, want %q", "Hermes-Ops LeadGen!", got, "hermes-ops-leadgen")
 	}
 }
+
+// ~/.scry/backups filled with 44-byte files named memory-pre-restore-*,
+// each of which had reported success. A backup that captures nothing from
+// a store that holds something is a failure, because the caller is about
+// to migrate or wipe on the strength of it.
+func TestBackupRefusesToClaimItSavedAnEmptyFile(t *testing.T) {
+	t.Run("an empty store backs up to a header and that is fine", func(t *testing.T) {
+		st := openTemp(t)
+		var buf bytes.Buffer
+		n, err := st.Backup(&buf)
+		if err != nil {
+			t.Fatalf("backing up an empty store must succeed: %v", err)
+		}
+		if n > headerOnlyBackup {
+			t.Errorf("an empty store wrote %d bytes", n)
+		}
+	})
+
+	t.Run("a store with contents must write more than a header", func(t *testing.T) {
+		st := openTemp(t)
+		if err := st.PutEntity(Entity{Slug: "scry", Name: "scry", Type: "project"}); err != nil {
+			t.Fatal(err)
+		}
+		var buf bytes.Buffer
+		n, err := st.Backup(&buf)
+		if err != nil {
+			t.Fatalf("Backup: %v", err)
+		}
+		if n <= headerOnlyBackup {
+			t.Fatalf("a store with an entity wrote only %d bytes", n)
+		}
+	})
+
+	t.Run("a writer that swallows everything is reported as a failure", func(t *testing.T) {
+		st := openTemp(t)
+		if err := st.PutEntity(Entity{Slug: "scry", Name: "scry", Type: "project"}); err != nil {
+			t.Fatal(err)
+		}
+		_, err := st.Backup(swallowWriter{})
+		if err == nil {
+			t.Fatal("a backup that captured nothing reported success")
+		}
+		if !strings.Contains(err.Error(), "nothing was captured") {
+			t.Errorf("error should say what went wrong, got %v", err)
+		}
+	})
+}
+
+// swallowWriter accepts every byte and keeps none, standing in for the
+// conditions that produced the 44-byte files.
+type swallowWriter struct{}
+
+func (swallowWriter) Write(p []byte) (int, error) { return 0, nil }

@@ -812,12 +812,29 @@ func Slugify(name string) string {
 // returns the number of bytes written. It runs against the live database,
 // so the daemon can take one before a migration without stopping.
 func (s *Store) Backup(w io.Writer) (uint64, error) {
+	episodes, entities, facts, err := s.Counts()
+	if err != nil {
+		return 0, err
+	}
 	cw := &countingWriter{w: w}
 	if _, err := s.db.Backup(cw, 0); err != nil {
 		return cw.n, err
 	}
+	// A backup of a store holding nothing is Badger's header and no keys.
+	// Reporting that as a success is how ~/.scry/backups filled with
+	// 44-byte files named memory-pre-restore-*: every one of them claimed
+	// to protect a store it had not read. A caller about to migrate or
+	// wipe has to hear about it.
+	if held := episodes + entities + facts; held > 0 && cw.n <= headerOnlyBackup {
+		return cw.n, fmt.Errorf("backup wrote %d bytes for a store holding %d episodes, %d entities and %d facts: nothing was captured", cw.n, episodes, entities, facts)
+	}
 	return cw.n, nil
 }
+
+// headerOnlyBackup is the largest a backup can be while containing no keys
+// at all. Badger writes a short header before the first key; a store with
+// anything in it produces far more.
+const headerOnlyBackup = 128
 
 type countingWriter struct {
 	w io.Writer

@@ -108,3 +108,115 @@ func mustSlug(t *testing.T, st *store.Store, name string) string {
 	}
 	return slug
 }
+
+// The values grader built this case against the first version of the value
+// type and it dropped five real identities, deleting issue-91 -> PR-402
+// outright because both endpoints were declared values. The prompt no
+// longer calls files and tickets values; this pins the resolver's own veto,
+// which is what has to hold when the model ignores the prompt.
+func TestApplyRefusesAValueVerdictOnFilesAndTickets(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "ep-art", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+	res := extract.Result{
+		Entities: []extract.Ent{
+			{Name: "scry", Type: "project"},
+			{Name: "internal/memory/resolve/declared.go", Type: "value"},
+			{Name: "docs/MEMORY_AUDIT_2026-09-02.md", Type: "value"},
+			{Name: "issue-91", Type: "value"},
+			{Name: "PR-402", Type: "value"},
+		},
+		Facts: []extract.Fct{
+			{Src: "issue-91", Relation: "fixed_by", Dst: "PR-402", Fact: "issue-91 was fixed by PR-402", Confidence: 0.9},
+			{Src: "scry", Relation: "contains", Dst: "internal/memory/resolve/declared.go", Fact: "scry contains declared.go", Confidence: 0.9},
+		},
+	}
+	if _, err := Apply(st, ep, "", res, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{
+		"internal/memory/resolve/declared.go",
+		"docs/MEMORY_AUDIT_2026-09-02.md",
+		"issue-91",
+		"PR-402",
+	} {
+		if _, found, err := st.ResolveAlias(name); err != nil || !found {
+			t.Errorf("%q was dropped by a value verdict (found=%v, err=%v)", name, found, err)
+		}
+	}
+	// And the fact between two of them must survive as an edge, not vanish.
+	// Before the veto, both endpoints were values and the value-to-value
+	// rule dropped the fact outright.
+	facts, err := st.FactsAbout(mustSlug(t, st, "issue-91"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var edge bool
+	for _, f := range facts {
+		if f.Dst != "" {
+			edge = true
+		}
+	}
+	if !edge {
+		t.Errorf("issue-91 -> PR-402 was lost: %+v", facts)
+	}
+}
+
+// The veto covers files and tickets and nothing else. A plain name the
+// model wrongly types as a value is still dropped, and the only defence is
+// the prompt. Pinned so the limit is a decision rather than a surprise.
+func TestAValueVerdictOnAPlainNameIsStillHonoured(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "ep-plain", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+	stats, err := Apply(st, ep, "", extract.Result{
+		Entities: []extract.Ent{{Name: "childscribe-mobile", Type: "value"}},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats.ValuesRejected != 1 {
+		t.Errorf("ValuesRejected = %d, want 1", stats.ValuesRejected)
+	}
+	if _, found, _ := st.ResolveAlias("childscribe-mobile"); found {
+		t.Error("expected the verdict to be honoured for a plain name")
+	}
+}
+
+func TestNamesAnArtifactIsNarrow(t *testing.T) {
+	cases := []struct {
+		name string
+		want bool
+	}{
+		// Defended: files and paths.
+		{"internal/memory/resolve/declared.go", true},
+		{"docs/MEMORY_AUDIT_2026-09-02.md", true},
+		{"cmd/scry", true},
+		{"queue/outbox.ts", true},
+		{"schema.sql", true},
+		// Defended: tickets and pull requests.
+		{"issue-91", true},
+		{"PR-402", true},
+		{"GH#88", true},
+		{"bug 1204", true},
+		{"SCRY-17", true},
+
+		// Left to the model and the lexical rules: these are the value
+		// families the type exists to catch, and the veto must not save them.
+		{"in progress", false},
+		{"QUALITY_OK", false},
+		{"46 GiB", false},
+		{"main", false},
+		{"think:false", false},
+		{"require_approval ON", false},
+		{"120-word floor", false},
+		{"2026-09-03", false},
+		{"hermes-ops", false},
+		{"", false},
+	}
+	for _, c := range cases {
+		if got := namesAnArtifact(c.name); got != c.want {
+			t.Errorf("namesAnArtifact(%q) = %v, want %v", c.name, got, c.want)
+		}
+	}
+}

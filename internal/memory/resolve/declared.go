@@ -1,6 +1,9 @@
 package resolve
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/jeffdhooton/scry/internal/memory/extract"
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
@@ -47,5 +50,43 @@ func declaredValue(st *store.Store, declared map[string]bool, name string) bool 
 	if _, found, err := st.ResolveAlias(name); err != nil || found {
 		return false
 	}
-	return true
+	return !namesAnArtifact(name)
+}
+
+// ticketRE matches the ways a ticket, issue or pull request gets named:
+// "issue-91", "PR-402", "GH#88", "bug 1204", "SCRY-17".
+var ticketRE = regexp.MustCompile(`(?i)^(issue|bug|ticket|story|task|pr|mr|gh|pull request)[-#\s]?\d+$|^[A-Z]{2,10}-\d+$`)
+
+// codeFileRE matches a name ending in a source or document extension.
+var codeFileRE = regexp.MustCompile(`(?i)\.(go|ts|tsx|js|jsx|py|php|rb|rs|java|kt|swift|c|h|cpp|cs|sql|sh|yaml|yml|json|toml|md|txt|html|css|vue|proto)$`)
+
+// namesAnArtifact reports whether name is a thing the store should hold as
+// an entity no matter what the extraction model called it.
+//
+// The model is allowed to be sloppy and the resolver is not, and the value
+// type is the sloppiest instruction in the prompt: an over-eager verdict on
+// a file or a ticket would not merely mislabel it, it would stop the entity
+// existing, and a fact between two of them is dropped entirely. Files and
+// tickets are the two classes worth defending, because the store holds
+// thousands of each and they are exactly what a session talks about.
+//
+// Deliberately narrow. This is a veto over one instruction, not a second
+// opinion on every name; anything not clearly a file or a ticket is left to
+// the model's judgement and the lexical rules.
+func namesAnArtifact(name string) bool {
+	n := strings.TrimSpace(name)
+	if n == "" {
+		return false
+	}
+	if ticketRE.MatchString(n) {
+		return true
+	}
+	if codeFileRE.MatchString(n) {
+		return true
+	}
+	// A path: a slash between two name-ish parts, with no spaces around it.
+	if i := strings.IndexByte(n, '/'); i > 0 && i < len(n)-1 && !strings.ContainsAny(n, " \t") {
+		return true
+	}
+	return false
 }

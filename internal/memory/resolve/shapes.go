@@ -35,6 +35,12 @@ var (
 	// setting is the identity; the value it is bound to is data. No rule
 	// looked at "=" at all, and fifteen such names were live entities.
 	settingRE = regexp.MustCompile(`^[A-Za-z_.-][A-Za-z0-9_.-]*\s*=\s*\S`)
+	// settingColonRE is settingRE's other spelling: "think:false",
+	// "onDelete: set null", "turn_detection: null". A setting bound with a
+	// colon is the same value a setting bound with an equals sign is, and
+	// no rule looked at the colon. The key has to be a single identifier —
+	// a phrase before the colon is a sentence or a label, not a setting.
+	settingColonRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]*\s*:\s*\S`)
 	// isoStampRE: "20260903T000246Z" inside a name is a run's timestamp.
 	// hashLike cannot see it because of the t and the z.
 	isoStampRE = regexp.MustCompile(`(?i)\d{8}t\d{6}z`)
@@ -691,12 +697,22 @@ func commandLine(n string) bool {
 		}
 	}
 	for _, w := range words[1:] {
-		if strings.HasPrefix(w, "-") || strings.Contains(w, "/") || strings.Contains(w, ".") || w == "*" {
+		if strings.HasPrefix(w, "-") || strings.Contains(w, "/") || w == "*" {
+			return true
+		}
+		// A dotted word is a path argument ("php artisan.php") unless it is
+		// a version number, which is how a tool gets named rather than run:
+		// "Python 3.13 shim", "Go 1.23 toolchain", "curl 8.11 HTTP3". The
+		// dot alone used to decide this, and refused all eight.
+		if strings.Contains(w, ".") && !versionNumberRE.MatchString(w) {
 			return true
 		}
 	}
 	return false
 }
+
+// versionNumberRE matches a bare version: "3.13", "8.4", "1.23.4", "2.47".
+var versionNumberRE = regexp.MustCompile(`^v?\d+(\.\d+)+$`)
 
 // commandVerbs are the subcommands that follow a tool's name when it is
 // being run rather than named.
@@ -780,7 +796,7 @@ func listName(n string) bool {
 	if quotedRE.MatchString(n) || trailingScoreRE.MatchString(n) {
 		return true
 	}
-	if settingRE.MatchString(strings.TrimSpace(n)) {
+	if t := strings.TrimSpace(n); settingRE.MatchString(t) || boundByColon(t) {
 		return true
 	}
 	if strings.Contains(n, "|") || strings.Count(n, ",") >= 2 {
@@ -868,3 +884,34 @@ func ValueShape(n string) bool {
 		numberPhrase(n) || verdictPhrase(n) || looksMeasured(n) || listName(n) ||
 		commandLine(n) || messageName(n) || chainName(n)
 }
+
+// boundByColon reports whether n is a setting written with a colon.
+//
+// Two shapes are deliberately excluded. A clock time ("10:30") is a value
+// already judged elsewhere and would drag every "9:00 standup" in with it,
+// and a URL or a namespace ("https://x", "scry::refs") is not a setting.
+// The value side must also be short: "cockpit: an observatory rather than a
+// process runner" is prose someone wrote about an entity, not a binding.
+func boundByColon(n string) bool {
+	if !settingColonRE.MatchString(n) {
+		return false
+	}
+	if strings.Contains(n, "://") || strings.Contains(n, "::") {
+		return false
+	}
+	i := strings.IndexByte(n, ':')
+	key, val := n[:i], strings.TrimSpace(n[i+1:])
+	if clockTimeRE.MatchString(n) {
+		return false
+	}
+	// A key nobody would type as a setting: it has to look like an
+	// identifier, which settingColonRE already requires, and be short.
+	if len(key) > 40 || len(strings.Fields(val)) > 4 {
+		return false
+	}
+	return true
+}
+
+// clockTimeRE matches a time of day, which is a value judged by its own
+// rule rather than as a setting.
+var clockTimeRE = regexp.MustCompile(`^\d{1,2}:\d{2}(:\d{2})?\s*(am|pm|AM|PM)?$`)
