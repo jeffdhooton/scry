@@ -84,9 +84,19 @@ func namesAnArtifact(name string) bool {
 	if codeFileRE.MatchString(n) {
 		return true
 	}
+	// A code position is a value, not the file it points into: the prompt
+	// says so, and "queue/outbox.ts:170-173" answers no question a session
+	// would ask about a file. Judge it before the path rule, which would
+	// otherwise defend it for the slash.
+	if codePositionRE.MatchString(n) {
+		return false
+	}
 	// A path: a slash between two name-ish parts, with no spaces around it.
 	if i := strings.IndexByte(n, '/'); i > 0 && i < len(n)-1 && !strings.ContainsAny(n, " \t") {
 		return true
 	}
 	return false
 }
+
+// codePositionRE matches a file with a line or line range stuck on the end.
+var codePositionRE = regexp.MustCompile(`:\d+(-\d+)?(,\d+(-\d+)?)*$`)

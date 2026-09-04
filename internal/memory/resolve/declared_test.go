@@ -194,6 +194,10 @@ func TestNamesAnArtifactIsNarrow(t *testing.T) {
 		{"cmd/scry", true},
 		{"queue/outbox.ts", true},
 		{"schema.sql", true},
+		// But a code position points into a file rather than naming one.
+		{"queue/outbox.ts:170-173", false},
+		{"exception_queue.py:61", false},
+		{"memory-graph.test.ts:39,43-57", false},
 		// Defended: tickets and pull requests.
 		{"issue-91", true},
 		{"PR-402", true},
