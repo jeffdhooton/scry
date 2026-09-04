@@ -42,8 +42,10 @@ var (
 	// a phrase before the colon is a sentence or a label, not a setting.
 	settingColonRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]*\s*:\s*\S`)
 	// isoStampRE: "20260903T000246Z" inside a name is a run's timestamp.
+	// The time part may be four digits or six — "20260904T0250Z" is the
+	// same kind of name and the six-digit-only version missed it.
 	// hashLike cannot see it because of the t and the z.
-	isoStampRE = regexp.MustCompile(`(?i)\d{8}t\d{6}z`)
+	isoStampRE = regexp.MustCompile(`(?i)\d{8}t\d{4,6}z`)
 	// quotedRE: "guard: 'self'", "'./primitives/*': './src/...'" — a
 	// quoted literal, or a key with one.
 	quotedRE = regexp.MustCompile(`'[^']{2,}'|"[^"]{2,}"`)
@@ -940,3 +942,42 @@ var literalValues = map[string]bool{
 // clockTimeRE matches a time of day, which is a value judged by its own
 // rule rather than as a setting.
 var clockTimeRE = regexp.MustCompile(`^\d{1,2}:\d{2}(:\d{2})?\s*(am|pm|AM|PM)?$`)
+
+// ratioRE matches a progress ratio written into a name: "1-of-408",
+// "44 of 50", "guides-1-of-408-complete". A ratio is a reading taken at a
+// moment, never the name of a thing.
+var ratioRE2 = regexp.MustCompile(`(?i)\b\d+[-\s]of[-\s]\d+\b`)
+
+// leadingCountRE matches a name that opens on a number and closes on a
+// plural: "41 URLs", "42 sitemap URLs", "164 fields". Those count something
+// rather than name it.
+var leadingCountRE = regexp.MustCompile(`(?i)^\d+\s+[a-z][a-z0-9 -]*?[a-z]s$`)
+
+// countedPhrase reports whether n reads as a tally rather than a name.
+//
+// Both shapes come from measuring the entities the extractor created during
+// one afternoon's backlog: 37 of 704 opened on a number or carried a ratio,
+// among them "53 canonical URLs" and "guides-1-of-408-complete".
+func countedPhrase(n string) bool {
+	t := strings.TrimSpace(n)
+	if ratioRE2.MatchString(t) {
+		return true
+	}
+	if !leadingCountRE.MatchString(t) {
+		return false
+	}
+	// A title-cased word after the number makes it a name: "7 Wonders",
+	// "5 Guys", "24 Hour Fitness", "99 Designs". A tally is written in
+	// lower case, and an acronym like "URLs" is not title case.
+	for _, w := range strings.Fields(t)[1:] {
+		if titleWordRE.MatchString(w) {
+			return false
+		}
+	}
+	return true
+}
+
+// titleWordRE matches a capitalised ordinary word — an initial capital
+// followed by a lower-case letter. "URLs" and "IDs" do not match, which is
+// what keeps "43 unique URLs" a tally.
+var titleWordRE = regexp.MustCompile(`^[A-Z][a-z]`)

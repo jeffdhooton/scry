@@ -166,6 +166,9 @@ func IsValueName(name string) bool {
 	if enumValue(strings.TrimSpace(name)) {
 		return true
 	}
+	if countedPhrase(name) {
+		return true
+	}
 	// The original spelling, not the lowercased one: a state a session
 	// shouted is written in capitals, and that is the only thing telling
 	// PENDING-og-images from pending-migration-lock.

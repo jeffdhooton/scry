@@ -31,6 +31,10 @@ func TestNamesGuard(t *testing.T) {
 		// Named constants. enumEndings once held error, timeout and
 		// required, which refused 23 real identifiers in a corpus of 4,000.
 		"CURLOPT_TIMEOUT", "DEFAULT_TIMEOUT", "E_USER_ERROR", "STANDARD_ERROR",
+		// Brands that open on a number. A title-cased word after the
+		// number is what tells them from a tally.
+		"7 Wonders", "5 Guys", "3 Musketeers", "24 Hour Fitness", "99 Designs",
+		"3 nodes cluster design", "0052 opt-out spine",
 		"CMAKE_MINIMUM_REQUIRED", "clean_build_required", "low_memory_error",
 	} {
 		if IsValueName(n) {
@@ -60,6 +64,13 @@ func TestNamesGuard(t *testing.T) {
 		// Command lines. versionNumberRE matched an IPv4 address, so a
 		// shell verb plus a host stopped being a command.
 		"ssh 100.96.45.73", "curl 127.0.0.1", "docker 172.17.0.2",
+		// Tallies and progress ratios, measured on 704 entities the
+		// extractor created during one afternoon's backlog.
+		"41 URLs", "42 sitemap URLs", "53 canonical URLs", "43 unique URLs",
+		"guides-1-of-408-complete", "strict-coverage-16-of-408",
+		"scry-recall-tuning-strict-score-44-of-50",
+		// A run stamp with a four-digit time; the rule wanted six.
+		"registered-remaining-20260904T0250Z",
 		// Deliberately NOT here, all known and accepted misses:
 		//   "CHANGES_REQUIRED" — "required" left enumEndings so that
 		//     CMAKE_MINIMUM_REQUIRED and clean_build_required survive.
