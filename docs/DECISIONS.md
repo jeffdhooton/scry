@@ -3057,3 +3057,23 @@ empty. A stale outside claim with no corresponding listing is deleted. The
 entity-list edits and index disposition are atomic, preventing either an exact
 lookup blackout or a wrong residual owner. Standalone unalias follows the same
 rehome rule; multi-entity global drops belong in the merge manifest.
+
+## Non-identity retirement is a complete fact replacement (2026-09-04)
+
+**Decision.** Legacy value/status nodes are removed only by
+`memory retire-entities`, a reviewed manifest operation separate from identity
+merge. The initial dry run exposes the exact entity, every current and
+invalidated touching fact, and relevant alias claims. A completed manifest
+binds one replacement to every fact key and SHA-256, pins all source/target and
+alias-rehome entity snapshots, and may change only endpoints or edge versus
+attribute shape. Fact text, canonical and raw relation, validity, timestamps,
+confidence, and episode provenance are immutable.
+
+Each entity retirement is one Badger transaction. It refuses incomplete fact
+coverage, snapshot drift, missing endpoints, self-loops, fact-key collisions,
+unreviewed external alias listings, and cross-group dependencies. Hollow value
+nodes may be removed because there are no facts to lose. Relevant alias claims
+are cleared even when a legacy stale index names the wrong owner; a spelling
+survives only through an explicit rehome to an existing entity that already
+lists it. CLI and raw RPC default to dry-run, preflight the full manifest, and
+take a verified nonempty backup before the first group commits.

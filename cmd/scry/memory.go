@@ -83,7 +83,7 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd(), memoryReattachCmd(), memoryUnaliasCmd(), memoryMergeEntitiesCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd(), memoryReattachCmd(), memoryUnaliasCmd(), memoryMergeEntitiesCmd(), memoryRetireEntitiesCmd())
 	return cmd
 }
 
@@ -1609,6 +1609,131 @@ or dangling endpoint is refused rather than repaired by guessing.
 		},
 	}
 	cmd.Flags().String("file", "", "JSON array of reviewed merge groups (required)")
+	cmd.Flags().String("dir", "", "run against an offline restored store directory instead of the daemon")
+	cmd.Flags().Bool("apply", false, "apply every preflighted group after taking a backup")
+	return cmd
+}
+
+// --- retire non-identities ---
+
+func memoryRetireEntitiesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "retire-entities",
+		Short: "Retire reviewed value nodes while preserving every fact",
+		Long: `Reads a JSON array of reviewed non-identity retirements. The first
+dry run needs only entity/why and returns the complete entity, alias claims,
+and every touching current or invalidated fact with exact keys and hashes.
+
+For each fact, copy its snapshot into a replacement, identify old_key and
+expected_sha256, and change only the reviewed endpoint or edge-to-attribute
+shape. Fact text, relation, raw relation, validity, timestamps, confidence,
+and episode provenance are immutable. Copy expected into the manifest after
+the completed dry run. Apply refuses incomplete review, snapshot drift,
+missing endpoints, self-loops, duplicate keys, or external alias listings.
+It preflights the whole manifest, takes a nonempty backup, and commits each
+independent entity plus all its facts and aliases in one transaction.
+An externally listed spelling requires rehome_aliases with an explicit target
+that already lists it; no recipient is inferred.
+
+  [{"id":"done-status","entity":"done","why":"reviewed status value"}]`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			if file == "" {
+				return fmt.Errorf("--file is required")
+			}
+			encoded, err := os.ReadFile(file)
+			if err != nil {
+				return err
+			}
+			var groups []memstore.EntityRetirementRequest
+			if err := json.Unmarshal(encoded, &groups); err != nil {
+				return fmt.Errorf("%s: %w", file, err)
+			}
+			if len(groups) == 0 {
+				return fmt.Errorf("%s: no retirement groups", file)
+			}
+			apply, _ := cmd.Flags().GetBool("apply")
+			dir, _ := cmd.Flags().GetString("dir")
+			if dir == "" {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+				defer cancel()
+				dryRun := !apply
+				var result daemon.MemoryRetireEntitiesResult
+				if err := callMemoryDaemon(ctx, "memory.retireEntities", &daemon.MemoryRetireEntitiesParams{Groups: groups, DryRun: &dryRun}, &result); err != nil {
+					return err
+				}
+				pretty, _ := cmd.Flags().GetBool("pretty")
+				return printJSON(result, pretty)
+			}
+
+			st, err := memstore.Open(dir)
+			if err != nil {
+				return fmt.Errorf("open %s (is a daemon holding it?): %w", dir, err)
+			}
+			defer st.Close()
+			facts, err := st.AllFacts()
+			if err != nil {
+				return err
+			}
+			if err := daemon.ValidateMemoryRetirementIsolation(groups, facts); err != nil {
+				return err
+			}
+			result := daemon.MemoryRetireEntitiesResult{DryRun: !apply}
+			for _, group := range groups {
+				preview, err := st.PreviewEntityRetirement(group)
+				if err != nil {
+					return err
+				}
+				result.Groups = append(result.Groups, preview)
+				if !preview.Ready {
+					result.Refused++
+					continue
+				}
+				if apply && !reflect.DeepEqual(group.Expected, preview.Expected) {
+					result.Refused++
+					result.Groups[len(result.Groups)-1].Problems = append(result.Groups[len(result.Groups)-1].Problems,
+						"apply requires exact reviewed entity, fact, and alias fingerprints")
+				}
+			}
+			if !apply || result.Refused > 0 {
+				pretty, _ := cmd.Flags().GetBool("pretty")
+				return printJSON(result, pretty)
+			}
+
+			backupPath := filepath.Join(filepath.Dir(dir), "backups", "memory-pre-retirement-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
+			if err := os.MkdirAll(filepath.Dir(backupPath), 0o755); err != nil {
+				return err
+			}
+			backup, err := os.Create(backupPath)
+			if err != nil {
+				return err
+			}
+			if _, err := st.Backup(backup); err != nil {
+				backup.Close()
+				return err
+			}
+			if err := backup.Close(); err != nil {
+				return err
+			}
+			info, err := os.Stat(backupPath)
+			if err != nil || info.Size() == 0 {
+				return fmt.Errorf("retire-entities: backup is missing or empty at %s", backupPath)
+			}
+			result.BackupPath = backupPath
+			for i, group := range groups {
+				preview, err := st.RetireEntity(group)
+				if err != nil {
+					return fmt.Errorf("retire-entities offline group %s aborted after %d committed group(s) (backup %s): %w", group.ID, result.Applied, backupPath, err)
+				}
+				result.Groups[i] = preview
+				result.Applied++
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(result, pretty)
+		},
+	}
+	cmd.Flags().String("file", "", "JSON array of reviewed retirement groups (required)")
 	cmd.Flags().String("dir", "", "run against an offline restored store directory instead of the daemon")
 	cmd.Flags().Bool("apply", false, "apply every preflighted group after taking a backup")
 	return cmd

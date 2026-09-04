@@ -2203,3 +2203,33 @@ rebuilt its index, and resumed the extraction worker with zero backoff and
 parked items. Scry room post 37 records the deploy. No live store-shape repair
 was included; the queue was still draining and the Qwen manifest was correctly
 treated as stale.
+
+## 2026-09-04 — reviewed legacy non-identity retirement primitive
+
+`scry memory retire-entities --file <json> [--apply]` now provides the missing
+manifest path for legacy status/value nodes. A bare dry run returns the full
+entity and alias snapshot plus every touching current and invalidated fact,
+including exact key, full JSON, SHA-256, text, and invalidation state. Apply
+requires one reviewed replacement per fact plus the exact entity/fact/alias
+fingerprints from the completed dry run.
+
+The store transaction preserves fact text, relation and raw relation,
+`valid_from`, `invalid_at`, confidence, and ordered episode provenance. It may
+only relocate reviewed endpoints or convert an edge to an attribute. It
+refuses missing coverage, payload mutation, snapshot drift, missing endpoints,
+self-loops, collisions with untouched facts, duplicate replacement keys, and
+unreviewed outside alias listings. Target identities and explicit alias rehome
+targets are entity-hashed. Hollow status nodes are removable, stale
+wrong-owner claims are deleted, and legitimate shared spellings require a
+reviewed rehome to an existing entity already listing the spelling.
+
+Daemon and offline CLI paths default to dry-run, preflight all groups for
+shared facts, retiring targets, and cross-group replacement-key collisions,
+and take a nonempty Badger backup before apply. Tests cover current and
+invalidated fact preservation, exact attribute conversion, endpoint
+relocation, alias removal/rehome, hollow cleanup, stale claims, immutable
+payload rejection, drift and injected postcondition rollback, self-loop and
+key-collision refusal, full-manifest no-partial preflight, safe raw-RPC
+default, and backup existence. No live retirement manifest has been created
+or applied; the primitive still requires fresh-context review and restored
+live-replica proof.
