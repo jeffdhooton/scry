@@ -1700,3 +1700,58 @@ session what that costs: `Ready For Review` and `CMAKE_MINIMUM_REQUIRED` were
 both lost to rules of exactly that shape. The false-rejection rate on names
 from outside the store is 0.7% and every further catch has been buying itself
 with real names.
+
+## Item 5, batch two: eleven more, and the far end of a fact
+
+The pre-apply reviewer that vetoed batch one also listed the facts it had
+seen the builder's exclusion rule throw away. Batch two is that list, which
+makes it the reviewer's judgement rather than the builder's.
+
+Six moved from the project to the Hermes service: the deterministic routing
+policy, concurrent Slack sessions, the Hermes-to-Jermes rename, the
+`provider: deepseek` with `api_key: lemonade` mismatch, the HaloFast default
+model, and the gateway's Slack authentication. Two of the reviewer's
+suggestions were left alone as genuinely ambiguous — `configures halo-fast`
+is a model-side setting that may belong to the model, and `contains
+cellsaviors` names "Hermes-ops" in its own sentence.
+
+**Five needed the other end of the fact.** "Feedback digest launchd job runs
+on hermes Mac mini daily at 9am" was stored as `childscribe-feedback
+-[deployed_on]-> hermes-ops`: the source is right and the destination is
+wrong. `reattach` could only move a source, so moving these would have
+produced a worse fact than it found. It now takes a `side`, and the duplicate
+scan reads both directions because a far-end move lands an edge pointing *at*
+the destination while `FactsFrom` only walks outward.
+
+One move was caught by the builder before the dry run: keying the far-end set
+on `(source, relation)` matched two `jeff -[deployed_on]-> hermes-ops` facts,
+and the second — "Deployed after asking operator via AskUserQuestion per
+deploy gate" — says nothing about a machine. The selection now requires the
+sentence to name the mini. Twelve became eleven.
+
+```
+applied   moved 11, refused 0, warned 3
+warnings  hermes already says uses halo-fast, uses jermes, calls hermes-ops,
+          each in different words
+backup    /Users/jclaw/.scry/backups/memory-20260904T161803Z.badger
+re-run    moved 0, refused 11
+```
+
+| | before batch one | now |
+|---|---|---|
+| facts touching hermes-ops | 274 | 255 |
+| as source | 135 | 118 |
+| as destination | 139 | 137 |
+| facts touching hermes | 261 | 282 |
+| facts touching mac-mini | 143 | 183 |
+
+Twenty-three facts moved in total, against graders' hand counts of 54–69 for
+the agent and 12–13 for the mini. The store grew throughout from the draining
+backlog, so these totals are not a clean subtraction; the moved counts are
+exact and the totals are indicative.
+
+**Item 5 still fails.** `recall "Hermes agent"` no longer returns the project
+first, and still does not return the service first. What remains is roughly
+forty more sentences of judgement, a tool that makes each one safe, and a
+process — propose, have a fresh agent veto, apply what survives — that has now
+caught three bad moves and two false claims in two rounds.
