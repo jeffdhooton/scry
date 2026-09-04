@@ -8,19 +8,22 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
-func TestDeclaredValuesCollectsNamesAndAliases(t *testing.T) {
+func TestDeclaredValuesCollectsExactNamesNotAliases(t *testing.T) {
 	got := DeclaredValues([]extract.Ent{
 		{Name: "Loom", Type: "project"},
 		{Name: "46 GiB", Type: "value"},
-		{Name: "In Progress", Type: "value", Aliases: []string{"in-progress"}},
+		{Name: "In Progress", Type: "value", Aliases: []string{"workflow-stage"}},
 	})
-	for _, want := range []string{"46 gib", "in progress", "in-progress"} {
+	for _, want := range []string{"46 gib", "in progress"} {
 		if !got[store.Normalize(want)] {
 			t.Errorf("declared values missing %q: %v", want, got)
 		}
 	}
 	if got[store.Normalize("Loom")] {
 		t.Error("a project must not be collected as a value")
+	}
+	if got[store.Normalize("workflow-stage")] {
+		t.Error("a value alias must not poison a separately declared exact identity")
 	}
 }
 
@@ -94,6 +97,84 @@ func TestContextBearingAmbiguousStatusPairs(t *testing.T) {
 	facts := mustFacts(t, st, mustSlug(t, st, "PYTHON_ARGCOMPLETE_OK"))
 	if len(facts) != 1 || facts[0].Dst != mustSlug(t, st, "argcomplete") {
 		t.Errorf("context-declared identifier edge was converted or lost: %+v", facts)
+	}
+}
+
+func TestFallbackOrUnknownTypesCannotOverrideEnumValueGuard(t *testing.T) {
+	for _, entityJSON := range []string{
+		`{"name":"QUALITY_OK","description":"the run verdict"}`,
+		`{"name":"QUALITY_OK","type":"status","description":"the run verdict"}`,
+	} {
+		st := openTemp(t)
+		parsed, err := extract.ParseResult(`{"episode_summary":"quality run","entities":[` + entityJSON + `],"facts":[]}`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ep := store.Episode{ID: "ep-" + store.Slugify(entityJSON), Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+		if _, err := Apply(st, ep, "", parsed, nil); err != nil {
+			t.Fatal(err)
+		}
+		if _, found, err := st.ResolveAlias("QUALITY_OK"); err != nil || found {
+			t.Errorf("fallback enum status became an entity: found=%v err=%v parsed=%+v", found, err, parsed.Entities)
+		}
+	}
+	// Raw RPC callers can bypass ParseResult, so an invented direct type must
+	// also fail the contextual identity allowlist.
+	st := openTemp(t)
+	ep := store.Episode{ID: "ep-direct-unknown", Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+	if _, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{Name: "QUALITY_OK", Type: "status"}}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, found, _ := st.ResolveAlias("QUALITY_OK"); found {
+		t.Error("direct invented type overrode enum value guard")
+	}
+}
+
+func TestDeclaredValueIgnoresStaleAliasOwner(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []store.Entity{
+		{Slug: "wrong-owner", Name: "Wrong Owner", Type: "concept", Aliases: []string{"validation_failed"}},
+		{Slug: "scry", Name: "Scry", Type: "project"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ep := store.Episode{ID: "ep-stale-value-alias", Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+	result := extract.Result{
+		Entities: []extract.Ent{{Name: "validation_failed", Type: "value", Description: "the run status"}},
+		Facts:    []extract.Fct{{Src: "scry", Relation: "status", Dst: "validation_failed", Fact: "Scry validation failed", Confidence: .9}},
+	}
+	if _, err := Apply(st, ep, "", result, nil); err != nil {
+		t.Fatalf("stale alias owner aborted a correctly classified episode: %v", err)
+	}
+	if _, err := st.GetEntity("validation-failed"); err == nil {
+		t.Error("correct value verdict created a status identity")
+	}
+	facts := mustFacts(t, st, "scry")
+	if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != "validation_failed" {
+		t.Errorf("correct value fact was not preserved as an attribute: %+v", facts)
+	}
+}
+
+func TestValueAliasCannotPoisonSeparateExactIdentity(t *testing.T) {
+	st := openTemp(t)
+	ep := store.Episode{ID: "ep-value-alias-conflict", Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+	result := extract.Result{
+		Entities: []extract.Ent{
+			{Name: "completion_state", Type: "value", Aliases: []string{"PYTHON_ARGCOMPLETE_OK"}},
+			{Name: "PYTHON_ARGCOMPLETE_OK", Type: "concept", Description: "a durable protocol marker"},
+			{Name: "argcomplete", Type: "tool"},
+		},
+		Facts: []extract.Fct{{Src: "PYTHON_ARGCOMPLETE_OK", Relation: "part_of", Dst: "argcomplete", Fact: "the marker belongs to argcomplete", Confidence: .9}},
+	}
+	if _, err := Apply(st, ep, "", result, nil); err != nil {
+		t.Fatal(err)
+	}
+	marker := mustSlug(t, st, "PYTHON_ARGCOMPLETE_OK")
+	facts := mustFacts(t, st, marker)
+	if len(facts) != 1 || facts[0].Dst != mustSlug(t, st, "argcomplete") {
+		t.Errorf("value alias poisoned exact identity edge: %+v", facts)
 	}
 }
 

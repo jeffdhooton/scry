@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"errors"
 	"regexp"
 	"strings"
 
@@ -10,8 +11,9 @@ import (
 
 // DeclaredValues is the set of names the extraction model typed as "value":
 // things that describe something rather than being something. Keys are
-// store.Normalize'd so a fact endpoint matches whatever spelling the entity
-// list used.
+// store.Normalize'd so a fact endpoint matches the entity's exact name.
+// Aliases are intentionally excluded: one value declaration must not poison
+// a separately declared identity that happens to share one of its aliases.
 //
 // The lexical rules in values.go work on the name alone, which is all they
 // have. The model read the episode, so it can tell "main" the branch from
@@ -29,9 +31,6 @@ func DeclaredValues(ents []extract.Ent) map[string]bool {
 			out = map[string]bool{}
 		}
 		out[store.Normalize(ent.Name)] = true
-		for _, a := range ent.Aliases {
-			out[store.Normalize(a)] = true
-		}
 	}
 	return out
 }
@@ -47,7 +46,11 @@ func declaredValue(st *store.Store, declared map[string]bool, name string) bool 
 	if !declared[store.Normalize(name)] {
 		return false
 	}
-	if _, found, err := st.ResolveAlias(name); err != nil || found {
+	exact, err := st.GetEntity(store.Slugify(name))
+	if err == nil && store.Normalize(exact.Name) == store.Normalize(name) {
+		return false
+	}
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return false
 	}
 	return !namesAnArtifact(name)

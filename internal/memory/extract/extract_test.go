@@ -147,6 +147,22 @@ func TestParseResult(t *testing.T) {
 		}
 	})
 
+	t.Run("missing and invented types are marked as fallbacks", func(t *testing.T) {
+		for _, entityJSON := range []string{
+			`{"name":"QUALITY_OK","description":"a status"}`,
+			`{"name":"QUALITY_OK","type":"status","description":"a status"}`,
+		} {
+			raw := `{"episode_summary":"quality run","entities":[` + entityJSON + `],"facts":[]}`
+			got, err := ParseResult(raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got.Entities) != 1 || got.Entities[0].Type != "concept" || !got.Entities[0].TypeFallback {
+				t.Fatalf("fallback provenance was lost: %+v", got.Entities)
+			}
+		}
+	})
+
 	t.Run("missing confidence returns error", func(t *testing.T) {
 		raw := `{
 			"episode_summary": "ok",

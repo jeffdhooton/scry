@@ -2124,6 +2124,27 @@ not yet contain the allowlist correction, and no existing status entity has
 been retired. Deployment and any explicit retirement manifest remain gated on
 fresh review and replica evidence.
 
+### First status/value review disproved the implementation
+
+A fresh-context grader disproved commit `b565ec6` before deployment. Missing
+or invented types were folded to `concept`, then mistakenly trusted by the
+enum-shaped identity override; both an omitted type and `type: "status"`
+persisted `QUALITY_OK`. A stale alias owner also defeated a correct `value`
+verdict, and an alias attached to a value declaration could poison a separate
+exact identity declaration. Nothing from that commit was deployed.
+
+The correction carries parser-fallback provenance on each entity and trusts
+only explicit documented identity types. The established-identity veto now
+checks an exact natural-slug entity/name match rather than alias routing, and
+declared values contain exact names rather than their aliases. Regressions
+cover both malformed type variants, the direct-RPC bypass, stale alias
+ownership, conflicting value aliases, and preservation of the exact
+identifier's graph edge. A gated provider-to-parser-to-resolver test now
+writes provider output into a temporary Badger store rather than grading
+labels in isolation. The configured DeepSeek fallback remains unavailable
+under the recorded HTTP 402/no-spend constraint; this is still an explicit
+evidence gap, not a passing measurement.
+
 ### Prevention deployment
 
 Fresh-context merge review round four returned VERIFIED at `695b8e1`. The

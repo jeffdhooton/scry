@@ -34,10 +34,11 @@ type Result struct {
 
 // Ent is one entity mentioned in an episode.
 type Ent struct {
-	Name        string   `json:"name"`
-	Type        string   `json:"type"`
-	Description string   `json:"description"`
-	Aliases     []string `json:"aliases,omitempty"`
+	Name         string   `json:"name"`
+	Type         string   `json:"type"`
+	Description  string   `json:"description"`
+	Aliases      []string `json:"aliases,omitempty"`
+	TypeFallback bool     `json:"-"` // parser supplied concept for a missing/invented type
 }
 
 // Fct is one fact relating two entities.
@@ -148,6 +149,7 @@ func parseResultStrict(text string) (Result, error) {
 		}
 		if i < len(result.Entities) {
 			result.Entities[i].Type = fallbackEntityType
+			result.Entities[i].TypeFallback = true
 		}
 	}
 

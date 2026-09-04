@@ -2944,6 +2944,16 @@ to return HTTP 402 and this run is expressly forbidden to spend or top it up.
 That absence is a provider-availability limit, not evidence for or against the
 classifier.
 
+**Review correction.** A non-value verdict is evidence only when the model
+supplied one of the documented identity types. The parser still folds missing
+or invented types to `concept` to avoid losing an episode, but marks that fold;
+the enum-shaped identity escape hatch refuses marked fallbacks. It also uses
+an explicit allowlist so direct RPC results with invented types cannot bypass
+the parser guard. An established identity means an exact natural-slug entity
+whose name matches—not any alias routing hit—and a value entity's aliases do
+not declare other exact names to be values. These boundaries follow the rule
+that routing state is not identity authority.
+
 ## Alias routing state is not identity authority (2026-09-04)
 
 **Decision.** An ordinary `store.PutEntity` may create an unclaimed name or

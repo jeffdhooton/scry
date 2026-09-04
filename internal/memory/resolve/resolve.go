@@ -253,7 +253,15 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 // the latter. Hard value shapes, generic names, artifacts, and undeclared fact
 // endpoints never reach this override.
 func contextualEnumIdentity(ent extract.Ent) bool {
-	return ent.Type != "" && ent.Type != "value" && enumValue(strings.TrimSpace(ent.Name))
+	if ent.TypeFallback {
+		return false
+	}
+	switch ent.Type {
+	case "project", "service", "machine", "tool", "person", "decision", "runbook", "concept":
+		return enumValue(strings.TrimSpace(ent.Name))
+	default:
+		return false
+	}
 }
 
 // resolvedFact is one extract.Fct after Rule 3's endpoint/ValidFrom
