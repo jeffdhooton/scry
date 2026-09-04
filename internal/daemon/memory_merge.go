@@ -104,24 +104,19 @@ func (d *Daemon) handleMemoryMergeEntities(_ context.Context, raw json.RawMessag
 	}
 	res.BackupPath = b.(*MemoryBackupResult).Path
 	for i, group := range p.Groups {
-		preview, err := st.MergeEntities(group)
+		observed := 0
+		preview, err := st.MergeEntitiesChecked(group, func(entities []memstore.Entity, facts []memstore.Fact) error {
+			observed = resolve.CrossTypeCollisionCount(entities, facts)
+			if observed != res.Groups[i].CollisionsAfter {
+				return fmt.Errorf("collision count predicted %d, observed %d", res.Groups[i].CollisionsAfter, observed)
+			}
+			return nil
+		})
 		if err != nil {
-			return nil, fmt.Errorf("merge-entities group %s after %d committed group(s): %w", mergeGroupName(group), res.Applied, err)
+			return nil, fmt.Errorf("merge-entities group %s aborted after %d committed group(s) (backup %s): %w", mergeGroupName(group), res.Applied, res.BackupPath, err)
 		}
 		res.Groups[i].EntityMergePreview = preview
-		observedEntities, err := st.Entities()
-		if err != nil {
-			return nil, fmt.Errorf("merge-entities group %s committed but collision recount failed (backup %s): %w", mergeGroupName(group), res.BackupPath, err)
-		}
-		observedFacts, err := st.AllFacts()
-		if err != nil {
-			return nil, fmt.Errorf("merge-entities group %s committed but collision recount failed (backup %s): %w", mergeGroupName(group), res.BackupPath, err)
-		}
-		observed := resolve.CrossTypeCollisionCount(observedEntities, observedFacts)
 		res.Groups[i].ObservedCollisionsAfter = &observed
-		if observed != res.Groups[i].CollisionsAfter {
-			return nil, fmt.Errorf("merge-entities group %s collision verification failed after commit: predicted %d, observed %d (restore backup %s before retrying)", mergeGroupName(group), res.Groups[i].CollisionsAfter, observed, res.BackupPath)
-		}
 		res.Groups[i].CollisionVerified = true
 		res.Applied++
 	}

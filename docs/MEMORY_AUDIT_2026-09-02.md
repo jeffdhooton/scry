@@ -2041,8 +2041,9 @@ could leave an outside listing unindexed; and an RPC boolean whose omitted
 zero value meant apply. All four were fixed before deployment or live apply.
 Resolution now uses an episode-local identity map and never changes ownership;
 a missing exact identity whose name is claimed fails with `ErrAliasClaimed`.
-Predictions are sequential and every commit is compared with a fresh observed
-collision count. Merge and standalone unalias require explicit validated
+Predictions are sequential and every transaction recomputes the observed
+collision count from its complete read-your-writes snapshot before commit.
+Merge and standalone unalias require explicit validated
 `rehome_to` when another entity lists a dropped spelling. Omitted `dry_run` on
 the merge RPC now means true.
 
@@ -2077,3 +2078,12 @@ It preserved 57,041 facts, left 15 touching the survivor, removed one entity
 and exactly one alias claim, removed `Q5` from the Q8 model, and proved `Q5`
 neither resolves nor remains listed. Collision prediction and observation were
 again 343 → 341 and 341.
+
+A third fresh-context review found that `rehome_to` targets were validated but
+not included in the entity hash set, and that collision mismatch was detected
+immediately after commit rather than aborting the group. Rehome targets are now
+full entity snapshots in `expected.entities`. Collision verification now runs
+as a callback inside the Badger update transaction over complete
+read-your-writes entity and fact snapshots; any mismatch returns an error and
+rolls back the group. A regression test injects a failing postcondition and
+proves the loser, fact, and alias state remain unchanged.

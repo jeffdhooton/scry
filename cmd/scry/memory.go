@@ -1576,24 +1576,19 @@ or dangling endpoint is refused rather than repaired by guessing.
 				}
 				res.BackupPath = backupPath
 				for i, group := range groups {
-					preview, err := st.MergeEntities(group)
+					observed := 0
+					preview, err := st.MergeEntitiesChecked(group, func(entities []memstore.Entity, facts []memstore.Fact) error {
+						observed = resolve.CrossTypeCollisionCount(entities, facts)
+						if observed != res.Groups[i].CollisionsAfter {
+							return fmt.Errorf("collision count predicted %d, observed %d", res.Groups[i].CollisionsAfter, observed)
+						}
+						return nil
+					})
 					if err != nil {
-						return fmt.Errorf("merge-entities offline group %s after %d committed group(s): %w", group.ID, res.Applied, err)
+						return fmt.Errorf("merge-entities offline group %s aborted after %d committed group(s) (backup %s): %w", group.ID, res.Applied, backupPath, err)
 					}
 					res.Groups[i].EntityMergePreview = preview
-					observedEntities, err := st.Entities()
-					if err != nil {
-						return fmt.Errorf("merge-entities offline group %s committed but collision recount failed (backup %s): %w", group.ID, backupPath, err)
-					}
-					observedFacts, err := st.AllFacts()
-					if err != nil {
-						return fmt.Errorf("merge-entities offline group %s committed but collision recount failed (backup %s): %w", group.ID, backupPath, err)
-					}
-					observed := resolve.CrossTypeCollisionCount(observedEntities, observedFacts)
 					res.Groups[i].ObservedCollisionsAfter = &observed
-					if observed != res.Groups[i].CollisionsAfter {
-						return fmt.Errorf("merge-entities offline group %s collision verification failed after commit: predicted %d, observed %d (restore backup %s before retrying)", group.ID, res.Groups[i].CollisionsAfter, observed, backupPath)
-					}
 					res.Groups[i].CollisionVerified = true
 					res.Applied++
 				}

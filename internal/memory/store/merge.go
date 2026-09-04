@@ -79,20 +79,21 @@ type EntityMergePreview struct {
 }
 
 type entityMergeAnalysis struct {
-	preview              EntityMergePreview
-	metadata             Entity
-	entities             map[string]Entity
-	facts                []Fact
-	updatedFacts         []Fact
-	aliasClaims          map[string]string
-	requiredNorms        map[string]string // normalized -> representative spelling
-	rehomeNorms          map[string]string // normalized -> reviewed outside owner
-	droppedNorms         map[string]bool
-	externalAliasDrops   map[string][]string // normalized -> reviewed outside listings to remove
-	externalDropEntities map[string]Entity
-	updatedDropEntities  map[string]Entity
-	fingerprintNorms     map[string]string
-	group                map[string]bool
+	preview                  EntityMergePreview
+	metadata                 Entity
+	entities                 map[string]Entity
+	facts                    []Fact
+	updatedFacts             []Fact
+	aliasClaims              map[string]string
+	requiredNorms            map[string]string // normalized -> representative spelling
+	rehomeNorms              map[string]string // normalized -> reviewed outside owner
+	droppedNorms             map[string]bool
+	externalAliasDrops       map[string][]string // normalized -> reviewed outside listings to remove
+	externalDropEntities     map[string]Entity
+	updatedDropEntities      map[string]Entity
+	aliasDispositionEntities map[string]Entity
+	fingerprintNorms         map[string]string
+	group                    map[string]bool
 }
 
 // PreviewEntityMerge snapshots and validates a group without writing.
@@ -111,6 +112,13 @@ func (s *Store) PreviewEntityMerge(req EntityMergeRequest) (EntityMergePreview, 
 // write transaction. Unrepresentable merges (self-loops or duplicate fact
 // keys) are refused; timestamps are never nudged and facts are never dropped.
 func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error) {
+	return s.MergeEntitiesChecked(req, nil)
+}
+
+// MergeEntitiesChecked runs postcondition against the transaction's complete
+// read-your-writes entity/fact snapshot. An error aborts the merge before any
+// write becomes durable.
+func (s *Store) MergeEntitiesChecked(req EntityMergeRequest, postcondition func([]Entity, []Fact) error) (EntityMergePreview, error) {
 	var analysis entityMergeAnalysis
 	err := s.db.Update(func(txn *badger.Txn) error {
 		var err error
@@ -257,6 +265,19 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 				return errors.New("memory: merge postcondition: rewritten fact changed")
 			}
 		}
+		if postcondition != nil {
+			postEntities, err := entitiesTxn(txn)
+			if err != nil {
+				return fmt.Errorf("memory: merge postcondition entity snapshot: %w", err)
+			}
+			postFacts, err := factsTxn(txn)
+			if err != nil {
+				return fmt.Errorf("memory: merge postcondition fact snapshot: %w", err)
+			}
+			if err := postcondition(postEntities, postFacts); err != nil {
+				return fmt.Errorf("memory: merge postcondition: %w", err)
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -282,16 +303,17 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 
 func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMergeAnalysis, error) {
 	a := entityMergeAnalysis{
-		entities:             map[string]Entity{},
-		aliasClaims:          map[string]string{},
-		requiredNorms:        map[string]string{},
-		rehomeNorms:          map[string]string{},
-		droppedNorms:         map[string]bool{},
-		externalAliasDrops:   map[string][]string{},
-		externalDropEntities: map[string]Entity{},
-		updatedDropEntities:  map[string]Entity{},
-		fingerprintNorms:     map[string]string{},
-		group:                map[string]bool{},
+		entities:                 map[string]Entity{},
+		aliasClaims:              map[string]string{},
+		requiredNorms:            map[string]string{},
+		rehomeNorms:              map[string]string{},
+		droppedNorms:             map[string]bool{},
+		externalAliasDrops:       map[string][]string{},
+		externalDropEntities:     map[string]Entity{},
+		updatedDropEntities:      map[string]Entity{},
+		aliasDispositionEntities: map[string]Entity{},
+		fingerprintNorms:         map[string]string{},
+		group:                    map[string]bool{},
 	}
 	a.preview = EntityMergePreview{ID: req.ID, Survivor: req.Survivor, Retire: append([]string(nil), req.Retire...), Entities: map[string]Entity{}, AliasDispositionEntities: map[string]Entity{}, ProposedAliasDispositionEntities: map[string]Entity{}}
 	problem := func(msg string) { a.preview.Problems = append(a.preview.Problems, msg) }
@@ -446,6 +468,8 @@ func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMerge
 				problem(fmt.Sprintf("rehome target %s does not list dropped alias %q", drop.RehomeTo, drop.Alias))
 			} else {
 				a.rehomeNorms[norm] = drop.RehomeTo
+				a.aliasDispositionEntities[drop.RehomeTo] = target
+				a.preview.AliasDispositionEntities[drop.RehomeTo] = target
 			}
 		}
 		for _, slug := range outsideListings {
@@ -630,6 +654,9 @@ func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMerge
 		entityHashes[slug] = hashJSON(e)
 	}
 	for slug, e := range a.externalDropEntities {
+		entityHashes[slug] = hashJSON(e)
+	}
+	for slug, e := range a.aliasDispositionEntities {
 		entityHashes[slug] = hashJSON(e)
 	}
 	a.preview.Expected = EntityMergeExpected{

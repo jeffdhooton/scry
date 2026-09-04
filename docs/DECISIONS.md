@@ -2995,8 +2995,10 @@ self-loop, hollow result, dangling endpoint, missing spelling or repo ref, or
 unexplained outside alias claim/listing is a refusal.
 
 Dry run is the RPC default, not merely the CLI default. Multi-group collision
-predictions are chained through simulated states and checked against a fresh
-observed store count after every commit. Groups connected by a fact must be
+predictions are chained through simulated states. Each group recomputes the
+observed count inside its Badger transaction from a complete read-your-writes
+snapshot; mismatch aborts rather than producing an error after durable change.
+Groups connected by a fact must be
 reviewed and applied in separate manifests so the first cannot invalidate the
 second group's fingerprint after preflight. A nonempty backup precedes the
 first write.

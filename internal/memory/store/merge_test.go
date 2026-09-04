@@ -138,6 +138,21 @@ func TestMergeEntitiesGloballyDropsReviewedGenericAlias(t *testing.T) {
 	}
 	req.Metadata = &preview.ProposedMetadata
 	req.Expected = preview.Expected
+	if _, ok := req.Expected.Entities[outsider.Slug]; !ok {
+		t.Fatal("rehome target is not entity-fingerprinted")
+	}
+	outsider.Description = "changed after review"
+	if err := st.PutEntity(outsider); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.MergeEntities(req); err == nil || !strings.Contains(err.Error(), "snapshot changed") {
+		t.Fatalf("changed rehome target was accepted: %v", err)
+	}
+	preview, err = st.PreviewEntityMerge(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("re-review after target drift = %+v, %v", preview.Problems, err)
+	}
+	req.Expected = preview.Expected
 	if _, err := st.MergeEntities(req); err != nil {
 		t.Fatal(err)
 	}
@@ -147,6 +162,32 @@ func TestMergeEntitiesGloballyDropsReviewedGenericAlias(t *testing.T) {
 	got, err := st.GetEntity(outsider.Slug)
 	if err != nil || len(got.Aliases) != 0 {
 		t.Fatalf("outside listing survived global drop: %+v, %v", got, err)
+	}
+}
+
+func TestMergeEntitiesPostconditionFailureAbortsTransaction(t *testing.T) {
+	st := openTemp(t)
+	for _, e := range []Entity{{Slug: "winner", Name: "Winner", Type: "tool"}, {Slug: "loser", Name: "Loser", Type: "concept"}} {
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f := Fact{Src: "loser", Relation: "status", Value: "ready", Fact: "loser ready", ValidFrom: time.Unix(9, 0)}
+	if err := st.PutFact(f); err != nil {
+		t.Fatal(err)
+	}
+	req := reviewedMerge(t, st, "winner", "loser")
+	if _, err := st.MergeEntitiesChecked(req, func([]Entity, []Fact) error {
+		return errors.New("observed collision mismatch")
+	}); err == nil || !strings.Contains(err.Error(), "observed collision mismatch") {
+		t.Fatalf("postcondition error = %v", err)
+	}
+	if _, err := st.GetEntity("loser"); err != nil {
+		t.Fatalf("postcondition failure committed loser deletion: %v", err)
+	}
+	facts, err := st.FactsFrom("loser", true)
+	if err != nil || len(facts) != 1 || !reflect.DeepEqual(facts[0], f) {
+		t.Fatalf("postcondition failure committed fact rewrite: %+v, %v", facts, err)
 	}
 }
 
@@ -376,6 +417,21 @@ func TestMergeEntitiesRehomesAGroupOwnedDroppedAlias(t *testing.T) {
 		t.Fatalf("reviewed rehome preview = %+v, %v", preview.Problems, err)
 	}
 	req.Metadata = &preview.ProposedMetadata
+	req.Expected = preview.Expected
+	if _, ok := req.Expected.Entities[outsider.Slug]; !ok {
+		t.Fatal("rehome target is not entity-fingerprinted")
+	}
+	outsider.Description = "changed after rehome review"
+	if err := st.PutEntity(outsider); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.MergeEntities(req); err == nil || !strings.Contains(err.Error(), "snapshot changed") {
+		t.Fatalf("changed rehome target was accepted: %v", err)
+	}
+	preview, err = st.PreviewEntityMerge(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("re-reviewed target preview = %+v, %v", preview.Problems, err)
+	}
 	req.Expected = preview.Expected
 	if _, err := st.MergeEntities(req); err != nil {
 		t.Fatal(err)
