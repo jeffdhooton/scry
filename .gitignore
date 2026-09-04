@@ -3,3 +3,9 @@
 
 # Locally built binary (`go build -o scry ./cmd/scry`)
 /scry
+
+# Grader and audit scratch. Sub-agents write working files into the repo
+# while they run; two of these directories reached commits through a
+# careless `git add -A` on 2026-09-03.
+.grader/
+.grader-tmp/
