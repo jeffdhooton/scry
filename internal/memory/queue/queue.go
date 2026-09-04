@@ -429,8 +429,15 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 	if err := w.o.Store.PutMetaTime(store.MetaLastExtract, time.Now()); err != nil {
 		w.o.Logf("memory queue: stamp last extract: %v", err)
 	}
-	w.o.Logf("memory queue: resolved %s (%s): +%d facts, +%d entities, attempt %d",
-		p.ID, p.Source, stats.FactsAdded, stats.EntitiesCreated, p.Attempts+1)
+	// ValuesRejected is the share of the value judgement the extraction
+	// model is carrying rather than the lexical rules. It is only visible
+	// here, so it is only measurable here.
+	values := ""
+	if stats.ValuesRejected > 0 {
+		values = fmt.Sprintf(", %d values", stats.ValuesRejected)
+	}
+	w.o.Logf("memory queue: resolved %s (%s): +%d facts, +%d entities%s, attempt %d",
+		p.ID, p.Source, stats.FactsAdded, stats.EntitiesCreated, values, p.Attempts+1)
 }
 
 // fail records one failed attempt. Parse failures count toward parking,
