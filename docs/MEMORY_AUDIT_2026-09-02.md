@@ -1755,3 +1755,32 @@ first, and still does not return the service first. What remains is roughly
 forty more sentences of judgement, a tool that makes each one safe, and a
 process — propose, have a fresh agent veto, apply what survives — that has now
 caught three bad moves and two false claims in two rounds.
+
+## Item 1 passes, 2026-09-04
+
+| clause | result |
+|---|---|
+| a sweep on the laptop reports files ingested > 0 when new transcripts exist | 35 of its sweeps ingested; most recent `{"claude":1}` |
+| a sweep on the mini reports the same | 19 of its 83 sweeps ingested; most recent 2 files, 5 episodes |
+| zero provider 402 lines in either log | **0** — the only `402` substrings are UUID fragments in transcript filenames |
+| zero socket timeouts | **0** across the last 20 sweeps on both machines |
+| exactly one place the extraction chain is configured | the mini's `~/.scry/config.yaml`; the laptop's config says in a comment that it keeps no chain on purpose, and the mini's launchd job sets no `SCRY_MEMORY_MODEL` override |
+| `scry doctor` reports hours since the last ingest and fails past six | it does, and it spent the whole 22-hour outage failing on both the chain and the queue |
+
+The three sweeps in the laptop's whole history that recorded errors were all
+`daemon closed connection` during a restart, and all three predate the retry
+in `3f9fbb6`. Since that landed, the same action — restarting the daemon under
+a running sweep — produces zero, measured directly.
+
+The per-source breakdown now shows in production, and the interesting lines
+are the ones that name more than one agent:
+
+```
+"EpisodesBySource":{"codex":1,"opencode":1}
+"EpisodesBySource":{"claude":1,"codex":1,"opencode":1}
+"EpisodesBySource":{"opencode":3}
+"EpisodesBySource":{"claude":0,"codex":12}
+```
+
+That is item 6's "produced from real sessions by the same sweep" shown rather
+than argued: one sweep pass, three agents, in one line.
