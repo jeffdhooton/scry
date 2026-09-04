@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/config"
@@ -143,6 +145,28 @@ func evalMemoryStatus(res *daemon.MemoryStatusResult, now time.Time) []Check {
 	}
 	out = append(out, sweep)
 
+	if len(res.LastSweepBySource) > 0 {
+		agents := Check{ID: "memory.sweep_sources", Category: CategoryMemory, Name: "agents read by the last sweep"}
+		var read, silent []string
+		for _, src := range sortedKeys(res.LastSweepBySource) {
+			if res.LastSweepBySource[src] > 0 {
+				read = append(read, fmt.Sprintf("%s %d", src, res.LastSweepBySource[src]))
+			} else {
+				silent = append(silent, src)
+			}
+		}
+		agents.Status = StatusPass
+		agents.Detail = "episodes by source: " + strings.Join(read, ", ")
+		if len(silent) > 0 {
+			// A source whose files were read but yielded nothing is a
+			// distiller producing silence, which the totals cannot show.
+			agents.Status = StatusWarn
+			agents.Detail += "; read but produced nothing: " + strings.Join(silent, ", ")
+			agents.Remedy = "check that source's distiller: its transcripts were read and yielded no episodes"
+		}
+		out = append(out, agents)
+	}
+
 	queue := Check{ID: "memory.queue", Category: CategoryMemory, Name: "extraction queue"}
 	// A queue that has never extracted anything counts as stopped as soon
 	// as it holds work: nothing has ever come out of it.
@@ -182,4 +206,15 @@ func ageString(d time.Duration) string {
 	default:
 		return fmt.Sprintf("%.1fh", d.Hours())
 	}
+}
+
+// sortedKeys returns m's keys in order, so a check's detail line reads the
+// same way twice.
+func sortedKeys(m map[string]int) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }

@@ -659,14 +659,19 @@ type MemoryStatusResult struct {
 	// distinguishable from a zero time.
 	// QueueLimit is the queue worker's current in-flight ceiling, which it
 	// adapts to the provider's rate limits.
-	QueueLimit      int        `json:"queue_limit,omitempty"`
-	QueueReady      int        `json:"queue_ready"`
-	QueueBackoff    int        `json:"queue_backoff"`
-	QueueParked     int        `json:"queue_parked"`
-	WorkerRunning   bool       `json:"worker_running"`
-	LastIngestAt    *time.Time `json:"last_ingest_at,omitempty"`
-	LastSweepAt     *time.Time `json:"last_sweep_at,omitempty"`
-	LastExtractOKAt *time.Time `json:"last_extract_ok_at,omitempty"`
+	QueueLimit    int        `json:"queue_limit,omitempty"`
+	QueueReady    int        `json:"queue_ready"`
+	QueueBackoff  int        `json:"queue_backoff"`
+	QueueParked   int        `json:"queue_parked"`
+	WorkerRunning bool       `json:"worker_running"`
+	LastIngestAt  *time.Time `json:"last_ingest_at,omitempty"`
+	LastSweepAt   *time.Time `json:"last_sweep_at,omitempty"`
+	// LastSweepBySource is the per-source episode count from the last
+	// sweep. It answers "is every agent on this machine still being read?",
+	// which the totals cannot, and which nothing could read before: the
+	// sweep has recorded it since 3f9fbb6 and no surface exposed it.
+	LastSweepBySource map[string]int `json:"last_sweep_by_source,omitempty"`
+	LastExtractOKAt   *time.Time     `json:"last_extract_ok_at,omitempty"`
 	// ModelsRefusing names the models the provider is currently turning
 	// away over billing or authentication; AllModelsRefusing is true when
 	// that is the whole chain, which means nothing is being extracted at
@@ -731,6 +736,10 @@ func (d *Daemon) handleMemoryStatus(_ context.Context, _ json.RawMessage) (any, 
 			tt := t
 			*m.dst = &tt
 		}
+	}
+	var last MemorySweepReport
+	if found, err := st.GetMetaJSON(memstore.MetaLastSweepReport, &last); err == nil && found {
+		res.LastSweepBySource = last.EpisodesBySource
 	}
 	return res, nil
 }

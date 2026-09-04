@@ -3,6 +3,7 @@ package doctor
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -162,4 +163,55 @@ func TestEvalMemoryStatusFailsAQueueThatNeverSucceeded(t *testing.T) {
 	if got := findCheck(t, evalMemoryStatus(&res, now), "memory.queue"); got.Status != StatusFail {
 		t.Errorf("a queue with work that has never extracted = %s, want fail: %s", got.Status, got.Detail)
 	}
+}
+
+// The per-source breakdown was recorded from 3f9fbb6 onward and read by
+// nothing: a grader found MetaLastSweepReport written once and never loaded.
+// A number nobody can see does not answer the question it was added for.
+func TestSweepSourcesCheck(t *testing.T) {
+	now := time.Now()
+	base := &daemon.MemoryStatusResult{
+		Models: []string{"m"}, WorkerRunning: true,
+		LastIngestAt: &now, LastSweepAt: &now, LastExtractOKAt: &now,
+	}
+	find := func(cs []Check) *Check {
+		for i := range cs {
+			if cs[i].ID == "memory.sweep_sources" {
+				return &cs[i]
+			}
+		}
+		return nil
+	}
+
+	t.Run("absent when the sweep reported no breakdown", func(t *testing.T) {
+		if c := find(evalMemoryStatus(base, now)); c != nil {
+			t.Errorf("check should not appear: %+v", c)
+		}
+	})
+
+	t.Run("passes and names every source that produced episodes", func(t *testing.T) {
+		res := *base
+		res.LastSweepBySource = map[string]int{"claude": 3, "codex": 2, "kimi": 1}
+		c := find(evalMemoryStatus(&res, now))
+		if c == nil || c.Status != StatusPass {
+			t.Fatalf("check = %+v", c)
+		}
+		for _, want := range []string{"claude 3", "codex 2", "kimi 1"} {
+			if !strings.Contains(c.Detail, want) {
+				t.Errorf("detail %q missing %q", c.Detail, want)
+			}
+		}
+	})
+
+	t.Run("warns when a source was read and produced nothing", func(t *testing.T) {
+		res := *base
+		res.LastSweepBySource = map[string]int{"claude": 3, "kimi": 0}
+		c := find(evalMemoryStatus(&res, now))
+		if c == nil || c.Status != StatusWarn {
+			t.Fatalf("a silent source must warn: %+v", c)
+		}
+		if !strings.Contains(c.Detail, "kimi") || c.Remedy == "" {
+			t.Errorf("check = %+v", c)
+		}
+	})
 }

@@ -489,6 +489,10 @@ type MemorySweepReport struct {
 	// EpisodesBySource makes "is every agent still being read?" answerable
 	// from the store. Optional: an older sweep binary omits it.
 	EpisodesBySource map[string]int `json:"episodes_by_source,omitempty"`
+	// FilesBySource is the same breakdown over files read. A source with
+	// files but no episodes is a distiller producing nothing, which the
+	// episode count alone reads as silence.
+	FilesBySource map[string]int `json:"files_by_source,omitempty"`
 }
 
 func (d *Daemon) handleMemorySweepReport(_ context.Context, raw json.RawMessage) (any, error) {

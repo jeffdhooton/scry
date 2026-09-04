@@ -56,6 +56,10 @@ type Report struct {
 	// EpisodesBySource answers "is every agent on this machine still being
 	// read?", which the totals alone cannot.
 	EpisodesBySource map[string]int `json:"episodes_by_source,omitempty"`
+	// FilesBySource is the same over files read. A source with files but
+	// no episodes is a distiller producing nothing, which the episode
+	// count alone reads as silence.
+	FilesBySource map[string]int `json:"files_by_source,omitempty"`
 }
 
 // Roots names the places the sweep looks for memory sources. Each
@@ -237,6 +241,7 @@ func Run(ctx context.Context, roots Roots, o ingest.Options, activeWindow time.D
 				Host: host, FilesScanned: result.FilesScanned, FilesIngested: result.FilesIngested,
 				Episodes: result.Episodes, Errors: len(result.Errors),
 				EpisodesBySource: result.EpisodesBySource,
+				FilesBySource:    result.FilesBySource,
 			}); err != nil {
 				result.Errors = append(result.Errors, fmt.Sprintf("sweep report: %v", err))
 			}
