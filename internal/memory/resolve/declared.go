@@ -134,6 +134,13 @@ func namesAnArtifact(name string) bool {
 	if codePositionRE.MatchString(n) {
 		return false
 	}
+	// A single-segment absolute path such as /tmp or /etc has no second
+	// slash after trimming the root, but is still a durable filesystem
+	// identity. Whitespace and URL syntax keep this deliberately path-only.
+	if strings.HasPrefix(n, "/") && len(n) > 1 &&
+		!strings.ContainsAny(n, " \t") && !strings.Contains(n, "://") {
+		return true
+	}
 	// A path: a slash between two name-ish parts, with no spaces around it.
 	// Trim one leading slash so absolute executable paths receive the same
 	// artifact protection as relative source paths; URLs remain values.

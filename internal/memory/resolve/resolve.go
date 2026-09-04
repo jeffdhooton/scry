@@ -370,15 +370,16 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// process vocabulary) must not become a node: before this, a fact
 		// endpoint bypassed the entity checks entirely and
 		// "setpoint-wt-lpj7ikz0 worktree" became an entity.
-		srcIsValue := ((NotAnIdentity(fct.Src) || untrustedStatusShape(fct.Src)) && resolvedEntities[store.Normalize(fct.Src)] == "") || declaredValue(st, declared, fct.Src)
-		dstIsValue := ((NotAnIdentity(fct.Dst) || untrustedStatusShape(fct.Dst)) && resolvedEntities[store.Normalize(fct.Dst)] == "") || declaredValue(st, declared, fct.Dst)
+		_, exactSrc := exactEstablishedIdentity(st, fct.Src)
+		_, exactDst := exactEstablishedIdentity(st, fct.Dst)
+		srcIsValue := !exactSrc && (((NotAnIdentity(fct.Src) || untrustedStatusShape(fct.Src)) && resolvedEntities[store.Normalize(fct.Src)] == "") || declaredValue(st, declared, fct.Src))
+		dstIsValue := !exactDst && (((NotAnIdentity(fct.Dst) || untrustedStatusShape(fct.Dst)) && resolvedEntities[store.Normalize(fct.Dst)] == "") || declaredValue(st, declared, fct.Dst))
 		if relation == RelStatus {
 			// "status" almost always points at a state word, and those are
 			// attributes. When it points at a real identity the model meant
 			// something else by it; keep the edge rather than turning a
 			// project into this entity's status, which exclusivity would
 			// then invalidate on the next status fact.
-			_, exactDst := exactEstablishedIdentity(st, fct.Dst)
 			declaredDst := resolvedEntities[store.Normalize(fct.Dst)] != ""
 			if !declaredDst && !exactDst {
 				dstIsValue = true
@@ -656,6 +657,12 @@ func ensureEntitySlug(st *store.Store, ep store.Episode, name string, resolvedEn
 func resolveSlugOnly(st *store.Store, name string, resolvedEntities map[string]string) (string, error) {
 	if slug := resolvedEntities[store.Normalize(name)]; slug != "" {
 		return slug, nil
+	}
+	// Exact identity beats the mutable alias index. A stale claim may point
+	// this spelling at another same-type entity; undeclared fact endpoints
+	// must receive the same exact-identity protection as declared entities.
+	if exact, found := exactEstablishedIdentity(st, name); found {
+		return exact.Slug, nil
 	}
 	slug, found, err := st.ResolveAlias(name)
 	if err != nil {

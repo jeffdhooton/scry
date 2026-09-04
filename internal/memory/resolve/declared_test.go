@@ -219,6 +219,62 @@ func TestEstablishedIdentitySurvivesValueVerdictWithItsEdge(t *testing.T) {
 	}
 }
 
+func TestUndeclaredEstablishedStatusIdentityKeepsItsEdge(t *testing.T) {
+	for i, markerName := range []string{"PYTHON_ARGCOMPLETE_OK", "PROTOCOL_NEGOTIATION_READY"} {
+		st := openTemp(t)
+		at := time.Now()
+		first := store.Episode{ID: fmt.Sprintf("ep-undeclared-marker-first-%d", i), Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+		if _, err := Apply(st, first, "", extract.Result{Entities: []extract.Ent{
+			{Name: markerName, Type: "concept"}, {Name: "protocol-catalog", Type: "project"},
+		}}, nil); err != nil {
+			t.Fatal(err)
+		}
+		second := store.Episode{ID: fmt.Sprintf("ep-undeclared-marker-second-%d", i), Source: "manual", SourceRef: "x", OccurredAt: at.Add(time.Minute), IngestedAt: at.Add(time.Minute)}
+		result := extract.Result{
+			Entities: []extract.Ent{{Name: "protocol-catalog", Type: "project"}},
+			Facts:    []extract.Fct{{Src: markerName, Relation: "part_of", Dst: "protocol-catalog", Fact: markerName + " belongs to the protocol catalog", Confidence: .9}},
+		}
+		if _, err := Apply(st, second, "", result, nil); err != nil {
+			t.Fatal(err)
+		}
+		marker := mustSlug(t, st, markerName)
+		facts := mustFacts(t, st, marker)
+		if len(facts) != 1 || facts[0].Dst != mustSlug(t, st, "protocol-catalog") || facts[0].Value != "" {
+			t.Errorf("established undeclared marker %q was demoted or inverted: %+v", markerName, facts)
+		}
+	}
+}
+
+func TestUndeclaredFactEndpointPrefersExactIdentityOverStaleAlias(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []store.Entity{
+		{Slug: "zephyr", Name: "Zephyr", Type: "service"},
+		{Slug: "interceptor", Name: "Interceptor", Type: "service"},
+		{Slug: "protocol-catalog", Name: "Protocol Catalog", Type: "project"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := st.ClaimAlias("Zephyr", "interceptor"); err != nil {
+		t.Fatal(err)
+	}
+	ep := store.Episode{ID: "ep-stale-alias-fact", Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+	result := extract.Result{
+		Entities: []extract.Ent{{Name: "Protocol Catalog", Type: "project"}},
+		Facts:    []extract.Fct{{Src: "Zephyr", Relation: "part_of", Dst: "Protocol Catalog", Fact: "Zephyr belongs to the protocol catalog", Confidence: .9}},
+	}
+	if _, err := Apply(st, ep, "", result, nil); err != nil {
+		t.Fatal(err)
+	}
+	if facts := mustFacts(t, st, "zephyr"); len(facts) != 1 || facts[0].Dst != "protocol-catalog" {
+		t.Errorf("exact identity lost its fact to stale alias owner: %+v", facts)
+	}
+	if facts := mustFacts(t, st, "interceptor"); len(facts) != 0 {
+		t.Errorf("stale alias owner hijacked exact identity fact: %+v", facts)
+	}
+}
+
 func TestArtifactVetoPrecedesBranchAndStatusSpelling(t *testing.T) {
 	st := openTemp(t)
 	names := []string{"/usr/bin/true", "/usr/bin/false", "/usr/bin/open", "/usr/bin/head", "/usr/bin/yes", "release/mac-arm64"}
@@ -460,6 +516,10 @@ func TestNamesAnArtifactIsNarrow(t *testing.T) {
 		{"internal/memory/resolve/declared.go", true},
 		{"docs/MEMORY_AUDIT_2026-09-02.md", true},
 		{"cmd/scry", true},
+		{"/tmp", true},
+		{"/etc", true},
+		{"/var", true},
+		{"/bin", true},
 		{"queue/outbox.ts", true},
 		{"schema.sql", true},
 		// But a code position points into a file rather than naming one.
