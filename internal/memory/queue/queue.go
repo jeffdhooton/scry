@@ -3,8 +3,9 @@
 // distill and enqueue; this worker owns every provider call. That puts the
 // model chain in exactly one process per store, and it means a provider
 // outage defers writes instead of losing them: an item that fails on
-// transport waits and is retried, and only an item the models cannot parse
-// after several tries is parked, still on disk and replayable.
+// transport waits and is retried. Items are parked, still on disk and
+// replayable, when models repeatedly cannot parse them or the resolver finds
+// a deterministic identity conflict that requires reviewed repair.
 package queue
 
 import (
@@ -442,9 +443,13 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 
 // fail records one failed attempt. Parse failures count toward parking,
 // and so do timeouts on transcript episodes (too long for the chain).
-// Everything else — a refused connection, a 5xx, a store error, and any
-// failure on a manual item that is not a parse failure — is retried
-// indefinitely, because none of those say anything about the episode.
+// Deterministic resolver verdicts are parked immediately: retrying the same
+// extracted identities cannot move an alias claim safely. Everything else —
+// a refused connection, a 5xx, a transient store error, and any failure on a
+// manual item that is not a parse failure — is retried indefinitely, because
+// none of those say anything about the episode. In particular, ErrNotFound
+// remains retryable because a concurrent entity retirement deliberately uses
+// it to abort an Apply that can succeed on its next attempt.
 func (w *Worker) fail(p store.PendingEpisode, cause error) {
 	// A rate-limit refusal is not the item's fault and must not spend its
 	// budget: the pool narrows, the item waits briefly, and its attempt
@@ -464,6 +469,10 @@ func (w *Worker) fail(p store.PendingEpisode, cause error) {
 	parse := errors.Is(cause, extract.ErrParse)
 	timeout := errors.Is(cause, context.DeadlineExceeded)
 	switch {
+	case permanentResolverFailure(cause):
+		p.Parked = true
+		w.o.Logf("memory queue: PARKED %s after deterministic resolver conflict: %v — repair the identity claim, then replay with `scry memory queue retry %s`",
+			p.ID, cause, p.ID)
 	case parse && p.Attempts >= MaxParseAttempts:
 		p.Parked = true
 		w.o.Logf("memory queue: PARKED %s after %d unparseable replies: %v — replay with `scry memory queue retry %s`",
@@ -495,6 +504,14 @@ func (w *Worker) fail(p store.PendingEpisode, cause error) {
 	if err := w.o.Store.PutPending(p); err != nil {
 		w.o.Logf("memory queue: record failure for %s: %v", p.ID, err)
 	}
+}
+
+// permanentResolverFailure recognizes only verdicts whose safe resolution
+// needs a reviewed identity repair. Store-not-found and Badger errors are not
+// permanent: they can be caused by a concurrent retirement or transaction
+// conflict and must retain the queue's retry guarantee.
+func permanentResolverFailure(err error) bool {
+	return errors.Is(err, store.ErrAliasClaimed) || errors.Is(err, store.ErrInvalidSlug)
 }
 
 // splitPending halves p's text at a turn boundary and queues both halves

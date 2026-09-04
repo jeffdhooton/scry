@@ -2382,3 +2382,34 @@ more precise boundary/review identities without selecting one. `gate-green`
 also remains unresolved among three dispatch/task identities. The final stable
 snapshot must repeat this fact-by-fact audit across all 502 candidates before a
 manifest can be generated. No fingerprints or mutations were taken from live.
+
+### Ninth status/value review finds endpoint and brand precedence holes
+
+The second consecutive status/value pass did not clear. In an isolated archive
+of `afc3f1a`, the grader demonstrated two committing identity hijacks for an
+undeclared `Orchid Relay` endpoint: a stale alias index routed it to
+`interceptor`, and an unrelated entity occupying `orchid-relay` received it
+without any alias. Both episodes returned success and recorded a fact. The
+same review showed that documented services named `Open`, `Current`, and
+`Active` were silently rejected; a same-name Current identity/value pair lost
+in either declaration order.
+
+The resolver now makes `resolveSlugOnly` reuse the ownership-validated mention
+path and refuses an unrelated natural-slug occupant with `ErrAliasClaimed`.
+Non-lowercase single-word status brands survive only with an explicit trusted
+identity type. Regressions cover both hijacks, four brands, and both
+identity/value declaration orders. Full tests, vet, and focused resolver/queue
+race tests pass locally. This correction has not been deployed and resets the
+required consecutive fresh-review count.
+
+### Deterministic queue conflicts become durable review work
+
+Mini logs showed resolver alias conflicts retrying as alleged transport
+failures for 150–588 attempts. The queue now parks only the two deterministic
+identity verdicts (`ErrAliasClaimed`, `ErrInvalidSlug`) immediately, preserving
+the episode and exact error for reviewed repair and replay. Provider/transport
+errors, transaction conflicts, and retirement's retryable `ErrNotFound` keep
+backoff semantics. Doctor output describes parked work as needing review rather
+than claiming every item was unparseable. Unit tests cover both sides; an
+unrelated pre-existing race in the quiet-growth test cleanup was also made
+deterministic. Nothing has been deployed or changed in the live store.

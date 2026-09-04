@@ -356,6 +356,74 @@ func TestContextBearingAmbiguousStatusPairs(t *testing.T) {
 	}
 }
 
+func TestContextBearingSingleWordStatusBrandsWinSameEpisodeValueVerdict(t *testing.T) {
+	for _, name := range []string{"Open", "Current", "Active", "ACTIVE"} {
+		for _, identityFirst := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s/identity-first-%v", name, identityFirst), func(t *testing.T) {
+				st := openTemp(t)
+				identity := extract.Ent{Name: name, Type: "service", Description: "a documented product identity"}
+				value := extract.Ent{Name: name, Type: "value", Description: "the same spelling used as a state"}
+				entities := []extract.Ent{value, identity}
+				if identityFirst {
+					entities = []extract.Ent{identity, value}
+				}
+				at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+				ep := store.Episode{ID: fmt.Sprintf("brand-%s-%v", store.Slugify(name), identityFirst), Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+				if _, err := Apply(st, ep, "", extract.Result{Entities: entities}, nil); err != nil {
+					t.Fatal(err)
+				}
+				got, err := st.GetEntity(store.Slugify(name))
+				if err != nil || got.Type != "service" || store.Normalize(got.Name) != store.Normalize(name) {
+					t.Fatalf("documented identity was rejected: entity=%+v err=%v", got, err)
+				}
+			})
+		}
+	}
+}
+
+func TestUndeclaredEndpointCannotUseUnownedRouting(t *testing.T) {
+	for _, naturalOccupied := range []bool{false, true} {
+		t.Run(fmt.Sprintf("natural-occupied-%v", naturalOccupied), func(t *testing.T) {
+			st := openTemp(t)
+			if err := st.PutEntity(store.Entity{Slug: "catalog", Name: "Catalog", Type: "project"}); err != nil {
+				t.Fatal(err)
+			}
+			ownerSlug := "interceptor"
+			if naturalOccupied {
+				ownerSlug = "orchid-relay"
+			}
+			if err := st.PutEntity(store.Entity{Slug: ownerSlug, Name: "Unrelated Owner", Type: "service"}); err != nil {
+				t.Fatal(err)
+			}
+			if !naturalOccupied {
+				if err := st.ClaimAlias("Orchid Relay", ownerSlug); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+			ep := store.Episode{ID: fmt.Sprintf("unowned-route-%v", naturalOccupied), Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+			result := extract.Result{
+				Entities: []extract.Ent{{Name: "Catalog", Type: "project"}},
+				Facts:    []extract.Fct{{Src: "Catalog", Relation: "uses", Dst: "Orchid Relay", Fact: "Catalog uses Orchid Relay", Confidence: .9}},
+			}
+			stats, err := Apply(st, ep, "", result, nil)
+			if !errors.Is(err, store.ErrAliasClaimed) {
+				t.Fatalf("Apply error = %v, want ErrAliasClaimed", err)
+			}
+			if stats != (Stats{}) {
+				t.Fatalf("failed apply reported writes: %+v", stats)
+			}
+			if facts := mustFacts(t, st, ownerSlug); len(facts) != 0 {
+				t.Fatalf("unrelated owner received facts: %+v", facts)
+			}
+			if has, err := st.HasEpisode(ep.ID); err != nil || has {
+				t.Fatalf("failed episode recorded: has=%v err=%v", has, err)
+			}
+		})
+	}
+}
+
 func TestFallbackOrUnknownTypesCannotCreateSuspiciousIdentities(t *testing.T) {
 	for i, entityJSON := range []string{
 		`{"name":"QUALITY_OK","description":"the run verdict"}`,

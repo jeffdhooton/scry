@@ -329,15 +329,19 @@ func namesAnArtifactWithoutBarePath(name string) bool {
 // ambiguous status rules. QUALITY_OK/PYTHON_ARGCOMPLETE_OK and
 // "In Progress"/"Ready Player One" cannot be separated from spelling
 // alone. Only an explicit documented identity type produced with episode
-// context may keep the latter. Measurements, branches, generic names,
-// artifacts, malformed type fallbacks, and undeclared fact endpoints never
-// reach this override.
+// context may keep the latter. A non-lowercase single-word brand such as
+// Open, Current, or ACTIVE also needs that contextual verdict: spelling alone
+// cannot distinguish it from the corresponding state word. Lowercase status
+// words remain values even when a model mistakenly assigns an identity type.
+// Measurements, branches, generic names, artifacts, malformed type fallbacks,
+// and undeclared fact endpoints never reach this override.
 func contextualStatusIdentity(ent extract.Ent) bool {
 	if !trustedIdentityType(ent) {
 		return false
 	}
 	name := strings.TrimSpace(ent.Name)
-	return enumValue(name) || (properPhraseRE.MatchString(name) && IsStatusWord(name))
+	singleWordBrand := !strings.ContainsAny(name, " \t-_") && name != strings.ToLower(name)
+	return enumValue(name) || (IsStatusWord(name) && (properPhraseRE.MatchString(name) || singleWordBrand))
 }
 
 // resolvedFact is one extract.Fct after Rule 3's endpoint/ValidFrom
@@ -748,26 +752,34 @@ func ensureEntitySlug(st *store.Store, ep store.Episode, name string, resolvedEn
 	return slug, nil
 }
 
-// resolveSlugOnly resolves name to a slug via the alias index, falling back
-// to Slugify. It never creates an entity.
+// resolveSlugOnly resolves name through an ownership-validated identity or
+// falls back to its natural slug. A raw alias-index claim is not sufficient:
+// legacy/manual stale claims must not route an undeclared fact endpoint into
+// an unrelated entity. Likewise, an unrelated entity occupying the natural
+// slug is an explicit ownership conflict rather than a destination. It never
+// creates an entity.
 func resolveSlugOnly(st *store.Store, name string, resolvedEntities map[string]string) (string, error) {
-	if slug := resolvedEntities[store.Normalize(name)]; slug != "" {
+	if slug, found, err := establishedMentionIdentity(st, name, resolvedEntities); err != nil {
+		return "", err
+	} else if found {
 		return slug, nil
 	}
-	// Exact identity beats the mutable alias index. A stale claim may point
-	// this spelling at another same-type entity; undeclared fact endpoints
-	// must receive the same exact-identity protection as declared entities.
-	if exact, found := exactEstablishedIdentity(st, name); found {
-		return exact.Slug, nil
+
+	slug := store.Slugify(name)
+	if slug == "" {
+		return "", nil
 	}
-	slug, found, err := st.ResolveAlias(name)
+	occupant, err := st.GetEntity(slug)
+	if errors.Is(err, store.ErrNotFound) {
+		return slug, nil
+	}
 	if err != nil {
 		return "", err
 	}
-	if !found {
-		slug = store.Slugify(name)
+	if entityListsMention(occupant, store.Normalize(name)) {
+		return occupant.Slug, nil
 	}
-	return slug, nil
+	return "", fmt.Errorf("%w: natural slug %q for %q belongs to %q", store.ErrAliasClaimed, slug, name, occupant.Name)
 }
 
 // currentFact returns the current (non-invalidated) fact with the given

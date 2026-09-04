@@ -169,6 +169,42 @@ func TestTransportFailureBacksOffWithoutParking(t *testing.T) {
 	}
 }
 
+func TestDeterministicResolverFailureParksImmediately(t *testing.T) {
+	st := openTemp(t)
+	w := New(Options{Store: st, Extractor: &fakeExtractor{}, Poll: time.Hour})
+	p := pending("conflict", "the extractor chose a claimed identity")
+
+	w.fail(p, fmt.Errorf("resolve entity: %w: qwen belongs to qwen-3", store.ErrAliasClaimed))
+
+	got, err := st.GetPending(p.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Parked || got.Attempts != 1 {
+		t.Fatalf("pending = %+v, want parked after one attempt", got)
+	}
+	if !strings.Contains(got.LastError, "alias already claimed") {
+		t.Errorf("LastError = %q, want actionable resolver error", got.LastError)
+	}
+}
+
+func TestRetirementRaceRemainsRetryable(t *testing.T) {
+	st := openTemp(t)
+	w := New(Options{Store: st, Extractor: &fakeExtractor{}, Poll: time.Hour})
+	w.backoff = func(int) time.Duration { return time.Hour }
+	p := pending("retirement-race", "retry me after the retirement lock clears")
+
+	w.fail(p, fmt.Errorf("resolve: entity retirement completed while atomic write waited: %w", store.ErrNotFound))
+
+	got, err := st.GetPending(p.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Parked || got.Attempts != 1 || !got.NextAttempt.After(time.Now().Add(30*time.Minute)) {
+		t.Fatalf("pending = %+v, want retryable backoff", got)
+	}
+}
+
 func TestParseFailuresParkAfterMaxAttempts(t *testing.T) {
 	st := openTemp(t)
 	_ = st.PutPending(pending("p1", "x"))
@@ -479,8 +515,7 @@ func TestSaturatedPoolWidensWhenTheProviderIsQuiet(t *testing.T) {
 	// widen it: only the time-based rule can.
 	fx := &fakeExtractor{delay: time.Minute}
 	w := New(Options{Store: st, Extractor: fx, Workers: 24, Poll: 10 * time.Millisecond, ItemTimeout: time.Minute})
-	old := growQuietForTest(t, 40*time.Millisecond)
-	defer old()
+	growQuietForTest(t, 40*time.Millisecond)
 	runFor(t, w, 3*time.Second)
 	if !waitUntil(t, 3*time.Second, func() bool { return w.Limit() >= startLimit+3 }) {
 		t.Fatalf("a saturated pool with a quiet provider never widened (limit %d)", w.Limit())
@@ -490,10 +525,11 @@ func TestSaturatedPoolWidensWhenTheProviderIsQuiet(t *testing.T) {
 	}
 }
 
-// growQuietForTest shortens the quiet window and returns a restore func.
-func growQuietForTest(t *testing.T, d time.Duration) func() {
+// growQuietForTest shortens the quiet window. Its cleanup is registered before
+// runFor's cleanup, so the worker stops before the package global is restored.
+func growQuietForTest(t *testing.T, d time.Duration) {
 	t.Helper()
 	old := growQuiet
 	growQuiet = d
-	return func() { growQuiet = old }
+	t.Cleanup(func() { growQuiet = old })
 }

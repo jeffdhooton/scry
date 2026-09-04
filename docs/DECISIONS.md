@@ -3201,3 +3201,38 @@ transaction order.
 while retirement still held the exclusive lock made retirement wait for a
 callback that was itself waiting for the shared lock: a deterministic
 deadlock after a successful database commit.
+
+## Deterministic resolver conflicts park instead of impersonating transport failures (2026-09-04)
+
+**Decision.** Queue items whose resolver result wraps `ErrAliasClaimed` or
+`ErrInvalidSlug` are parked immediately with the exact durable error and an
+explicit repair-and-replay instruction. Provider failures, Badger transaction
+conflicts, and `ErrNotFound` remain retryable; the last may be the deliberate
+abort of an Apply that waited behind entity retirement.
+
+**Why.** Live queue items with unchanged identity conflicts had reached
+hundreds of attempts while logs called them transport failures. Re-extracting
+cannot safely decide who owns an alias, consumed provider capacity, and
+prevented a stable queue snapshot. Parking preserves the source text and makes
+the required reviewed repair visible without discarding it.
+
+## Every fact endpoint uses validated identity ownership (2026-09-04)
+
+**Decision.** Declared and undeclared fact endpoints share the same routing
+rule: an exact identity, an episode-local declaration, or an alias whose owner
+actually lists the spelling is acceptable. A stale alias claim is ignored; if
+the spelling's natural slug is occupied by an entity that does not list it,
+resolution returns `ErrAliasClaimed`. It never silently attaches the fact to
+either owner.
+
+An explicit documented identity type may preserve a non-lowercase single-word
+brand whose spelling is also a status word (`Open`, `Current`, `Active`, or
+`ACTIVE`). Lowercase status words, malformed/fallback types, measurements,
+branches, and generic names keep their value veto.
+
+**Why.** A fresh grader showed that the endpoint preflight correctly rejected
+an unowned route but `resolveSlugOnly` then repeated raw alias/natural-slug
+routing and committed the fact anyway. The same review found real one-word
+services silently rejected by a spelling-only value rule despite affirmative
+context. These rules close both precedence holes without weakening the
+lowercase outcome boundary.

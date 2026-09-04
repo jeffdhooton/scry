@@ -182,7 +182,7 @@ func evalMemoryStatus(res *daemon.MemoryStatusResult, now time.Time) []Check {
 		queue.Remedy = "read the daemon log on the store's machine for the failure every attempt is hitting"
 	case res.QueueParked > 0:
 		queue.Status = StatusWarn
-		queue.Detail = fmt.Sprintf("%d parked (unparseable after %d tries), %d ready, %d backing off", res.QueueParked, 3, res.QueueReady, res.QueueBackoff)
+		queue.Detail = fmt.Sprintf("%d parked (needs review), %d ready, %d backing off", res.QueueParked, res.QueueReady, res.QueueBackoff)
 		queue.Remedy = "scry memory queue, then scry memory queue retry <id> once the cause is fixed"
 	case res.QueueReady > maxQueueReady:
 		queue.Status = StatusWarn
