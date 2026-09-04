@@ -1577,3 +1577,69 @@ have `hermes-ops` as their source and 139 point at it. `recall "Hermes agent"`
 no longer returns the project first, but it does not return the service first
 either. Item 5 fails, by a smaller margin, with the mechanism understood and
 the remaining work being judgement on roughly fifty more sentences.
+
+## The value entity type does not work with this model
+
+It shipped on 2026-09-03 as the answer to item 4's residue, on the reasoning
+that the extraction model read the episode and a lexical rule only sees a
+name. Extraction resumed on 2026-09-04 and it ran on live episodes for the
+first time. The queue's resolution line was extended to report the count, and
+across every episode resolved since the deploy it reported **nothing**.
+
+A live probe against `glm-5.3-flash` explains why. The episode was written to
+be full of values:
+
+> aurora-relay is on branch feature/telemetry-batching, build-failed on the
+> last run. The box has 46 GiB free and the p95 is 1.4s. I set
+> RELAY_BATCH_SIZE=512 and turn_detection: null in the config. Ticket
+> issue-4471 tracks it and PR-889 is the fix. The failure is in
+> relay/batch.ts:88. QUALITY_OK on the review, status is in progress, and the
+> deploy is blocked until CHANGES_REQUIRED clears.
+
+Thirteen entities came back. **None used the `value` type:**
+
+| name | type the model gave it |
+|---|---|
+| aurora-relay | project |
+| relay box | machine |
+| issue-4471, PR-889 | concept |
+| feature/telemetry-batching | concept |
+| 46 GiB, 1.4s | concept |
+| RELAY_BATCH_SIZE=512 | concept |
+| turn_detection: null | concept |
+| relay/batch.ts:88 | concept |
+| QUALITY_OK, in progress, CHANGES_REQUIRED | concept |
+
+Every single value became a `concept`. That is the same bucket that already
+holds 51% of the store, and it is the direct mechanism behind item 4's
+residue: the model does not decline to name these things, it names them and
+files them under the fallback type.
+
+**The likely cause is a fix made a few hours earlier.** After the values
+grader proved the first version of this prompt would delete real entities, the
+line "When in doubt between value and another type, choose value" was reversed
+to "do NOT choose value". That was the right correction for the data-loss
+risk and it may have suppressed the type entirely. That variant was then
+measured. It replaced the discouraging line with "Use value freely for the
+statuses, measurements, settings, versions and branch names above: they are
+the commonest thing an episode mentions and they must not become entities."
+
+**It made no difference at all: 0 of 14 entities used the type.** The same
+list came back, `build-failed` added to it, everything typed `concept`. So the
+suppression theory is wrong and the wording is not the problem. This model
+does not use the type whatever the prompt says.
+
+**What this settles.** The decision log said: "If, once extraction resumes,
+the model's value verdicts turn out to be worse than the lexical rules —
+measured as value entities admitted per hundred episodes — drop the type from
+the prompt and keep the rules." The measured count is zero on both promptings,
+which is not worse than the rules but inert. The prompt keeps the safe
+wording, the type stays documented as unused by this model, and no claim is
+made for it anywhere. The lexical rules are the only defence there is, which
+means item 4's residue is genuinely at the ceiling this session has been
+describing rather than waiting on a lever that was about to work.
+
+The wider point stands on its own: **`concept` is where this model puts
+anything it is unsure of**, and every rule that treats concept as a harmless
+fallback — `TypesCompatible`'s wildcard, the merge gates — is built on a bucket
+that the extractor fills with values.

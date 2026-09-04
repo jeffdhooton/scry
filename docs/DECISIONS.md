@@ -2858,3 +2858,40 @@ than it is worth for the remaining ~50, the alternative is not a better rule —
 it is the extraction model typing entities correctly in the first place, which
 is what the `value` type and a sharper `machine` definition are for. Those
 need provider credit and have never run.
+
+## The value type is inert with this model (2026-09-04)
+
+**Measured.** The `value` entity type, added 2026-09-03 to move the
+value-versus-identity judgement to where the context is, produces **zero
+verdicts** against `glm-5.3-flash`. Two live probes on an episode written to be
+full of values returned 13 and 14 entities and used the type not once. Every
+value came back typed `concept`: `46 GiB`, `1.4s`, `RELAY_BATCH_SIZE=512`,
+`turn_detection: null`, `QUALITY_OK`, `in progress`, `CHANGES_REQUIRED`,
+`build-failed`, `feature/telemetry-batching`, `relay/batch.ts:88`.
+
+The second probe tested the obvious theory — that the safety fix reversing
+"when in doubt choose value" to "do NOT choose value" had suppressed it — by
+replacing that line with an encouragement to use the type freely. It changed
+nothing. The wording is not the problem.
+
+**Decision.** Keep the type in the prompt with its current safe wording, keep
+the resolver's veto, and claim nothing for it. It costs about forty prompt
+tokens, it is safe because `namesAnArtifact` refuses a value verdict on
+anything shaped like a file or a ticket, and a different model may use it.
+What changes is the story told about it: it is not the lever that closes item
+4, and the audit says so where the earlier optimism was recorded.
+
+**The finding underneath is worth more than the feature.** `concept` is where
+this model puts everything it is unsure of, and that is not a small bucket:
+51% of the store. Two resolver rules treat concept as a harmless fallback —
+`TypesCompatible` grants it a wildcard, and the merge gates lean on that — and
+both are built on a bucket the extractor fills with statuses and measurements.
+The concept-side merge gate closed earlier today is a partial answer. The
+fuller one is that a `concept` from this extractor carries no information at
+all, and rules should stop reading it as if it did.
+
+**What would change our minds.** A model in the chain that does use the type.
+`deepseek-v4-flash` sits second and has not been probed; a probe belongs in the
+next session, and `internal/memory/queue` now logs the count on every
+resolution, so the answer will show up in the daemon log without anyone
+running an experiment.
