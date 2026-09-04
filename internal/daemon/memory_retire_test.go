@@ -147,4 +147,9 @@ func TestValidateMemoryRetirementIsolationRejectsSharedFactsAndTargets(t *testin
 	if err := ValidateMemoryRetirementIsolation(groups, nil); err == nil {
 		t.Fatal("cross-group replacement key collision was accepted")
 	}
+	groups[0].ID = "same-label"
+	groups[1].ID = "same-label"
+	if err := ValidateMemoryRetirementIsolation(groups, nil); err == nil {
+		t.Fatal("duplicate group ids were accepted")
+	}
 }

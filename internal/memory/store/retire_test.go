@@ -135,6 +135,60 @@ func TestRetireEntityRequiresCompleteImmutableFactReview(t *testing.T) {
 	}
 }
 
+func TestRetireEntityPreservesAttributeShapeAndValue(t *testing.T) {
+	setup := func(t *testing.T) (*Store, EntityRetirementRequest, EntityMergeFactFingerprint) {
+		t.Helper()
+		st := openTemp(t)
+		for _, entity := range []Entity{
+			{Slug: "obsolete-status", Name: "Obsolete status", Type: "concept"},
+			{Slug: "app", Name: "App", Type: "project"},
+			{Slug: "unrelated", Name: "Unrelated", Type: "concept"},
+		} {
+			if err := st.PutEntity(entity); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := st.PutFact(Fact{Src: "obsolete-status", Relation: "status", Value: "ORIGINAL_LITERAL", Fact: "legacy status reading", ValidFrom: time.Unix(15, 0).UTC()}); err != nil {
+			t.Fatal(err)
+		}
+		req := EntityRetirementRequest{Entity: "obsolete-status", Why: "reviewed non-identity"}
+		preview, err := st.PreviewEntityRetirement(req)
+		if err != nil || len(preview.FactFingerprints) != 1 {
+			t.Fatalf("preview=%+v err=%v", preview, err)
+		}
+		return st, req, preview.FactFingerprints[0]
+	}
+
+	t.Run("literal mutation", func(t *testing.T) {
+		st, req, row := setup(t)
+		updated := row.Snapshot
+		updated.Src = "app"
+		updated.Value = "DIFFERENT_LITERAL"
+		req.Replacements = []EntityRetirementReplacement{{OldKey: row.Key, ExpectedSHA256: row.SHA256, Replacement: updated, Why: "bad rewrite"}}
+		preview, err := st.PreviewEntityRetirement(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if preview.Ready || !strings.Contains(strings.Join(preview.Problems, " "), "changes an existing attribute value") {
+			t.Fatalf("attribute literal mutation was accepted: %+v", preview)
+		}
+	})
+
+	t.Run("attribute to edge", func(t *testing.T) {
+		st, req, row := setup(t)
+		updated := row.Snapshot
+		updated.Src, updated.Dst, updated.Value = "app", "unrelated", ""
+		req.Replacements = []EntityRetirementReplacement{{OldKey: row.Key, ExpectedSHA256: row.SHA256, Replacement: updated, Why: "bad rewrite"}}
+		preview, err := st.PreviewEntityRetirement(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if preview.Ready || !strings.Contains(strings.Join(preview.Problems, " "), "turns an attribute into an edge") {
+			t.Fatalf("attribute-to-edge rewrite was accepted: %+v", preview)
+		}
+	})
+}
+
 func TestRetireEntityRemovesHollowNodeAndStaleWrongOwnerClaim(t *testing.T) {
 	st := openTemp(t)
 	status := Entity{Slug: "obsolete-status", Name: "OBSOLETE", Type: "concept", Aliases: []string{"old-state"}}

@@ -89,11 +89,18 @@ func (d *Daemon) handleMemoryRetireEntities(_ context.Context, raw json.RawMessa
 // manifest.
 func ValidateMemoryRetirementIsolation(groups []memstore.EntityRetirementRequest, facts []memstore.Fact) error {
 	retired := map[string]string{}
-	replacementKeys := map[string]string{}
+	replacementKeys := map[string]int{}
+	ids := map[string]string{}
 	for _, group := range groups {
 		label := retirementGroupName(group)
 		if group.Entity == "" {
 			return fmt.Errorf("retirement group %s has no entity", label)
+		}
+		if group.ID != "" {
+			if prior := ids[group.ID]; prior != "" {
+				return fmt.Errorf("retirement group id %q is repeated for entities %s and %s", group.ID, prior, group.Entity)
+			}
+			ids[group.ID] = group.Entity
 		}
 		if prior := retired[group.Entity]; prior != "" {
 			return fmt.Errorf("entity %s appears in retirement groups %s and %s", group.Entity, prior, label)
@@ -107,14 +114,14 @@ func ValidateMemoryRetirementIsolation(groups []memstore.EntityRetirementRequest
 			return fmt.Errorf("retirement groups %s and %s share fact %s -- %s -- %s; review them in one later design or separate manifests", srcGroup, dstGroup, fact.Src, fact.Relation, fact.Dst)
 		}
 	}
-	for _, group := range groups {
+	for groupIndex, group := range groups {
 		for _, replacement := range group.Replacements {
 			fact := replacement.Replacement
 			key := fmt.Sprintf("%s\x00%s\x00%s\x00%d", fact.Src, fact.Relation, fact.KeyDst(), fact.ValidFrom.UnixNano())
-			if prior := replacementKeys[key]; prior != "" && prior != retirementGroupName(group) {
-				return fmt.Errorf("retirement groups %s and %s propose the same replacement fact key", prior, retirementGroupName(group))
+			if priorIndex, found := replacementKeys[key]; found && priorIndex != groupIndex {
+				return fmt.Errorf("retirement groups %s and %s propose the same replacement fact key", retirementGroupName(groups[priorIndex]), retirementGroupName(group))
 			}
-			replacementKeys[key] = retirementGroupName(group)
+			replacementKeys[key] = groupIndex
 			for _, endpoint := range []string{replacement.Replacement.Src, replacement.Replacement.Dst} {
 				if other := retired[endpoint]; endpoint != "" && endpoint != group.Entity && other != "" {
 					return fmt.Errorf("retirement group %s replacement points at entity %s retired by group %s", retirementGroupName(group), endpoint, other)

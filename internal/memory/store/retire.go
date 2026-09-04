@@ -357,6 +357,9 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 		if !sameRetirementFactPayload(old, updated) {
 			problem("replacement changes fact text, time, validity, confidence, relation, or provenance: " + replacement.OldKey)
 		}
+		if reason := invalidRetirementFactShape(req.Entity, old, updated); reason != "" {
+			problem(reason + ": " + replacement.OldKey)
+		}
 		if updated.Src == req.Entity || updated.Dst == req.Entity {
 			problem("replacement still references retired entity: " + replacement.OldKey)
 		}
@@ -424,6 +427,50 @@ func sameRetirementFactPayload(old, updated Fact) bool {
 		old.Fact == updated.Fact && old.ValidFrom.Equal(updated.ValidFrom) &&
 		reflect.DeepEqual(old.InvalidAt, updated.InvalidAt) && old.Confidence == updated.Confidence &&
 		reflect.DeepEqual(old.Episodes, updated.Episodes)
+}
+
+// invalidRetirementFactShape constrains a replacement to the smallest change
+// that can remove the retired endpoint. A non-retired endpoint is immutable.
+// Existing attributes keep their literal and can only move their retired
+// source. An edge can become an attribute only when its retired destination
+// is the value being de-noded; the source then remains unchanged.
+func invalidRetirementFactShape(retired string, old, updated Fact) string {
+	if old.Dst == "" {
+		if updated.Dst != "" {
+			return "replacement turns an attribute into an edge"
+		}
+		if updated.Value != old.Value {
+			return "replacement changes an existing attribute value"
+		}
+		if old.Src != retired || updated.Src == old.Src {
+			return "attribute replacement does not relocate its retired source"
+		}
+		return ""
+	}
+
+	if updated.Dst == "" {
+		if old.Dst != retired || old.Src == retired || updated.Src != old.Src || updated.Value == "" {
+			return "edge-to-attribute replacement must convert only a retired destination"
+		}
+		return ""
+	}
+
+	if old.Src != retired && updated.Src != old.Src {
+		return "replacement changes a non-retired source"
+	}
+	if old.Dst != retired && updated.Dst != old.Dst {
+		return "replacement changes a non-retired destination"
+	}
+	if old.Src == retired && updated.Src == old.Src {
+		return "replacement does not relocate its retired source"
+	}
+	if old.Dst == retired && updated.Dst == old.Dst {
+		return "replacement does not relocate its retired destination"
+	}
+	if updated.Value != "" {
+		return "edge replacement carries an attribute value"
+	}
+	return ""
 }
 
 func verifyRetirementExpected(got, want EntityRetirementExpected) error {
