@@ -206,7 +206,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 			CreatedAt:   ep.OccurredAt,
 			LastSeen:    ep.OccurredAt,
 		}
-		aliases, err := admitAliases(st, e, keepDurable(ent.Aliases), ep.ID)
+		aliases, err := admitAliases(st, e, keepDurable(ent.Aliases), ep.ID, declared)
 		if err != nil {
 			return "", err
 		}
@@ -222,7 +222,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	}
 
 	// Merge onto the existing entity.
-	admitted, err := admitAliases(st, existing, keepDurable(ent.Aliases), ep.ID)
+	admitted, err := admitAliases(st, existing, keepDurable(ent.Aliases), ep.ID, declared)
 	if err != nil {
 		return "", err
 	}

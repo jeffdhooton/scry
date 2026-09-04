@@ -397,10 +397,16 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 	return false, "shares nothing with the name, attested by " + itoa(n) + " episode(s)", nil
 }
 
-// admitAliases filters candidates through AdmitAlias for e.
-func admitAliases(st *store.Store, e store.Entity, candidates []string, episodeID string) ([]string, error) {
+// admitAliases filters candidates through the episode's explicit value
+// declarations before asking the durable admission policy. This prevents a
+// spelling the model identified as a value from accumulating attestations and
+// becoming a routing key in later episodes that omit the declaration.
+func admitAliases(st *store.Store, e store.Entity, candidates []string, episodeID string, declared map[string]bool) ([]string, error) {
 	var out []string
 	for _, a := range candidates {
+		if declaredValue(st, declared, a) {
+			continue
+		}
 		ok, _, err := AdmitAlias(st, e, a, episodeID)
 		if err != nil {
 			return nil, err

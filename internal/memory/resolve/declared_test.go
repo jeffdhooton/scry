@@ -97,6 +97,37 @@ func TestParsedValueAliasCannotEraseOrdinaryFallbackIdentity(t *testing.T) {
 	}
 }
 
+func TestParsedDeclaredValuesCannotAccumulateAliasAttestations(t *testing.T) {
+	for _, value := range []string{"dirty_working_tree", "READY-AFTER-FIXES", "pause-resume-completed"} {
+		st := openTemp(t)
+		for i := 0; i < 2; i++ {
+			parsed, err := extract.ParseResult(fmt.Sprintf(`{"episode_summary":"review state","entities":[{"name":"review concern handler","type":"service","description":"review service","aliases":[%q]},{"name":%q,"type":"value","description":"current run state"}],"facts":[]}`, value, value))
+			if err != nil {
+				t.Fatal(err)
+			}
+			at := time.Unix(int64(130+i), 0).UTC()
+			if _, err := Apply(st, store.Episode{ID: fmt.Sprintf("declared-alias-%s-%d", value, i), Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", parsed, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if owner, found, err := st.ResolveAlias(value); err != nil || found {
+			t.Fatalf("declared value %q accumulated a routing alias: owner=%q found=%v err=%v", value, owner, found, err)
+		}
+		parsed, err := extract.ParseResult(fmt.Sprintf(`{"episode_summary":"status report","entities":[{"name":"scry","type":"project","description":"memory system"}],"facts":[{"src":"scry","relation":"status","dst":%q,"fact":"current status","confidence":0.9}]}`, value))
+		if err != nil {
+			t.Fatal(err)
+		}
+		at := time.Unix(133, 0).UTC()
+		if _, err := Apply(st, store.Episode{ID: "later-report-" + value, Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", parsed, nil); err != nil {
+			t.Fatal(err)
+		}
+		facts := mustFacts(t, st, "scry")
+		if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != value {
+			t.Fatalf("declared value %q later routed as an edge: %+v", value, facts)
+		}
+	}
+}
+
 // The whole point of the value type: names no lexical rule can judge from
 // the spelling alone, because the same string is a real entity elsewhere.
 func TestApplyDropsEntitiesTheModelTypedAsValues(t *testing.T) {
