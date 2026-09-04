@@ -307,12 +307,29 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 			return err
 		}
 	}
+	// The tombstone is the durable half of retirement. The entity key alone is
+	// not enough: once the exclusive maintenance window opens, an ordinary
+	// PutEntity (including one invoked by an observer) must not reinterpret the
+	// intentionally absent slug as a new concept stub, now or after restart.
+	tombstone, err := json.Marshal(struct {
+		ID  string `json:"id,omitempty"`
+		Why string `json:"why"`
+	}{ID: req.ID, Why: req.Why})
+	if err != nil {
+		return err
+	}
+	if err := txn.Set([]byte(prefixRetired+req.Entity), tombstone); err != nil {
+		return err
+	}
 	if err := txn.Delete([]byte(prefixEntity + req.Entity)); err != nil {
 		return err
 	}
 
 	if _, err := txn.Get([]byte(prefixEntity + req.Entity)); !errors.Is(err, badger.ErrKeyNotFound) {
 		return fmt.Errorf("memory: retirement postcondition: entity %s still exists", req.Entity)
+	}
+	if retired, err := entityRetiredTxn(txn, req.Entity); err != nil || !retired {
+		return fmt.Errorf("memory: retirement postcondition: entity %s tombstone missing: %w", req.Entity, err)
 	}
 	for norm := range analysis.claimNorms {
 		owner, found, err := aliasOwnerTxn(txn, norm)

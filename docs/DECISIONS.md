@@ -3204,11 +3204,11 @@ deadlock after a successful database commit.
 
 ## Deterministic resolver conflicts park instead of impersonating transport failures (2026-09-04)
 
-**Decision.** Queue items whose resolver result wraps `ErrAliasClaimed` or
-`ErrInvalidSlug` are parked immediately with the exact durable error and an
-explicit repair-and-replay instruction. Provider failures, Badger transaction
-conflicts, and `ErrNotFound` remain retryable; the last may be the deliberate
-abort of an Apply that waited behind entity retirement.
+**Decision.** Queue items whose resolver result wraps `ErrAliasClaimed`,
+`ErrInvalidSlug`, or `ErrEntityRetired` are parked immediately with the exact
+durable error and an explicit repair-and-replay instruction. Provider failures,
+Badger transaction conflicts, and `ErrNotFound` remain retryable; the last may
+be the deliberate abort of an Apply that waited behind entity retirement.
 
 **Why.** Live queue items with unchanged identity conflicts had reached
 hundreds of attempts while logs called them transport failures. Re-extracting
@@ -3236,3 +3236,20 @@ routing and committed the fact anyway. The same review found real one-word
 services silently rejected by a spelling-only value rule despite affirmative
 context. These rules close both precedence holes without weakening the
 lowercase outcome boundary.
+
+## Reviewed entity retirement leaves a durable tombstone (2026-09-04)
+
+**Decision.** A successful entity retirement atomically writes an `rt:<slug>`
+tombstone with the reviewed retirement ID and reason before deleting the
+entity. Ordinary `PutEntity`, including creation through resolver Apply, refuses
+that slug with `ErrEntityRetired` across callbacks, concurrent waiters, and
+store restarts. The tombstone is part of the Badger backup and restore image;
+ordinary delete and failed retirement do not create one.
+
+**Why.** Moving observer callbacks outside the exclusive maintenance lock fixed
+a deadlock, but made the intentionally absent slug look available again. A
+callback triggered by the first retirement event could recreate the entity and
+an edge before the remaining committed delete events were published; a writer
+waiting on the maintenance lock could do the same immediately afterward. A
+persistent lifecycle marker closes both paths without putting callbacks back
+under the lock.

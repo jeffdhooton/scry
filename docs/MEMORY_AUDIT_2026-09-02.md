@@ -2405,11 +2405,32 @@ required consecutive fresh-review count.
 ### Deterministic queue conflicts become durable review work
 
 Mini logs showed resolver alias conflicts retrying as alleged transport
-failures for 150–588 attempts. The queue now parks only the two deterministic
-identity verdicts (`ErrAliasClaimed`, `ErrInvalidSlug`) immediately, preserving
-the episode and exact error for reviewed repair and replay. Provider/transport
-errors, transaction conflicts, and retirement's retryable `ErrNotFound` keep
-backoff semantics. Doctor output describes parked work as needing review rather
-than claiming every item was unparseable. Unit tests cover both sides; an
-unrelated pre-existing race in the quiet-growth test cleanup was also made
-deterministic. Nothing has been deployed or changed in the live store.
+failures for 150–588 attempts. The queue now parks deterministic identity
+verdicts (`ErrAliasClaimed`, `ErrInvalidSlug`, and `ErrEntityRetired`)
+immediately, preserving the episode and exact error for reviewed repair and
+replay. Provider/transport errors, transaction conflicts, and retirement's
+retryable `ErrNotFound` keep backoff semantics. Doctor output describes parked
+work as needing review rather than claiming every item was unparseable. Unit
+tests cover both sides; an unrelated pre-existing race in the quiet-growth test
+cleanup was also made deterministic. Nothing has been deployed or changed in
+the live store.
+
+### Ninth retirement review finds post-commit resurrection
+
+The second consecutive retirement pass did not clear. Exact commit `079885c`
+allowed a `fact/delete` observer to recreate the retired entity and a touching
+edge after the transaction committed; the rest of the older retirement event
+batch then delivered a stale final entity deletion to mirrors. An ordinary
+`PutEntity` waiting behind the exclusive retirement window also recreated the
+slug immediately afterward. Both retirement entry points reproduced the
+observer path.
+
+Retirement now writes a persistent `rt:<slug>` tombstone in the same transaction
+as fact conversion, alias cleanup, and entity deletion. `PutEntity` checks it
+inside its transaction and returns distinct `ErrEntityRetired`; resolver queue
+handling parks that deterministic verdict while preserving retirement's
+transient `ErrNotFound` retry. Regressions exercise the first fact-delete
+callback, a blocked ordinary writer, and close/reopen persistence. The prior
+unrelated observer-write test still proves callbacks run outside the lock.
+Focused store and queue tests pass with the race detector. Nothing has been
+deployed or applied live, and the consecutive retirement review count resets.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -478,6 +479,132 @@ func TestRetirementObserversRunAfterMaintenanceUnlock(t *testing.T) {
 	}
 	if _, err := st.GetEntity("observer-write"); err != nil {
 		t.Fatalf("observer write missing after retirement: %v", err)
+	}
+}
+
+func TestRetirementObserverCannotResurrectRetiredEntity(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	for _, entity := range []Entity{
+		{Slug: "owner", Name: "Owner", Type: "project"},
+		{Slug: "obsolete", Name: "Obsolete", Type: "concept"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := Fact{Src: "owner", Relation: "status", Dst: "obsolete", Fact: "Owner is obsolete", ValidFrom: at, Confidence: .9, Episodes: []string{"ep"}}
+	if err := st.PutFact(old); err != nil {
+		t.Fatal(err)
+	}
+	req := retirementWith(t, st, "obsolete", func(fact Fact) Fact {
+		fact.Dst = ""
+		fact.Value = "Obsolete"
+		return fact
+	})
+
+	var observed []string
+	var putEntityErr, putFactErr error
+	triggered := false
+	st.SetObserver(func(event Event) {
+		observed = append(observed, event.Kind+"/"+event.Op)
+		if triggered || event.Kind != "fact" || event.Op != "delete" || event.Fact.Dst != "obsolete" {
+			return
+		}
+		triggered = true
+		putEntityErr = st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"})
+		putFactErr = st.PutFact(Fact{Src: "owner", Relation: "related_to", Dst: "obsolete", Fact: "observer resurrection", ValidFrom: at.Add(time.Second)})
+	})
+
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+	if !triggered || !errors.Is(putEntityErr, ErrEntityRetired) || !errors.Is(putFactErr, ErrNotFound) {
+		t.Fatalf("observer resurrection: triggered=%v entity=%v fact=%v", triggered, putEntityErr, putFactErr)
+	}
+	if _, err := st.GetEntity("obsolete"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("observer recreated retired entity: %v", err)
+	}
+	wantEvents := []string{"fact/delete", "fact/put", "entity/delete"}
+	if !reflect.DeepEqual(observed, wantEvents) {
+		t.Fatalf("events = %v, want committed retirement batch %v", observed, wantEvents)
+	}
+}
+
+func TestRetiredEntityTombstoneSurvivesReopen(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "badger")
+	st, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow value"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Close(); err != nil {
+		t.Fatal(err)
+	}
+	st, err = Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+
+	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); !errors.Is(err, ErrEntityRetired) {
+		t.Fatalf("PutEntity after reopen = %v, want ErrEntityRetired", err)
+	}
+	if _, err := st.GetEntity("obsolete"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("retired entity exists after refused recreation: %v", err)
+	}
+}
+
+func TestPutEntityWaitingBehindRetirementCannotResurrect(t *testing.T) {
+	st := openTemp(t)
+	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow value"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	retireDone := make(chan error, 1)
+	go func() {
+		_, err := st.RetireEntityChecked(req, func(_ []Entity, _ []Fact) error {
+			close(entered)
+			<-release
+			return nil
+		})
+		retireDone <- err
+	}()
+	<-entered
+	writeDone := make(chan error, 1)
+	go func() {
+		writeDone <- st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"})
+	}()
+	select {
+	case err := <-writeDone:
+		t.Fatalf("PutEntity was not excluded during retirement: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	if err := <-retireDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-writeDone; !errors.Is(err, ErrEntityRetired) {
+		t.Fatalf("waiting PutEntity = %v, want ErrEntityRetired", err)
 	}
 }
 

@@ -51,6 +51,7 @@ const (
 	prefixFact    = "fa:"
 	prefixAdj     = "adj:"
 	prefixCursor  = "cur:"
+	prefixRetired = "rt:"
 
 	keySchemaVersion = prefixMeta + "schema_version"
 )
@@ -65,6 +66,9 @@ var (
 	// ErrInvalidSlug is returned when a write would introduce an entity key
 	// that cannot be represented safely in colon-delimited fact indexes.
 	ErrInvalidSlug = errors.New("memory: invalid entity slug")
+	// ErrEntityRetired is returned when an ordinary write tries to recreate an
+	// entity that the reviewed retirement path permanently converted to values.
+	ErrEntityRetired = errors.New("memory: entity retired")
 )
 
 // Episode is one ingested slice of source material (a session transcript
@@ -395,6 +399,13 @@ func (s *Store) PutEntity(e Entity) error {
 	}
 	newNorms := normalizedNameSet(e.Name, e.Aliases)
 	err = s.update(func(txn *badger.Txn) error {
+		retired, err := entityRetiredTxn(txn, e.Slug)
+		if err != nil {
+			return err
+		}
+		if retired {
+			return fmt.Errorf("%w: %q", ErrEntityRetired, e.Slug)
+		}
 		prev, err := getEntityTxn(txn, e.Slug)
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
@@ -463,6 +474,18 @@ func (s *Store) PutEntity(e Entity) error {
 		s.notify(Event{Kind: "entity", Op: "put", Entity: e})
 	}
 	return err
+}
+
+func entityRetiredTxn(txn *badger.Txn, slug string) (bool, error) {
+	_, err := txn.Get([]byte(prefixRetired + slug))
+	switch {
+	case err == nil:
+		return true, nil
+	case errors.Is(err, badger.ErrKeyNotFound):
+		return false, nil
+	default:
+		return false, err
+	}
 }
 
 // aliasOwnerTxn reads an already-normalized alias key within txn.

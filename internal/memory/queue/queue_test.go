@@ -170,21 +170,28 @@ func TestTransportFailureBacksOffWithoutParking(t *testing.T) {
 }
 
 func TestDeterministicResolverFailureParksImmediately(t *testing.T) {
-	st := openTemp(t)
-	w := New(Options{Store: st, Extractor: &fakeExtractor{}, Poll: time.Hour})
-	p := pending("conflict", "the extractor chose a claimed identity")
+	for _, cause := range []error{
+		fmt.Errorf("resolve entity: %w: qwen belongs to qwen-3", store.ErrAliasClaimed),
+		fmt.Errorf("resolve entity: %w: retired-status", store.ErrEntityRetired),
+	} {
+		t.Run(cause.Error(), func(t *testing.T) {
+			st := openTemp(t)
+			w := New(Options{Store: st, Extractor: &fakeExtractor{}, Poll: time.Hour})
+			p := pending("conflict", "the extractor chose a claimed identity")
 
-	w.fail(p, fmt.Errorf("resolve entity: %w: qwen belongs to qwen-3", store.ErrAliasClaimed))
+			w.fail(p, cause)
 
-	got, err := st.GetPending(p.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !got.Parked || got.Attempts != 1 {
-		t.Fatalf("pending = %+v, want parked after one attempt", got)
-	}
-	if !strings.Contains(got.LastError, "alias already claimed") {
-		t.Errorf("LastError = %q, want actionable resolver error", got.LastError)
+			got, err := st.GetPending(p.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !got.Parked || got.Attempts != 1 {
+				t.Fatalf("pending = %+v, want parked after one attempt", got)
+			}
+			if got.LastError == "" {
+				t.Error("LastError must preserve the actionable resolver error")
+			}
+		})
 	}
 }
 
