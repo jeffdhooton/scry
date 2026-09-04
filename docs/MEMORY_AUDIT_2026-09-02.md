@@ -1003,3 +1003,88 @@ not done either.
 The judgement "this sentence is about a machine" belongs to the
 extraction model, which is reading the transcript when it can still tell.
 That is the same conclusion the value rules reached, from the other end.
+
+## Round eleven
+
+Two commits: `4efa9ca` took back the five families the round-ten loosening had
+given away, and `305b8c8` moved the value judgement to the place that has the
+context for it.
+
+### What the loosening had cost
+
+The eleventh values grader measured the loosening against the commit before
+it, on the same 55 value names and 68 real names:
+
+| | before loosening | after loosening |
+|---|---|---|
+| values correctly rejected | 14 / 55 | 52 / 55 |
+| real names correctly kept | 65 / 68 | 67 / 68 |
+
+Read the columns the other way round: the loosening was a real gain, and the
+regression I had assumed from a smaller sample was not there. `4efa9ca` then
+closed five families the grader proved still open:
+
+| family | example | rule |
+|---|---|---|
+| settings assignments | `SCRY_MEMORY_UI_ADDR=off` | `settingRE` — no rule had looked at `=` at all |
+| run-probe ids | `GRADER2-20260903T000246Z-3` | `isoStampRE` |
+| hyphenated participles | `build-failed` | pair ending in a participle |
+| participle plus adverb | `completed successfully` | pair shape |
+| more shell verbs | `go vet`, `npm ci`, `git bisect` | `commandVerbs` |
+
+### The unified leak check
+
+The identities grader disproved my claim that admission and revalidation
+agreed: "revalidation keeps `hermes-ops vm` on a project and
+`/Users/jeff/workspace/loom` on a person, both of which admission refuses."
+Admission, `RevalidateAliases` and hygiene now call one `leakReason()`. Four
+of that helper's own rules were wrong and came out: `os`, `gpu`, `cpu` and
+`ssd` as machine words (they rejected `Chrome OS` and `llama.cpp GPU build`),
+firing on the holder's own word (`pi-config` on `pi`), and bare ports in
+`addressRE`. `mergeLocatedDuplicates` now respects `absorbs()`.
+
+### A counter that did not count what its name said
+
+I built a `MisfiledFacts` metric and removed it in the same round. It reported
+5,879 against a grader's hand count of 25–31, so the number was not a measure
+of misfiling, and a wrong number in an audit is worse than no number. The
+`docs/DECISIONS.md` sentence claiming the audit "says how many there are
+rather than pretending otherwise" was false and is corrected there.
+
+### Live state after `4efa9ca`
+
+```
+pass 1: value_entities 37, attributes_restored 12, value_facts_converted 59
+        aliases_dropped 16, stubs_merged 0, cross_type_collisions 315
+pass 2: value_entities  0, attributes_restored  0, value_facts_converted  0
+        aliases_dropped  0, stubs_merged 0, cross_type_collisions 315
+LIVE tuning-strict: 44/50
+LIVE tuning:        47/50
+```
+
+The migration converges to a complete no-op on the second pass, and neither
+benchmark moved.
+
+### Where the lexical approach ran out
+
+Eleven rounds of rules have been trading the two error directions against each
+other. The name is all a rule has, and the same string is a value in one
+episode and an identity in another: `main` the branch against a service called
+main, `hermes-ops` the host against `hermes-ops` the repo. No spelling rule
+can separate those, because the difference is not in the spelling.
+
+`305b8c8` puts the judgement where the context is. The extraction prompt gains
+a ninth entity type, `value`, for anything that describes a thing rather than
+being one, and the resolver honours it — but only for names the store has
+never seen, so one episode's stray verdict cannot demote an entity that other
+episodes built. The lexical rules stay as the floor under the 6,647 episodes
+already extracted and under a model that forgets to use the type.
+
+This is unexercised on live data: both providers have been refusing on billing
+for seven hours, so no new episode has been extracted under the new prompt.
+What can be tested offline is tested — four table tests in
+`internal/memory/resolve/declared_test.go` cover the drop, the
+established-entity guard, and the lexical floor for undeclared names. The
+measurement that matters, the share of value entities the model catches that
+the rules miss, has to wait for credit. That is a real gap in the evidence and
+is recorded as one.

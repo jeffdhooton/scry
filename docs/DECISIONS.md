@@ -2447,3 +2447,40 @@ sentence it replaces.
 
 **What would change our minds:** a fact carrying its own subject from
 extraction, rather than the resolver inferring one from a sentence.
+
+## The extraction model types values; the resolver keeps a veto (2026-09-03)
+
+**Decision.** The extraction prompt gains a ninth entity type, `value`, for
+anything that describes a thing rather than being one — a status, a
+measurement, a version, a branch, a path, a run id, a `KEY=value` setting, a
+count, a date. `resolve.DeclaredValues` collects those names and their
+aliases; `declaredValue` honours the verdict for any name the store does not
+already resolve. The lexical rules in `values.go` and `shapes.go` stay
+exactly as they are.
+
+**Why.** Eleven rounds of lexical rules have been trading false positives
+against false negatives without converging. A rule sees a name; that is all
+it has. The same string is a value in one episode and an identity in another —
+`main` the branch against a service called main, `hermes-ops` the host against
+`hermes-ops` the repo — so no rule over spellings can separate them, because
+the difference is not in the spelling. The model read the episode. This is
+the one place in the pipeline that has the context the judgement needs.
+
+**Why the resolver keeps a veto.** The house rule is that the extraction model
+is allowed to be sloppy and the resolver is not, and a model that types a real
+entity as a value would delete an identity that dozens of episodes built. The
+guard is narrow and cheap: honour the declaration only for names
+`store.ResolveAlias` does not already find. A name the store has never seen
+has nothing to lose. An established entity ignores the verdict entirely.
+
+**What would change our minds.** If, once extraction resumes, the model's
+`value` verdicts turn out to be worse than the lexical rules — measured as
+value entities admitted per hundred episodes — drop the type from the prompt
+and keep the rules. If they are better, the rules become a fallback for
+episodes extracted before the type existed rather than a live check, and the
+loosening argument in the round-seven entry can be revisited with real data.
+
+**Unexercised.** Both providers were refusing on billing when this shipped, so
+no episode has been extracted under the new prompt. Four table tests in
+`declared_test.go` cover the mechanism; none of them is evidence about the
+model's judgement. Recorded in the audit as a gap, not as a result.
