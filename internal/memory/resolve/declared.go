@@ -27,7 +27,11 @@ func DeclaredValues(ents []extract.Ent) map[string]bool {
 	var out map[string]bool
 	declaredIdentities := make(map[string]bool, len(ents))
 	for _, ent := range ents {
-		if trustedIdentityType(ent) {
+		// Ordinary parser fallbacks are still affirmative same-episode
+		// mentions. Protect them from a conflicting value alias exactly as we
+		// protect a documented identity type. Suspicious status-shaped
+		// fallbacks remain values and deliberately do not get this guard.
+		if ent.Type != "value" && (trustedIdentityType(ent) || !untrustedStatusShape(ent.Name)) {
 			declaredIdentities[store.Normalize(ent.Name)] = true
 		}
 	}

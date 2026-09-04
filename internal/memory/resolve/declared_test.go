@@ -78,6 +78,25 @@ func TestParsedExplicitValueAliasClassifiesFactEndpoint(t *testing.T) {
 	}
 }
 
+func TestParsedValueAliasCannotEraseOrdinaryFallbackIdentity(t *testing.T) {
+	st := openTemp(t)
+	parsed, err := extract.ParseResult(`{"episode_summary":"CLI inventory","entities":[{"name":"completion_state","type":"value","description":"run state","aliases":["SQLite CLI"]},{"name":"SQLite CLI","description":"local database command-line tool"}],"facts":[]}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.Entities) != 2 || !parsed.Entities[1].TypeFallback {
+		t.Fatalf("test requires parser fallback identity: %+v", parsed.Entities)
+	}
+	at := time.Unix(120, 0).UTC()
+	if _, err := Apply(st, store.Episode{ID: "fallback-alias-conflict", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", parsed, nil); err != nil {
+		t.Fatal(err)
+	}
+	entity, err := st.GetEntity("sqlite-cli")
+	if err != nil || entity.Name != "SQLite CLI" || entity.Type != "concept" {
+		t.Fatalf("ordinary fallback identity was erased: entity=%+v err=%v", entity, err)
+	}
+}
+
 // The whole point of the value type: names no lexical rule can judge from
 // the spelling alone, because the same string is a real entity elsewhere.
 func TestApplyDropsEntitiesTheModelTypedAsValues(t *testing.T) {
