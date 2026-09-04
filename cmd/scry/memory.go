@@ -517,7 +517,7 @@ func (daemonClient) SweepReport(ctx context.Context, r sweep.Report) error {
 	var result map[string]any
 	return callMemoryDaemon(ctx, "memory.sweepReport", &daemon.MemorySweepReport{
 		Host: r.Host, FilesScanned: r.FilesScanned, FilesIngested: r.FilesIngested,
-		Episodes: r.Episodes, Errors: r.Errors,
+		Episodes: r.Episodes, Errors: r.Errors, EpisodesBySource: r.EpisodesBySource,
 	}, &result)
 }
 

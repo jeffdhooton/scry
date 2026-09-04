@@ -486,6 +486,9 @@ type MemorySweepReport struct {
 	Episodes      int       `json:"episodes"`
 	Errors        int       `json:"errors"`
 	FinishedAt    time.Time `json:"finished_at"`
+	// EpisodesBySource makes "is every agent still being read?" answerable
+	// from the store. Optional: an older sweep binary omits it.
+	EpisodesBySource map[string]int `json:"episodes_by_source,omitempty"`
 }
 
 func (d *Daemon) handleMemorySweepReport(_ context.Context, raw json.RawMessage) (any, error) {

@@ -945,3 +945,60 @@ func TestRun_SweepsOpenCodeSessionsByUpdateTime(t *testing.T) {
 		t.Errorf("fourth sweep: %+v (want the active session skipped)", fourth)
 	}
 }
+
+// The done bar asks whether every agent on the machine is still being read.
+// The totals cannot answer that: a sweep reporting 12 episodes looks healthy
+// while one agent's transcripts have silently stopped arriving. The
+// breakdown is what makes the question answerable.
+func TestRun_ReportsEpisodesPerSource(t *testing.T) {
+	tr := newTestRoots(t)
+
+	sessDir := filepath.Join(tr.tmp, "kimi", "sessions", "wd_x", "session_1")
+	wire := filepath.Join(sessDir, "agents", "main", "wire.jsonl")
+	copyFile(t, kimiFixture, wire)
+	copyFile(t, "../distill/testdata/kimi_session/state.json", filepath.Join(sessDir, "state.json"))
+	backdate(t, wire, time.Now().Add(-time.Hour))
+
+	makeOpenCodeDB(t, tr.roots.OpenCodeDB, time.Now().Add(-time.Hour).UnixMilli())
+
+	daemon := newFakeDaemon()
+	result, err := Run(context.Background(), tr.roots, ingest.Options{Daemon: daemon}, time.Minute, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Errors) != 0 {
+		t.Fatalf("errors = %v", result.Errors)
+	}
+
+	for _, source := range []string{"claude", "codex", "loom", "kimi", "opencode"} {
+		if result.EpisodesBySource[source] == 0 {
+			t.Errorf("no episodes attributed to %q: %v", source, result.EpisodesBySource)
+		}
+		if result.FilesBySource[source] == 0 {
+			t.Errorf("no files attributed to %q: %v", source, result.FilesBySource)
+		}
+	}
+
+	// The breakdown must be a decomposition of the totals, not a parallel
+	// tally that can drift away from them.
+	var eps, files int
+	for _, n := range result.EpisodesBySource {
+		eps += n
+	}
+	for _, n := range result.FilesBySource {
+		files += n
+	}
+	if eps != result.Episodes || files != result.FilesIngested {
+		t.Errorf("breakdown sums to %d episodes / %d files, totals say %d / %d",
+			eps, files, result.Episodes, result.FilesIngested)
+	}
+
+	// And it must reach the daemon, since the log line is the only place
+	// anyone will look.
+	if len(daemon.reports) != 1 {
+		t.Fatalf("reports = %d, want 1", len(daemon.reports))
+	}
+	if daemon.reports[0].EpisodesBySource["kimi"] == 0 || daemon.reports[0].EpisodesBySource["opencode"] == 0 {
+		t.Errorf("report lost the breakdown: %+v", daemon.reports[0])
+	}
+}

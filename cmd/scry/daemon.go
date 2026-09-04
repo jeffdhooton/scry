@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -249,10 +250,61 @@ func callDaemon(ctx context.Context, method string, params, out any) error {
 // code/git/schema/HTTP/room calls on the local daemon while allowing every
 // memory CLI verb—including sweep and orient—to use one remote authority.
 func callMemoryDaemon(ctx context.Context, method string, params, out any) error {
+	var err error
+	for attempt := 0; ; attempt++ {
+		err = callMemoryDaemonOnce(ctx, method, params, out)
+		if err == nil || attempt == memoryCallRetries || !restarting(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(memoryCallBackoff):
+		}
+	}
+}
+
+func callMemoryDaemonOnce(ctx context.Context, method string, params, out any) error {
 	c, err := dialMemoryDaemon()
 	if err != nil {
 		return err
 	}
 	defer c.Close()
 	return c.Call(ctx, method, params, out)
+}
+
+const (
+	// memoryCallRetries and memoryCallBackoff cover a daemon restart. Every
+	// deploy kickstarts the daemon, and launchd has it listening again in a
+	// few seconds; a sweep that happens to be running meanwhile used to
+	// report one error per transcript it was mid-way through.
+	memoryCallRetries = 3
+	memoryCallBackoff = 2 * time.Second
+)
+
+// restarting reports whether err is the daemon going away rather than an
+// answer. Three shapes mean that: the socket refusing a dial, the connection
+// dropping before a response, and Badger answering "DB Closed" from a store
+// that is shutting down.
+//
+// Retrying is safe for the memory domain specifically: enqueue dedupes on
+// episode id, commit is idempotent by episode id (resolve Rule 1), and a
+// cursor put is a set rather than an increment. A domain without that
+// property must not borrow this helper.
+func restarting(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, rpc.ErrConnClosed) || errors.Is(err, syscall.ECONNREFUSED) ||
+		errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.EPIPE) {
+		return true
+	}
+	var rpcErr *rpc.Error
+	if errors.As(err, &rpcErr) && strings.Contains(rpcErr.Message, "DB Closed") {
+		return true
+	}
+	// A dial against a socket whose daemon is gone: the file is still there
+	// but nothing is listening.
+	return strings.Contains(err.Error(), "connect: connection refused") ||
+		strings.Contains(err.Error(), "daemon closed connection")
 }

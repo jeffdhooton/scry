@@ -186,6 +186,12 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
+// ErrConnClosed reports that the daemon dropped the connection before it
+// answered. A restart is the usual cause — every deploy kickstarts the
+// daemon — so callers that can safely repeat the request should retry on
+// this rather than reporting it as a failure.
+var ErrConnClosed = errors.New("daemon closed connection")
+
 // Call sends a request and decodes the response into out. params and out may
 // be nil. The error is *rpc.Error if the server returned a JSON-RPC error,
 // or a transport error otherwise.
@@ -216,7 +222,7 @@ func (c *Client) Call(ctx context.Context, method string, params, out any) error
 	var resp Response
 	if err := c.dec.Decode(&resp); err != nil {
 		if errors.Is(err, io.EOF) {
-			return errors.New("daemon closed connection")
+			return ErrConnClosed
 		}
 		return fmt.Errorf("decode response: %w", err)
 	}

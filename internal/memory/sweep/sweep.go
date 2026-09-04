@@ -53,6 +53,9 @@ type Report struct {
 	FilesIngested int    `json:"files_ingested"`
 	Episodes      int    `json:"episodes"`
 	Errors        int    `json:"errors"`
+	// EpisodesBySource answers "is every agent on this machine still being
+	// read?", which the totals alone cannot.
+	EpisodesBySource map[string]int `json:"episodes_by_source,omitempty"`
 }
 
 // Roots names the places the sweep looks for memory sources. Each
@@ -124,6 +127,27 @@ type Result struct {
 	FilesUnchanged     int // no cursor delta, nothing to do
 	Episodes           int // sum of Summary.EpisodesIngested across all ingests
 	Errors             []string
+	// EpisodesBySource and FilesBySource break the two totals down by
+	// source ("claude", "codex", "kimi", "opencode", "loom"). Without them
+	// a sweep line proves only that something was ingested, and the
+	// question worth answering is whether every agent on the machine is
+	// still being read.
+	EpisodesBySource map[string]int
+	FilesBySource    map[string]int
+}
+
+// ingested records one successful ingest of a candidate belonging to source.
+// Every call site used to bump the two totals by hand; routing them through
+// here is what keeps the per-source breakdown honest.
+func (r *Result) ingested(source string, episodes int) {
+	r.FilesIngested++
+	r.Episodes += episodes
+	if r.FilesBySource == nil {
+		r.FilesBySource = map[string]int{}
+		r.EpisodesBySource = map[string]int{}
+	}
+	r.FilesBySource[source]++
+	r.EpisodesBySource[source] += episodes
 }
 
 // Run scans every root, compares each candidate against its stored cursor,
@@ -212,6 +236,7 @@ func Run(ctx context.Context, roots Roots, o ingest.Options, activeWindow time.D
 			if err := rep.SweepReport(fctx, Report{
 				Host: host, FilesScanned: result.FilesScanned, FilesIngested: result.FilesIngested,
 				Episodes: result.Episodes, Errors: len(result.Errors),
+				EpisodesBySource: result.EpisodesBySource,
 			}); err != nil {
 				result.Errors = append(result.Errors, fmt.Sprintf("sweep report: %v", err))
 			}
@@ -346,7 +371,7 @@ func sweepFile(ctx context.Context, result *Result, o ingest.Options, source, pa
 	}
 
 	if dryRun {
-		result.FilesIngested++
+		result.ingested(source, 0)
 		return
 	}
 
@@ -373,8 +398,7 @@ func sweepFile(ctx context.Context, result *Result, o ingest.Options, source, pa
 		return
 	}
 
-	result.FilesIngested++
-	result.Episodes += sum.EpisodesIngested
+	result.ingested(source, sum.EpisodesIngested)
 }
 
 // sweepLoomDir handles one loom run directory: a wholesale (not
@@ -408,7 +432,7 @@ func sweepLoomDir(ctx context.Context, result *Result, o ingest.Options, dir str
 	}
 
 	if dryRun {
-		result.FilesIngested++
+		result.ingested("loom", 0)
 		return
 	}
 
@@ -422,8 +446,7 @@ func sweepLoomDir(ctx context.Context, result *Result, o ingest.Options, dir str
 		return
 	}
 
-	result.FilesIngested++
-	result.Episodes += sum.EpisodesIngested
+	result.ingested("loom", sum.EpisodesIngested)
 }
 
 // sweepOpenCodeSession handles one OpenCode session: a wholesale candidate
@@ -449,7 +472,7 @@ func sweepOpenCodeSession(ctx context.Context, result *Result, o ingest.Options,
 		return
 	}
 	if dryRun {
-		result.FilesIngested++
+		result.ingested("opencode", 0)
 		return
 	}
 
@@ -458,8 +481,7 @@ func sweepOpenCodeSession(ctx context.Context, result *Result, o ingest.Options,
 		result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", ref, err))
 		return
 	}
-	result.FilesIngested++
-	result.Episodes += sum.EpisodesIngested
+	result.ingested("opencode", sum.EpisodesIngested)
 }
 
 // AllCandidates lists every candidate across every root, including the
