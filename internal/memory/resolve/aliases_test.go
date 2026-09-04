@@ -335,6 +335,30 @@ func TestNewEntityNameRequiresExplicitAliasRepair(t *testing.T) {
 	}
 }
 
+func TestRetiredSpellingCannotAccumulateAliasAttestations(t *testing.T) {
+	st := openTemp(t)
+	retired := putEntity(t, st, "old-verdict", "Old Verdict", "concept", "VerdictWidget")
+	target := putEntity(t, st, "new-service", "New Service", "service")
+	req := store.EntityRetirementRequest{Entity: retired.Slug, Why: "reviewed status value"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+
+	ok, reason, err := AdmitAlias(st, target, "VerdictWidget", "later-episode")
+	if err != nil || ok || !strings.Contains(reason, "retired value") {
+		t.Fatalf("AdmitAlias = ok=%v reason=%q err=%v", ok, reason, err)
+	}
+	episodes, err := st.AliasAttestations(target.Slug, store.Normalize("VerdictWidget"))
+	if err != nil || len(episodes) != 0 {
+		t.Fatalf("retired spelling accumulated attestations: %v err=%v", episodes, err)
+	}
+}
+
 func TestApplyAliasRefusalRollsBackEarlierWrites(t *testing.T) {
 	st := openTemp(t)
 	putEntity(t, st, "wrong-owner", "Wrong Owner", "concept")

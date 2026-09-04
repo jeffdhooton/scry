@@ -399,12 +399,19 @@ func (s *Store) PutEntity(e Entity) error {
 	}
 	newNorms := normalizedNameSet(e.Name, e.Aliases)
 	err = s.update(func(txn *badger.Txn) error {
-		retired, err := entityRetiredTxn(txn, e.Slug)
-		if err != nil {
-			return err
+		retiredNorms := make(map[string]bool, len(newNorms)+1)
+		for norm := range newNorms {
+			retiredNorms[norm] = true
 		}
-		if retired {
-			return fmt.Errorf("%w: %q", ErrEntityRetired, e.Slug)
+		retiredNorms[Normalize(e.Slug)] = true
+		for norm := range retiredNorms {
+			retired, err := entityRetiredTxn(txn, norm)
+			if err != nil {
+				return err
+			}
+			if retired {
+				return fmt.Errorf("%w: spelling %q on %q", ErrEntityRetired, norm, e.Slug)
+			}
 		}
 		prev, err := getEntityTxn(txn, e.Slug)
 		if err != nil && !errors.Is(err, ErrNotFound) {
@@ -477,7 +484,7 @@ func (s *Store) PutEntity(e Entity) error {
 }
 
 func entityRetiredTxn(txn *badger.Txn, slug string) (bool, error) {
-	_, err := txn.Get([]byte(prefixRetired + slug))
+	_, err := txn.Get([]byte(prefixRetired + Normalize(slug)))
 	switch {
 	case err == nil:
 		return true, nil
@@ -486,6 +493,24 @@ func entityRetiredTxn(txn *badger.Txn, slug string) (bool, error) {
 	default:
 		return false, err
 	}
+}
+
+// IsRetiredSpelling reports whether a reviewed retirement permanently
+// classified this exact normalized spelling as a value. Rehomed spellings are
+// deliberately excluded by retirement and continue to route to their reviewed
+// owner.
+func (s *Store) IsRetiredSpelling(name string) (bool, error) {
+	norm := Normalize(name)
+	if norm == "" {
+		return false, nil
+	}
+	var retired bool
+	err := s.view(func(txn *badger.Txn) error {
+		var err error
+		retired, err = entityRetiredTxn(txn, norm)
+		return err
+	})
+	return retired, err
 }
 
 // aliasOwnerTxn reads an already-normalized alias key within txn.
@@ -1133,8 +1158,11 @@ func (s *Store) DeleteEntity(slug string) error {
 	return err
 }
 
-// ClaimAlias points al:<Normalize(name)> at slug unconditionally. Hygiene
-// uses it after deciding which of several entities keeps a shared alias.
+// ClaimAlias points al:<Normalize(name)> at a reviewed slug. Hygiene uses it
+// after deciding which of several entities keeps a shared alias. A spelling
+// classified by reviewed retirement cannot be reclaimed through this lower-
+// level repair path; retirement's own rehome is validated and committed in
+// the same transaction that decides not to tombstone that spelling.
 func (s *Store) ClaimAlias(name, slug string) error {
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
@@ -1143,6 +1171,11 @@ func (s *Store) ClaimAlias(name, slug string) error {
 		return nil
 	}
 	return s.update(func(txn *badger.Txn) error {
+		if retired, err := entityRetiredTxn(txn, norm); err != nil {
+			return err
+		} else if retired {
+			return fmt.Errorf("%w: spelling %q", ErrEntityRetired, norm)
+		}
 		return txn.Set([]byte(prefixAlias+norm), []byte(slug))
 	})
 }

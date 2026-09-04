@@ -537,7 +537,10 @@ func TestRetiredEntityTombstoneSurvivesReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); err != nil {
+	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept", Aliases: []string{"VerdictWidget"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ClaimAlias("PhantomVerdict", "obsolete"); err != nil {
 		t.Fatal(err)
 	}
 	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow value"}
@@ -560,6 +563,20 @@ func TestRetiredEntityTombstoneSurvivesReopen(t *testing.T) {
 
 	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); !errors.Is(err, ErrEntityRetired) {
 		t.Fatalf("PutEntity after reopen = %v, want ErrEntityRetired", err)
+	}
+	if err := st.PutEntity(Entity{Slug: "new-service", Name: "New Service", Type: "service", Aliases: []string{"VerdictWidget"}}); !errors.Is(err, ErrEntityRetired) {
+		t.Fatalf("PutEntity with retired alias after reopen = %v, want ErrEntityRetired", err)
+	}
+	if err := st.PutEntity(Entity{Slug: "alias-target", Name: "Alias Target", Type: "service"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ClaimAlias("VerdictWidget", "alias-target"); !errors.Is(err, ErrEntityRetired) {
+		t.Fatalf("ClaimAlias with retired spelling = %v, want ErrEntityRetired", err)
+	}
+	for _, spelling := range []string{"obsolete", "Obsolete", "VerdictWidget", "PhantomVerdict"} {
+		if retired, err := st.IsRetiredSpelling(spelling); err != nil || !retired {
+			t.Errorf("IsRetiredSpelling(%q) = %v, %v; want true", spelling, retired, err)
+		}
 	}
 	if _, err := st.GetEntity("obsolete"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("retired entity exists after refused recreation: %v", err)
@@ -1052,6 +1069,9 @@ func TestRetireEntityRefusesCollisionSelfLoopAndExternalListing(t *testing.T) {
 		}
 		if owner, found, err := st.ResolveAlias("FAILED"); err != nil || !found || owner != "app" {
 			t.Fatalf("reviewed spelling was not rehomed: owner=%q found=%v err=%v", owner, found, err)
+		}
+		if retired, err := st.IsRetiredSpelling("FAILED"); err != nil || retired {
+			t.Fatalf("rehomed spelling was tombstoned: retired=%v err=%v", retired, err)
 		}
 	})
 }

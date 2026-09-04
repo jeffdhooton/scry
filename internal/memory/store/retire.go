@@ -312,14 +312,27 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 	// PutEntity (including one invoked by an observer) must not reinterpret the
 	// intentionally absent slug as a new concept stub, now or after restart.
 	tombstone, err := json.Marshal(struct {
-		ID  string `json:"id,omitempty"`
-		Why string `json:"why"`
-	}{ID: req.ID, Why: req.Why})
+		Entity string `json:"entity"`
+		ID     string `json:"id,omitempty"`
+		Why    string `json:"why"`
+	}{Entity: req.Entity, ID: req.ID, Why: req.Why})
 	if err != nil {
 		return err
 	}
-	if err := txn.Set([]byte(prefixRetired+req.Entity), tombstone); err != nil {
-		return err
+	// claimNorms is the complete reviewed spelling set: entity slug/name/aliases
+	// plus any stale routing key that still pointed at it. Rehomes are the only
+	// spellings deliberately exempted from value classification.
+	retiredNorms := make(map[string]bool, len(analysis.claimNorms))
+	for norm := range analysis.claimNorms {
+		retiredNorms[norm] = true
+	}
+	for norm := range retiredNorms {
+		if _, rehomed := analysis.rehomeNorms[norm]; rehomed {
+			continue
+		}
+		if err := txn.Set([]byte(prefixRetired+norm), tombstone); err != nil {
+			return err
+		}
 	}
 	if err := txn.Delete([]byte(prefixEntity + req.Entity)); err != nil {
 		return err
@@ -328,8 +341,12 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 	if _, err := txn.Get([]byte(prefixEntity + req.Entity)); !errors.Is(err, badger.ErrKeyNotFound) {
 		return fmt.Errorf("memory: retirement postcondition: entity %s still exists", req.Entity)
 	}
-	if retired, err := entityRetiredTxn(txn, req.Entity); err != nil || !retired {
-		return fmt.Errorf("memory: retirement postcondition: entity %s tombstone missing: %w", req.Entity, err)
+	for norm := range retiredNorms {
+		retired, err := entityRetiredTxn(txn, norm)
+		_, rehomed := analysis.rehomeNorms[norm]
+		if err != nil || retired == rehomed {
+			return fmt.Errorf("memory: retirement postcondition: spelling %s tombstone state retired=%v rehomed=%v: %w", norm, retired, rehomed, err)
+		}
 	}
 	for norm := range analysis.claimNorms {
 		owner, found, err := aliasOwnerTxn(txn, norm)

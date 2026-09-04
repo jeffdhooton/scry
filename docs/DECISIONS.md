@@ -3239,17 +3239,24 @@ lowercase outcome boundary.
 
 ## Reviewed entity retirement leaves a durable tombstone (2026-09-04)
 
-**Decision.** A successful entity retirement atomically writes an `rt:<slug>`
-tombstone with the reviewed retirement ID and reason before deleting the
-entity. Ordinary `PutEntity`, including creation through resolver Apply, refuses
-that slug with `ErrEntityRetired` across callbacks, concurrent waiters, and
-store restarts. The tombstone is part of the Badger backup and restore image;
-ordinary delete and failed retirement do not create one.
+**Decision.** A successful entity retirement atomically writes an
+`rt:<normalized-spelling>` tombstone with the reviewed retirement ID and reason
+for its slug, name, aliases, and stale routing claims before deleting the
+entity. Explicitly rehomed spellings are excluded. Ordinary `PutEntity` and
+`ClaimAlias` refuse tombstoned spellings with `ErrEntityRetired` across
+callbacks, concurrent waiters, and store restarts. Resolver Apply treats the
+same marker as durable value evidence, so later facts drain as attributes
+rather than recreating a node or parking an otherwise valid episode.
+
+The markers are part of the Badger backup and restore image; ordinary delete
+and failed retirement do not create them.
 
 **Why.** Moving observer callbacks outside the exclusive maintenance lock fixed
 a deadlock, but made the intentionally absent slug look available again. A
 callback triggered by the first retirement event could recreate the entity and
 an edge before the remaining committed delete events were published; a writer
 waiting on the maintenance lock could do the same immediately afterward. A
-persistent lifecycle marker closes both paths without putting callbacks back
+slug-only marker would still permit recreation through an old alias, while
+treating every later mention as an error would stall healthy ingestion. Durable
+spelling classification closes all three paths without putting callbacks back
 under the lock.

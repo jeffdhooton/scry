@@ -202,10 +202,15 @@ func TestDeterministicResolverFailureParksImmediately(t *testing.T) {
 	}
 }
 
-func TestResolverAttemptToRecreateRetiredEntityParksWithoutEpisode(t *testing.T) {
+func TestResolverPreservesRetiredSpellingAsValueWithoutRecreation(t *testing.T) {
 	st := openTemp(t)
-	if err := st.PutEntity(store.Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); err != nil {
-		t.Fatal(err)
+	for _, entity := range []store.Entity{
+		{Slug: "catalog", Name: "Catalog", Type: "project"},
+		{Slug: "obsolete", Name: "Obsolete", Type: "concept", Aliases: []string{"VerdictWidget"}},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
 	}
 	req := store.EntityRetirementRequest{Entity: "obsolete", Why: "reviewed status value"}
 	preview, err := st.PreviewEntityRetirement(req)
@@ -216,30 +221,34 @@ func TestResolverAttemptToRecreateRetiredEntityParksWithoutEpisode(t *testing.T)
 	if _, err := st.RetireEntity(req); err != nil {
 		t.Fatal(err)
 	}
-	p := pending("retired-recreation", "Obsolete is a project")
+	p := pending("retired-recreation", "Catalog reports VerdictWidget")
 	if err := st.PutPending(p); err != nil {
 		t.Fatal(err)
 	}
 	w := New(Options{
 		Store: st,
 		Extractor: fixedExtractor{result: extract.Result{
-			Entities: []extract.Ent{{Name: "Obsolete", Type: "project"}},
+			Entities: []extract.Ent{{Name: "Catalog", Type: "project"}, {Name: "VerdictWidget", Type: "service"}},
+			Facts:    []extract.Fct{{Src: "Catalog", Relation: "reports", Dst: "VerdictWidget", Fact: "Catalog reports VerdictWidget", Confidence: .9}},
 		}},
 		Poll: 10 * time.Millisecond,
 	})
 	runFor(t, w, 2*time.Second)
-	if !waitUntil(t, time.Second, func() bool { got, _ := st.GetPending(p.ID); return got.Parked }) {
-		t.Fatal("retired-entity resolver result was not parked")
+	if !waitUntil(t, time.Second, func() bool { has, _ := st.HasPending(p.ID); return !has }) {
+		t.Fatal("episode using a retired value spelling did not drain")
 	}
-	got, err := st.GetPending(p.ID)
-	if err != nil || !strings.Contains(got.LastError, store.ErrEntityRetired.Error()) {
-		t.Fatalf("pending=%+v err=%v", got, err)
-	}
-	if has, err := st.HasEpisode(p.ID); err != nil || has {
-		t.Fatalf("failed episode recorded: has=%v err=%v", has, err)
+	if has, err := st.HasEpisode(p.ID); err != nil || !has {
+		t.Fatalf("successful episode missing: has=%v err=%v", has, err)
 	}
 	if _, err := st.GetEntity("obsolete"); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("retired entity recreated: %v", err)
+	}
+	if _, err := st.GetEntity("verdictwidget"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("retired alias recreated as an entity: %v", err)
+	}
+	facts, err := st.FactsFrom("catalog", false)
+	if err != nil || len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != "VerdictWidget" {
+		t.Fatalf("retired spelling was not preserved as an attribute: facts=%+v err=%v", facts, err)
 	}
 }
 

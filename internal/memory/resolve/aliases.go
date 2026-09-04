@@ -244,6 +244,11 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 			return false, "already an alias", nil
 		}
 	}
+	if retired, err := st.IsRetiredSpelling(alias); err != nil {
+		return false, "", err
+	} else if retired {
+		return false, "reviewed retired value spelling", nil
+	}
 	if neverAlias(alias) {
 		return false, "generic, value, or reference word", nil
 	}

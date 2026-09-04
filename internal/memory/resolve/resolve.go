@@ -146,6 +146,15 @@ func applyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result
 
 // resolveEntity implements Rule 2 for a single extracted entity.
 func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, declared map[string]bool, stats *Stats) (string, error) {
+	// A reviewed retirement is durable classification evidence, including for
+	// spellings that were aliases of the old node. Preserve later facts as
+	// attributes instead of recreating the node or parking the whole episode.
+	if retired, err := st.IsRetiredSpelling(ent.Name); err != nil {
+		return "", err
+	} else if retired {
+		stats.ValuesRejected++
+		return "", nil
+	}
 	// A malformed/value verdict cannot demote or reroute an exact identity
 	// established by earlier episodes. Return it unchanged so this episode's
 	// facts still resolve as edges, without allowing the bad verdict to mutate

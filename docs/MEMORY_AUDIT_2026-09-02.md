@@ -2425,12 +2425,16 @@ batch then delivered a stale final entity deletion to mirrors. An ordinary
 slug immediately afterward. Both retirement entry points reproduced the
 observer path.
 
-Retirement now writes a persistent `rt:<slug>` tombstone in the same transaction
-as fact conversion, alias cleanup, and entity deletion. `PutEntity` checks it
-inside its transaction and returns distinct `ErrEntityRetired`; resolver queue
-handling parks that deterministic verdict while preserving retirement's
-transient `ErrNotFound` retry. Regressions exercise the first fact-delete
-callback, a blocked ordinary writer, and close/reopen persistence. The prior
-unrelated observer-write test still proves callbacks run outside the lock.
-Focused store and queue tests pass with the race detector. Nothing has been
-deployed or applied live, and the consecutive retirement review count resets.
+Retirement now writes persistent `rt:<normalized-spelling>` markers for the
+reviewed slug, name, aliases, and stale claims in the same transaction as fact
+conversion, alias cleanup, and entity deletion; explicit rehomes are excluded.
+`PutEntity` and `ClaimAlias` refuse those spellings. Resolver Apply reads the
+same markers as durable value evidence so later mentions become attributes and
+the episode completes, while a direct unsafe recreation still returns distinct
+`ErrEntityRetired`. Retirement's transient `ErrNotFound` remains retryable.
+Regressions exercise the first fact-delete callback, a blocked ordinary writer,
+retired aliases and stale claims, successful ingestion after cleanup, explicit
+rehome, and close/reopen persistence. The prior unrelated observer-write test
+still proves callbacks run outside the lock. Focused store, resolver, and queue
+tests pass with the race detector. Nothing has been deployed or applied live,
+and the consecutive retirement review count resets.

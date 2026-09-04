@@ -117,6 +117,9 @@ func declaredValue(st *store.Store, declared map[string]bool, name string) bool 
 // deliberately stronger than alias routing, because a leaking alias must not
 // turn a repeatedly observed status/value into a node.
 func contextualValue(st *store.Store, declared map[string]bool, name string) (bool, error) {
+	if retired, err := st.IsRetiredSpelling(name); err != nil || retired {
+		return retired, err
+	}
 	if declaredValue(st, declared, name) {
 		return true, nil
 	}
