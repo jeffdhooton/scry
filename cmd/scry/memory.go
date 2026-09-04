@@ -428,8 +428,8 @@ func memoryQueueCmd() *cobra.Command {
 		Short: "Show episodes waiting for extraction at the daemon",
 		Long: `Every memory write (scry_remember, the sweep, ingest) lands in the daemon's
 queue first and is extracted in the background. This lists what is waiting:
-ready items, items backing off after a transport failure, and parked items
-the models could not parse after three tries.`,
+ready items, items backing off after a retryable failure, and parked items
+that need review before replay.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
