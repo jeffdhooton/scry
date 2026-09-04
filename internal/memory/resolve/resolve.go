@@ -370,18 +370,27 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// process vocabulary) must not become a node: before this, a fact
 		// endpoint bypassed the entity checks entirely and
 		// "setpoint-wt-lpj7ikz0 worktree" became an entity.
+		_, srcKnown, err := establishedMentionIdentity(st, fct.Src, resolvedEntities)
+		if err != nil {
+			return err
+		}
+		_, dstKnown, err := establishedMentionIdentity(st, fct.Dst, resolvedEntities)
+		if err != nil {
+			return err
+		}
 		_, exactSrc := exactEstablishedIdentity(st, fct.Src)
 		_, exactDst := exactEstablishedIdentity(st, fct.Dst)
-		srcIsValue := !exactSrc && (((NotAnIdentity(fct.Src) || untrustedStatusShape(fct.Src)) && resolvedEntities[store.Normalize(fct.Src)] == "") || declaredValue(st, declared, fct.Src))
-		dstIsValue := !exactDst && (((NotAnIdentity(fct.Dst) || untrustedStatusShape(fct.Dst)) && resolvedEntities[store.Normalize(fct.Dst)] == "") || declaredValue(st, declared, fct.Dst))
+		srcDeclared := resolvedEntities[store.Normalize(fct.Src)] != ""
+		dstDeclared := resolvedEntities[store.Normalize(fct.Dst)] != ""
+		srcIsValue := (!srcKnown && (NotAnIdentity(fct.Src) || untrustedStatusShape(fct.Src))) || (!srcDeclared && !exactSrc && declaredValue(st, declared, fct.Src))
+		dstIsValue := (!dstKnown && (NotAnIdentity(fct.Dst) || untrustedStatusShape(fct.Dst))) || (!dstDeclared && !exactDst && declaredValue(st, declared, fct.Dst))
 		if relation == RelStatus {
 			// "status" almost always points at a state word, and those are
 			// attributes. When it points at a real identity the model meant
 			// something else by it; keep the edge rather than turning a
 			// project into this entity's status, which exclusivity would
 			// then invalidate on the next status fact.
-			declaredDst := resolvedEntities[store.Normalize(fct.Dst)] != ""
-			if !declaredDst && !exactDst {
+			if !dstKnown {
 				dstIsValue = true
 			} else {
 				relation, fct.Relation = RelRelatedTo, RelRelatedTo
@@ -570,8 +579,20 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, reso
 	if flip {
 		src, dst = dst, src
 	}
-	if IsValueName(src) && !IsValueName(dst) && relation != RelStatus {
+	_, srcKnown, err := establishedMentionIdentity(st, src, resolvedEntities)
+	if err != nil {
+		return err
+	}
+	_, dstKnown, err := establishedMentionIdentity(st, dst, resolvedEntities)
+	if err != nil {
+		return err
+	}
+	if !srcKnown && IsValueName(src) && dstKnown && relation != RelStatus {
 		src, dst = dst, src
+		srcKnown, dstKnown = dstKnown, false
+	}
+	if relation == RelStatus && dstKnown {
+		relation = RelRelatedTo
 	}
 
 	srcSlug, err := resolveSlugOnly(st, src, resolvedEntities)
@@ -582,7 +603,7 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, reso
 		return nil
 	}
 	var keyDst string
-	if relation == RelStatus || IsValueName(dst) {
+	if (relation == RelStatus && !dstKnown) || (!dstKnown && IsValueName(dst)) {
 		keyDst = store.AttrDst(dst)
 	} else {
 		dstSlug, err := resolveSlugOnly(st, dst, resolvedEntities)

@@ -96,6 +96,36 @@ func exactEstablishedIdentity(st *store.Store, name string) (store.Entity, bool)
 	return exact, true
 }
 
+// establishedMentionIdentity recognizes an exact identity or an alias whose
+// indexed owner actually lists that spelling. The listing check distinguishes
+// a durable glossary alias from a stale index claim. Exact name wins first.
+func establishedMentionIdentity(st *store.Store, name string, resolvedEntities map[string]string) (string, bool, error) {
+	norm := store.Normalize(name)
+	if slug := resolvedEntities[norm]; slug != "" {
+		return slug, true, nil
+	}
+	if exact, found := exactEstablishedIdentity(st, name); found {
+		return exact.Slug, true, nil
+	}
+	slug, found, err := st.ResolveAlias(name)
+	if err != nil || !found {
+		return "", false, err
+	}
+	owner, err := st.GetEntity(slug)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return "", false, nil
+		}
+		return "", false, err
+	}
+	for _, spelling := range append([]string{owner.Name}, owner.Aliases...) {
+		if store.Normalize(spelling) == norm {
+			return owner.Slug, true, nil
+		}
+	}
+	return "", false, nil
+}
+
 // ticketRE matches the ways a ticket, issue or pull request gets named:
 // "issue-91", "PR-402", "GH#88", "bug 1204", "SCRY-17".
 var ticketRE = regexp.MustCompile(`(?i)^(issue|bug|ticket|story|task|pr|mr|gh|pull request)[-#\s]?\d+$|^[A-Z]{2,10}-\d+$`)

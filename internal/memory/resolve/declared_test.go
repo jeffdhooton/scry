@@ -275,6 +275,70 @@ func TestUndeclaredFactEndpointPrefersExactIdentityOverStaleAlias(t *testing.T) 
 	}
 }
 
+func TestOwnedStatusShapedAliasRemainsAnIdentityInFacts(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []store.Entity{
+		{Slug: "canonical-transport-marker", Name: "Canonical Transport Marker", Type: "concept", Aliases: []string{"TRANSPORT_NEGOTIATION_OK"}},
+		{Slug: "protocol-catalog", Name: "Protocol Catalog", Type: "project"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ep := store.Episode{ID: "ep-owned-status-alias", Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+	result := extract.Result{
+		Entities: []extract.Ent{{Name: "Protocol Catalog", Type: "project"}},
+		Facts:    []extract.Fct{{Src: "TRANSPORT_NEGOTIATION_OK", Relation: "part_of", Dst: "Protocol Catalog", Fact: "the marker belongs to the protocol catalog", Confidence: .9}},
+	}
+	if _, err := Apply(st, ep, "", result, nil); err != nil {
+		t.Fatal(err)
+	}
+	if facts := mustFacts(t, st, "canonical-transport-marker"); len(facts) != 1 || facts[0].Dst != "protocol-catalog" || facts[0].Value != "" {
+		t.Errorf("owned status-shaped alias was demoted: %+v", facts)
+	}
+}
+
+func TestSupersedesResolvesEstablishedStatusShapedIdentities(t *testing.T) {
+	for _, markerAsSource := range []bool{true, false} {
+		st := openTemp(t)
+		at := time.Now().Add(-time.Hour)
+		for _, entity := range []store.Entity{
+			{Slug: "transport-negotiation-ok", Name: "TRANSPORT_NEGOTIATION_OK", Type: "concept"},
+			{Slug: "protocol-catalog", Name: "Protocol Catalog", Type: "project"},
+			{Slug: "replacement", Name: "Replacement", Type: "concept"},
+		} {
+			if err := st.PutEntity(entity); err != nil {
+				t.Fatal(err)
+			}
+		}
+		src, dst := "TRANSPORT_NEGOTIATION_OK", "Protocol Catalog"
+		if !markerAsSource {
+			src, dst = dst, src
+		}
+		old := store.Fact{Src: store.Slugify(src), Relation: "part_of", Dst: store.Slugify(dst), Fact: "old marker relationship", ValidFrom: at, Confidence: .9}
+		if err := st.PutFact(old); err != nil {
+			t.Fatal(err)
+		}
+		ep := store.Episode{ID: fmt.Sprintf("ep-supersedes-status-%v", markerAsSource), Source: "manual", SourceRef: "x", OccurredAt: at.Add(time.Minute), IngestedAt: at.Add(time.Minute)}
+		result := extract.Result{
+			Entities: []extract.Ent{{Name: "Replacement", Type: "concept"}},
+			Facts: []extract.Fct{{Src: "Replacement", Relation: "related_to", Dst: "Protocol Catalog", Fact: "replacement observation", Confidence: .9,
+				Supersedes: &extract.SupRef{Src: src, Relation: "part_of", Dst: dst}}},
+		}
+		stats, err := Apply(st, ep, "", result, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if stats.FactsInvalidated != 1 {
+			t.Errorf("status-shaped supersedes markerAsSource=%v invalidated=%d", markerAsSource, stats.FactsInvalidated)
+		}
+		facts, err := st.FactsFrom(old.Src, true)
+		if err != nil || len(facts) != 1 || facts[0].InvalidAt == nil {
+			t.Errorf("old edge remained current markerAsSource=%v facts=%+v err=%v", markerAsSource, facts, err)
+		}
+	}
+}
+
 func TestArtifactVetoPrecedesBranchAndStatusSpelling(t *testing.T) {
 	st := openTemp(t)
 	names := []string{"/usr/bin/true", "/usr/bin/false", "/usr/bin/open", "/usr/bin/head", "/usr/bin/yes", "release/mac-arm64"}
