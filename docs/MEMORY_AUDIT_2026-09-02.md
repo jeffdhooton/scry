@@ -2087,3 +2087,52 @@ as a callback inside the Badger update transaction over complete
 read-your-writes entity and fact snapshots; any mismatch returns an error and
 rolls back the group. A regression test injects a failing postcondition and
 proves the loser, fact, and alias state remain unchanged.
+
+## 2026-09-04 — the value type was disconnected at the parser
+
+The earlier conclusion that `glm-5.3-flash` never used the prompted `value`
+type was wrong. `SystemPrompt` listed `value`, but `extract.allowedEntityTypes`
+did not. `ParseResult` therefore rewrote every correct `value` response to the
+fallback `concept` before logging, queue statistics, or the resolver could see
+it. The experiment had measured the parser, not the raw model decision.
+
+The parser allowlist now includes `value`, with a direct parse regression and
+a resolver test for the exact ambiguous pairs. Because lexical rules reject
+both members of the pinned enum-shaped pair, the resolver narrowly accepts a
+non-value model verdict only when that entity was explicitly extracted in the
+episode; undeclared endpoints, generic names, run artifacts, and hard value
+shapes retain their vetoes. A gated provider test ran the
+unchanged extraction prompt against `glm-5.3-flash` on the configured Z.ai
+endpoint. It classified all twelve context-bearing cases correctly:
+
+- values: `validation_failed`, `DONE_WITH_CONCERNS`, `dirty_working_tree`,
+  `READY-AFTER-FIXES`, `DID_NOT_START`, `pause-resume-completed`;
+- identities: `user_login_failed`, `PYTHON_ARGCOMPLETE_OK`, `Done For Now`,
+  `Ready Player One`, `dirty-working-tree-check`,
+  `validation-failed-handler`.
+
+The real-name call initially exceeded its 90-second test deadline; rerun with
+a 180-second test-only deadline returned all four identities correctly. No
+prompt wording or lexical status rule changed. `deepseek-v4-flash` was not
+called: the Mini log already records its configured key returning HTTP 402
+Insufficient Balance, and the run's autonomy explicitly forbids spending or
+topping up DeepSeek. The primary configured model therefore clears the bounded
+go/no-go bar 12/12; the unavailable fallback is recorded, not disguised.
+
+This closes prevention, not legacy cleanup. The live binary at `695b8e1` does
+not yet contain the allowlist correction, and no existing status entity has
+been retired. Deployment and any explicit retirement manifest remain gated on
+fresh review and replica evidence.
+
+### Prevention deployment
+
+Fresh-context merge review round four returned VERIFIED at `695b8e1`. The
+same static arm64 binary was installed on the laptop and Mini with SHA-256
+`ef5ce6c451ffabbf1e85f1c69c1efa700dbef3979e2b5ac2010e38ceb64bc8f1`;
+both report `scry 695b8e1`. The preceding byte-identical binary
+(`708add8df068549ee38ae1b27eb9a4ffd8ff5c3be69ccd983eb98a1d3f7b2c24`)
+is preserved as `scry.pre-695b8e1` on both machines. The Mini daemon restarted,
+rebuilt its index, and resumed the extraction worker with zero backoff and
+parked items. Scry room post 37 records the deploy. No live store-shape repair
+was included; the queue was still draining and the Qwen manifest was correctly
+treated as stale.

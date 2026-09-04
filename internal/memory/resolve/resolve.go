@@ -126,7 +126,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	// A run artifact is not an identity. Storing one pollutes recall forever
 	// and can never be usefully recalled later. Neither is a value: "main",
 	// "in-progress", and "46 GiB" describe things, they are not things.
-	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || IsValueName(ent.Name) {
+	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || (IsValueName(ent.Name) && !contextualEnumIdentity(ent)) {
 		return "", nil
 	}
 	if declaredValue(st, declared, ent.Name) {
@@ -247,6 +247,15 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	return slug, nil
 }
 
+// contextualEnumIdentity is the narrow escape hatch from an inherently
+// ambiguous lexical rule. QUALITY_OK and PYTHON_ARGCOMPLETE_OK have the same
+// shape; only an extracted entity verdict made with episode context may keep
+// the latter. Hard value shapes, generic names, artifacts, and undeclared fact
+// endpoints never reach this override.
+func contextualEnumIdentity(ent extract.Ent) bool {
+	return ent.Type != "" && ent.Type != "value" && enumValue(strings.TrimSpace(ent.Name))
+}
+
 // resolvedFact is one extract.Fct after Rule 3's endpoint/ValidFrom
 // resolution, carried between resolveFacts' phases.
 type resolvedFact struct {
@@ -319,8 +328,8 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// process vocabulary) must not become a node: before this, a fact
 		// endpoint bypassed the entity checks entirely and
 		// "setpoint-wt-lpj7ikz0 worktree" became an entity.
-		srcIsValue := NotAnIdentity(fct.Src) || declaredValue(st, declared, fct.Src)
-		dstIsValue := NotAnIdentity(fct.Dst) || declaredValue(st, declared, fct.Dst)
+		srcIsValue := (NotAnIdentity(fct.Src) && resolvedEntities[store.Normalize(fct.Src)] == "") || declaredValue(st, declared, fct.Src)
+		dstIsValue := (NotAnIdentity(fct.Dst) && resolvedEntities[store.Normalize(fct.Dst)] == "") || declaredValue(st, declared, fct.Dst)
 		if relation == RelStatus {
 			// "status" almost always points at a state word, and those are
 			// attributes. When it points at a real identity the model meant

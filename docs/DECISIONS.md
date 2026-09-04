@@ -2921,6 +2921,29 @@ next session, and `internal/memory/queue` now logs the count on every
 resolution, so the answer will show up in the daemon log without anyone
 running an experiment.
 
+## Correction: `value` was produced but rewritten to `concept` (2026-09-04)
+
+**Correction.** The preceding “value type is inert” decision measured parsed
+results. The prompt allowed `value`; the parser's allowlist accidentally did
+not. Its unknown-type fallback deterministically rewrote `value` to `concept`,
+which explains the observed zero without saying anything about model behavior.
+
+**Decision.** Add `value` to `allowedEntityTypes` and trust a non-value model
+verdict only for an enum-shaped name that lexical rules cannot distinguish
+from a status. The override requires that exact entity to appear in the
+episode's extracted entity list; it does not admit undeclared fact endpoints,
+generic names, run artifacts, or hard value shapes. Against the unchanged prompt, `glm-5.3-flash`
+classified all twelve context-bearing status/identity cases correctly,
+including both pinned ambiguous pairs and four independent real names. This is
+the bounded go decision for preventing new status nodes. It does not authorize
+lexical cleanup of old nodes: legacy conversion still requires an explicit
+reviewed manifest preserving each fact.
+
+The configured DeepSeek fallback remains unprobed because its balance is known
+to return HTTP 402 and this run is expressly forbidden to spend or top it up.
+That absence is a provider-availability limit, not evidence for or against the
+classifier.
+
 ## Alias routing state is not identity authority (2026-09-04)
 
 **Decision.** An ordinary `store.PutEntity` may create an unclaimed name or

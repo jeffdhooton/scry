@@ -70,6 +70,7 @@ var allowedEntityTypes = map[string]bool{
 	"decision": true,
 	"runbook":  true,
 	"concept":  true,
+	"value":    true,
 }
 
 // fallbackEntityType is where an entity type the model invented lands. It is

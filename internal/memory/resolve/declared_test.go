@@ -58,6 +58,45 @@ func TestApplyDropsEntitiesTheModelTypedAsValues(t *testing.T) {
 	}
 }
 
+func TestContextBearingAmbiguousStatusPairs(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "ep-ambiguous-status", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+	res := extract.Result{
+		Entities: []extract.Ent{
+			{Name: "validation_failed", Type: "value", Description: "the CI validation status"},
+			{Name: "DONE_WITH_CONCERNS", Type: "value", Description: "the review verdict"},
+			{Name: "user_login_failed", Type: "concept", Description: "a durable auth event identifier"},
+			{Name: "PYTHON_ARGCOMPLETE_OK", Type: "concept", Description: "a durable protocol marker identifier"},
+			{Name: "argcomplete", Type: "tool", Description: "the shell completion tool"},
+		},
+		Facts: []extract.Fct{{
+			Src:        "PYTHON_ARGCOMPLETE_OK",
+			Relation:   "part_of",
+			Dst:        "argcomplete",
+			Fact:       "PYTHON_ARGCOMPLETE_OK is an argcomplete protocol marker",
+			Confidence: 0.95,
+		}},
+	}
+	if _, err := Apply(st, ep, "", res, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"validation_failed", "DONE_WITH_CONCERNS"} {
+		if _, found, err := st.ResolveAlias(name); err != nil || found {
+			t.Errorf("context-declared status %q became an entity: found=%v err=%v", name, found, err)
+		}
+	}
+	for _, name := range []string{"user_login_failed", "PYTHON_ARGCOMPLETE_OK"} {
+		if _, found, err := st.ResolveAlias(name); err != nil || !found {
+			t.Errorf("context-declared identifier %q was rejected: found=%v err=%v", name, found, err)
+		}
+	}
+	facts := mustFacts(t, st, mustSlug(t, st, "PYTHON_ARGCOMPLETE_OK"))
+	if len(facts) != 1 || facts[0].Dst != mustSlug(t, st, "argcomplete") {
+		t.Errorf("context-declared identifier edge was converted or lost: %+v", facts)
+	}
+}
+
 // The guard: one episode's stray "value" verdict must not demote an entity
 // other episodes have already built.
 func TestApplyKeepsAnEstablishedEntityCalledAValue(t *testing.T) {

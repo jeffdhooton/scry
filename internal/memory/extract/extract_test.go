@@ -132,6 +132,21 @@ func TestParseResult(t *testing.T) {
 		}
 	})
 
+	t.Run("value entity type survives parsing", func(t *testing.T) {
+		raw := `{
+			"episode_summary": "validation failed during the run",
+			"entities": [{"name": "validation_failed", "type": "value", "description": "the run status"}],
+			"facts": []
+		}`
+		got, err := ParseResult(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got.Entities) != 1 || got.Entities[0].Type != "value" {
+			t.Fatalf("value type was rewritten during parse: %+v", got.Entities)
+		}
+	})
+
 	t.Run("missing confidence returns error", func(t *testing.T) {
 		raw := `{
 			"episode_summary": "ok",
