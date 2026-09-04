@@ -3160,3 +3160,44 @@ calls but found another 140 omissions, bringing the review inventory to 266.
 source ownership cannot be inferred once per retired spelling. The corrected
 candidate inventory is still not an apply manifest; unresolved source facts
 block it until their individual owners are documented.
+
+**Correction.** A third semantic review found 236 more exact omissions, 213 of
+them directly used as destinations of stored raw `status` facts. The inventory
+now has 502 candidates. It also rejected `validation-failed -> scry`: the same
+episode offers two more precise boundary/review identities but does not choose
+between them. Thirty-three source-bearing groups remain unresolved. Direct
+status-edge evidence is a candidate signal, not authority to guess where an
+outgoing fact belongs.
+
+## An extraction episode commits as one store transaction (2026-09-04)
+
+**Decision.** Resolver idempotency, entity and alias changes, alias
+attestations, fact additions/merges/invalidations, contextual value evidence,
+and the episode marker are one Badger write transaction. Any error returns zero
+committed stats and rolls the entire episode back. Store observers receive the
+buffered events only after commit and receive nothing on rollback.
+
+The transaction holds the shared maintenance boundary from start to commit. If
+it began waiting while an entity retirement held the exclusive side and that
+retirement commits, the extraction aborts and remains retryable rather than
+reinterpreting the deleted endpoint as a new concept stub. An extraction that
+already holds the shared side commits before retirement, so the two operations
+still have a serial order.
+
+**Why.** Recording the episode last prevented a failed extraction from being
+marked complete, but did not undo earlier entities or facts. A stale-alias
+refusal left an entity behind, and endpoint retirement could leave a first fact
+whose provenance named an absent episode. The transaction closes both partial-
+state paths and also makes reads see earlier writes from the same extraction.
+
+## Maintenance observers run after the exclusive boundary (2026-09-04)
+
+**Decision.** Retirement accumulates its committed fact/entity events while it
+holds `maintenanceMu.Lock`, releases that lock, and only then calls observers.
+Failed retirement produces no events; successful records are emitted once in
+transaction order.
+
+**Why.** An observer is allowed to perform a normal store write. Calling it
+while retirement still held the exclusive lock made retirement wait for a
+callback that was itself waiting for the shared lock: a deterministic
+deadlock after a successful database commit.

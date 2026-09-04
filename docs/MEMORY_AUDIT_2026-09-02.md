@@ -2325,3 +2325,60 @@ deletion, and avoids reacquiring the maintenance read lock on same-key updates.
 The concurrent regression proves a refused relocation leaves the original fact
 and adjacency intact. Full tests and vet passed; fresh retirement review
 restarted and no code was deployed.
+
+### Failed extraction writes now roll back with the episode
+
+Fresh status/value review of `2ae8e59` confirmed the durable value matrix but
+found three write-path failures. A same-episode identity lost to a conflicting
+`value` declaration for the exact same spelling. A stale-owner refusal could
+leave an entity written earlier in the same `Apply`. More seriously, retirement
+could remove a fact endpoint after resolution: the first fact committed, the
+second failed endpoint validation, and the episode marker was absent even
+though the first fact named it as provenance.
+
+Commit `7de62d9` makes the complete resolver apply one Badger transaction,
+buffers observer events until commit, returns zero stats on error, and aborts
+an apply that was already waiting when retirement commits. It also makes an
+affirmative same-episode identity stronger than a conflicting exact-name value
+in both declaration orders. Regressions cover stale-owner rollback, the exact
+paused-retirement two-fact race, read-your-writes for entities/aliases/facts,
+observer silence on rollback, and both declaration orders. Focused tests passed
+five times, targeted race tests passed, and the full suite and vet were green.
+
+A fresh isolated grader then VERIFIED exact commit `7de62d9`. In addition to
+the required value/identity matrix it forced a real Badger `ErrTxnTooBig` after
+tens of thousands of writes and observed zero entities, facts, episode, stats,
+or events. Apply-versus-retirement and direct PutFact-versus-retirement each
+passed 100 repetitions. This is the first post-disproof pass; a second fresh
+status/value pass is still required. Nothing was deployed or applied live.
+
+### Retirement observer deadlock found before deployment
+
+The first retirement review after atomic Apply disproved `7de62d9`: successful
+retirement invoked observers while its caller still held the exclusive
+maintenance lock. An observer that performed an ordinary store write waited on
+the shared lock forever while retirement waited for the callback. Commit
+`afc3f1a` now records commit events under the lock, releases it, and then emits
+them exactly once; failed transactions emit nothing. The deterministic
+observer-write regression, focused tests repeated five times, race tests, full
+suite, and vet pass. Fresh retirement review restarted; no deployment or live
+store mutation occurred.
+
+### Third semantic retirement review expands the candidate boundary
+
+The third semantic pass confirmed all 266 existing candidates and all nine
+protected identities, then found 236 additional exact non-identity slugs on the
+same 24,498-entity/62,245-fact replica. Of those, 213 are direct destinations of
+246 stored facts whose raw relation is exactly `status` (243 current); 23 have
+explicit status/result descriptions, morphology, or measured-result evidence.
+The reviewed candidate inventory is now 502 unique slugs.
+
+That pass also inspected the original candidates' 322 touching facts (320
+current, two invalidated). Thirty-seven candidates were sources of 43 facts.
+Only `created`, `published`, `all-gates-passing`, and `tests-passing` had a
+supported explicit owner; 33 source groups remain unresolved. The earlier
+`validation-failed -> scry` mapping was withdrawn because its episode names two
+more precise boundary/review identities without selecting one. `gate-green`
+also remains unresolved among three dispatch/task identities. The final stable
+snapshot must repeat this fact-by-fact audit across all 502 candidates before a
+manifest can be generated. No fingerprints or mutations were taken from live.
