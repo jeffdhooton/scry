@@ -143,11 +143,20 @@ func (s *Store) RetireEntitiesChecked(reqs []EntityRetirementRequest, postcondit
 	// maintenance window. In particular, a PutFact that began during analysis
 	// must observe the retired endpoint after commit and refuse it, rather than
 	// landing a dangling fact outside the retirement transaction's snapshot.
-	s.maintenanceMu.Lock()
-	defer s.maintenanceMu.Unlock()
-	previews, err := s.retireEntitiesCheckedUnlocked(reqs, postcondition)
+	var previews []EntityRetirementPreview
+	var events []Event
+	err := func() error {
+		s.maintenanceMu.Lock()
+		defer s.maintenanceMu.Unlock()
+		var err error
+		previews, events, err = s.retireEntitiesCheckedUnlocked(reqs, postcondition)
+		if err == nil {
+			s.retirementRevision.Add(1)
+		}
+		return err
+	}()
 	if err == nil {
-		s.retirementRevision.Add(1)
+		s.notifyAll(events)
 	}
 	return previews, err
 }
@@ -163,30 +172,40 @@ type durableBackupWriter interface {
 // and closed before any write. Ordinary writers cannot land a change between
 // that verified rollback point and apply.
 func (s *Store) BackupAndRetireEntities(w durableBackupWriter, reqs []EntityRetirementRequest) (uint64, []EntityRetirementPreview, error) {
-	s.maintenanceMu.Lock()
-	defer s.maintenanceMu.Unlock()
-	n, err := s.backupUnlocked(w)
-	if err != nil {
-		_ = w.Close()
-		return n, nil, err
-	}
-	if err := w.Sync(); err != nil {
-		_ = w.Close()
-		return n, nil, fmt.Errorf("sync retirement backup: %w", err)
-	}
-	if err := w.Close(); err != nil {
-		return n, nil, fmt.Errorf("close retirement backup: %w", err)
-	}
-	previews, err := s.retireEntitiesCheckedUnlocked(reqs, nil)
+	var n uint64
+	var previews []EntityRetirementPreview
+	var events []Event
+	err := func() error {
+		s.maintenanceMu.Lock()
+		defer s.maintenanceMu.Unlock()
+		var err error
+		n, err = s.backupUnlocked(w)
+		if err != nil {
+			_ = w.Close()
+			return err
+		}
+		if err := w.Sync(); err != nil {
+			_ = w.Close()
+			return fmt.Errorf("sync retirement backup: %w", err)
+		}
+		if err := w.Close(); err != nil {
+			return fmt.Errorf("close retirement backup: %w", err)
+		}
+		previews, events, err = s.retireEntitiesCheckedUnlocked(reqs, nil)
+		if err == nil {
+			s.retirementRevision.Add(1)
+		}
+		return err
+	}()
 	if err == nil {
-		s.retirementRevision.Add(1)
+		s.notifyAll(events)
 	}
 	return n, previews, err
 }
 
-func (s *Store) retireEntitiesCheckedUnlocked(reqs []EntityRetirementRequest, postcondition func([]Entity, []Fact) error) ([]EntityRetirementPreview, error) {
+func (s *Store) retireEntitiesCheckedUnlocked(reqs []EntityRetirementRequest, postcondition func([]Entity, []Fact) error) ([]EntityRetirementPreview, []Event, error) {
 	if len(reqs) == 0 {
-		return nil, errors.New("memory: retirement manifest is empty")
+		return nil, nil, errors.New("memory: retirement manifest is empty")
 	}
 	analyses := make([]entityRetirementAnalysis, len(reqs))
 	err := s.db.Update(func(txn *badger.Txn) error {
@@ -226,17 +245,20 @@ func (s *Store) retireEntitiesCheckedUnlocked(reqs []EntityRetirementRequest, po
 		previews[i] = analyses[i].preview
 	}
 	if err != nil {
-		return previews, err
+		return previews, nil, err
 	}
+	var events []Event
 	for i := range analyses {
 		previews[i].Applied = true
 		for j, old := range analyses[i].facts {
-			s.notify(Event{Kind: "fact", Op: "delete", Fact: old})
-			s.notify(Event{Kind: "fact", Op: "put", Fact: analyses[i].replacements[j]})
+			events = append(events,
+				Event{Kind: "fact", Op: "delete", Fact: old},
+				Event{Kind: "fact", Op: "put", Fact: analyses[i].replacements[j]},
+			)
 		}
-		s.notify(Event{Kind: "entity", Op: "delete", Slug: reqs[i].Entity})
+		events = append(events, Event{Kind: "entity", Op: "delete", Slug: reqs[i].Entity})
 	}
-	return previews, nil
+	return previews, events, nil
 }
 
 func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, analysis entityRetirementAnalysis) error {

@@ -439,6 +439,48 @@ func TestRetireEntityExcludesConcurrentFactWriter(t *testing.T) {
 	}
 }
 
+func TestRetirementObserversRunAfterMaintenanceUnlock(t *testing.T) {
+	st := openTemp(t)
+	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow value"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+
+	triggered := false
+	var callbackErr error
+	st.SetObserver(func(event Event) {
+		if triggered || event.Kind != "entity" || event.Op != "delete" || event.Slug != "obsolete" {
+			return
+		}
+		triggered = true
+		callbackErr = st.PutEntity(Entity{Slug: "observer-write", Name: "Observer Write", Type: "concept"})
+	})
+	done := make(chan error, 1)
+	go func() {
+		_, err := st.RetireEntity(req)
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("retirement deadlocked while observer attempted an ordinary write")
+	}
+	if !triggered || callbackErr != nil {
+		t.Fatalf("observer write: triggered=%v err=%v", triggered, callbackErr)
+	}
+	if _, err := st.GetEntity("observer-write"); err != nil {
+		t.Fatalf("observer write missing after retirement: %v", err)
+	}
+}
+
 func TestRetireEntityExcludesConcurrentFactRelocation(t *testing.T) {
 	st := openTemp(t)
 	for _, entity := range []Entity{

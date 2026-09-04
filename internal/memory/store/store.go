@@ -1324,3 +1324,9 @@ func (s *Store) notify(ev Event) {
 		fn(ev)
 	}
 }
+
+func (s *Store) notifyAll(events []Event) {
+	for _, event := range events {
+		s.notify(event)
+	}
+}
