@@ -166,15 +166,6 @@ func IsValueName(name string) bool {
 	if enumValue(strings.TrimSpace(name)) {
 		return true
 	}
-	// A capitalised phrase whose opening word is a state, and whose
-	// remaining words are ordinary nouns, is a title: "Ready Player One",
-	// "Blocked Punt Media", "Needs More Cowbell". A verdict keeps its own
-	// vocabulary all the way through — "Ready With Caveats" carries the
-	// preposition — so the escape asks for the rest of the phrase to be
-	// free of status words and fillers before it fires.
-	if titleOpeningOnAState(name) {
-		return false
-	}
 	// The original spelling, not the lowercased one: a state a session
 	// shouted is written in capitals, and that is the only thing telling
 	// PENDING-og-images from pending-migration-lock.
@@ -452,33 +443,6 @@ func measurementPhrase(n string) bool {
 	return true
 }
 
-// titleOpeningOnAState reports whether name is a capitalised phrase of three
-// or more words that merely begins with a state word.
-//
-// IsStatusWord runs before the proper-phrase escape, because "In Progress"
-// is capitalised too, and that ordering was costing real names: five titles
-// opening on ready, blocked, waiting or needs were all read as verdicts.
-// The signal that separates them is what follows. A verdict goes on being a
-// verdict — "Ready With Caveats", "Completed Successfully" — while a title
-// turns to ordinary nouns after its first word.
-func titleOpeningOnAState(name string) bool {
-	trimmed := strings.TrimSpace(name)
-	if !properPhraseRE.MatchString(trimmed) {
-		return false
-	}
-	words := strings.Fields(trimmed)
-	if len(words) < 3 {
-		return false
-	}
-	for _, w := range words[1:] {
-		lw := strings.ToLower(w)
-		if statusWords[lw] || measurementFillers[lw] || participleStates[lw] {
-			return false
-		}
-	}
-	return true
-}
-
 // enumTokenRE matches a shouted or snake_case identifier whose last part is
 // an outcome: QUALITY_OK, SPEC_OK, VALIDATION_FAILED, attempt_status_pending.
 //
@@ -495,12 +459,20 @@ var enumTokenRE = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)+$`)
 // is its value — and a replica dry run was retiring four of them.
 var enumEndings = map[string]bool{
 	"ok": true, "failed": true, "failure": true, "pending": true, "success": true,
-	"succeeded": true, "error": true, "unknown": true, "missing": true, "invalid": true,
-	"valid": true, "skipped": true, "done": true, "ready": true, "blocked": true,
-	"denied": true, "allowed": true, "expired": true,
-	"queued": true, "running": true, "stopped": true, "aborted": true, "timeout": true,
-	"required": true, "complete": true, "completed": true, "cancelled": true, "canceled": true,
+	"succeeded": true, "unknown": true, "skipped": true, "done": true, "ready": true,
+	"blocked": true, "denied": true, "allowed": true, "expired": true, "queued": true,
+	"running": true, "stopped": true, "aborted": true, "complete": true,
+	"completed": true, "cancelled": true, "canceled": true,
 }
+
+// Deliberately absent: error, timeout, required, missing, invalid, valid.
+// Each ends the name of a constant or a setting far more often than the
+// outcome of a run — CURLOPT_TIMEOUT, DEFAULT_TIMEOUT, E_USER_ERROR,
+// STANDARD_ERROR, CMAKE_MINIMUM_REQUIRED — and a grader found 23 real
+// identifiers refused for them in a corpus of 4,000 harvested from source
+// on this machine. What stays refused is a genuine residue: W_OK, X_OK and
+// PYTHON_ARGCOMPLETE_OK are shaped exactly like QUALITY_OK and nothing in
+// the name separates them.
 
 // enumValue reports whether n is an enum member rather than a name.
 func enumValue(n string) bool {

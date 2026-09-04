@@ -712,7 +712,11 @@ func commandLine(n string) bool {
 }
 
 // versionNumberRE matches a bare version: "3.13", "8.4", "1.23.4", "2.47".
-var versionNumberRE = regexp.MustCompile(`^v?\d+(\.\d+)+$`)
+//
+// At most two dots. The first spelling allowed any number of them, which is
+// also the shape of an IPv4 address, so "ssh 100.96.45.73" — this machine's
+// own mini — stopped being a command line and became a name.
+var versionNumberRE = regexp.MustCompile(`^v?\d+(\.\d+){1,2}$`)
 
 // commandVerbs are the subcommands that follow a tool's name when it is
 // being run rather than named.
@@ -923,9 +927,15 @@ func boundByColon(n string) bool {
 // than a name.
 var literalValues = map[string]bool{
 	"true": true, "false": true, "null": true, "nil": true, "none": true,
-	"off": true, "on": true, "undefined": true, "{}": true, "[]": true,
-	"\"\"": true, "yes": true, "no": true, "enabled": true, "disabled": true,
+	"undefined": true, "{}": true, "[]": true, `""`: true,
 }
+
+// Deliberately absent: on, off, yes, no, enabled, disabled. Each is also how
+// a namespaced feature flag is written — "feature:enabled",
+// "telemetry:disabled", "cache:off" — and those name switches rather than
+// values. The cost is that "onDelete: cascade" and "log_level: debug" are
+// missed, since their value side is an ordinary word and nothing separates
+// it from "db:seed". Missing a value is cheaper than losing a name.
 
 // clockTimeRE matches a time of day, which is a value judged by its own
 // rule rather than as a setting.

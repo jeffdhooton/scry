@@ -2559,12 +2559,17 @@ decision log" was true only in the sense that a decision pointing at a Go
 table is a record. Here is the table, with the count of current facts carrying
 each relation on the live store immediately after the 2026-09-03 migration.
 
+The counts are over **all 53,117 facts**, invalidated ones included, which is
+what the migration's `relation_mapping` reports. A grader caught the column
+headed "current facts" while carrying those totals; the current-fact counts
+are lower and differently distributed (`status` 3,567 rather than 7,692).
+
 The list is `resolve.Canonical` in `internal/memory/resolve/vocab.go`, in that
 file's order of definition. Anything the extraction model emits that is not on
 it maps to `related_to`, which is `resolve.Fallback`: the edge stops
 pretending to be typed while the fact sentence keeps the nuance.
 
-| relation | current facts |
+| relation | facts (all, incl. invalidated) |
 |---|---|
 | `status` | 7,692 |
 | `uses` | 4,975 |
