@@ -100,14 +100,15 @@ reference words dropped, aliases split away from entities of another
 type, facts reattached to the entity their text names, self-loops
 invalidated.
 
-Defaults to a dry run that prints the report. --apply takes a Badger
-backup first (into ~/.scry/backups via the daemon, or into <dir>/../backups
-with --dir) and then writes. Runs inside the daemon that owns the store;
---dir runs offline against a store directory instead (the daemon must not
-hold it).`,
+This command is audit-only: the legacy inferred apply path is disabled because
+identity and value conversions now require reviewed manifests. --dir runs the
+audit offline against a store directory instead of the daemon.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apply, _ := cmd.Flags().GetBool("apply")
+			if apply {
+				return fmt.Errorf("memory migrate --apply is disabled; legacy inferred identity/value rewrites require reviewed manifests")
+			}
 			dir, _ := cmd.Flags().GetString("dir")
 			pretty, _ := cmd.Flags().GetBool("pretty")
 			if dir != "" {
@@ -149,7 +150,7 @@ hold it).`,
 			return printJSON(rep, pretty)
 		},
 	}
-	cmd.Flags().Bool("apply", false, "write the changes after taking a backup (default is a dry run)")
+	cmd.Flags().Bool("apply", false, "disabled: identity/value rewrites require reviewed manifests")
 	cmd.Flags().String("dir", "", "run offline against this store directory instead of the daemon")
 	return cmd
 }
@@ -642,7 +643,8 @@ func memoryHygieneCmd() *cobra.Command {
 Entities whose own name is a run artifact are REPORTED, not deleted: facts
 reference entities by slug, so removing one would orphan its facts.
 
-Defaults to a dry run — this edits recorded history, so read it first.`,
+This command is audit-only. The old inferred apply path is disabled; use
+reviewed merge, unalias/rehome, or reattach manifests for writes.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apply, _ := cmd.Flags().GetBool("apply")
@@ -693,12 +695,12 @@ Defaults to a dry run — this edits recorded history, so read it first.`,
 				}
 			}
 			if !apply && (rep.EntitiesChanged > 0) {
-				fmt.Printf("\nre-run with --apply to write these changes\n")
+				fmt.Printf("\nreview these changes and express them through explicit repair manifests\n")
 			}
 			return nil
 		},
 	}
-	cmd.Flags().Bool("apply", false, "write the changes (default is a dry run)")
+	cmd.Flags().Bool("apply", false, "disabled: identity changes require reviewed manifests")
 	return cmd
 }
 

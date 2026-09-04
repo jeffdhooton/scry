@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -484,16 +483,12 @@ func (d *Daemon) handleMemoryHygiene(_ context.Context, raw json.RawMessage) (an
 	if len(raw) > 0 {
 		_ = json.Unmarshal(raw, &p)
 	}
+	if !p.DryRun {
+		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: "memory.hygiene apply is disabled; identity changes require reviewed merge, unalias/rehome, or reattach manifests"}
+	}
 	st, err := d.memoryStore()
 	if err != nil {
 		return nil, err
-	}
-	if !p.DryRun {
-		// Hygiene edits recorded identity. A backup first is the house rule
-		// for anything that rewrites the store, dry run excepted.
-		if _, err := d.handleMemoryBackup(context.Background(), nil); err != nil {
-			return nil, fmt.Errorf("backup before hygiene: %w", err)
-		}
 	}
 	return resolve.Hygiene(st, p.DryRun)
 }

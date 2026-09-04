@@ -122,6 +122,30 @@ func TestApply_ConceptStubUpgradesToTypedEntity(t *testing.T) {
 	}
 }
 
+func TestApply_AliasReachedEmptyConceptRequiresExplicitMerge(t *testing.T) {
+	st := openTemp(t)
+	holder := store.Entity{Slug: "aurora-placeholder", Name: "Aurora placeholder", Type: "concept", Aliases: []string{"Aurora"}}
+	if err := st.PutEntity(holder); err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "e1", Source: "manual", SourceRef: "e1", OccurredAt: at, IngestedAt: at}
+	_, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{Name: "Aurora", Type: "machine"}}}, DefaultExclusive)
+	if !errors.Is(err, store.ErrAliasClaimed) {
+		t.Fatalf("apply error = %v; want reviewed merge requirement", err)
+	}
+	got, err := st.GetEntity(holder.Slug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Type != "concept" || len(got.Aliases) != 1 || got.Aliases[0] != "Aurora" {
+		t.Fatalf("one episode promoted or changed the concept: %+v", got)
+	}
+	if _, err := st.GetEntity("aurora"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("one episode created a competing typed identity: %v", err)
+	}
+}
+
 func TestSharesToken(t *testing.T) {
 	cases := []struct {
 		alias string

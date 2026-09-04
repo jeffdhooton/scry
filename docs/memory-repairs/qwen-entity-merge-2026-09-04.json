@@ -8,8 +8,8 @@
     "drop_aliases": [
       {
         "alias": "Q5",
-        "rehome_to": "qwen38-27b-uncensored-q8",
-        "why": "Q5 is a generic quantization label also listed and owned by the separate Q8 model; it must remain routed there rather than being stolen by this merge."
+        "drop_from": ["qwen38-27b-uncensored-q8"],
+        "why": "Q5 is a generic quantization label shared by separate Q5 and Q8 models; remove every reviewed listing and leave it unindexed."
       }
     ],
     "metadata": {
@@ -34,7 +34,8 @@
     "expected": {
       "entities": {
         "qwen3-8-27b-uncensored-q5": "cdbc8f98e8542e52475bb54ffb53bb83478147d41841cbf7f44c698fb4d102a6",
-        "qwen38-27b-uncensored-q5": "1fed8fab31eead1c1d7d87ca302bc45803ec8fcd0f9c525b22cba87efd6bb58d"
+        "qwen38-27b-uncensored-q5": "1fed8fab31eead1c1d7d87ca302bc45803ec8fcd0f9c525b22cba87efd6bb58d",
+        "qwen38-27b-uncensored-q8": "76e1c0144f9e22213e4ae22cc6e8c83bcf168c86aa253afddce5b474ed11a279"
       },
       "facts": "807149a3c4d7aae3de7d7d19c70af922d27c305ff4e7a9670897053c745a8e33",
       "alias_claims": "7fd7d39c42e7968dec23495ab3bc9dc4962c0ecb6bfcddc29a4d1fcd8038a549"

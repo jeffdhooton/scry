@@ -3001,8 +3001,12 @@ reviewed and applied in separate manifests so the first cannot invalidate the
 second group's fingerprint after preflight. A nonempty backup precedes the
 first write.
 
-**Alias retirement rule.** If a dropped spelling remains listed on another
-entity, the manifest must name that entity in `rehome_to`; the target is never
-inferred. Standalone unalias follows the same rule. The entity-list edit and
-index rehome are atomic, preventing a rightful spelling from becoming an exact
-lookup blackout.
+**Alias retirement rule.** A dropped spelling has an explicit disposition. If
+one reviewed listing should remain, the manifest names it in `rehome_to`; the
+target is never inferred. If the spelling is generic or wrong everywhere, the
+manifest names every outside alias listing in `drop_from`, fingerprints those
+entities, removes the listings in the same transaction, and leaves the index
+empty. A stale outside claim with no corresponding listing is deleted. The
+entity-list edits and index disposition are atomic, preventing either an exact
+lookup blackout or a wrong residual owner. Standalone unalias follows the same
+rehome rule; multi-entity global drops belong in the merge manifest.

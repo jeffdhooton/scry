@@ -582,6 +582,9 @@ func (d *Daemon) handleMemoryMigrate(_ context.Context, raw json.RawMessage) (an
 			return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: err.Error()}
 		}
 	}
+	if !p.DryRun {
+		return nil, &rpc.Error{Code: rpc.CodeInvalidParams, Message: "memory.migrate apply is disabled; legacy inferred identity/value rewrites require reviewed manifests"}
+	}
 	st, err := d.memoryStore()
 	if err != nil {
 		return nil, err

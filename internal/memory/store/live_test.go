@@ -91,6 +91,7 @@ func TestLiveStoreMergedEntityPostconditions(t *testing.T) {
 	dir := os.Getenv("SCRY_MERGE_CHECK_DIR")
 	survivor := os.Getenv("SCRY_MERGE_SURVIVOR")
 	retiredCSV := os.Getenv("SCRY_MERGE_RETIRED")
+	droppedCSV := os.Getenv("SCRY_MERGE_DROPPED")
 	if dir == "" || survivor == "" || retiredCSV == "" {
 		t.Skip("SCRY_MERGE_CHECK_DIR, SCRY_MERGE_SURVIVOR, and SCRY_MERGE_RETIRED not set")
 	}
@@ -127,6 +128,23 @@ func TestLiveStoreMergedEntityPostconditions(t *testing.T) {
 	for norm, owner := range claims {
 		if retired[owner] {
 			t.Errorf("alias %q still points at retired entity %s", norm, owner)
+		}
+	}
+	if droppedCSV != "" {
+		entities, err := st.Entities()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, spelling := range strings.Split(droppedCSV, ",") {
+			norm := Normalize(strings.TrimSpace(spelling))
+			if owner, found := claims[norm]; found {
+				t.Errorf("dropped alias %q still resolves to %s", spelling, owner)
+			}
+			for _, e := range entities {
+				if entityListsNormalized(e, norm) {
+					t.Errorf("dropped alias %q is still listed by %s", spelling, e.Slug)
+				}
+			}
 		}
 	}
 	facts, err := st.AllFacts()

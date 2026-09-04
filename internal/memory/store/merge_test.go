@@ -48,6 +48,15 @@ func TestMergeEntitiesPreservesCompleteIdentity(t *testing.T) {
 	}
 
 	req := reviewedMerge(t, st, winner.Slug, loser.Slug)
+	previewBeforeApply, err := st.PreviewEntityMerge(req)
+	if err != nil || len(previewBeforeApply.FactFingerprints) != len(facts) {
+		t.Fatalf("complete fact preview = %+v, %v", previewBeforeApply.FactFingerprints, err)
+	}
+	for _, row := range previewBeforeApply.FactFingerprints {
+		if row.SHA256 != hashJSON(row.Snapshot) || row.Snapshot.Fact != row.Fact {
+			t.Fatalf("fact preview is not independently verifiable: %+v", row)
+		}
+	}
 	if req.Metadata.CreatedAt != created || req.Metadata.LastSeen != loser.LastSeen {
 		t.Fatalf("proposal did not preserve temporal metadata: %+v", req.Metadata)
 	}
@@ -96,6 +105,76 @@ func TestMergeEntitiesPreservesCompleteIdentity(t *testing.T) {
 		if owner, ok, err := st.ResolveAlias(spelling); err != nil || !ok || owner != winner.Slug {
 			t.Errorf("%q resolves to %q, %v, %v", spelling, owner, ok, err)
 		}
+	}
+}
+
+func TestMergeEntitiesGloballyDropsReviewedGenericAlias(t *testing.T) {
+	st := openTemp(t)
+	winner := Entity{Slug: "winner", Name: "Winner", Type: "tool"}
+	loser := Entity{Slug: "loser", Name: "Loser", Type: "concept", Aliases: []string{"generic"}}
+	outsider := Entity{Slug: "outsider", Name: "Outsider", Type: "tool"}
+	for _, e := range []Entity{winner, loser, outsider} {
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := st.ClaimAlias("generic", outsider.Slug); err != nil {
+		t.Fatal(err)
+	}
+	outsider.Aliases = []string{"generic"}
+	if err := st.PutEntity(outsider); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutFact(Fact{Src: loser.Slug, Relation: "status", Value: "ready", Fact: "loser ready", ValidFrom: time.Unix(7, 0)}); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityMergeRequest{Survivor: winner.Slug, Retire: []string{loser.Slug}, DropAliases: []EntityMergeAliasDrop{{Alias: "generic", DropFrom: []string{outsider.Slug}, Why: "generic label names neither identity"}}}
+	preview, err := st.PreviewEntityMerge(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("global drop preview = %+v, %v", preview.Problems, err)
+	}
+	if _, ok := preview.Expected.Entities[outsider.Slug]; !ok {
+		t.Fatal("outside alias disposition entity is not fingerprinted")
+	}
+	req.Metadata = &preview.ProposedMetadata
+	req.Expected = preview.Expected
+	if _, err := st.MergeEntities(req); err != nil {
+		t.Fatal(err)
+	}
+	if owner, found, err := st.ResolveAlias("generic"); err != nil || found {
+		t.Fatalf("globally dropped alias still resolves to %q, %v, %v", owner, found, err)
+	}
+	got, err := st.GetEntity(outsider.Slug)
+	if err != nil || len(got.Aliases) != 0 {
+		t.Fatalf("outside listing survived global drop: %+v, %v", got, err)
+	}
+}
+
+func TestMergeEntitiesDeletesAStaleOutsideClaimForDroppedAlias(t *testing.T) {
+	st := openTemp(t)
+	for _, e := range []Entity{{Slug: "winner", Name: "Winner", Type: "tool"}, {Slug: "loser", Name: "Loser", Type: "concept", Aliases: []string{"shared"}}, {Slug: "outsider", Name: "Outsider", Type: "service"}} {
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := st.ClaimAlias("shared", "outsider"); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutFact(Fact{Src: "loser", Relation: "status", Value: "ready", Fact: "loser ready", ValidFrom: time.Unix(8, 0)}); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityMergeRequest{Survivor: "winner", Retire: []string{"loser"}, DropAliases: []EntityMergeAliasDrop{{Alias: "shared", Why: "outsider claim is stale and no entity should keep it"}}}
+	preview, err := st.PreviewEntityMerge(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("stale claim preview = %+v, %v", preview.Problems, err)
+	}
+	req.Metadata = &preview.ProposedMetadata
+	req.Expected = preview.Expected
+	if _, err := st.MergeEntities(req); err != nil {
+		t.Fatal(err)
+	}
+	if owner, found, err := st.ResolveAlias("shared"); err != nil || found {
+		t.Fatalf("dropped alias retained wrong owner %q, %v, %v", owner, found, err)
 	}
 }
 
@@ -287,7 +366,7 @@ func TestMergeEntitiesRehomesAGroupOwnedDroppedAlias(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if preview.Ready || !strings.Contains(strings.Join(preview.Problems, " "), "requires rehome_to") {
+	if preview.Ready || !strings.Contains(strings.Join(preview.Problems, " "), "rehome_to") {
 		t.Fatalf("drop without rehome was accepted: %+v", preview.Problems)
 	}
 

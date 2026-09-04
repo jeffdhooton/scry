@@ -2052,7 +2052,28 @@ episodes). The reviewed Qwen manifest at
 `docs/memory-repairs/qwen-entity-merge-2026-09-04.json` moves the concept-typed
 `qwen3-8-27b-uncensored-q5` into the tool-typed
 `qwen38-27b-uncensored-q5`, preserving all 15 touching facts (14 current, one
-invalidated) and explicitly rehoming generic `Q5` to the separate Q8 model.
+invalidated) and explicitly removing generic `Q5` from both models so it is
+unindexed rather than misrouting exact lookup.
 The replica apply reported collisions 343 → 341, observed 341, verification
 true. The full Go suite and `go vet ./...` passed. No code was deployed and no
 live entity merge was applied in this step.
+
+The next fresh-context review found five more gaps: a stale outside claim for
+a dropped alias could survive; legacy `hygiene --apply` still exposed inferred,
+nontransactional merges; an empty concept reached through an alias could be
+promoted by one typed mention; fact previews hid provenance fields; and routing
+generic `Q5` to the Q8 model was itself a wrong exact lookup. Before deployment,
+the implementation was tightened again. A dropped alias now has exactly one
+reviewed disposition: rehome it to a listing that remains, or remove every
+named outside alias listing through `drop_from` and leave it unindexed. Those
+outside entities are fully fingerprinted and edited in the group transaction;
+stale claims with no listing are deleted. Fact previews now contain the full
+fact object. Alias-reached concepts never promote across type boundaries.
+Legacy hygiene and migrate apply RPC/CLI entry points are disabled; dry-run
+audit remains available.
+
+The Qwen replica was restored and applied again with the stronger manifest.
+It preserved 57,041 facts, left 15 touching the survivor, removed one entity
+and exactly one alias claim, removed `Q5` from the Q8 model, and proved `Q5`
+neither resolves nor remains listed. Collision prediction and observation were
+again 343 → 341 and 341.

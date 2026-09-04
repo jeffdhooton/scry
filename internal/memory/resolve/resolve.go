@@ -160,18 +160,12 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		if gerr == nil && found && !TypesCompatible(owner.Type, ent.Type) {
 			found = false
 		}
-		// TypesCompatible calls concept a wildcard, which let one mention
-		// carry a machine's facts onto a concept that happened to list its
-		// name, and retype the concept on the way past. No attestation was
-		// asked for, because this path is not the alias-admission path.
-		if gerr == nil && found {
-			why, cerr := factBearingConcept(st, slug, owner.Type)
-			if cerr != nil {
-				return "", cerr
-			}
-			if why != "" && !concepts(ent.Type) {
-				found = false
-			}
+		// Concept is an extraction fallback, not proof of compatibility. A
+		// typed mention reached only through a concept's alias cannot promote
+		// that concept, even when it is empty; the reviewed merge path must
+		// decide whether they are one identity. Exact-slug stubs still upgrade.
+		if gerr == nil && found && concepts(owner.Type) && !concepts(ent.Type) {
+			found = false
 		}
 	}
 	if !found {

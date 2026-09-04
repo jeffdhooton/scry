@@ -30,9 +30,10 @@ type EntityMergeRequest struct {
 // EntityMergeAliasDrop is an explicit reviewed exception to the default rule
 // that every old alias transfers. Entity names and slugs cannot be dropped.
 type EntityMergeAliasDrop struct {
-	Alias    string `json:"alias"`
-	RehomeTo string `json:"rehome_to,omitempty"`
-	Why      string `json:"why"`
+	Alias    string   `json:"alias"`
+	RehomeTo string   `json:"rehome_to,omitempty"`
+	DropFrom []string `json:"drop_from,omitempty"`
+	Why      string   `json:"why"`
 }
 
 // EntityMergeExpected pins every mutable input the reviewer inspected.
@@ -48,43 +49,50 @@ type EntityMergeFactFingerprint struct {
 	SHA256      string `json:"sha256"`
 	Invalidated bool   `json:"invalidated"`
 	Fact        string `json:"fact"`
+	Snapshot    Fact   `json:"snapshot"`
 }
 
 // EntityMergePreview is both the dry-run report and the apply receipt.
 type EntityMergePreview struct {
-	ID                  string                       `json:"id,omitempty"`
-	Survivor            string                       `json:"survivor"`
-	Retire              []string                     `json:"retire"`
-	Entities            map[string]Entity            `json:"entities"`
-	ProposedMetadata    Entity                       `json:"proposed_metadata"`
-	Expected            EntityMergeExpected          `json:"expected"`
-	FactFingerprints    []EntityMergeFactFingerprint `json:"fact_fingerprints"`
-	FactsTouched        int                          `json:"facts_touched"`
-	CurrentFacts        int                          `json:"current_facts"`
-	InvalidatedFacts    int                          `json:"invalidated_facts"`
-	RequiredAliases     []string                     `json:"required_aliases"`
-	DroppedAliases      []EntityMergeAliasDrop       `json:"dropped_aliases,omitempty"`
-	RepoRefs            []string                     `json:"repo_refs"`
-	SelfLoops           []string                     `json:"self_loops,omitempty"`
-	FactKeyCollisions   []string                     `json:"fact_key_collisions,omitempty"`
-	ExternalAliasOwners []string                     `json:"external_alias_owners,omitempty"`
-	ExternalListings    []string                     `json:"external_listings,omitempty"`
-	Problems            []string                     `json:"problems,omitempty"`
-	Ready               bool                         `json:"ready"`
-	Applied             bool                         `json:"applied"`
+	ID                               string                       `json:"id,omitempty"`
+	Survivor                         string                       `json:"survivor"`
+	Retire                           []string                     `json:"retire"`
+	Entities                         map[string]Entity            `json:"entities"`
+	AliasDispositionEntities         map[string]Entity            `json:"alias_disposition_entities,omitempty"`
+	ProposedAliasDispositionEntities map[string]Entity            `json:"proposed_alias_disposition_entities,omitempty"`
+	ProposedMetadata                 Entity                       `json:"proposed_metadata"`
+	Expected                         EntityMergeExpected          `json:"expected"`
+	FactFingerprints                 []EntityMergeFactFingerprint `json:"fact_fingerprints"`
+	FactsTouched                     int                          `json:"facts_touched"`
+	CurrentFacts                     int                          `json:"current_facts"`
+	InvalidatedFacts                 int                          `json:"invalidated_facts"`
+	RequiredAliases                  []string                     `json:"required_aliases"`
+	DroppedAliases                   []EntityMergeAliasDrop       `json:"dropped_aliases,omitempty"`
+	RepoRefs                         []string                     `json:"repo_refs"`
+	SelfLoops                        []string                     `json:"self_loops,omitempty"`
+	FactKeyCollisions                []string                     `json:"fact_key_collisions,omitempty"`
+	ExternalAliasOwners              []string                     `json:"external_alias_owners,omitempty"`
+	ExternalListings                 []string                     `json:"external_listings,omitempty"`
+	Problems                         []string                     `json:"problems,omitempty"`
+	Ready                            bool                         `json:"ready"`
+	Applied                          bool                         `json:"applied"`
 }
 
 type entityMergeAnalysis struct {
-	preview          EntityMergePreview
-	metadata         Entity
-	entities         map[string]Entity
-	facts            []Fact
-	updatedFacts     []Fact
-	aliasClaims      map[string]string
-	requiredNorms    map[string]string // normalized -> representative spelling
-	rehomeNorms      map[string]string // normalized -> reviewed outside owner
-	fingerprintNorms map[string]string
-	group            map[string]bool
+	preview              EntityMergePreview
+	metadata             Entity
+	entities             map[string]Entity
+	facts                []Fact
+	updatedFacts         []Fact
+	aliasClaims          map[string]string
+	requiredNorms        map[string]string // normalized -> representative spelling
+	rehomeNorms          map[string]string // normalized -> reviewed outside owner
+	droppedNorms         map[string]bool
+	externalAliasDrops   map[string][]string // normalized -> reviewed outside listings to remove
+	externalDropEntities map[string]Entity
+	updatedDropEntities  map[string]Entity
+	fingerprintNorms     map[string]string
+	group                map[string]bool
 }
 
 // PreviewEntityMerge snapshots and validates a group without writing.
@@ -161,6 +169,15 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 				}
 			}
 		}
+		for slug, e := range analysis.updatedDropEntities {
+			b, err := json.Marshal(e)
+			if err != nil {
+				return err
+			}
+			if err := txn.Set([]byte(prefixEntity+slug), b); err != nil {
+				return err
+			}
+		}
 
 		// Clear every routing key currently owned by a group member, then set
 		// the complete reviewed spelling set to the survivor.
@@ -171,6 +188,11 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 				}
 			}
 		}
+		for norm := range analysis.droppedNorms {
+			if err := txn.Delete([]byte(prefixAlias + norm)); err != nil {
+				return err
+			}
+		}
 		for norm := range analysis.requiredNorms {
 			if err := txn.Set([]byte(prefixAlias+norm), []byte(req.Survivor)); err != nil {
 				return err
@@ -179,6 +201,24 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 		for norm, target := range analysis.rehomeNorms {
 			if err := txn.Set([]byte(prefixAlias+norm), []byte(target)); err != nil {
 				return err
+			}
+		}
+		for norm := range analysis.droppedNorms {
+			if _, rehomed := analysis.rehomeNorms[norm]; rehomed {
+				continue
+			}
+			owner, found, err := aliasOwnerTxn(txn, norm)
+			if err != nil || found {
+				return fmt.Errorf("memory: merge postcondition: dropped alias %q still resolves to %q, found=%v: %w", norm, owner, found, err)
+			}
+			for slug := range analysis.updatedDropEntities {
+				e, err := getEntityTxn(txn, slug)
+				if err != nil {
+					return err
+				}
+				if entityListsNormalized(e, norm) {
+					return fmt.Errorf("memory: merge postcondition: dropped alias %q is still listed by %s", norm, slug)
+				}
 			}
 		}
 
@@ -229,6 +269,9 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 		s.notify(Event{Kind: "fact", Op: "put", Fact: analysis.updatedFacts[i]})
 	}
 	s.notify(Event{Kind: "entity", Op: "put", Entity: analysis.metadata})
+	for _, e := range analysis.updatedDropEntities {
+		s.notify(Event{Kind: "entity", Op: "put", Entity: e})
+	}
 	for slug := range analysis.group {
 		if slug != req.Survivor {
 			s.notify(Event{Kind: "entity", Op: "delete", Slug: slug})
@@ -239,14 +282,18 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 
 func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMergeAnalysis, error) {
 	a := entityMergeAnalysis{
-		entities:         map[string]Entity{},
-		aliasClaims:      map[string]string{},
-		requiredNorms:    map[string]string{},
-		rehomeNorms:      map[string]string{},
-		fingerprintNorms: map[string]string{},
-		group:            map[string]bool{},
+		entities:             map[string]Entity{},
+		aliasClaims:          map[string]string{},
+		requiredNorms:        map[string]string{},
+		rehomeNorms:          map[string]string{},
+		droppedNorms:         map[string]bool{},
+		externalAliasDrops:   map[string][]string{},
+		externalDropEntities: map[string]Entity{},
+		updatedDropEntities:  map[string]Entity{},
+		fingerprintNorms:     map[string]string{},
+		group:                map[string]bool{},
 	}
-	a.preview = EntityMergePreview{ID: req.ID, Survivor: req.Survivor, Retire: append([]string(nil), req.Retire...), Entities: map[string]Entity{}}
+	a.preview = EntityMergePreview{ID: req.ID, Survivor: req.Survivor, Retire: append([]string(nil), req.Retire...), Entities: map[string]Entity{}, AliasDispositionEntities: map[string]Entity{}, ProposedAliasDispositionEntities: map[string]Entity{}}
 	problem := func(msg string) { a.preview.Problems = append(a.preview.Problems, msg) }
 	if strings.TrimSpace(req.Survivor) == "" {
 		return a, errors.New("memory: merge survivor is required")
@@ -363,12 +410,37 @@ func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMerge
 				outsideListings = append(outsideListings, e.Slug)
 			}
 		}
-		if len(outsideListings) > 0 && strings.TrimSpace(drop.RehomeTo) == "" {
-			problem(fmt.Sprintf("dropped alias %q is listed outside the group and requires rehome_to", drop.Alias))
+		dropFrom := map[string]bool{}
+		for _, slug := range drop.DropFrom {
+			if dropFrom[slug] {
+				problem(fmt.Sprintf("dropped alias %q repeats drop_from %s", drop.Alias, slug))
+				continue
+			}
+			dropFrom[slug] = true
+			target, ok := allEntitiesBySlug[slug]
+			if !ok || a.group[slug] {
+				problem(fmt.Sprintf("dropped alias %q has invalid drop_from %q", drop.Alias, slug))
+				continue
+			}
+			if Normalize(target.Name) == norm || Normalize(target.Slug) == norm {
+				problem(fmt.Sprintf("drop_from %s cannot remove entity name or slug %q", slug, drop.Alias))
+				continue
+			}
+			listedAlias := false
+			for _, alias := range target.Aliases {
+				listedAlias = listedAlias || Normalize(alias) == norm
+			}
+			if !listedAlias {
+				problem(fmt.Sprintf("drop_from %s does not list alias %q", slug, drop.Alias))
+				continue
+			}
+			a.externalDropEntities[slug] = target
+			a.preview.AliasDispositionEntities[slug] = target
+			a.externalAliasDrops[norm] = append(a.externalAliasDrops[norm], slug)
 		}
 		if strings.TrimSpace(drop.RehomeTo) != "" {
 			target, ok := allEntitiesBySlug[drop.RehomeTo]
-			if !ok || a.group[drop.RehomeTo] {
+			if !ok || a.group[drop.RehomeTo] || dropFrom[drop.RehomeTo] {
 				problem(fmt.Sprintf("dropped alias %q has invalid rehome target %q", drop.Alias, drop.RehomeTo))
 			} else if !entityListsNormalized(target, norm) {
 				problem(fmt.Sprintf("rehome target %s does not list dropped alias %q", drop.RehomeTo, drop.Alias))
@@ -376,8 +448,27 @@ func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMerge
 				a.rehomeNorms[norm] = drop.RehomeTo
 			}
 		}
+		for _, slug := range outsideListings {
+			if slug != drop.RehomeTo && !dropFrom[slug] {
+				problem(fmt.Sprintf("dropped alias %q remains listed by %s; set rehome_to or include it in drop_from", drop.Alias, slug))
+			}
+		}
+		a.droppedNorms[norm] = true
 		delete(a.requiredNorms, norm)
 		a.preview.DroppedAliases = append(a.preview.DroppedAliases, drop)
+	}
+	for slug, e := range a.externalDropEntities {
+		updated := e
+		kept := make([]string, 0, len(e.Aliases))
+		for _, alias := range e.Aliases {
+			if dropped[Normalize(alias)] && containsMergeDropTarget(a.externalAliasDrops[Normalize(alias)], slug) {
+				continue
+			}
+			kept = append(kept, alias)
+		}
+		updated.Aliases = kept
+		a.updatedDropEntities[slug] = updated
+		a.preview.ProposedAliasDispositionEntities[slug] = updated
 	}
 	if req.Metadata == nil && len(dropped) > 0 {
 		kept := proposed.Aliases[:0]
@@ -501,7 +592,7 @@ func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMerge
 		}
 		key := string(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom))
 		a.preview.FactFingerprints = append(a.preview.FactFingerprints, EntityMergeFactFingerprint{
-			Key: key, SHA256: hashJSON(f), Invalidated: f.InvalidAt != nil, Fact: f.Fact,
+			Key: key, SHA256: hashJSON(f), Invalidated: f.InvalidAt != nil, Fact: f.Fact, Snapshot: f,
 		})
 	}
 	a.preview.FactsTouched = len(a.facts)
@@ -536,6 +627,9 @@ func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMerge
 
 	entityHashes := map[string]string{}
 	for slug, e := range a.entities {
+		entityHashes[slug] = hashJSON(e)
+	}
+	for slug, e := range a.externalDropEntities {
 		entityHashes[slug] = hashJSON(e)
 	}
 	a.preview.Expected = EntityMergeExpected{
@@ -613,6 +707,15 @@ func entityListsNormalized(e Entity, norm string) bool {
 	}
 	for _, alias := range e.Aliases {
 		if Normalize(alias) == norm {
+			return true
+		}
+	}
+	return false
+}
+
+func containsMergeDropTarget(slugs []string, want string) bool {
+	for _, slug := range slugs {
+		if slug == want {
 			return true
 		}
 	}

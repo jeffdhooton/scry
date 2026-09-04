@@ -156,3 +156,13 @@ func TestMemoryMergeEntitiesUsesSequentialPredictionsAndObservedCounts(t *testin
 		}
 	}
 }
+
+func TestLegacyInferredIdentityApplyEndpointsAreDisabled(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	if _, err := d.handleMemoryHygiene(context.Background(), mustJSON(t, MemoryHygieneParams{DryRun: false})); err == nil {
+		t.Fatal("memory.hygiene still permits unreviewed apply")
+	}
+	if _, err := d.handleMemoryMigrate(context.Background(), mustJSON(t, MemoryMigrateParams{DryRun: false})); err == nil {
+		t.Fatal("memory.migrate still permits inferred identity/value apply")
+	}
+}

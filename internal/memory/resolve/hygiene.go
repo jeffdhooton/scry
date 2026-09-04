@@ -725,6 +725,10 @@ func SimulateEntityMerge(entities []store.Entity, facts []store.Fact, preview st
 			afterEntities = append(afterEntities, preview.ProposedMetadata)
 			continue
 		}
+		if updated, ok := preview.ProposedAliasDispositionEntities[e.Slug]; ok {
+			afterEntities = append(afterEntities, updated)
+			continue
+		}
 		if !retired[e.Slug] {
 			afterEntities = append(afterEntities, e)
 		}
