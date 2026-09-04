@@ -1643,3 +1643,60 @@ The wider point stands on its own: **`concept` is where this model puts
 anything it is unsure of**, and every rule that treats concept as a harmless
 fallback — `TypesCompatible`'s wildcard, the merge gates — is built on a bucket
 that the extractor fills with values.
+
+## Item 4 measured on fresh entities for the first time
+
+Every earlier measurement of the value rules was taken against the legacy
+store — names admitted under older rules, which says how well the rules clean
+up rather than how well they hold the line. Extraction resuming created **704
+new entities in an afternoon**, all of them admitted by the current rules.
+That is the first honest test of the bar as written: "the resolver rejects new
+ones".
+
+**59% of them came back typed `concept`** (418 of 704), which is the same
+finding as the value-type probe at a different scale.
+
+Hand-sampling sixty and then classifying all 704 by shape: **74 are
+value-shaped, and the rules caught none of them.**
+
+| family | count | examples |
+|---|---|---|
+| count or progress ratio | 37 | `41 URLs`, `53 canonical URLs`, `guides-1-of-408-complete`, `strict-coverage-16-of-408` |
+| status phrase | 24 | `all-gates-passing`, `branch-clean`, `gate-green`, `live-checks-passing` |
+| measurement | 8 | `p95-149ms`, `24-month renewal cycle`, `old-40-cell-target` |
+| run artifact or stamp | 5 | `registered-remaining-20260904T0250Z`, `coverage-snapshot-2026-09-04` |
+
+Three of those shapes are now closed, in `40f7f6b`:
+
+- `isoStampRE` wanted six digits of time and the store had four, so
+  `20260904T0250Z` walked past a rule written for exactly it.
+- A name opening on a number and closing on a plural is a tally.
+- A progress ratio — `1-of-408`, `44-of-50` — is a reading taken at a moment.
+
+The tally rule caught real brands on its first draft: `7 Wonders`, `5 Guys`,
+`3 Musketeers`, `24 Hour Fitness`, `99 Designs`. A title-cased word after the
+number separates them, and `URLs` is not title case, so `43 unique URLs` stays
+a tally. All seven are in the guard test.
+
+Measured on a replica before deploying, then applied:
+
+```
+replica dry run   21 entities retired, 23 facts converted, 8 dropped
+applied to live   same 21; a second pass retires 0
+bench             tuning 47/50, strict 44/50, probes 7/7, nothing over 24 KB
+store             22,023 entities, 54,847 facts, 6,794 episodes, 0 parked
+```
+
+Every one of the 21 is a tally, a ratio, or a run stamp. **Three are benchmark
+scores that this session's own probe remembers put into the store** —
+`scry-recall-tuning-score-47-of-50`, `scry-recall-tuning-strict-score-44-of-50`,
+`strict-44-of-50`. Measuring the system polluted it, and the rules written from
+that measurement cleaned it up.
+
+**The status-phrase family, 24 entities, is left open on purpose.** Separating
+`branch-clean` and `gate-green` from a real name needs a rule that reads a
+trailing state word, and the round-13 grader has already shown twice this
+session what that costs: `Ready For Review` and `CMAKE_MINIMUM_REQUIRED` were
+both lost to rules of exactly that shape. The false-rejection rate on names
+from outside the store is 0.7% and every further catch has been buying itself
+with real names.
