@@ -26,7 +26,7 @@ import (
 func DeclaredValues(ents []extract.Ent) map[string]bool {
 	var out map[string]bool
 	for _, ent := range ents {
-		if ent.Type != "value" && trustedIdentityType(ent) {
+		if ent.Type != "value" && (trustedIdentityType(ent) || !untrustedStatusShape(ent.Name)) {
 			continue
 		}
 		if out == nil {
@@ -47,6 +47,24 @@ func trustedIdentityType(ent extract.Ent) bool {
 	default:
 		return false
 	}
+}
+
+// untrustedStatusShape is deliberately used only when the model did not
+// provide a documented type, or when a fact endpoint was not declared at
+// all. Explicit identity verdicts remain the context signal that separates
+// user_login_failed from validation_failed and PYTHON_ARGCOMPLETE_OK from a
+// shouted run verdict.
+func untrustedStatusShape(name string) bool {
+	if IsValueName(name) {
+		return true
+	}
+	trimmed := strings.TrimSpace(name)
+	if !enumTokenRE.MatchString(trimmed) {
+		return false
+	}
+	parts := strings.Split(trimmed, "_")
+	last := strings.ToLower(parts[len(parts)-1])
+	return trimmed == strings.ToUpper(trimmed) || enumEndings[last]
 }
 
 // declaredValue reports whether the model typed name as a value AND the
@@ -117,7 +135,11 @@ func namesAnArtifact(name string) bool {
 		return false
 	}
 	// A path: a slash between two name-ish parts, with no spaces around it.
-	if i := strings.IndexByte(n, '/'); i > 0 && i < len(n)-1 && !strings.ContainsAny(n, " \t") {
+	// Trim one leading slash so absolute executable paths receive the same
+	// artifact protection as relative source paths; URLs remain values.
+	pathName := strings.TrimPrefix(n, "/")
+	if i := strings.IndexByte(pathName, '/'); i > 0 && i < len(pathName)-1 &&
+		!strings.ContainsAny(n, " \t") && !strings.Contains(n, "://") {
 		return true
 	}
 	return false

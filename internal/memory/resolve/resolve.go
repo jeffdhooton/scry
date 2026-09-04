@@ -133,8 +133,9 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	// A run artifact is not an identity. Storing one pollutes recall forever
 	// and can never be usefully recalled later. Neither is a value: "main",
 	// "in-progress", and "46 GiB" describe things, they are not things.
-	artifact := namesAnArtifact(ent.Name)
-	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || (IsValueName(ent.Name) && !artifact && !contextualStatusIdentity(ent)) {
+	artifact := preservesArtifactIdentity(ent)
+	untrustedStatus := !trustedIdentityType(ent) && untrustedStatusShape(ent.Name)
+	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || ((IsValueName(ent.Name) || untrustedStatus) && !artifact && !contextualStatusIdentity(ent)) {
 		return "", nil
 	}
 	if declaredValue(st, declared, ent.Name) {
@@ -262,6 +263,26 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	return slug, nil
 }
 
+// preservesArtifactIdentity keeps files, tickets, and real paths even when
+// their spelling overlaps a value rule. A relative slash name that also has
+// branch syntax needs an explicit documented identity verdict; an explicit
+// value or malformed type cannot turn feature/example into a directory node.
+func preservesArtifactIdentity(ent extract.Ent) bool {
+	if !namesAnArtifact(ent.Name) {
+		return false
+	}
+	name := strings.TrimSpace(ent.Name)
+	if strings.HasPrefix(name, "/") || namesAnArtifactWithoutBarePath(name) {
+		return true
+	}
+	return trustedIdentityType(ent)
+}
+
+func namesAnArtifactWithoutBarePath(name string) bool {
+	n := strings.TrimSpace(name)
+	return ticketRE.MatchString(n) || codeFileRE.MatchString(n)
+}
+
 // contextualStatusIdentity is the narrow escape hatch from inherently
 // ambiguous status rules. QUALITY_OK/PYTHON_ARGCOMPLETE_OK and
 // "In Progress"/"Ready Player One" cannot be separated from spelling
@@ -349,8 +370,8 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// process vocabulary) must not become a node: before this, a fact
 		// endpoint bypassed the entity checks entirely and
 		// "setpoint-wt-lpj7ikz0 worktree" became an entity.
-		srcIsValue := (NotAnIdentity(fct.Src) && resolvedEntities[store.Normalize(fct.Src)] == "") || declaredValue(st, declared, fct.Src)
-		dstIsValue := (NotAnIdentity(fct.Dst) && resolvedEntities[store.Normalize(fct.Dst)] == "") || declaredValue(st, declared, fct.Dst)
+		srcIsValue := ((NotAnIdentity(fct.Src) || untrustedStatusShape(fct.Src)) && resolvedEntities[store.Normalize(fct.Src)] == "") || declaredValue(st, declared, fct.Src)
+		dstIsValue := ((NotAnIdentity(fct.Dst) || untrustedStatusShape(fct.Dst)) && resolvedEntities[store.Normalize(fct.Dst)] == "") || declaredValue(st, declared, fct.Dst)
 		if relation == RelStatus {
 			// "status" almost always points at a state word, and those are
 			// attributes. When it points at a real identity the model meant

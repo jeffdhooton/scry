@@ -2956,15 +2956,26 @@ not declare other exact names to be values. These boundaries follow the rule
 that routing state is not identity authority.
 
 **Second review correction.** Missing, parser-fallback, and direct invented
-types are non-identity declarations for new names; they may resolve an exact
-established identity or preserve a syntactic artifact, but cannot establish a
-new node. An erroneous later `value` verdict on an exact established identity
+types are not identity evidence for status-shaped names; those names cannot
+establish a new node without a documented identity verdict. Ordinary names
+retain the parser's `concept` fallback so a coarse/invented type does not erase
+an otherwise valid memory. An erroneous later `value` verdict on an exact established identity
 returns that identity unchanged so its episode-local fact edges are retained.
 For a `status` relation, an undeclared destination is an attribute unless the
 episode resolved it as an identity or an exact established entity proves it.
 Finally, artifact protection precedes branch/value spelling: a real path such
 as `release/mac-arm64` is not demoted merely because its first component also
 names a branch namespace.
+
+**Third review correction.** Artifact protection distinguishes unambiguous
+artifacts from ambiguous relative slash names. Files, tickets, and absolute
+paths retain the veto even under a bad `value` verdict. A relative path that
+also has branch syntax needs a documented identity type; explicit `value` or
+malformed types leave `feature/example`, `fix/123-thing`, and `release/1.2` as
+values. For undeclared fact endpoints only, a general shouted/snake identifier
+ending in an outcome is treated as an untrusted status shape. An explicit
+documented identity declaration is what preserves real identifiers with the
+same spelling; this is context admission, not a store-scale owner inference.
 
 ## Alias routing state is not identity authority (2026-09-04)
 

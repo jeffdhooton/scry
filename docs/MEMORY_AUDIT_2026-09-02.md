@@ -2174,8 +2174,8 @@ also selected five real executable paths and a real `release/mac-arm64`
 directory outside the store; the branch/value checks ran before artifact
 protection and rejected them. Nothing was deployed.
 
-The correction treats every missing/fallback/invented type as untrusted for a
-new identity and carries that decision through fact endpoints. Exact
+The correction treats status-shaped missing/fallback/invented types as
+untrusted for a new identity and carries that decision through fact endpoints. Exact
 established identities resolve before value handling and are returned without
 metadata mutation, which preserves later edges. An undeclared destination of
 a `status` relation remains an attribute unless the episode resolved it or an
@@ -2190,6 +2190,27 @@ parser, resolver, and temporary-store exact lookup. It completed in 105.06
 seconds (34.54 seconds for the six values and 70.52 seconds for the six
 identities). The full uncached Go suite and `go vet ./...` also passed with
 the new malformed-path regressions present.
+
+### Third status/value review found path and undeclared-endpoint gaps
+
+The next adversarial pass disproved `291fe0c` before deployment. Explicit
+value branches such as `feature/example` were promoted by the broad relative
+path artifact veto, while absolute executable paths were not recognized as
+artifacts because the slash check ignored a leading `/`. Treating every
+malformed type as a value also discarded ordinary new identities such as
+SQLite CLI, OpenSSH client, and Z shell, defeating the parser fallback's
+original data-preservation purpose. Finally, undeclared pinned statuses could
+still become nodes under non-status relations such as `produces` and
+`reports`. Nothing was deployed.
+
+The revised boundary preserves files, tickets, and absolute paths, but a
+relative slash name with branch syntax requires an explicit documented
+identity verdict. Malformed types are conservative only for general
+status-shaped names; ordinary names still fall back to `concept`. Undeclared
+fact endpoints use the same general shouted/snake outcome shape, while an
+explicit context-bearing identity verdict overrides it. New regressions cover
+the grader's three branches, five absolute executables, three ordinary
+fallback identities, and both pinned statuses under `produces` and `reports`.
 
 ### Prevention deployment
 

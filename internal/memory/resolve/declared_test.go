@@ -147,22 +147,46 @@ func TestFallbackOrUnknownTypesCannotCreateSuspiciousIdentities(t *testing.T) {
 }
 
 func TestUndeclaredStatusDestinationsRemainAttributes(t *testing.T) {
-	for i, status := range []string{"validation_failed", "DONE_WITH_CONCERNS"} {
+	cases := []struct{ status, relation string }{
+		{"validation_failed", "status"},
+		{"DONE_WITH_CONCERNS", "has_outcome"},
+		{"validation_failed", "produces"},
+		{"DONE_WITH_CONCERNS", "reports"},
+	}
+	for i, tc := range cases {
 		st := openTemp(t)
 		ep := store.Episode{ID: fmt.Sprintf("ep-undeclared-%d", i), Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
 		result := extract.Result{
 			Entities: []extract.Ent{{Name: "scry", Type: "project"}},
-			Facts:    []extract.Fct{{Src: "scry", Relation: "status", Dst: status, Fact: "Scry status is " + status, Confidence: .9}},
+			Facts:    []extract.Fct{{Src: "scry", Relation: tc.relation, Dst: tc.status, Fact: "Scry reports " + tc.status, Confidence: .9}},
 		}
 		if _, err := Apply(st, ep, "", result, nil); err != nil {
 			t.Fatal(err)
 		}
-		if _, found, _ := st.ResolveAlias(status); found {
-			t.Errorf("undeclared status destination %q became an entity", status)
+		if _, found, _ := st.ResolveAlias(tc.status); found {
+			t.Errorf("undeclared status destination %q became an entity for %s", tc.status, tc.relation)
 		}
 		facts := mustFacts(t, st, "scry")
-		if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != status {
-			t.Errorf("undeclared status %q was not preserved as an attribute: %+v", status, facts)
+		if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != tc.status {
+			t.Errorf("undeclared status %q was not preserved as an attribute: %+v", tc.status, facts)
+		}
+	}
+}
+
+func TestMalformedOrdinaryIdentityFallsBackWithoutBecomingAValue(t *testing.T) {
+	for i, name := range []string{"SQLite CLI", "OpenSSH client", "Z shell"} {
+		raw := fmt.Sprintf(`{"episode_summary":"tool mention","entities":[{"name":%q,"description":"a durable tool identity"}],"facts":[]}`, name)
+		result, err := extract.ParseResult(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		st := openTemp(t)
+		ep := store.Episode{ID: fmt.Sprintf("ep-ordinary-fallback-%d", i), Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+		if _, err := Apply(st, ep, "", result, nil); err != nil {
+			t.Fatal(err)
+		}
+		if _, found, err := st.ResolveAlias(name); err != nil || !found {
+			t.Errorf("ordinary fallback identity %q was discarded: found=%v err=%v", name, found, err)
 		}
 	}
 }
@@ -209,6 +233,47 @@ func TestArtifactVetoPrecedesBranchAndStatusSpelling(t *testing.T) {
 	for _, name := range names {
 		if _, found, err := st.ResolveAlias(name); err != nil || !found {
 			t.Errorf("artifact identity %q was rejected: found=%v err=%v", name, found, err)
+		}
+	}
+}
+
+func TestExplicitValueBranchDoesNotUseRelativePathArtifactVeto(t *testing.T) {
+	for i, branch := range []string{"feature/example", "fix/123-thing", "release/1.2"} {
+		st := openTemp(t)
+		ep := store.Episode{ID: fmt.Sprintf("ep-value-branch-%d", i), Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+		result := extract.Result{
+			Entities: []extract.Ent{{Name: "scry", Type: "project"}, {Name: branch, Type: "value"}},
+			Facts:    []extract.Fct{{Src: "scry", Relation: "status", Dst: branch, Fact: "Scry is on " + branch, Confidence: .9}},
+		}
+		if _, err := Apply(st, ep, "", result, nil); err != nil {
+			t.Fatal(err)
+		}
+		if _, found, _ := st.ResolveAlias(branch); found {
+			t.Errorf("explicit value branch %q became an entity", branch)
+		}
+		facts := mustFacts(t, st, "scry")
+		if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != branch {
+			t.Errorf("branch %q was not preserved as an attribute: %+v", branch, facts)
+		}
+	}
+}
+
+func TestAbsoluteArtifactsSurviveValueVerdict(t *testing.T) {
+	st := openTemp(t)
+	names := []string{"/usr/bin/sqlite3", "/usr/bin/ssh", "/usr/bin/zipinfo", "/usr/sbin/diskutil", "/usr/bin/swift"}
+	entities := make([]extract.Ent, 0, len(names))
+	for _, name := range names {
+		entities = append(entities, extract.Ent{Name: name, Type: "value", Description: "an executable path"})
+	}
+	ep := store.Episode{ID: "ep-absolute-artifacts", Source: "manual", SourceRef: "x", OccurredAt: time.Now(), IngestedAt: time.Now()}
+	if _, err := Apply(st, ep, "", extract.Result{Entities: entities}, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		slug := mustSlug(t, st, name)
+		entity, err := st.GetEntity(slug)
+		if err != nil || entity.Type != "concept" {
+			t.Errorf("absolute artifact %q was not preserved neutrally: entity=%+v err=%v", name, entity, err)
 		}
 	}
 }
