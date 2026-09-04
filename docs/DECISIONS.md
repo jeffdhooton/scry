@@ -2620,6 +2620,31 @@ this table's row count are where it shows.
 
 ## Recall's ceiling is retrieval vocabulary, not ranking (2026-09-03)
 
+> **Corrected 2026-09-04. The mechanism below is wrong.** A grader read the
+> code and found that `capPayload` trims facts from the tail until the result
+> fits 24 KB, so `bench --top 200` never sees 200 facts — it tops out around
+> 65. The "plateau at top-50" measured here is the payload cap, not the end of
+> what retrieval can find. Worse for the argument: **18 of the 27 misses said
+> to be unreachable come back at rank ≤20 as soon as the query also names the
+> entity the fact hangs off.** They were always indexed and reachable.
+>
+> The real discriminator is not word overlap, it is whether the question names
+> the entity. That grader measured it three ways:
+>
+> | question set | names the intended entity | top-20 score |
+> |---|---|---|
+> | its own 57 held-out questions | 98% | 94.7% |
+> | `heldout-2026-09-03` | 88% | 85.5% |
+> | `heldout-b` | 59% | 51.5% |
+>
+> And `heldout-b` has *higher* question-to-answer word overlap than
+> `heldout-2026-09-03` while scoring far worse, so the classification below
+> does not explain its own data. The practical conclusion survives — recall
+> works when the asker names the thing and degrades when they describe
+> something whose name they have forgotten — but the mechanism given for it
+> here was wrong, and the table below should be read as the symptom rather
+> than the cause.
+
 **The measurement.** On `heldout-b.json`, 66 questions written by a grader
 that the builder never saw, recall scores 35. Widening the cut-off does almost
 nothing:

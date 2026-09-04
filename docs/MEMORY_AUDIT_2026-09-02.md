@@ -1820,3 +1820,105 @@ responds correctly, which means the remaining 325 are pairs with facts on both
 sides and every one of them is a real conflation waiting for the same
 treatment. The metric was better than the builder assumed, and checking before
 writing is the only reason that is recorded this way round.
+
+## Items 3 and 6 pass, 2026-09-04 — and both graders corrected the builder
+
+### Item 3
+
+A grader drew a seeded random sample of 120 episodes carrying current facts,
+read them in sample order, and wrote **57 questions of its own**. It verified
+zero question-text overlap with any file in `docs/memory-bench/` and confirmed
+each answering fact existed and was cited by its source episode before
+measuring.
+
+| clause | result |
+|---|---|
+| at least fifty held-out questions | 57 |
+| answering fact in the top twenty for at least forty-five of fifty | **54 / 57 = 94.7%**, mean rank 2.87 |
+| every recall response under 24 KB | max 15,095 B; pushed to `--top 200` the max is 24,573 B against a 24,576 B cap |
+| the seven audit probes under 24 KB with a fact from the intended entity in the top five | **7 / 7, every one at rank 1**, payloads 4.8–11.1 KB |
+
+It also established something this project had not: **none of the five files
+in `docs/memory-bench/` is genuinely held out.** `tuning` and `tuning-strict`
+are the tuning set by name, and git shows both "heldout" sets fed back into
+ranking — `66ecd00` fitted the synonym table on `heldout-2026-09-03`, and
+`4648dba` removed entries using a second grader's set. So the verdict rests on
+the grader's own 57 questions, written after the last ranking change and never
+fed back. That is the right way to read it.
+
+**It disproved the retrieval-ceiling diagnosis.** `capPayload` trims facts
+from the tail until the response fits 24 KB, so `bench --top 200` never sees
+200 facts — it tops out near 65. The plateau reported in the last round was
+the payload cap, not the limit of what retrieval can find. And 18 of the 27
+misses called unreachable return at rank ≤20 once the query also names the
+entity. The real discriminator is whether the question names the thing:
+
+| set | names the intended entity | top-20 |
+|---|---|---|
+| the grader's own | 98% | 94.7% |
+| heldout-2026-09-03 | 88% | 85.5% |
+| heldout-b | 59% | 51.5% |
+
+`heldout-b` has higher word overlap than `heldout-2026-09-03` and scores far
+worse, so the word-overlap story did not explain its own data. The practical
+conclusion stands; the mechanism was wrong, and `docs/DECISIONS.md` carries
+the correction above the original.
+
+### Item 6
+
+A second grader derived the repo list from the store rather than trusting the
+five the builder tested, and found **9 repos**, not 5:
+
+| repo | kimi/opencode facts surfaced by orient |
+|---|---|
+| jclaw deepresearch | 9 |
+| jclaw deepresearch-codernext | 8 |
+| jclaw statelicenselookup-design | 8 |
+| jclaw statelicenselookup-ingestion | 7 |
+| scribe | 2 |
+| cleaning-company | 1 |
+| build, docket, dotfiles | 0 |
+
+**6 of 9, not 2 of 5.** The builder undersold his own result by testing only
+the laptop-side repos and forgetting the store is shared with the mini.
+
+Provenance checked hard: every episode satisfies `id == sha256(source_ref)`,
+106 of 107 kimi refs point at a `wire.jsonl` on disk with the cited byte range
+inside the file, all eight laptop-side opencode session ids exist in the
+database with directories matching the episode `cwd` exactly, and cursors
+exist for all 125 kimi files and 23 opencode sessions — including those that
+produced nothing, which only the sweep writes.
+
+It also corrected two supporting numbers. The "10–13% of local facts" figure
+holds only for `build`; docket and dotfiles are **1.3%**, ten times rarer,
+which makes the proportionality argument stronger. And the median `valid_from`
+comparison was the wrong statistic, since orient takes the top two — at the
+head, the newest kimi fact in `build` is a day older than the newest other
+fact, and sits at rank 14 of 46.
+
+### The two defects it reported
+
+**Defect 2 was real.** `MetaLastSweepReport` was written and read by nothing —
+no RPC, no CLI, no doctor check. The per-source breakdown added in `3f9fbb6`
+to answer "is every agent still being read?" was stored where nothing could
+answer it. `memory.status` now carries it and `scry doctor` prints it, warning
+when a source's files were read and produced no episodes, which is a distiller
+gone silent that the totals show as health. Live:
+
+```
+✓ agents read by the last sweep   episodes by source: opencode 1
+```
+
+**Defect 1 did not survive testing.** The grader reported 31 kimi wire logs
+permanently stranded behind cursors at EOF, worth 38 uningested episodes, with
+no re-ingest path. The mechanism is real — `sweepFile`'s change test cannot
+fire when `size == ProcessedBytes`, and `sweep.Candidates` returns only
+claude, codex and loom, so `backfill` cannot reach kimi. But the loss was
+tested directly rather than argued: a backup was taken, **all 125 kimi cursors
+were reset to offset zero**, and a full sweep re-read 83.2 MB from the start.
+
+It recovered **one** episode, not 38. The grader's own port reproduced only
+55 of 71 producing files' refs exactly, and that 23% disagreement is enough to
+explain the gap. The store already held essentially everything those files
+yield. Recorded because the defect was worth testing and the test is the only
+thing that settles it.
