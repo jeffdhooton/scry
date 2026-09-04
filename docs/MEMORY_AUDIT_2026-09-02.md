@@ -1922,3 +1922,60 @@ It recovered **one** episode, not 38. The grader's own port reproduced only
 explain the gap. The store already held essentially everything those files
 yield. Recorded because the defect was worth testing and the test is the only
 thing that settles it.
+
+## Item 4: the measurement family closed
+
+Item 4's bar names four kinds of name that must not be an entity: a bare
+number, a measurement, a git branch name, and a status value. Three of the
+four are now closed; the fourth is not, and the reason is measured rather
+than asserted.
+
+| category the bar names | state |
+|---|---|
+| a bare number | 0, and has been for several rounds |
+| a git branch name | closed, including under a leading preposition |
+| **a measurement** | **closed this round** |
+| a status value | open, ~42 entities |
+
+The old measurement rules required the unit to be the second word, so every
+one of the thirteen a grader listed walked past them: `120-word floor`,
+`52-word opening`, `touch-target-44px`, `15-minute target duration`,
+`Fastify-bodyLimit-10MB`. A number bound to a unit anywhere in the name now
+counts, provided the name ends on the reading or on a word that names one —
+`floor`, `duration`, `metric`, `baseline`, `timeout`.
+
+That last condition is the whole rule. A measurement in front of a noun names
+the noun: `36px card layout` is a layout, and two earlier rounds had pinned it
+as a real identity, so the first draft broke a standing test.
+
+A replica dry run then retired 22 entities, of which four were wrong, and
+those four became three exclusions:
+
+| wrongly retired | exclusion |
+|---|---|
+| `2026-06-12-quiz-email-backfill-30-days.csv` | a file keeps its name however it ends |
+| `how-many-18650-cells` | a question is not a reading, and 18650 names a cell rather than counting one |
+| `macbook-pro-128gb` | a number beside a device gives that device's specification |
+
+Eighteen retired on the second run and every one states a quantity. Applied to
+live; the second pass retires zero. Benchmarks unmoved at 47/50, 44/50, 7/7.
+
+### Why the status family stays open
+
+`participleStates` already holds the right words, and applying it to the end
+of a multi-part name would catch `validation_failed`,
+`pause-resume-completed`, `mobile_parity_shipped` and
+`recap-emails-not-shipped`. It would also catch `user_login_failed`, which a
+grader defended as a real identifier and which this repo's guard test pins as
+a name. The two are the same shape: `<noun>_<participle>`.
+
+The shouted half is the same story. `DONE_WITH_CONCERNS` and
+`PYTHON_ARGCOMPLETE_OK` are both all-caps identifiers containing a status
+word. Separating them needs a list of library prefixes — `CMAKE_`, `CURLOPT_`,
+`E_`, `WP_` — which is the word-list treadmill round nine ran and the
+round-13 grader explicitly warned against running again.
+
+So the status family is where the lexical approach ends, and this is the
+fourth round to reach the same wall from a different direction. Item 4 fails
+on one of its four named categories, with the other three closed and the
+reason for the fourth written down rather than papered over.
