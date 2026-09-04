@@ -329,14 +329,63 @@ func factTextsForRepo(st *store.Store, slug string, limit int, local map[string]
 		}
 		return facts[i].ValidFrom.After(facts[j].ValidFrom)
 	})
-	if len(facts) > limit {
-		facts = facts[:limit]
-	}
+	facts = spreadAcrossEpisodes(facts, limit)
 	texts := make([]string, 0, len(facts))
 	for _, f := range facts {
 		texts = append(texts, f.Fact)
 	}
 	return texts, nil
+}
+
+// spreadAcrossEpisodes takes the first limit facts in the order given, but
+// prefers not to take two from one episode.
+//
+// Orient's job is to say what is known about an entity, and one long session
+// that mentioned it forty times should not fill every slot: hearing the same
+// session twice says less than hearing two sessions once each. Measured on
+// the live store before this existed, both facts shown for an entity came
+// from the same episode 54% of the time.
+//
+// The preference is a preference, not a filter. An entity whose facts all
+// come from one episode still fills its slots — a second-choice fact from a
+// seen episode beats an empty line.
+func spreadAcrossEpisodes(facts []store.Fact, limit int) []store.Fact {
+	if len(facts) <= limit {
+		return facts
+	}
+	seen := map[string]bool{}
+	out := make([]store.Fact, 0, limit)
+	held := make([]store.Fact, 0, len(facts))
+	for _, f := range facts {
+		if len(out) == limit {
+			break
+		}
+		if fresh := !anySeen(seen, f.Episodes); fresh {
+			out = append(out, f)
+			for _, id := range f.Episodes {
+				seen[id] = true
+			}
+			continue
+		}
+		held = append(held, f)
+	}
+	for _, f := range held {
+		if len(out) == limit {
+			break
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// anySeen reports whether any of ids is already represented.
+func anySeen(seen map[string]bool, ids []string) bool {
+	for _, id := range ids {
+		if seen[id] {
+			return true
+		}
+	}
+	return false
 }
 
 // rankForOrient picks the limit most worth mentioning. What happened in

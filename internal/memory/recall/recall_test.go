@@ -310,3 +310,53 @@ func TestOrientPrefersWhatHappenedInThisRepo(t *testing.T) {
 		t.Errorf("orient must surface the fact from the session that ran here:\n%s", md)
 	}
 }
+
+func TestSpreadAcrossEpisodesPrefersASecondVoice(t *testing.T) {
+	f := func(text string, eps ...string) store.Fact {
+		return store.Fact{Fact: text, Episodes: eps}
+	}
+	t.Run("one session does not fill both slots", func(t *testing.T) {
+		got := spreadAcrossEpisodes([]store.Fact{
+			f("a", "ep1"), f("b", "ep1"), f("c", "ep2"),
+		}, 2)
+		if len(got) != 2 || got[0].Fact != "a" || got[1].Fact != "c" {
+			t.Errorf("got %v, want a then c", texts(got))
+		}
+	})
+	t.Run("the order it was given still wins within a voice", func(t *testing.T) {
+		got := spreadAcrossEpisodes([]store.Fact{
+			f("a", "ep1"), f("b", "ep2"), f("c", "ep3"),
+		}, 2)
+		if len(got) != 2 || got[0].Fact != "a" || got[1].Fact != "b" {
+			t.Errorf("got %v, want a then b", texts(got))
+		}
+	})
+	t.Run("a single-session entity still fills its slots", func(t *testing.T) {
+		got := spreadAcrossEpisodes([]store.Fact{
+			f("a", "ep1"), f("b", "ep1"), f("c", "ep1"),
+		}, 2)
+		if len(got) != 2 || got[0].Fact != "a" || got[1].Fact != "b" {
+			t.Errorf("got %v, want a then b", texts(got))
+		}
+	})
+	t.Run("a fact with no episode is not a voice to spread over", func(t *testing.T) {
+		got := spreadAcrossEpisodes([]store.Fact{f("a"), f("b"), f("c", "ep1")}, 2)
+		if len(got) != 2 {
+			t.Fatalf("got %v", texts(got))
+		}
+	})
+	t.Run("nothing to do under the limit", func(t *testing.T) {
+		in := []store.Fact{f("a", "ep1"), f("b", "ep1")}
+		if got := spreadAcrossEpisodes(in, 5); len(got) != 2 {
+			t.Errorf("got %v", texts(got))
+		}
+	})
+}
+
+func texts(fs []store.Fact) []string {
+	out := make([]string, 0, len(fs))
+	for _, f := range fs {
+		out = append(out, f.Fact)
+	}
+	return out
+}

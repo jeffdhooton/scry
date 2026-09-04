@@ -150,3 +150,106 @@ func TestGraderTaskCHygieneDry(t *testing.T) {
 		fmt.Println("  C:", s)
 	}
 }
+
+// Full, uncapped cross-type collision list.
+func TestGraderCollisionsFull(t *testing.T) {
+	st := openLive(t)
+	ents, err := st.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	referenced, err := referencedSlugs(st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	type owner struct{ slug, typ, spelling string }
+	byName := map[string][]owner{}
+	for _, e := range ents {
+		if len(referenced) > 0 && !referenced[e.Slug] {
+			continue
+		}
+		seen := map[string]bool{}
+		for _, sp := range append([]string{e.Name, e.Slug}, e.Aliases...) {
+			k := foldName(sp)
+			if k == "" || seen[k] {
+				continue
+			}
+			seen[k] = true
+			byName[k] = append(byName[k], owner{e.Slug, e.Type, sp})
+		}
+	}
+	n := 0
+	var lines []string
+	for key, os := range byName {
+		if len(os) < 2 {
+			continue
+		}
+		for i := range os {
+			for j := i + 1; j < len(os); j++ {
+				if sameKind(os[i].typ, os[j].typ) {
+					continue
+				}
+				n++
+				fa, _ := st.FactsAbout(os[i].slug, false)
+				fb, _ := st.FactsAbout(os[j].slug, false)
+				lines = append(lines, fmt.Sprintf("%s | %s:%s(%q,%df) | %s:%s(%q,%df)",
+					key, os[i].typ, os[i].slug, os[i].spelling, len(fa), os[j].typ, os[j].slug, os[j].spelling, len(fb)))
+			}
+		}
+	}
+	sort.Strings(lines)
+	fmt.Println("TOTAL_CROSS", n)
+	os.WriteFile(os.Getenv("GRADER_OUT")+"/collisions.txt", []byte(strings.Join(lines, "\n")), 0o644)
+}
+
+// Stolen alias index entries: entity A lists alias a, but al:<norm(a)>
+// points at B. Report B's attestation count for that alias.
+func TestGraderStolenAliases(t *testing.T) {
+	st := openLive(t)
+	ents, err := st.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bySlug := map[string]store.Entity{}
+	for _, e := range ents {
+		bySlug[e.Slug] = e
+	}
+	stolen, crossType, underAttested, crossUnder := 0, 0, 0, 0
+	var lines []string
+	for _, e := range ents {
+		for _, a := range e.Aliases {
+			norm := store.Normalize(a)
+			owner, ok, err := st.ResolveAlias(a)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !ok || owner == e.Slug {
+				continue
+			}
+			stolen++
+			o := bySlug[owner]
+			eps, _ := st.AliasAttestations(owner, norm)
+			cross := !sameKind(o.Type, e.Type)
+			if cross {
+				crossType++
+			}
+			if len(eps) < AttestationThreshold {
+				underAttested++
+				if cross {
+					crossUnder++
+					lines = append(lines, fmt.Sprintf("%q listed on %s:%s but indexed to %s:%s, attestations=%d",
+						a, e.Type, e.Slug, o.Type, owner, len(eps)))
+				}
+			}
+		}
+	}
+	sort.Strings(lines)
+	fmt.Printf("STOLEN total=%d crossType=%d underAttested=%d crossType_and_underAttested=%d\n", stolen, crossType, underAttested, crossUnder)
+	for i, l := range lines {
+		if i >= 40 {
+			break
+		}
+		fmt.Println("  ", l)
+	}
+	os.WriteFile(os.Getenv("GRADER_OUT")+"/stolen.txt", []byte(strings.Join(lines, "\n")), 0o644)
+}
