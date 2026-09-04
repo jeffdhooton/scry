@@ -387,6 +387,87 @@ func TestRetireEntityAdjacencyDriftAbortsAtomically(t *testing.T) {
 	}
 }
 
+func TestRetireEntityReviewsReplacementAdjacencyOccupant(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []Entity{
+		{Slug: "obsolete", Name: "Obsolete", Type: "concept"},
+		{Slug: "owner", Name: "Owner", Type: "project"},
+		{Slug: "target", Name: "Target", Type: "tool"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	at := time.Unix(23, 0).UTC()
+	old := Fact{Src: "obsolete", Relation: "related_to", Dst: "target", Fact: "reviewed relationship", ValidFrom: at}
+	if err := st.PutFact(old); err != nil {
+		t.Fatal(err)
+	}
+	bare, err := st.PreviewEntityRetirement(EntityRetirementRequest{Entity: "obsolete", Why: "reviewed non-identity"})
+	if err != nil || len(bare.FactFingerprints) != 1 {
+		t.Fatalf("preview=%+v err=%v", bare, err)
+	}
+	row := bare.FactFingerprints[0]
+	replacement := row.Snapshot
+	replacement.Src = "owner"
+	replacementKey := adjKey(replacement.Dst, replacement.Src, replacement.Relation, replacement.ValidFrom)
+	if err := st.db.Update(func(txn *badger.Txn) error { return txn.Set(replacementKey, []byte("hidden-legacy-payload")) }); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{
+		Entity: "obsolete", Why: "reviewed non-identity",
+		Replacements: []EntityRetirementReplacement{{OldKey: row.Key, ExpectedSHA256: row.SHA256, Replacement: replacement, Why: "relocate reviewed source"}},
+	}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || preview.Ready || len(preview.Adjacencies) != 2 {
+		t.Fatalf("replacement adjacency occupant was not exposed: preview=%+v err=%v", preview, err)
+	}
+	var occupant EntityRetirementAdjacencyFingerprint
+	for _, adjacency := range preview.Adjacencies {
+		if adjacency.Key == string(replacementKey) {
+			occupant = adjacency
+		}
+	}
+	if !occupant.NeedsReview || occupant.ValueBytes != len("hidden-legacy-payload") {
+		t.Fatalf("replacement occupant was not classified anomalous: %+v", occupant)
+	}
+	req.ReviewedAdjacencies = []EntityRetirementAdjacencyReview{{Key: occupant.Key, ExpectedSHA256: occupant.SHA256, Why: "reviewed stale occupant at replacement mirror"}}
+	preview, err = st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("reviewed replacement adjacency was refused: preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	if err := st.db.Update(func(txn *badger.Txn) error { return txn.Set(replacementKey, []byte("drifted-legacy-payload")) }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.RetireEntity(req); err == nil || !strings.Contains(err.Error(), "snapshot changed") {
+		t.Fatalf("replacement adjacency drift was not refused: %v", err)
+	}
+	if _, err := st.GetEntity("obsolete"); err != nil {
+		t.Fatalf("drifted replacement adjacency caused partial apply: %v", err)
+	}
+	if err := st.db.Update(func(txn *badger.Txn) error { return txn.Set(replacementKey, []byte("hidden-legacy-payload")) }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(replacementKey)
+		if err != nil {
+			return err
+		}
+		return item.Value(func(value []byte) error {
+			if len(value) != 0 {
+				return fmt.Errorf("replacement adjacency retained legacy payload: %q", value)
+			}
+			return nil
+		})
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestRetireEntitySnapshotDriftAndPostconditionAreAtomic(t *testing.T) {
 	newStore := func(t *testing.T) (*Store, EntityRetirementRequest) {
 		st := openTemp(t)

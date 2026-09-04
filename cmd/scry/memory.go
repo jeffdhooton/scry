@@ -1623,6 +1623,7 @@ func memoryRetireEntitiesCmd() *cobra.Command {
 		Long: `Reads a JSON array of reviewed non-identity retirements. The first
 dry run needs only entity/why and returns the complete entity, alias claims,
 every touching current or invalidated fact, and every reverse-index record
+that names the retired entity or occupies a replacement edge's future key,
 with exact keys, safely encoded values, and hashes.
 
 For each fact, copy its snapshot into a replacement, identify old_key and

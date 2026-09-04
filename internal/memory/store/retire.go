@@ -239,6 +239,14 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 			}
 		}
 	}
+	// Remove every reviewed reverse-index record before writing replacement
+	// mirrors. This includes ghosts at a replacement's future adjacency key;
+	// deleting after the writes would erase the newly canonical mirror.
+	for _, key := range analysis.adjacencyKeys {
+		if err := txn.Delete(key); err != nil {
+			return err
+		}
+	}
 	for _, fact := range analysis.replacements {
 		encoded, err := json.Marshal(fact)
 		if err != nil {
@@ -251,13 +259,6 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 			if err := txn.Set(adjKey(fact.Dst, fact.Src, fact.Relation, fact.ValidFrom), nil); err != nil {
 				return err
 			}
-		}
-	}
-	// Delete every reviewed reverse-index record that names the retired
-	// entity, including legacy ghosts without a canonical fa: record.
-	for _, key := range analysis.adjacencyKeys {
-		if err := txn.Delete(key); err != nil {
-			return err
 		}
 	}
 	for norm := range analysis.claimNorms {
@@ -307,7 +308,7 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 			return fmt.Errorf("memory: retirement postcondition: fact still references %s", req.Entity)
 		}
 	}
-	remainingAdjacencies, err := adjacencyReferencesTxn(txn, req.Entity, nil)
+	remainingAdjacencies, err := adjacencyReferencesTxn(txn, req.Entity, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -325,6 +326,20 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 		}
 		if !reflect.DeepEqual(got, want) {
 			return errors.New("memory: retirement postcondition: replacement fact changed")
+		}
+		if want.Dst != "" {
+			adjacencyItem, err := txn.Get(adjKey(want.Dst, want.Src, want.Relation, want.ValidFrom))
+			if err != nil {
+				return fmt.Errorf("memory: retirement postcondition: replacement adjacency missing: %w", err)
+			}
+			if err := adjacencyItem.Value(func(value []byte) error {
+				if len(value) != 0 {
+					return errors.New("memory: retirement postcondition: replacement adjacency is nonempty")
+				}
+				return nil
+			}); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -449,45 +464,6 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 			a.preview.InvalidatedFacts++
 		}
 	}
-	adjacencies, err := adjacencyReferencesTxn(txn, req.Entity, allFactsByKey)
-	if err != nil {
-		return a, err
-	}
-	a.preview.Adjacencies = adjacencies
-	for _, adjacency := range adjacencies {
-		a.adjacencyKeys = append(a.adjacencyKeys, []byte(adjacency.Key))
-	}
-	adjacencyByKey := make(map[string]EntityRetirementAdjacencyFingerprint, len(adjacencies))
-	for _, adjacency := range adjacencies {
-		adjacencyByKey[adjacency.Key] = adjacency
-	}
-	seenAdjacencyReviews := map[string]bool{}
-	for _, review := range req.ReviewedAdjacencies {
-		adjacency, found := adjacencyByKey[review.Key]
-		if !found {
-			problem("adjacency review names unknown key: " + review.Key)
-			continue
-		}
-		if seenAdjacencyReviews[review.Key] {
-			problem("adjacency review repeats key: " + review.Key)
-			continue
-		}
-		seenAdjacencyReviews[review.Key] = true
-		if review.ExpectedSHA256 == "" || review.ExpectedSHA256 != adjacency.SHA256 {
-			problem("adjacency review fingerprint mismatch: " + review.Key)
-		}
-		if strings.TrimSpace(review.Why) == "" {
-			problem("adjacency review requires a reason: " + review.Key)
-		}
-		if !adjacency.NeedsReview {
-			problem("adjacency review is unnecessary for canonical empty mirror: " + review.Key)
-		}
-	}
-	for _, adjacency := range adjacencies {
-		if adjacency.NeedsReview && !seenAdjacencyReviews[adjacency.Key] {
-			problem("anomalous adjacency has no explicit review: " + adjacency.Key)
-		}
-	}
 	seenOld := map[string]bool{}
 	targetKeys := map[string]string{}
 	inputByKey := map[string]EntityRetirementReplacement{}
@@ -555,7 +531,51 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 			a.replacements = append(a.replacements, replacement.Replacement)
 		}
 	}
-
+	replacementAdjacencyKeys := map[string]bool{}
+	for _, replacement := range a.replacements {
+		if replacement.Dst != "" {
+			replacementAdjacencyKeys[string(adjKey(replacement.Dst, replacement.Src, replacement.Relation, replacement.ValidFrom))] = true
+		}
+	}
+	adjacencies, err := adjacencyReferencesTxn(txn, req.Entity, allFactsByKey, replacementAdjacencyKeys)
+	if err != nil {
+		return a, err
+	}
+	a.preview.Adjacencies = adjacencies
+	for _, adjacency := range adjacencies {
+		a.adjacencyKeys = append(a.adjacencyKeys, []byte(adjacency.Key))
+	}
+	adjacencyByKey := make(map[string]EntityRetirementAdjacencyFingerprint, len(adjacencies))
+	for _, adjacency := range adjacencies {
+		adjacencyByKey[adjacency.Key] = adjacency
+	}
+	seenAdjacencyReviews := map[string]bool{}
+	for _, review := range req.ReviewedAdjacencies {
+		adjacency, found := adjacencyByKey[review.Key]
+		if !found {
+			problem("adjacency review names unknown key: " + review.Key)
+			continue
+		}
+		if seenAdjacencyReviews[review.Key] {
+			problem("adjacency review repeats key: " + review.Key)
+			continue
+		}
+		seenAdjacencyReviews[review.Key] = true
+		if review.ExpectedSHA256 == "" || review.ExpectedSHA256 != adjacency.SHA256 {
+			problem("adjacency review fingerprint mismatch: " + review.Key)
+		}
+		if strings.TrimSpace(review.Why) == "" {
+			problem("adjacency review requires a reason: " + review.Key)
+		}
+		if !adjacency.NeedsReview {
+			problem("adjacency review is unnecessary for canonical empty mirror: " + review.Key)
+		}
+	}
+	for _, adjacency := range adjacencies {
+		if adjacency.NeedsReview && !seenAdjacencyReviews[adjacency.Key] {
+			problem("anomalous adjacency has no explicit review: " + adjacency.Key)
+		}
+	}
 	expectedEntities := map[string]string{req.Entity: hashJSON(entity)}
 	for slug, target := range a.rehomeTargets {
 		expectedEntities[slug] = hashJSON(target)
@@ -578,7 +598,7 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 	return a, nil
 }
 
-func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[string]Fact) ([]EntityRetirementAdjacencyFingerprint, error) {
+func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[string]Fact, replacementKeys map[string]bool) ([]EntityRetirementAdjacencyFingerprint, error) {
 	var fingerprints []EntityRetirementAdjacencyFingerprint
 	prefix := []byte(prefixAdj)
 	opts := badger.DefaultIteratorOptions
@@ -589,7 +609,7 @@ func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[stri
 		item := it.Item()
 		key := item.KeyCopy(nil)
 		dst, src, relation, validFrom, valid := parseAdjacencyKey(key)
-		if dst != retired && src != retired {
+		if dst != retired && src != retired && !replacementKeys[string(key)] {
 			continue
 		}
 		var value []byte
