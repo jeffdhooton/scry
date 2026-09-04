@@ -1,0 +1,44 @@
+[
+  {
+    "id": "qwen3.8-27b-uncensored-q5",
+    "survivor": "qwen38-27b-uncensored-q5",
+    "retire": [
+      "qwen3-8-27b-uncensored-q5"
+    ],
+    "drop_aliases": [
+      {
+        "alias": "Q5",
+        "rehome_to": "qwen38-27b-uncensored-q8",
+        "why": "Q5 is a generic quantization label also listed and owned by the separate Q8 model; it must remain routed there rather than being stolen by this merge."
+      }
+    ],
+    "metadata": {
+      "slug": "qwen38-27b-uncensored-q5",
+      "name": "qwen38-27b-uncensored-q5",
+      "type": "tool",
+      "description": "Qwen3.8-27B-Uncensored Q5_K_M GGUF (19.5 GB) downloaded and verified on the Halo, now registered in Lemonade.",
+      "aliases": [
+        "Qwen38-27B-Uncensored-Q5.gguf",
+        "qwen3-8-27b-uncensored-q5",
+        "3.8-27B-Q5",
+        "Qwen3.8",
+        "Qwen3"
+      ],
+      "repo_refs": [
+        "/Users/jclaw/workspace/deepresearch-codernext",
+        "/Users/jeff/dotfiles"
+      ],
+      "created_at": "2026-08-24T21:08:20.616Z",
+      "last_seen": "2026-08-26T15:05:33.042Z"
+    },
+    "expected": {
+      "entities": {
+        "qwen3-8-27b-uncensored-q5": "cdbc8f98e8542e52475bb54ffb53bb83478147d41841cbf7f44c698fb4d102a6",
+        "qwen38-27b-uncensored-q5": "1fed8fab31eead1c1d7d87ca302bc45803ec8fcd0f9c525b22cba87efd6bb58d"
+      },
+      "facts": "807149a3c4d7aae3de7d7d19c70af922d27c305ff4e7a9670897053c745a8e33",
+      "alias_claims": "7fd7d39c42e7968dec23495ab3bc9dc4962c0ecb6bfcddc29a4d1fcd8038a549"
+    },
+    "why": "Both entities name the same Qwen 3.8 27B Uncensored Q5 model; the tool-typed entity is the correct survivor."
+  }
+]

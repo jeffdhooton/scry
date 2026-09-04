@@ -1250,14 +1250,14 @@ func TestExactIdentityBeatsACompatibleStolenAlias(t *testing.T) {
 	if got := mustFacts(t, st, interceptor.Slug); len(got) != 0 {
 		t.Fatalf("the interceptor gained the exact service's fact: %+v", got)
 	}
-	if owner, ok, err := st.ResolveAlias("Aurora"); err != nil || !ok || owner != real.Slug {
-		t.Fatalf("Aurora resolves to %q, %v, %v; want %s", owner, ok, err, real.Slug)
+	if owner, ok, err := st.ResolveAlias("Aurora"); err != nil || !ok || owner != interceptor.Slug {
+		t.Fatalf("ordinary ingestion moved Aurora ownership to %q, %v, %v; want unchanged owner %s", owner, ok, err, interceptor.Slug)
 	}
 	updated, err := st.GetEntity(interceptor.Slug)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(updated.Aliases) != 0 {
-		t.Fatalf("interceptor kept the stolen alias: %v", updated.Aliases)
+	if len(updated.Aliases) != 1 || updated.Aliases[0] != "Aurora" {
+		t.Fatalf("ordinary ingestion changed interceptor aliases: got %v want %v", updated.Aliases, interceptor.Aliases)
 	}
 }

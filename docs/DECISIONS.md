@@ -2966,3 +2966,43 @@ already-owned spelling must present the identity decision to the merge or
 claim API; evidence that ordinary metadata writes cannot be separated from
 intent would require a different transaction boundary. No such caller
 appeared in the complete test suite or in the replica rewrite.
+
+## Exact mention routing does not repair alias ownership (2026-09-04)
+
+**Correction.** The preceding decision originally said ordinary resolution
+would remove a stolen alias and reclaim its index entry when an established
+exact-name identity exists. That still made one episode an identity-owner
+decision, and the claim plus entity update were separate transactions. It is
+not allowed.
+
+**Decision.** An established exact identity may override a stale alias index
+for the facts in the current episode only. The resolver records that choice in
+an episode-local spelling-to-slug map and uses it for fact endpoints and
+supersedes hints. It does not edit either entity or the global alias index. If
+the exact identity does not exist and its name is already claimed, ingestion
+returns `ErrAliasClaimed`; reviewed unalias/rehome or merge must settle the
+identity before the episode can succeed.
+
+## Entity consolidation is a fingerprinted merge, not reattachment (2026-09-04)
+
+**Decision.** A complete entity merge is an explicit manifest operation. The
+manifest pins every participant entity, every touching fact including history,
+the complete survivor metadata, and relevant alias claims. One Badger
+transaction rewrites both fact endpoints, replaces survivor metadata,
+transfers reviewed spellings, performs explicit alias rehomes, removes losers,
+and proves no retired reference remains before commit. Any fact-key collision,
+self-loop, hollow result, dangling endpoint, missing spelling or repo ref, or
+unexplained outside alias claim/listing is a refusal.
+
+Dry run is the RPC default, not merely the CLI default. Multi-group collision
+predictions are chained through simulated states and checked against a fresh
+observed store count after every commit. Groups connected by a fact must be
+reviewed and applied in separate manifests so the first cannot invalidate the
+second group's fingerprint after preflight. A nonempty backup precedes the
+first write.
+
+**Alias retirement rule.** If a dropped spelling remains listed on another
+entity, the manifest must name that entity in `rehome_to`; the target is never
+inferred. Standalone unalias follows the same rule. The entity-list edit and
+index rehome are atomic, preventing a rightful spelling from becoming an exact
+lookup blackout.

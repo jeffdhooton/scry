@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -82,4 +83,67 @@ func TestLiveStoreEntityRewriteIsOwnershipNeutral(t *testing.T) {
 		t.Fatal("replica alias ownership did not return to its exact starting state")
 	}
 	t.Logf("rewrote %d entities; preserved %d alias claims", len(entities), len(before))
+}
+
+// TestLiveStoreMergedEntityPostconditions independently audits a merge that
+// was just applied to an offline replica.
+func TestLiveStoreMergedEntityPostconditions(t *testing.T) {
+	dir := os.Getenv("SCRY_MERGE_CHECK_DIR")
+	survivor := os.Getenv("SCRY_MERGE_SURVIVOR")
+	retiredCSV := os.Getenv("SCRY_MERGE_RETIRED")
+	if dir == "" || survivor == "" || retiredCSV == "" {
+		t.Skip("SCRY_MERGE_CHECK_DIR, SCRY_MERGE_SURVIVOR, and SCRY_MERGE_RETIRED not set")
+	}
+	st, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	retired := map[string]bool{}
+	for _, slug := range strings.Split(retiredCSV, ",") {
+		retired[strings.TrimSpace(slug)] = true
+	}
+	for slug := range retired {
+		if _, err := st.GetEntity(slug); !errors.Is(err, ErrNotFound) {
+			t.Errorf("retired entity %s still exists: %v", slug, err)
+		}
+		if owner, ok, err := st.ResolveAlias(slug); err != nil || !ok || owner != survivor {
+			t.Errorf("retired slug %s resolves to %q, %v, %v", slug, owner, ok, err)
+		}
+	}
+	e, err := st.GetEntity(survivor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, spelling := range append([]string{e.Slug, e.Name}, e.Aliases...) {
+		if owner, ok, err := st.ResolveAlias(spelling); err != nil || !ok || owner != survivor {
+			t.Errorf("survivor spelling %q resolves to %q, %v, %v", spelling, owner, ok, err)
+		}
+	}
+	claims, err := st.AliasClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for norm, owner := range claims {
+		if retired[owner] {
+			t.Errorf("alias %q still points at retired entity %s", norm, owner)
+		}
+	}
+	facts, err := st.AllFacts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	touching := 0
+	for _, f := range facts {
+		if retired[f.Src] || retired[f.Dst] {
+			t.Errorf("fact still points at retired entity: %+v", f)
+		}
+		if f.Src == survivor || f.Dst == survivor {
+			touching++
+		}
+	}
+	if touching == 0 {
+		t.Error("survivor is hollow")
+	}
+	t.Logf("survivor %s has %d touching facts; %d total facts and %d alias claims have no retired endpoint", survivor, touching, len(facts), len(claims))
 }

@@ -678,6 +678,74 @@ func auditNames(entities []store.Entity, realSlugs map[string]string, referenced
 	return cross, sample, conflated
 }
 
+// CrossTypeCollisionCount applies hygiene's collision definition to an
+// in-memory snapshot. Merge dry runs use it to report the exact predicted
+// delta without mutating a replica or inferring which identity should win.
+// Invalidated facts count as references, matching Hygiene's standing audit.
+func CrossTypeCollisionCount(entities []store.Entity, facts []store.Fact) int {
+	realSlugs := make(map[string]string, len(entities))
+	for _, e := range entities {
+		if isEphemeralName(e.Name) || isEphemeralName(e.Slug) || isGenericEntityName(e.Name) || IsValueName(e.Name) {
+			continue
+		}
+		realSlugs[e.Slug] = e.Name
+	}
+	referenced := make(map[string]bool, len(facts))
+	for _, f := range facts {
+		referenced[f.Src] = true
+		if f.Dst != "" {
+			referenced[f.Dst] = true
+		}
+	}
+	count, _, _ := auditNames(entities, realSlugs, referenced)
+	return count
+}
+
+// PredictEntityMergeCollisionCounts returns the audit count before and after
+// the already-previewed group, without writing. The preview's proposed
+// metadata and endpoint rewrite are the only simulated changes.
+func PredictEntityMergeCollisionCounts(entities []store.Entity, facts []store.Fact, preview store.EntityMergePreview) (before, after int) {
+	before = CrossTypeCollisionCount(entities, facts)
+	afterEntities, afterFacts := SimulateEntityMerge(entities, facts, preview)
+	after = CrossTypeCollisionCount(afterEntities, afterFacts)
+	return before, after
+}
+
+// SimulateEntityMerge applies a reviewed preview to an in-memory snapshot.
+// Manifest preflight chains this across disjoint groups so every reported
+// collision count is the next sequential state, not the original snapshot.
+func SimulateEntityMerge(entities []store.Entity, facts []store.Fact, preview store.EntityMergePreview) ([]store.Entity, []store.Fact) {
+	retired := map[string]bool{}
+	for _, slug := range preview.Retire {
+		retired[slug] = true
+	}
+	afterEntities := make([]store.Entity, 0, len(entities)-len(retired))
+	for _, e := range entities {
+		if e.Slug == preview.Survivor {
+			afterEntities = append(afterEntities, preview.ProposedMetadata)
+			continue
+		}
+		if !retired[e.Slug] {
+			afterEntities = append(afterEntities, e)
+		}
+	}
+	afterFacts := make([]store.Fact, len(facts))
+	copy(afterFacts, facts)
+	group := map[string]bool{preview.Survivor: true}
+	for slug := range retired {
+		group[slug] = true
+	}
+	for i := range afterFacts {
+		if group[afterFacts[i].Src] {
+			afterFacts[i].Src = preview.Survivor
+		}
+		if group[afterFacts[i].Dst] {
+			afterFacts[i].Dst = preview.Survivor
+		}
+	}
+	return afterEntities, afterFacts
+}
+
 // sameKind reports whether two entity types name the same kind of thing.
 // Unlike TypesCompatible it gives a concept no wildcard: for counting,
 // an untyped stub that shares a machine's name is a collision.

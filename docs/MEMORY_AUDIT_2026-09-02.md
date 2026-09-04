@@ -1997,8 +1997,8 @@ the current rules. Repeated mentions of an alias owned by another compatible
 entity now produce merge evidence, not a half-merge: admission refuses and
 requires the explicit merge operation. Mention resolution separately gives an
 established exact-name entity priority over a stolen index entry across both
-compatible and incompatible types, then repairs that one exact claim
-explicitly before its facts resolve.
+compatible and incompatible types for the current episode, without changing
+the global alias owner.
 
 Replica evidence, restored from the 93,948,817-byte live backup
 `/Users/jclaw/.scry/backups/memory-20260904T173049Z.badger`:
@@ -2021,3 +2021,38 @@ The replica test remains in `internal/memory/store/live_test.go`, gated by
 `SCRY_STORE_CHECK_DIR`, so future changes can rerun the same ownership-neutral
 rewrite against a restored production backup. No live store mutation was made
 by this code in this step; the backup itself is the only new live artifact.
+
+## 2026-09-04 — reviewed entity merge and first replica repair
+
+The first entity-merge implementation now exists behind
+`scry memory merge-entities --file <json> [--apply]`. Each group fingerprints
+every endpoint entity, every touching current and invalidated fact, and every
+relevant alias claim. Apply requires reviewed metadata and exact fingerprints,
+takes a nonempty backup, and performs fact rewrites, entity retirement,
+metadata replacement, alias transfer/rehome, and read-your-writes
+postconditions in one Badger transaction. Self-loops, fact-key collisions,
+dangling endpoints, hollow survivors, incomplete metadata, and unexplained
+outside alias ownership/listing are refusals.
+
+A fresh-context safety review disproved the first draft on four points: an
+ordinary-ingestion alias transfer; collision deltas that were only predicted
+and reused the original snapshot for every group; an alias-drop case that
+could leave an outside listing unindexed; and an RPC boolean whose omitted
+zero value meant apply. All four were fixed before deployment or live apply.
+Resolution now uses an episode-local identity map and never changes ownership;
+a missing exact identity whose name is claimed fails with `ErrAliasClaimed`.
+Predictions are sequential and every commit is compared with a fresh observed
+collision count. Merge and standalone unalias require explicit validated
+`rehome_to` when another entity lists a dropped spelling. Omitted `dry_run` on
+the merge RPC now means true.
+
+Replica evidence used a fresh restore of the 93,948,817-byte backup
+`memory-20260904T173049Z.badger` (22,904 entities, 57,041 facts, 6,956
+episodes). The reviewed Qwen manifest at
+`docs/memory-repairs/qwen-entity-merge-2026-09-04.json` moves the concept-typed
+`qwen3-8-27b-uncensored-q5` into the tool-typed
+`qwen38-27b-uncensored-q5`, preserving all 15 touching facts (14 current, one
+invalidated) and explicitly rehoming generic `Q5` to the separate Q8 model.
+The replica apply reported collisions 343 → 341, observed 341, verification
+true. The full Go suite and `go vet ./...` passed. No code was deployed and no
+live entity merge was applied in this step.

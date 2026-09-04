@@ -96,14 +96,19 @@ func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result
 	// Rule 2: entities. The model's own "value" verdicts are collected
 	// first so a fact endpoint gets the same answer the entity list did.
 	declared := DeclaredValues(res.Entities)
+	resolvedEntities := make(map[string]string, len(res.Entities))
 	for _, ent := range res.Entities {
-		if err := resolveEntity(st, ep, cwd, ent, declared, &stats); err != nil {
+		slug, err := resolveEntity(st, ep, cwd, ent, declared, &stats)
+		if err != nil {
 			return stats, err
+		}
+		if norm := store.Normalize(ent.Name); norm != "" && slug != "" {
+			resolvedEntities[norm] = slug
 		}
 	}
 
 	// Rules 3-6: facts.
-	if err := resolveFacts(st, ep, res.Facts, exclusive, declared, &stats); err != nil {
+	if err := resolveFacts(st, ep, res.Facts, exclusive, declared, resolvedEntities, &stats); err != nil {
 		return stats, err
 	}
 
@@ -117,20 +122,20 @@ func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result
 }
 
 // resolveEntity implements Rule 2 for a single extracted entity.
-func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, declared map[string]bool, stats *Stats) error {
+func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, declared map[string]bool, stats *Stats) (string, error) {
 	// A run artifact is not an identity. Storing one pollutes recall forever
 	// and can never be usefully recalled later. Neither is a value: "main",
 	// "in-progress", and "46 GiB" describe things, they are not things.
 	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || IsValueName(ent.Name) {
-		return nil
+		return "", nil
 	}
 	if declaredValue(st, declared, ent.Name) {
 		stats.ValuesRejected++
-		return nil
+		return "", nil
 	}
 	slug, found, err := st.ResolveAlias(ent.Name)
 	if err != nil {
-		return err
+		return "", err
 	}
 	naturalSlug := store.Slugify(ent.Name)
 	// A generic name must never pull an entity in by alias: that is the
@@ -146,8 +151,8 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		// Routing state cannot override an established exact identity. This
 		// applies within a type too: a service that once stole another
 		// service's name must not intercept every later mention of the real
-		// entity. claimNameFromAliasHolders below performs the explicit index
-		// repair after this selects the exact entity.
+		// entity. The episode-local resolution map below routes its facts
+		// correctly without changing global alias ownership.
 		if exact, gerr := st.GetEntity(naturalSlug); gerr == nil && store.Normalize(exact.Name) == store.Normalize(ent.Name) {
 			found = false
 		}
@@ -162,7 +167,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		if gerr == nil && found {
 			why, cerr := factBearingConcept(st, slug, owner.Type)
 			if cerr != nil {
-				return cerr
+				return "", cerr
 			}
 			if why != "" && !concepts(ent.Type) {
 				found = false
@@ -174,20 +179,12 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	}
 	if slug == "" {
 		// Unresolvable name: never write an empty-slug key.
-		return nil
+		return "", nil
 	}
 
 	existing, err := st.GetEntity(slug)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		return err
-	}
-
-	// A name beats an alias. If another entity of an incompatible type
-	// lists this name as an alias, that alias goes: otherwise the two
-	// share it and the store grows a cross-type collision every time a new
-	// entity is named after something else's nickname.
-	if err := claimNameFromAliasHolders(st, ent.Name, slug, ent.Type); err != nil {
-		return err
+		return "", err
 	}
 
 	if errors.Is(err, store.ErrNotFound) {
@@ -201,23 +198,23 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		}
 		aliases, err := admitAliases(st, e, keepDurable(ent.Aliases), ep.ID)
 		if err != nil {
-			return err
+			return "", err
 		}
 		e.Aliases = aliases
 		if isWorkspacePath(cwd) {
 			e.RepoRefs = []string{cwd}
 		}
 		if err := st.PutEntity(e); err != nil {
-			return err
+			return "", err
 		}
 		stats.EntitiesCreated++
-		return nil
+		return slug, nil
 	}
 
 	// Merge onto the existing entity.
 	admitted, err := admitAliases(st, existing, keepDurable(ent.Aliases), ep.ID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	existing.Aliases = unionStrings(existing.Aliases, admitted)
 	// A stub created from a fact endpoint is typed "concept" because nothing
@@ -229,7 +226,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 			// entity may not hold (a machine's name on what is now a
 			// project). Re-check them against the new type.
 			if err := RevalidateAliases(st, &existing); err != nil {
-				return err
+				return "", err
 			}
 		}
 	}
@@ -250,10 +247,10 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		}
 	}
 	if err := st.PutEntity(existing); err != nil {
-		return err
+		return "", err
 	}
 	stats.EntitiesUpdated++
-	return nil
+	return slug, nil
 }
 
 // resolvedFact is one extract.Fct after Rule 3's endpoint/ValidFrom
@@ -295,7 +292,7 @@ func (rf resolvedFact) keyDst() string {
 // restatement of the old target would invalidate-then-recreate the old
 // fact from scratch instead of merging onto it, losing its provenance and
 // confidence history.
-func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclusive map[string]bool, declared map[string]bool, stats *Stats) error {
+func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclusive map[string]bool, declared map[string]bool, resolvedEntities map[string]string, stats *Stats) error {
 	// Rule 3: resolve every fact's endpoints (creating concept stubs as
 	// needed) and ValidFrom up front. Relation is normalized (see
 	// normalizeRelation) before anything else touches it: facts whose
@@ -357,7 +354,7 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// Both endpoints are resolved (stubs created) before either can
 		// veto the fact: an unresolvable src must not stop a valid dst from
 		// existing.
-		srcSlug, err := ensureEntitySlug(st, ep, fct.Src, stats)
+		srcSlug, err := ensureEntitySlug(st, ep, fct.Src, resolvedEntities, stats)
 		if err != nil {
 			return err
 		}
@@ -365,7 +362,7 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		if dstIsValue {
 			rf.value = strings.TrimSpace(fct.Dst)
 		} else {
-			dstSlug, err := ensureEntitySlug(st, ep, fct.Dst, stats)
+			dstSlug, err := ensureEntitySlug(st, ep, fct.Dst, resolvedEntities, stats)
 			if err != nil {
 				return err
 			}
@@ -403,7 +400,7 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// targets its own (usually different) triple via an explicit ref,
 		// independent of what happened to rf's own triple in Phase A.
 		if rf.fct.Supersedes != nil {
-			if err := applySupersedes(st, ep, *rf.fct.Supersedes, stats); err != nil {
+			if err := applySupersedes(st, ep, *rf.fct.Supersedes, resolvedEntities, stats); err != nil {
 				return err
 			}
 		}
@@ -515,7 +512,7 @@ func mergeFact(st *store.Store, ep store.Episode, current store.Fact, incomingVa
 // silently miss its target and never invalidate anything. A hint whose
 // relation normalizes to empty is skipped outright, same as a fact whose
 // own relation does.
-func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stats *Stats) error {
+func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, resolvedEntities map[string]string, stats *Stats) error {
 	raw := normalizeRelation(ref.Relation)
 	if raw == "" {
 		return nil
@@ -529,7 +526,7 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stat
 		src, dst = dst, src
 	}
 
-	srcSlug, err := resolveSlugOnly(st, src)
+	srcSlug, err := resolveSlugOnly(st, src, resolvedEntities)
 	if err != nil {
 		return err
 	}
@@ -540,7 +537,7 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stat
 	if relation == RelStatus || IsValueName(dst) {
 		keyDst = store.AttrDst(dst)
 	} else {
-		dstSlug, err := resolveSlugOnly(st, dst)
+		dstSlug, err := resolveSlugOnly(st, dst, resolvedEntities)
 		if err != nil {
 			return err
 		}
@@ -576,8 +573,8 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, stat
 // guarantees an entity exists at that slug, creating a concept stub
 // (Rule 3) if none does. Returns "" without writing anything if name
 // slugifies to the empty string.
-func ensureEntitySlug(st *store.Store, ep store.Episode, name string, stats *Stats) (string, error) {
-	slug, err := resolveSlugOnly(st, name)
+func ensureEntitySlug(st *store.Store, ep store.Episode, name string, resolvedEntities map[string]string, stats *Stats) (string, error) {
+	slug, err := resolveSlugOnly(st, name, resolvedEntities)
 	if err != nil {
 		return "", err
 	}
@@ -609,7 +606,10 @@ func ensureEntitySlug(st *store.Store, ep store.Episode, name string, stats *Sta
 
 // resolveSlugOnly resolves name to a slug via the alias index, falling back
 // to Slugify. It never creates an entity.
-func resolveSlugOnly(st *store.Store, name string) (string, error) {
+func resolveSlugOnly(st *store.Store, name string, resolvedEntities map[string]string) (string, error) {
+	if slug := resolvedEntities[store.Normalize(name)]; slug != "" {
+		return slug, nil
+	}
 	slug, found, err := st.ResolveAlias(name)
 	if err != nil {
 		return "", err
@@ -923,50 +923,4 @@ func containsString(list []string, s string) bool {
 		}
 	}
 	return false
-}
-
-// claimNameFromAliasHolders removes name from the aliases of any entity of
-// an incompatible type that lists it, so the entity actually called that
-// owns it.
-func claimNameFromAliasHolders(st *store.Store, name, slug, typ string) error {
-	owner, ok, err := st.ResolveAlias(name)
-	if err != nil || !ok || owner == slug {
-		return err
-	}
-	holder, err := st.GetEntity(owner)
-	if err != nil {
-		return nil
-	}
-	// An established entity's exact name outranks a routing entry left on a
-	// different entity, including a concept (which TypesCompatible otherwise
-	// treats as a wildcard). This is an explicit transfer, not a PutEntity
-	// side effect. Two entities actually named the same thing remain a
-	// reviewed collision; one mention does not choose between them.
-	target, targetErr := st.GetEntity(slug)
-	targetOwnsName := targetErr == nil && store.Normalize(target.Name) == store.Normalize(name)
-	if store.Normalize(holder.Name) == store.Normalize(name) {
-		return nil
-	}
-	if !targetOwnsName && TypesCompatible(holder.Type, typ) {
-		return nil
-	}
-	kept := holder.Aliases[:0]
-	dropped := false
-	for _, a := range holder.Aliases {
-		if store.Normalize(a) == store.Normalize(name) {
-			dropped = true
-			continue
-		}
-		kept = append(kept, a)
-	}
-	if dropped {
-		holder.Aliases = kept
-		if err := st.PutEntity(holder); err != nil {
-			return err
-		}
-	}
-	if !dropped && !targetOwnsName {
-		return nil
-	}
-	return st.ClaimAlias(name, slug)
 }

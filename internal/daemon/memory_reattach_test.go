@@ -262,6 +262,15 @@ func TestMemoryUnalias(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// Manufacture legacy disagreement: agent lists the gateway spelling,
+	// while the leaking project still owns its index key.
+	if err := st.ClaimAlias("Hermes Slack gateway", "agent"); err != nil {
+		t.Fatal(err)
+	}
+	agent.Aliases = []string{"Hermes Slack gateway"}
+	if err := st.PutEntity(agent); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.ClaimAlias("Hermes Slack gateway", "ops"); err != nil {
 		t.Fatal(err)
 	}
@@ -286,10 +295,18 @@ func TestMemoryUnalias(t *testing.T) {
 		}
 	})
 
+	t.Run("requires rehome when another entity lists an owned alias", func(t *testing.T) {
+		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: true,
+			Drops: []MemoryUnaliasDrop{{Entity: "ops", Alias: "Hermes Slack gateway"}}}))
+		if res := out.(*MemoryUnaliasResult); res.Refused != 1 || res.Dropped != 0 {
+			t.Errorf("%+v", res)
+		}
+	})
+
 	t.Run("drops the leak and leaves the index another entity owns", func(t *testing.T) {
 		out, err := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{
 			Drops: []MemoryUnaliasDrop{
-				{Entity: "ops", Alias: "Hermes Slack gateway"},
+				{Entity: "ops", Alias: "Hermes Slack gateway", RehomeTo: "agent", Why: "the agent lists and owns this service name"},
 				{Entity: "ops", Alias: "Jeff's own Hermes"},
 			}}))
 		if err != nil {
@@ -303,9 +320,10 @@ func TestMemoryUnalias(t *testing.T) {
 		if len(e.Aliases) != 1 || e.Aliases[0] != "ops repo" {
 			t.Errorf("aliases = %v", e.Aliases)
 		}
-		// The gateway spelling pointed at ops, so its index entry goes.
-		if _, found, _ := st.ResolveAlias("Hermes Slack gateway"); found {
-			t.Error("the alias index still resolves the dropped leak")
+		// The gateway spelling pointed at ops, but the agent also listed it;
+		// reviewed rehome must not leave that spelling unindexed.
+		if slug, found, _ := st.ResolveAlias("Hermes Slack gateway"); !found || slug != "agent" {
+			t.Errorf("the rehomed gateway alias resolves to %q, %v", slug, found)
 		}
 		// This one pointed at the agent, so the agent keeps it.
 		slug, found, _ := st.ResolveAlias("Jeff's own Hermes")

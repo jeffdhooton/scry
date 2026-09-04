@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -82,7 +83,7 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd(), memoryReattachCmd(), memoryUnaliasCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd(), memoryReattachCmd(), memoryUnaliasCmd(), memoryMergeEntitiesCmd())
 	return cmd
 }
 
@@ -1467,5 +1468,151 @@ backup before the first write, and a dry run is the default.`,
 	}
 	cmd.Flags().String("file", "", "JSON array of {entity, alias, why} (required)")
 	cmd.Flags().Bool("apply", false, "write the drops; without it, report what would drop")
+	return cmd
+}
+
+// --- merge entities ---
+
+func memoryMergeEntitiesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "merge-entities",
+		Short: "Atomically consolidate reviewed entity groups",
+		Long: `Reads a JSON array of reviewed entity merge groups. A dry run returns
+the complete endpoint snapshots, every touching fact and its fingerprint, the
+proposed survivor metadata, relevant alias-claim fingerprints, safety
+refusals, and the predicted cross-type collision delta.
+
+Run the dry run first with only survivor/retire/why, review the output, then
+copy proposed_metadata to metadata and expected to expected in the manifest.
+Apply refuses if any entity, current or invalidated fact, or relevant alias
+claim changed after review. Each group commits in one Badger transaction; a
+backup is taken before the first group. A merge that would create a self-loop,
+duplicate fact key, external alias theft, dropped spelling, hollow survivor,
+or dangling endpoint is refused rather than repaired by guessing.
+
+  [{"id":"qwen-model","survivor":"qwen38-27b-uncensored-q5",
+    "retire":["qwen3-8-27b-uncensored-q5"],
+    "why":"same model identity; reviewed"}]`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			if file == "" {
+				return fmt.Errorf("--file is required")
+			}
+			b, err := os.ReadFile(file)
+			if err != nil {
+				return err
+			}
+			var groups []memstore.EntityMergeRequest
+			if err := json.Unmarshal(b, &groups); err != nil {
+				return fmt.Errorf("%s: %w", file, err)
+			}
+			if len(groups) == 0 {
+				return fmt.Errorf("%s: no merge groups", file)
+			}
+			if err := daemon.ValidateMemoryMergeGroups(groups); err != nil {
+				return err
+			}
+			apply, _ := cmd.Flags().GetBool("apply")
+			dir, _ := cmd.Flags().GetString("dir")
+			if dir != "" {
+				st, err := memstore.Open(dir)
+				if err != nil {
+					return fmt.Errorf("open %s (is a daemon holding it?): %w", dir, err)
+				}
+				defer st.Close()
+				entities, err := st.Entities()
+				if err != nil {
+					return err
+				}
+				facts, err := st.AllFacts()
+				if err != nil {
+					return err
+				}
+				if err := daemon.ValidateMemoryMergeIsolation(groups, facts); err != nil {
+					return err
+				}
+				res := daemon.MemoryMergeEntitiesResult{DryRun: !apply}
+				simEntities, simFacts := entities, facts
+				for _, group := range groups {
+					preview, err := st.PreviewEntityMerge(group)
+					if err != nil {
+						return err
+					}
+					res.Groups = append(res.Groups, daemon.NewMemoryMergeGroupResult(preview, simEntities, simFacts))
+					if !preview.Ready {
+						res.Refused++
+						continue
+					}
+					if apply && (group.Metadata == nil || !reflect.DeepEqual(group.Expected, preview.Expected)) {
+						res.Refused++
+						res.Groups[len(res.Groups)-1].Problems = append(res.Groups[len(res.Groups)-1].Problems,
+							"apply requires reviewed metadata and exact current fingerprints")
+					}
+					if preview.Ready {
+						simEntities, simFacts = resolve.SimulateEntityMerge(simEntities, simFacts, preview)
+					}
+				}
+				if !apply || res.Refused > 0 {
+					pretty, _ := cmd.Flags().GetBool("pretty")
+					return printJSON(res, pretty)
+				}
+				backupPath := filepath.Join(filepath.Dir(dir), "backups", "memory-pre-merge-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
+				if err := os.MkdirAll(filepath.Dir(backupPath), 0o755); err != nil {
+					return err
+				}
+				backup, err := os.Create(backupPath)
+				if err != nil {
+					return err
+				}
+				if _, err := st.Backup(backup); err != nil {
+					backup.Close()
+					return err
+				}
+				if err := backup.Close(); err != nil {
+					return err
+				}
+				res.BackupPath = backupPath
+				for i, group := range groups {
+					preview, err := st.MergeEntities(group)
+					if err != nil {
+						return fmt.Errorf("merge-entities offline group %s after %d committed group(s): %w", group.ID, res.Applied, err)
+					}
+					res.Groups[i].EntityMergePreview = preview
+					observedEntities, err := st.Entities()
+					if err != nil {
+						return fmt.Errorf("merge-entities offline group %s committed but collision recount failed (backup %s): %w", group.ID, backupPath, err)
+					}
+					observedFacts, err := st.AllFacts()
+					if err != nil {
+						return fmt.Errorf("merge-entities offline group %s committed but collision recount failed (backup %s): %w", group.ID, backupPath, err)
+					}
+					observed := resolve.CrossTypeCollisionCount(observedEntities, observedFacts)
+					res.Groups[i].ObservedCollisionsAfter = &observed
+					if observed != res.Groups[i].CollisionsAfter {
+						return fmt.Errorf("merge-entities offline group %s collision verification failed after commit: predicted %d, observed %d (restore backup %s before retrying)", group.ID, res.Groups[i].CollisionsAfter, observed, backupPath)
+					}
+					res.Groups[i].CollisionVerified = true
+					res.Applied++
+				}
+				pretty, _ := cmd.Flags().GetBool("pretty")
+				return printJSON(res, pretty)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			var res daemon.MemoryMergeEntitiesResult
+			dryRun := !apply
+			if err := callMemoryDaemon(ctx, "memory.mergeEntities", &daemon.MemoryMergeEntitiesParams{
+				Groups: groups, DryRun: &dryRun,
+			}, &res); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(res, pretty)
+		},
+	}
+	cmd.Flags().String("file", "", "JSON array of reviewed merge groups (required)")
+	cmd.Flags().String("dir", "", "run against an offline restored store directory instead of the daemon")
+	cmd.Flags().Bool("apply", false, "apply every preflighted group after taking a backup")
 	return cmd
 }

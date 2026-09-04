@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -91,23 +92,14 @@ func TestApply_NameReachingAnIncompatibleEntityByAliasStaysSeparate(t *testing.T
 		Entities: []extract.Ent{{Name: "Mac mini", Type: "machine", Description: "the Mac mini"}},
 		Facts:    []extract.Fct{{Src: "scry", Relation: "deployed_on", Dst: "Mac mini", Fact: "scry runs on the Mac mini", Confidence: 0.9}},
 	}
-	stats, err := Apply(st, ep, "", res, DefaultExclusive)
-	if err != nil {
-		t.Fatal(err)
+	if _, err := Apply(st, ep, "", res, DefaultExclusive); !errors.Is(err, store.ErrAliasClaimed) {
+		t.Fatalf("apply error = %v; want an explicit alias conflict", err)
 	}
-	if stats.EntitiesCreated < 1 {
-		t.Fatalf("stats = %+v, want a new machine entity", stats)
+	if _, err := st.GetEntity("mac-mini"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("ordinary ingestion created a competing machine: %v", err)
 	}
-	m, err := st.GetEntity("mac-mini")
-	if err != nil || m.Type != "machine" {
-		t.Fatalf("mac-mini = %+v, %v", m, err)
-	}
-	if slug, _, _ := st.ResolveAlias("Mac mini"); slug != "mac-mini" {
-		t.Errorf("the machine's own name must now resolve to it, got %q", slug)
-	}
-	facts, _ := st.FactsAbout("mac-mini", false)
-	if len(facts) != 1 {
-		t.Errorf("deployed_on fact must land on the machine, got %d", len(facts))
+	if slug, _, _ := st.ResolveAlias("Mac mini"); slug != "hermes-ops" {
+		t.Errorf("ordinary ingestion moved alias ownership, got %q", slug)
 	}
 	if ops, _ := st.FactsAbout("hermes-ops", false); len(ops) != 0 {
 		t.Errorf("hermes-ops must not receive the machine's fact: %+v", ops)
@@ -288,9 +280,9 @@ func TestAdmitAliasClosesTheGraderLoopholes(t *testing.T) {
 	}
 }
 
-// A new entity named after another's alias takes that name from it, so the
-// two never share it across a type boundary.
-func TestNewEntityNameBeatsAnIncompatibleAlias(t *testing.T) {
+// A new entity named after another's alias cannot silently take that name.
+// The episode remains retryable until a reviewed unalias/rehome repairs it.
+func TestNewEntityNameRequiresExplicitAliasRepair(t *testing.T) {
 	st := openTemp(t)
 	putEntity(t, st, "codex-sms-threading", "codex-sms-threading", "person", "sms conversation threading")
 	at := time.Date(2026, 9, 3, 0, 0, 0, 0, time.UTC)
@@ -298,21 +290,24 @@ func TestNewEntityNameBeatsAnIncompatibleAlias(t *testing.T) {
 	res := extract.Result{EpisodeSummary: "x", Entities: []extract.Ent{
 		{Name: "sms conversation threading", Type: "project", Description: "the threading project"},
 	}}
-	if _, err := Apply(st, ep, "", res, DefaultExclusive); err != nil {
-		t.Fatal(err)
+	if _, err := Apply(st, ep, "", res, DefaultExclusive); !errors.Is(err, store.ErrAliasClaimed) {
+		t.Fatalf("apply error = %v; want an explicit alias conflict", err)
 	}
 	holder, _ := st.GetEntity("codex-sms-threading")
+	found := false
 	for _, a := range holder.Aliases {
 		if store.Normalize(a) == "sms-conversation-threading" {
-			t.Errorf("the person kept the project's name as an alias: %v", holder.Aliases)
+			found = true
 		}
 	}
-	if slug, ok, _ := st.ResolveAlias("sms conversation threading"); !ok || slug != "sms-conversation-threading" {
-		t.Errorf("the name resolves to %q, want the project itself", slug)
+	if !found {
+		t.Errorf("ordinary ingestion stripped the holder's alias: %v", holder.Aliases)
 	}
-	rep, _ := Hygiene(st, true)
-	if rep.CrossTypeCollisions != 0 {
-		t.Errorf("cross-type collisions after the write: %d", rep.CrossTypeCollisions)
+	if slug, ok, _ := st.ResolveAlias("sms conversation threading"); !ok || slug != holder.Slug {
+		t.Errorf("ordinary ingestion moved alias ownership to %q", slug)
+	}
+	if _, err := st.GetEntity("sms-conversation-threading"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("ordinary ingestion created the competing entity: %v", err)
 	}
 }
 

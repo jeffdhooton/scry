@@ -4,15 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	memstore "github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
 
 // MemoryUnaliasDrop names one spelling to take off one entity.
 type MemoryUnaliasDrop struct {
-	Entity string `json:"entity"`
-	Alias  string `json:"alias"`
-	Why    string `json:"why,omitempty"`
+	Entity   string `json:"entity"`
+	Alias    string `json:"alias"`
+	RehomeTo string `json:"rehome_to,omitempty"`
+	Why      string `json:"why,omitempty"`
 }
 
 // MemoryUnaliasParams is a reviewed list of alias drops.
@@ -88,14 +91,66 @@ func (d *Daemon) handleMemoryUnalias(_ context.Context, raw json.RawMessage) (an
 			res.Details = append(res.Details, "refused: "+drop.Entity+" does not list "+drop.Alias)
 			continue
 		}
+		norm := memstore.Normalize(drop.Alias)
+		owner, owned, err := st.ResolveAlias(drop.Alias)
+		if err != nil {
+			return nil, err
+		}
+		if drop.RehomeTo != "" {
+			if strings.TrimSpace(drop.Why) == "" {
+				res.Refused++
+				res.Details = append(res.Details, "refused: rehoming "+drop.Alias+" requires why")
+				continue
+			}
+			target, err := st.GetEntity(drop.RehomeTo)
+			if err != nil || drop.RehomeTo == drop.Entity || !memoryEntityListsNorm(target, norm) {
+				res.Refused++
+				res.Details = append(res.Details, "refused: rehome target "+drop.RehomeTo+" does not list "+drop.Alias)
+				continue
+			}
+		}
+		if owned && owner == drop.Entity && drop.RehomeTo == "" {
+			entities, err := st.Entities()
+			if err != nil {
+				return nil, err
+			}
+			var listedBy string
+			for _, other := range entities {
+				if other.Slug != drop.Entity && memoryEntityListsNorm(other, norm) {
+					listedBy = other.Slug
+					break
+				}
+			}
+			if listedBy != "" {
+				res.Refused++
+				res.Details = append(res.Details, "refused: "+drop.Alias+" is listed by "+listedBy+"; set rehome_to explicitly")
+				continue
+			}
+		}
 		res.Dropped++
-		res.Details = append(res.Details, drop.Entity+" drops "+drop.Alias)
+		detail := drop.Entity + " drops " + drop.Alias
+		if drop.RehomeTo != "" {
+			detail += " -> " + drop.RehomeTo
+		}
+		res.Details = append(res.Details, detail)
 		if p.DryRun {
 			continue
 		}
-		if _, err := st.DropAlias(drop.Entity, drop.Alias); err != nil {
+		if _, err := st.DropAliasRehome(drop.Entity, drop.Alias, drop.RehomeTo); err != nil {
 			return nil, err
 		}
 	}
 	return res, nil
+}
+
+func memoryEntityListsNorm(e memstore.Entity, norm string) bool {
+	if memstore.Normalize(e.Slug) == norm || memstore.Normalize(e.Name) == norm {
+		return true
+	}
+	for _, alias := range e.Aliases {
+		if memstore.Normalize(alias) == norm {
+			return true
+		}
+	}
+	return false
 }

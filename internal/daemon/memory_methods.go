@@ -55,6 +55,7 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.repairRepoRefs", d.handleMemoryRepairRepoRefs)
 	d.server.Register("memory.reattach", d.handleMemoryReattach)
 	d.server.Register("memory.unalias", d.handleMemoryUnalias)
+	d.server.Register("memory.mergeEntities", d.handleMemoryMergeEntities)
 }
 
 // closeMemory closes the global memory store, if it was ever opened. Called

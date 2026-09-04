@@ -993,6 +993,14 @@ func (s *Store) ClaimAlias(name, slug string) error {
 //
 // It reports whether anything changed.
 func (s *Store) DropAlias(slug, alias string) (bool, error) {
+	return s.DropAliasRehome(slug, alias, "")
+}
+
+// DropAliasRehome removes an alias from one entity and, when rehomeTo is
+// non-empty, atomically points the routing key at an existing entity that
+// already lists the spelling. This is the reviewed repair path for legacy
+// stores where the entity list and alias index disagree.
+func (s *Store) DropAliasRehome(slug, alias, rehomeTo string) (bool, error) {
 	norm := Normalize(alias)
 	if norm == "" {
 		return false, nil
@@ -1021,6 +1029,19 @@ func (s *Store) DropAlias(slug, alias string) (bool, error) {
 				return err
 			}
 		}
+		if rehomeTo != "" {
+			if rehomeTo == slug {
+				return errors.New("memory: alias rehome target must differ from source")
+			}
+			target, err := getEntityTxn(txn, rehomeTo)
+			if err != nil {
+				return fmt.Errorf("memory: alias rehome target %s: %w", rehomeTo, err)
+			}
+			listed := Normalize(target.Slug) == norm || normalizedNameSet(target.Name, target.Aliases)[norm]
+			if !listed {
+				return fmt.Errorf("memory: alias rehome target %s does not list %q", rehomeTo, alias)
+			}
+		}
 		// The index entry goes only if it names this entity.
 		key := []byte(prefixAlias + norm)
 		switch item, err := txn.Get(key); {
@@ -1038,6 +1059,12 @@ func (s *Store) DropAlias(slug, alias string) (bool, error) {
 				}
 				changed = true
 			}
+		}
+		if rehomeTo != "" {
+			if err := txn.Set(key, []byte(rehomeTo)); err != nil {
+				return err
+			}
+			changed = true
 		}
 		return nil
 	})
