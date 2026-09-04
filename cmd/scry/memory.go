@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -81,7 +82,7 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd(), memoryReattachCmd())
 	return cmd
 }
 
@@ -1363,5 +1364,58 @@ disable with "off") for whenever a one-off file isn't wanted.`,
 	}
 	cmd.Flags().String("out", "", "output path for the HTML file (default: ~/.scry/memory/browse.html)")
 	cmd.Flags().Bool("no-open", false, "write the file but do not open it")
+	return cmd
+}
+
+// --- reattach ---
+
+func memoryReattachCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "reattach",
+		Short: "Move named facts from one entity to another, from a reviewed list",
+		Long: `Reads a JSON array of moves and hangs each named fact off a different entity.
+
+This is deliberately not a rule. Three attempts to refile facts at store
+scale by inferring the right owner from a fact's text were built, measured
+against a replica, and thrown away; see docs/DECISIONS.md. What replaces
+them is a list somebody read: each entry names one fact by the four fields
+that key it, plus the entity it belongs to and why.
+
+Every entry is checked against the stored fact before anything moves. A fact
+that has changed, been invalidated, or whose destination does not exist is
+refused with a reason rather than guessed at. The daemon takes a backup
+before the first write.
+
+  [{"src":"hermes-ops","relation":"contains","dst":"cron-mode",
+    "valid_from":"2026-08-30T12:00:00Z","to":"hermes","why":"agent config"}]`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			if file == "" {
+				return fmt.Errorf("--file is required")
+			}
+			b, err := os.ReadFile(file)
+			if err != nil {
+				return err
+			}
+			var moves []daemon.MemoryReattachMove
+			if err := json.Unmarshal(b, &moves); err != nil {
+				return fmt.Errorf("%s: %w", file, err)
+			}
+			apply, _ := cmd.Flags().GetBool("apply")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			var res daemon.MemoryReattachResult
+			if err := callMemoryDaemon(ctx, "memory.reattach", &daemon.MemoryReattachParams{
+				Moves: moves, DryRun: !apply,
+			}, &res); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(res, pretty)
+		},
+	}
+	cmd.Flags().String("file", "", "JSON array of moves (required)")
+	cmd.Flags().Bool("apply", false, "write the moves; without it, report what would move")
 	return cmd
 }
