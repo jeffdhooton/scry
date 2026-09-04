@@ -1431,3 +1431,56 @@ store-scale alias repair, which has been built and thrown away three times on
 measured evidence.
 
 Both wait on provider credit, which is Jeff's call and not the builder's.
+
+## Round thirteen, closing measurements
+
+### The transcript corpus, measured rather than assumed
+
+Jeff answered the retention question "not without more thought", and the
+experiment this document promised was then run anyway, because it settles the
+question without touching retention. Full numbers and method are in
+`docs/DECISIONS.md`; the result is that 124.6 MB of transcript made vector
+retrieval **worse at every depth** (11 → 8 answers inside the top 20, 35 → 33
+inside the top 2000).
+
+The first run of that experiment said 11 → 2, and it was wrong. Each
+transcript file was one enormous document, so nearly every term appeared in
+nearly every document and the weights flattened. Chunking transcripts to the
+size of a fact gives the real numbers. Recorded because publishing the first
+run would have reported a large effect that was entirely an artifact of how
+the text was bagged.
+
+### Sweep observability, confirmed in production
+
+The per-source breakdown shipped in `3f9fbb6` is now visible in the live
+sweep log on the laptop, on real ingests:
+
+```
+ingested 2  episodes 12  bySource {"claude": 0, "codex": 12}
+ingested 1  episodes  1  bySource {"claude": 1}
+```
+
+The first line is the case the totals cannot show: a Claude transcript was
+read and produced no episodes, while Codex produced twelve. A healthy-looking
+total of 12 would have hidden it.
+
+Both machines' sweeps report **zero errors** across every line since the
+retry landed, including across a daemon restart, where the same action
+previously produced 54.
+
+### Queue durability, twenty-two hours in
+
+```
+2026-09-03 17:02Z   last successful extraction
+2026-09-04 15:2xZ   ready 1,236   backoff 960   parked 0   dead letters 0
+```
+
+2,196 items held across a twenty-two hour provider outage and a date
+boundary, none parked, none dead-lettered, none lost, and `scry doctor` has
+been failing loudly on both the chain and the queue for the entire period.
+That is item 1's "loud" clause and item 2's durability clause both holding
+under a real outage rather than a simulated one.
+
+What remains unmeasurable until credit returns is item 2's sixth clause —
+that queued work resolves into facts within ten minutes of the provider
+coming back, with no duplicate episodes.
