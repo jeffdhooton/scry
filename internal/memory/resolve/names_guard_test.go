@@ -35,6 +35,10 @@ func TestNamesGuard(t *testing.T) {
 		// number is what tells them from a tally.
 		"7 Wonders", "5 Guys", "3 Musketeers", "24 Hour Fitness", "99 Designs",
 		"3 nodes cluster design", "0052 opt-out spine",
+		// A measurement in front of a noun names that noun. Two earlier
+		// rounds pinned the first of these as a real identity.
+		"36px card layout", "macbook-pro-128gb", "how-many-18650-cells",
+		"2026-06-12-quiz-email-backfill-30-days.csv", "24 Hour Fitness",
 		"CMAKE_MINIMUM_REQUIRED", "clean_build_required", "low_memory_error",
 	} {
 		if IsValueName(n) {
@@ -71,6 +75,13 @@ func TestNamesGuard(t *testing.T) {
 		"scry-recall-tuning-strict-score-44-of-50",
 		// A run stamp with a four-digit time; the rule wanted six.
 		"registered-remaining-20260904T0250Z",
+		// Measurements. Item 4's bar names these explicitly, and the
+		// earlier rules wanted the unit to be the second word, so all of
+		// these walked past.
+		"120-word floor", "52-word opening", "touch-target-44px",
+		"15-minute target duration", "11-minute metric", "LCP under 1s",
+		"duration-5-10-minutes", "context-256k", "Fastify-bodyLimit-10MB",
+		"90-second setup claim", "swap-4gb", "p95-149ms", "max-width: 520px",
 		// Deliberately NOT here, all known and accepted misses:
 		//   "CHANGES_REQUIRED" — "required" left enumEndings so that
 		//     CMAKE_MINIMUM_REQUIRED and clean_build_required survive.

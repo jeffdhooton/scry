@@ -981,3 +981,92 @@ func countedPhrase(n string) bool {
 // followed by a lower-case letter. "URLs" and "IDs" do not match, which is
 // what keeps "43 unique URLs" a tally.
 var titleWordRE = regexp.MustCompile(`^[A-Z][a-z]`)
+
+// unitAfterNumberRE matches a number bound to a unit inside a name:
+// "120-word", "15-minute", "44px", "256k", "10MB", "4gb", "1s".
+var unitAfterNumberRE = regexp.MustCompile(`(?i)\b\d+(\.\d+)?[-\s]?(word|words|char|chars|character|characters|line|lines|cell|cells|minute|minutes|min|hour|hours|hr|day|days|week|weeks|month|months|year|years|second|seconds|sec|px|pt|em|rem|ms|kb|mb|gb|tb|kib|mib|gib|k|s)\b`)
+
+// measuredName reports whether a name is a reading rather than a name for
+// anything: a number bound to a unit, somewhere in it.
+//
+// "120-word floor", "15-minute target duration", "touch-target-44px",
+// "Fastify-bodyLimit-10MB" — each states how much of something there is.
+// Thirteen of these were live when item 4 was last graded, and the existing
+// measurement rules missed all thirteen because they required the unit to
+// be the second word.
+//
+// A title-cased word disqualifies it, the same way it does for a tally:
+// "24 Hour Fitness" and "7 Minute Workout" are names of things.
+//
+// So does a thing at the end. A measurement in front of a noun is a name
+// for that noun — "36px card layout" is a layout, pinned as a real identity
+// by two earlier rounds — while a measurement in front of a threshold word
+// is the reading itself: "120-word floor", "15-minute target duration".
+func measuredName(n string) bool {
+	t := strings.TrimSpace(n)
+	if !unitAfterNumberRE.MatchString(t) {
+		return false
+	}
+	for _, w := range strings.Fields(t) {
+		if titleWordRE.MatchString(w) && !unitAfterNumberRE.MatchString(w) {
+			return false
+		}
+	}
+	// A file is a file however its name ends.
+	if fileExtRE.MatchString(strings.ToLower(t)) {
+		return false
+	}
+	words := strings.Fields(strings.NewReplacer("-", " ", "_", " ").Replace(strings.ToLower(t)))
+	if len(words) == 0 {
+		return false
+	}
+	// A question is not a reading: "how-many-18650-cells" asks about a
+	// battery cell type, and 18650 names the cell rather than counting it.
+	if questionOpeners[words[0]] {
+		return false
+	}
+	// A measurement bound to a device describes that device, and the
+	// device is the identity: "macbook-pro-128gb" is a machine.
+	for _, w := range words {
+		if deviceWords[w] {
+			return false
+		}
+	}
+	last := words[len(words)-1]
+	if thingWords[last] || namesAThing(t) {
+		return false
+	}
+	// Either the name ends on the measurement, or on a word that names a
+	// reading rather than a thing. The last two words are tested together
+	// so a unit split off its number still counts: "duration-5-10-minutes".
+	tail := last
+	if len(words) > 1 {
+		tail = words[len(words)-2] + "-" + last
+	}
+	return unitAfterNumberRE.MatchString(tail) || measureNouns[last]
+}
+
+// measureNouns end a name that states a quantity: the word says the number
+// in front of it is the point, not a description of something else.
+var measureNouns = map[string]bool{
+	"floor": true, "ceiling": true, "limit": true, "cap": true, "threshold": true,
+	"duration": true, "metric": true, "budget": true, "baseline": true, "quota": true,
+	"target": true, "claim": true, "opening": true, "window": true, "timeout": true,
+	"interval": true, "size": true, "length": true, "count": true, "total": true,
+	"minimum": true, "maximum": true, "average": true, "median": true, "latency": true,
+}
+
+// questionOpeners start a question rather than name a thing.
+var questionOpeners = map[string]bool{
+	"how": true, "what": true, "why": true, "when": true, "which": true,
+	"where": true, "who": true, "whether": true,
+}
+
+// deviceWords name hardware. A number beside one of these is that device's
+// specification, and the device is the identity being named.
+var deviceWords = map[string]bool{
+	"macbook": true, "thinkpad": true, "imac": true, "iphone": true, "ipad": true,
+	"laptop": true, "desktop": true, "workstation": true, "server": true, "box": true,
+	"mini": true, "pi": true, "raspberry": true, "nuc": true, "gpu": true, "cpu": true,
+	"ssd": true, "nvme": true, "ram": true, "dimm": true, "monitor": true, "display": true,
+}
