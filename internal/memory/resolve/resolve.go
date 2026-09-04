@@ -126,7 +126,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	// A run artifact is not an identity. Storing one pollutes recall forever
 	// and can never be usefully recalled later. Neither is a value: "main",
 	// "in-progress", and "46 GiB" describe things, they are not things.
-	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || (IsValueName(ent.Name) && !contextualEnumIdentity(ent)) {
+	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || (IsValueName(ent.Name) && !contextualStatusIdentity(ent)) {
 		return "", nil
 	}
 	if declaredValue(st, declared, ent.Name) {
@@ -247,18 +247,21 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	return slug, nil
 }
 
-// contextualEnumIdentity is the narrow escape hatch from an inherently
-// ambiguous lexical rule. QUALITY_OK and PYTHON_ARGCOMPLETE_OK have the same
-// shape; only an extracted entity verdict made with episode context may keep
-// the latter. Hard value shapes, generic names, artifacts, and undeclared fact
-// endpoints never reach this override.
-func contextualEnumIdentity(ent extract.Ent) bool {
+// contextualStatusIdentity is the narrow escape hatch from inherently
+// ambiguous status rules. QUALITY_OK/PYTHON_ARGCOMPLETE_OK and
+// "In Progress"/"Ready Player One" cannot be separated from spelling
+// alone. Only an explicit documented identity type produced with episode
+// context may keep the latter. Measurements, branches, generic names,
+// artifacts, malformed type fallbacks, and undeclared fact endpoints never
+// reach this override.
+func contextualStatusIdentity(ent extract.Ent) bool {
 	if ent.TypeFallback {
 		return false
 	}
 	switch ent.Type {
 	case "project", "service", "machine", "tool", "person", "decision", "runbook", "concept":
-		return enumValue(strings.TrimSpace(ent.Name))
+		name := strings.TrimSpace(ent.Name)
+		return enumValue(name) || (properPhraseRE.MatchString(name) && IsStatusWord(name))
 	default:
 		return false
 	}

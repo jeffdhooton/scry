@@ -2929,8 +2929,9 @@ not. Its unknown-type fallback deterministically rewrote `value` to `concept`,
 which explains the observed zero without saying anything about model behavior.
 
 **Decision.** Add `value` to `allowedEntityTypes` and trust a non-value model
-verdict only for an enum-shaped name that lexical rules cannot distinguish
-from a status. The override requires that exact entity to appear in the
+verdict only for a status-shaped name that lexical rules cannot distinguish
+from an identity (including enum-shaped names and ambiguous status phrases).
+The override requires that exact entity to appear in the
 episode's extracted entity list; it does not admit undeclared fact endpoints,
 generic names, run artifacts, or hard value shapes. Against the unchanged prompt, `glm-5.3-flash`
 classified all twelve context-bearing status/identity cases correctly,
@@ -2947,7 +2948,7 @@ classifier.
 **Review correction.** A non-value verdict is evidence only when the model
 supplied one of the documented identity types. The parser still folds missing
 or invented types to `concept` to avoid losing an episode, but marks that fold;
-the enum-shaped identity escape hatch refuses marked fallbacks. It also uses
+the contextual identity escape hatch refuses marked fallbacks. It also uses
 an explicit allowlist so direct RPC results with invented types cannot bypass
 the parser guard. An established identity means an exact natural-slug entity
 whose name matches—not any alias routing hit—and a value entity's aliases do

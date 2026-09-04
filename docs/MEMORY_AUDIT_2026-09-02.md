@@ -2098,7 +2098,8 @@ it. The experiment had measured the parser, not the raw model decision.
 
 The parser allowlist now includes `value`, with a direct parse regression and
 a resolver test for the exact ambiguous pairs. Because lexical rules reject
-both members of the pinned enum-shaped pair, the resolver narrowly accepts a
+both members of the pinned enum-shaped pair—and phrase rules can similarly
+confuse a status phrase with a proper name—the resolver narrowly accepts a
 non-value model verdict only when that entity was explicitly extracted in the
 episode; undeclared endpoints, generic names, run artifacts, and hard value
 shapes retain their vetoes. A gated provider test ran the
@@ -2144,6 +2145,23 @@ writes provider output into a temporary Badger store rather than grading
 labels in isolation. The configured DeepSeek fallback remains unavailable
 under the recorded HTTP 402/no-spend constraint; this is still an explicit
 evidence gap, not a passing measurement.
+
+That end-to-end test immediately found one more false rejection before the
+correction was deployed: GLM correctly returned `Ready Player One` as a
+`concept`, but the phrase-level status rule still dropped it. The contextual
+escape is therefore bounded to both enum and phrase status shapes, while
+measurements, branches, run artifacts, generic names, undeclared endpoints,
+malformed types, and parser fallbacks remain non-overridable.
+
+After bounding phrase overrides to title-cased proper-name shapes, the fresh
+arm64 end-to-end test passed all twelve names on the Mini with the unchanged
+prompt and configured `glm-5.3-flash`: six model-declared values were absent
+from a temporary store and six model-declared identities resolved after
+`resolve.Apply`. The two calls completed in 89.80 seconds (13.74 seconds for
+values and 76.06 seconds for identities). The ordinary unit suite separately
+proves that a lowercase `in-progress` mislabeled as `concept`, measurements,
+and branches remain rejected; the context escape is not a general model veto
+over hard value shapes.
 
 ### Prevention deployment
 

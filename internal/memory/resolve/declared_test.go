@@ -71,6 +71,9 @@ func TestContextBearingAmbiguousStatusPairs(t *testing.T) {
 			{Name: "DONE_WITH_CONCERNS", Type: "value", Description: "the review verdict"},
 			{Name: "user_login_failed", Type: "concept", Description: "a durable auth event identifier"},
 			{Name: "PYTHON_ARGCOMPLETE_OK", Type: "concept", Description: "a durable protocol marker identifier"},
+			{Name: "Ready Player One", Type: "concept", Description: "a cataloged novel"},
+			{Name: "46 GiB", Type: "concept", Description: "a memory measurement mislabeled as an identity"},
+			{Name: "feat/example", Type: "concept", Description: "a branch mislabeled as an identity"},
 			{Name: "argcomplete", Type: "tool", Description: "the shell completion tool"},
 		},
 		Facts: []extract.Fct{{
@@ -89,9 +92,14 @@ func TestContextBearingAmbiguousStatusPairs(t *testing.T) {
 			t.Errorf("context-declared status %q became an entity: found=%v err=%v", name, found, err)
 		}
 	}
-	for _, name := range []string{"user_login_failed", "PYTHON_ARGCOMPLETE_OK"} {
+	for _, name := range []string{"46 GiB", "feat/example"} {
+		if _, found, err := st.ResolveAlias(name); err != nil || found {
+			t.Errorf("hard value %q bypassed its veto: found=%v err=%v", name, found, err)
+		}
+	}
+	for _, name := range []string{"user_login_failed", "PYTHON_ARGCOMPLETE_OK", "Ready Player One"} {
 		if _, found, err := st.ResolveAlias(name); err != nil || !found {
-			t.Errorf("context-declared identifier %q was rejected: found=%v err=%v", name, found, err)
+			t.Errorf("context-declared identifier %q was rejected: found=%v err=%v value=%v ephemeral=%v generic=%v", name, found, err, IsValueName(name), isEphemeralName(name), isGenericEntityName(name))
 		}
 	}
 	facts := mustFacts(t, st, mustSlug(t, st, "PYTHON_ARGCOMPLETE_OK"))
