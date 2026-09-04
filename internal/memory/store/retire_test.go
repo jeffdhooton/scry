@@ -317,6 +317,7 @@ func TestRetireEntityReviewsAndRemovesMalformedAdjacencyReferences(t *testing.T)
 	ghostKeys := [][]byte{
 		[]byte(prefixAdj + "obsolete:owner:status:not-a-time"),
 		[]byte(prefixAdj + "other:obsolete:status"),
+		[]byte(prefixAdj + "other:obsolete"),
 	}
 	if err := st.db.Update(func(txn *badger.Txn) error {
 		for _, key := range ghostKeys {
@@ -356,6 +357,84 @@ func TestRetireEntityReviewsAndRemovesMalformedAdjacencyReferences(t *testing.T)
 		return nil
 	}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRetireEntityDoesNotMatchRetiredSlugInRelationField(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []Entity{
+		{Slug: "status", Name: "Status value", Type: "concept"},
+		{Slug: "owner", Name: "Owner", Type: "project"},
+		{Slug: "target", Name: "Target", Type: "tool"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fact := Fact{Src: "owner", Relation: "status", Dst: "target", Fact: "unrelated status edge", ValidFrom: time.Unix(20, 0).UTC()}
+	if err := st.PutFact(fact); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{Entity: "status", Why: "reviewed hollow value"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready || len(preview.Adjacencies) != 0 {
+		t.Fatalf("relation text was mistaken for retired endpoint: preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.FactsAbout("target", false)
+	if err != nil || len(got) != 1 || got[0].Src != "owner" {
+		t.Fatalf("unrelated adjacency was deleted: facts=%+v err=%v", got, err)
+	}
+}
+
+func TestRetireEntityExcludesConcurrentFactWriter(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []Entity{{Slug: "obsolete", Name: "Obsolete", Type: "concept"}, {Slug: "owner", Name: "Owner", Type: "project"}} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow value"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	retireDone := make(chan error, 1)
+	go func() {
+		_, err := st.RetireEntityChecked(req, func(_ []Entity, _ []Fact) error {
+			close(entered)
+			<-release
+			return nil
+		})
+		retireDone <- err
+	}()
+	<-entered
+	writeDone := make(chan error, 1)
+	go func() {
+		writeDone <- st.PutFact(Fact{Src: "owner", Relation: "related_to", Dst: "obsolete", Fact: "racing write", ValidFrom: time.Unix(22, 0).UTC()})
+	}()
+	select {
+	case err := <-writeDone:
+		t.Fatalf("fact writer was not excluded during retirement: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	if err := <-retireDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-writeDone; !errors.Is(err, ErrNotFound) {
+		t.Fatalf("writer did not reject retired endpoint: %v", err)
+	}
+	facts, err := st.AllFacts()
+	if err != nil || len(facts) != 0 {
+		t.Fatalf("concurrent writer left dangling fact: facts=%+v err=%v", facts, err)
 	}
 }
 

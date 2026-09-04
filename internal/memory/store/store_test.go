@@ -22,6 +22,20 @@ func openTemp(t *testing.T) *Store {
 	return s
 }
 
+func putTestEntities(t *testing.T, s *Store, slugs ...string) {
+	t.Helper()
+	for _, slug := range slugs {
+		if _, err := s.GetEntity(slug); err == nil {
+			continue
+		} else if !errors.Is(err, ErrNotFound) {
+			t.Fatal(err)
+		}
+		if err := s.PutEntity(Entity{Slug: slug, Name: slug, Type: "concept"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestOpenCloseAndSchemaWipe(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "badger")
 
@@ -415,6 +429,7 @@ func TestEntitiesByRepoRef(t *testing.T) {
 
 func TestFactPutAndFactsFromFiltersInvalidated(t *testing.T) {
 	s := openTemp(t)
+	putTestEntities(t, s, "book-system", "postgres", "old-host")
 	v1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	valid := Fact{Src: "book-system", Relation: "uses", Dst: "postgres", Fact: "book-system uses postgres",
@@ -449,6 +464,7 @@ func TestFactPutAndFactsFromFiltersInvalidated(t *testing.T) {
 
 func TestFactSameKeyDifferentValidFromCoexist(t *testing.T) {
 	s := openTemp(t)
+	putTestEntities(t, s, "book-system", "hermes-mini")
 	v1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	v2 := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
 
@@ -474,6 +490,7 @@ func TestFactSameKeyDifferentValidFromCoexist(t *testing.T) {
 
 func TestFactsAboutUsesReverseIndex(t *testing.T) {
 	s := openTemp(t)
+	putTestEntities(t, s, "book-system", "hermes-mini")
 	v1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	f := Fact{Src: "book-system", Relation: "deployed_on", Dst: "hermes-mini", Fact: "book-system runs on the mini",
@@ -501,6 +518,7 @@ func TestFactsAboutUsesReverseIndex(t *testing.T) {
 
 func TestAllFacts(t *testing.T) {
 	s := openTemp(t)
+	putTestEntities(t, s, "book-system", "postgres", "old-host")
 	v1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	current := Fact{Src: "book-system", Relation: "uses", Dst: "postgres", Fact: "book-system uses postgres",
@@ -539,6 +557,7 @@ func TestAllFacts(t *testing.T) {
 
 func TestFactInvalidation(t *testing.T) {
 	s := openTemp(t)
+	putTestEntities(t, s, "book-system", "hermes-mini")
 	v1 := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
 	f := Fact{Src: "book-system", Relation: "deployed_on", Dst: "hermes-mini",
 		Fact: "book-system runs on the mini", ValidFrom: v1, Confidence: 0.9, Episodes: []string{"e1"}}
@@ -561,6 +580,7 @@ func TestFactInvalidation(t *testing.T) {
 
 func TestDeleteFact(t *testing.T) {
 	s := openTemp(t)
+	putTestEntities(t, s, "book-system", "hermes-mini")
 	v1 := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
 	f := Fact{Src: "book-system", Relation: "deployed_on", Dst: "hermes-mini",
 		Fact: "book-system runs on the mini", ValidFrom: v1, Confidence: 0.9, Episodes: []string{"e1"}}
@@ -641,7 +661,7 @@ func TestCounts(t *testing.T) {
 	if err := s.PutEntity(Entity{Slug: "a", Name: "A", Type: "concept", CreatedAt: now, LastSeen: now}); err != nil {
 		t.Fatalf("PutEntity: %v", err)
 	}
-	if err := s.PutFact(Fact{Src: "a", Relation: "rel", Dst: "b", Fact: "f", ValidFrom: now, Confidence: 1, Episodes: []string{"e1"}}); err != nil {
+	if err := s.PutFact(Fact{Src: "a", Relation: "rel", Value: "b", Fact: "f", ValidFrom: now, Confidence: 1, Episodes: []string{"e1"}}); err != nil {
 		t.Fatalf("PutFact: %v", err)
 	}
 

@@ -139,8 +139,12 @@ func (s *Store) RetireEntityChecked(req EntityRetirementRequest, postcondition f
 // RetireEntitiesChecked commits a reviewed manifest as one transaction. A
 // drift or failed postcondition in any group aborts every group.
 func (s *Store) RetireEntitiesChecked(reqs []EntityRetirementRequest, postcondition func([]Entity, []Fact) error) ([]EntityRetirementPreview, error) {
-	s.maintenanceMu.RLock()
-	defer s.maintenanceMu.RUnlock()
+	// Retirement deletes entity keys, so ordinary writers must not share its
+	// maintenance window. In particular, a PutFact that began during analysis
+	// must observe the retired endpoint after commit and refuse it, rather than
+	// landing a dangling fact outside the retirement transaction's snapshot.
+	s.maintenanceMu.Lock()
+	defer s.maintenanceMu.Unlock()
 	return s.retireEntitiesCheckedUnlocked(reqs, postcondition)
 }
 
@@ -671,6 +675,16 @@ func adjacencyKeyReferencesSlug(key, slug string) bool {
 	if slug == "" || !strings.HasPrefix(key, prefixAdj) {
 		return false
 	}
+	dst, src, _, _, _ := parseAdjacencyKey([]byte(key))
+	if validEntitySlug(slug) {
+		// Canonical slugs contain no delimiter, so the first two parsed fields
+		// are unambiguous even when the rest of a stale key is truncated or has
+		// an invalid timestamp. Do not raw-match later fields: the relation may
+		// legitimately have the same text as the retired entity.
+		return dst == slug || src == slug
+	}
+	// Legacy delimiter-bearing targets are refused by preflight, but expose
+	// every plausible raw occurrence so their bytes remain visible to review.
 	rest := strings.TrimPrefix(key, prefixAdj)
 	return strings.HasPrefix(rest, slug+":") || strings.Contains(rest, ":"+slug+":")
 }

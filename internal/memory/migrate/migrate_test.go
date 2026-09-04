@@ -441,9 +441,15 @@ func TestMigrateValuesTakesFactsPointingAtNothing(t *testing.T) {
 	if err := st.PutEntity(store.Entity{Slug: "docket", Name: "docket", Type: "project", CreatedAt: now, LastSeen: now}); err != nil {
 		t.Fatal(err)
 	}
+	if err := st.PutEntity(store.Entity{Slug: "ready-to-merge", Name: "ready-to-merge", Type: "concept", CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatal(err)
+	}
 	// ready-to-merge has no entity record: an earlier pass retired it and
 	// left this fact pointing at the slug.
 	if err := st.PutFact(store.Fact{Src: "ready-to-merge", Relation: "related_to", Dst: "docket", Fact: "the branch was ready to merge", ValidFrom: now, Confidence: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteEntity("ready-to-merge"); err != nil {
 		t.Fatal(err)
 	}
 	var rep Report

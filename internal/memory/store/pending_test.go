@@ -123,6 +123,7 @@ func TestBackupAndRestoreRoundTrip(t *testing.T) {
 	src := openTemp(t)
 	now := time.Now()
 	_ = src.PutEntity(Entity{Slug: "scry", Name: "scry", Type: "project", Aliases: []string{"scry daemon"}, CreatedAt: now, LastSeen: now})
+	_ = src.PutEntity(Entity{Slug: "mini", Name: "mini", Type: "machine", CreatedAt: now, LastSeen: now})
 	_ = src.PutFact(Fact{Src: "scry", Relation: "deployed_on", Dst: "mini", Fact: "scry runs on the mini", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e1"}})
 	_ = src.PutEpisode(Episode{ID: "e1", Source: "manual", OccurredAt: now, IngestedAt: now})
 	_ = src.PutPending(PendingEpisode{ID: "p1", EnqueuedAt: now, NextAttempt: now})
@@ -158,6 +159,7 @@ func TestBackupAndRestoreRoundTrip(t *testing.T) {
 
 func TestAttributeFactsHaveNoReverseIndexAndDistinctKeys(t *testing.T) {
 	s := openTemp(t)
+	putTestEntities(t, s, "scry")
 	now := time.Now()
 	if err := s.PutFact(Fact{Src: "scry", Relation: "status", Fact: "scry is in progress", ValidFrom: now, Confidence: 0.9}); err == nil {
 		t.Fatal("a fact with neither dst nor value must be rejected")

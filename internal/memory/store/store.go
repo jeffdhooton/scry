@@ -611,6 +611,14 @@ func (s *Store) PutFact(f Fact) error {
 		return err
 	}
 	err = s.db.Update(func(txn *badger.Txn) error {
+		if _, err := getEntityTxn(txn, f.Src); err != nil {
+			return fmt.Errorf("memory: fact source %q: %w", f.Src, err)
+		}
+		if f.Dst != "" {
+			if _, err := getEntityTxn(txn, f.Dst); err != nil {
+				return fmt.Errorf("memory: fact destination %q: %w", f.Dst, err)
+			}
+		}
 		if err := txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b); err != nil {
 			return err
 		}

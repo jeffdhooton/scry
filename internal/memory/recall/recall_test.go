@@ -111,6 +111,7 @@ func TestOrientRepoFirstAndBudget(t *testing.T) {
 		CreatedAt: now,
 		LastSeen:  now,
 	})
+	mustPutEntity(t, s, store.Entity{Slug: "in-progress", Name: "in-progress", Type: "concept", CreatedAt: now, LastSeen: now})
 	mustPutFact(t, s, store.Fact{
 		Src:       "scry-memory",
 		Relation:  "status",
@@ -132,7 +133,7 @@ func TestOrientRepoFirstAndBudget(t *testing.T) {
 		mustPutFact(t, s, store.Fact{
 			Src:       slug,
 			Relation:  "does",
-			Dst:       "something-" + n,
+			Value:     "something-" + n,
 			Fact:      "entity " + n + " does something moderately descriptive",
 			ValidFrom: now.Add(-time.Hour),
 		})
@@ -180,6 +181,7 @@ func TestEpisodesLimit(t *testing.T) {
 	s := openTemp(t)
 	now := time.Now().UTC()
 	mustPutEntity(t, s, store.Entity{Slug: "loom", Name: "loom", Type: "project", CreatedAt: now, LastSeen: now})
+	mustPutEntity(t, s, store.Entity{Slug: "x", Name: "x", Type: "concept", CreatedAt: now, LastSeen: now})
 
 	ids := []string{"ep-a", "ep-b", "ep-c"}
 	occurred := []time.Time{now.Add(-3 * time.Hour), now.Add(-2 * time.Hour), now.Add(-1 * time.Hour)}

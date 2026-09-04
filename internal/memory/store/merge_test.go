@@ -465,7 +465,13 @@ func TestMergeEntitiesRefusesHollowOrDanglingGroups(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
+		if err := st.PutEntity(Entity{Slug: "missing", Name: "Missing", Type: "concept"}); err != nil {
+			t.Fatal(err)
+		}
 		if err := st.PutFact(Fact{Src: "loser", Relation: "uses", Dst: "missing", Fact: "loser uses missing", ValidFrom: time.Unix(3, 0)}); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.DeleteEntity("missing"); err != nil {
 			t.Fatal(err)
 		}
 		preview, err := st.PreviewEntityMerge(EntityMergeRequest{Survivor: "winner", Retire: []string{"loser"}})
