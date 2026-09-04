@@ -468,6 +468,48 @@ func TestRetireEntityReviewsReplacementAdjacencyOccupant(t *testing.T) {
 	}
 }
 
+func TestRetireEntityExposesDelimiterAmbiguousCanonicalAdjacency(t *testing.T) {
+	st := openTemp(t)
+	at := time.Unix(99, 0).UTC()
+	owner := Entity{Slug: "owner", Name: "Owner", Type: "project"}
+	if err := st.PutEntity(owner); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate a legacy/lower-level store written before public ingress
+	// rejected delimiter-ambiguous slugs.
+	retired := Entity{Slug: "bad:slug", Name: "BAD STATUS", Type: "concept"}
+	fact := Fact{Src: "owner", Relation: "status", Dst: retired.Slug, Fact: "owner had bad status", ValidFrom: at, Episodes: []string{"ep"}}
+	encodedEntity, _ := json.Marshal(retired)
+	encodedFact, _ := json.Marshal(fact)
+	adjacency := adjKey(fact.Dst, fact.Src, fact.Relation, fact.ValidFrom)
+	if err := st.db.Update(func(txn *badger.Txn) error {
+		if err := txn.Set([]byte(prefixEntity+retired.Slug), encodedEntity); err != nil {
+			return err
+		}
+		if err := txn.Set(factKey(fact.Src, fact.Relation, fact.KeyDst(), fact.ValidFrom), encodedFact); err != nil {
+			return err
+		}
+		return txn.Set(adjacency, []byte("UNREVIEWED_BYTES"))
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	preview, err := st.PreviewEntityRetirement(EntityRetirementRequest{Entity: retired.Slug, Why: "legacy value node"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Ready || len(preview.Adjacencies) != 1 {
+		t.Fatalf("ambiguous legacy adjacency was not exposed and refused: %+v", preview)
+	}
+	row := preview.Adjacencies[0]
+	if row.Key != string(adjacency) || row.ValueBase64 != "VU5SRVZJRVdFRF9CWVRFUw==" || row.ValueBytes != len("UNREVIEWED_BYTES") || !row.NeedsReview {
+		t.Fatalf("ambiguous legacy adjacency fingerprint = %+v", row)
+	}
+	if !strings.Contains(strings.Join(preview.Problems, " "), "noncanonical") {
+		t.Fatalf("noncanonical retirement was not refused: %v", preview.Problems)
+	}
+}
+
 func TestRetireEntitySnapshotDriftAndPostconditionAreAtomic(t *testing.T) {
 	newStore := func(t *testing.T) (*Store, EntityRetirementRequest) {
 		st := openTemp(t)

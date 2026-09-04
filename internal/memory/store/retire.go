@@ -366,6 +366,9 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 	}
 	a.entity = entity
 	a.preview.Entity = entity
+	if !validEntitySlug(req.Entity) || entity.Slug != req.Entity {
+		problem("entity has a noncanonical or mismatched slug: " + req.Entity)
+	}
 
 	entities, err := entitiesTxn(txn)
 	if err != nil {
@@ -600,6 +603,22 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 
 func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[string]Fact, replacementKeys map[string]bool) ([]EntityRetirementAdjacencyFingerprint, error) {
 	var fingerprints []EntityRetirementAdjacencyFingerprint
+	// Exact keys derived from fact payloads are authoritative. Parsing an
+	// adjacency key is only a legacy/stale-record fallback and must not decide
+	// whether a canonical mirror is visible to review.
+	canonicalByAdjacency := make(map[string]struct {
+		factKey string
+		fact    Fact
+	}, len(factsByKey))
+	for key, fact := range factsByKey {
+		if fact.Dst == "" {
+			continue
+		}
+		canonicalByAdjacency[string(adjKey(fact.Dst, fact.Src, fact.Relation, fact.ValidFrom))] = struct {
+			factKey string
+			fact    Fact
+		}{factKey: key, fact: fact}
+	}
 	prefix := []byte(prefixAdj)
 	opts := badger.DefaultIteratorOptions
 	opts.PrefetchValues = true
@@ -608,8 +627,9 @@ func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[stri
 	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 		item := it.Item()
 		key := item.KeyCopy(nil)
+		keyString := string(key)
 		dst, src, relation, validFrom, valid := parseAdjacencyKey(key)
-		if dst != retired && src != retired && !replacementKeys[string(key)] {
+		if !adjacencyKeyReferencesSlug(keyString, retired) && !replacementKeys[keyString] {
 			continue
 		}
 		var value []byte
@@ -621,7 +641,10 @@ func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[stri
 		}
 		canonicalKey := ""
 		corresponds := false
-		if valid {
+		if canonical, found := canonicalByAdjacency[keyString]; found {
+			canonicalKey = canonical.factKey
+			corresponds = canonical.fact.Src != "" && canonical.fact.Dst != ""
+		} else if valid {
 			canonicalKey = string(factKey(src, relation, dst, validFrom))
 			fact, found := factsByKey[canonicalKey]
 			corresponds = found && fact.Src == src && fact.Dst == dst && fact.Relation == relation && fact.ValidFrom.Equal(validFrom)
@@ -638,6 +661,18 @@ func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[stri
 		fingerprints = []EntityRetirementAdjacencyFingerprint{}
 	}
 	return fingerprints, nil
+}
+
+// adjacencyKeyReferencesSlug finds both destination and source occurrences
+// without first parsing colon-delimited fields. This deliberately errs on the
+// side of exposing an ambiguous legacy key for review; it never authorizes a
+// deletion by itself.
+func adjacencyKeyReferencesSlug(key, slug string) bool {
+	if slug == "" || !strings.HasPrefix(key, prefixAdj) {
+		return false
+	}
+	rest := strings.TrimPrefix(key, prefixAdj)
+	return strings.HasPrefix(rest, slug+":") || strings.Contains(rest, ":"+slug+":")
 }
 
 func parseAdjacencyKey(key []byte) (dst, src, relation string, validFrom time.Time, ok bool) {

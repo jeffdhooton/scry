@@ -60,6 +60,9 @@ var (
 	// name or alias whose index entry belongs to another entity. Moving an
 	// existing claim requires the explicit ClaimAlias or entity-merge path.
 	ErrAliasClaimed = errors.New("memory: alias already claimed")
+	// ErrInvalidSlug is returned when a write would introduce an entity key
+	// that cannot be represented safely in colon-delimited fact indexes.
+	ErrInvalidSlug = errors.New("memory: invalid entity slug")
 )
 
 // Episode is one ingested slice of source material (a session transcript
@@ -316,6 +319,9 @@ func (s *Store) AllEpisodes() ([]Episode, error) {
 // that the new version no longer claims is deleted, but only while that key
 // still points at e.Slug.
 func (s *Store) PutEntity(e Entity) error {
+	if !validEntitySlug(e.Slug) {
+		return fmt.Errorf("%w: %q", ErrInvalidSlug, e.Slug)
+	}
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
 	b, err := json.Marshal(e)
@@ -582,6 +588,12 @@ func adjKey(dst, src, relation string, validFrom time.Time) []byte {
 // An attribute fact has no reverse index: a value is not a node anyone
 // traverses to.
 func (s *Store) PutFact(f Fact) error {
+	if !validEntitySlug(f.Src) || (f.Dst != "" && !validEntitySlug(f.Dst)) {
+		return fmt.Errorf("%w in fact endpoint: src=%q dst=%q", ErrInvalidSlug, f.Src, f.Dst)
+	}
+	if f.Relation == "" || strings.Contains(f.Relation, ":") {
+		return fmt.Errorf("memory: invalid fact relation %q", f.Relation)
+	}
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
 	if (f.Dst == "") == (f.Value == "") {
@@ -904,6 +916,14 @@ var nonSlugRE = regexp.MustCompile(`[^a-z0-9-]`)
 // Slugify is Normalize followed by stripping any rune outside [a-z0-9-].
 func Slugify(name string) string {
 	return nonSlugRE.ReplaceAllString(Normalize(name), "")
+}
+
+// validEntitySlug is the invariant required by the store's colon-delimited
+// fact and reverse-adjacency keys. Slugs are already produced by Slugify on
+// normal paths; checking public writes prevents ambiguous keys from entering
+// through lower-level callers.
+func validEntitySlug(slug string) bool {
+	return slug != "" && slug == Slugify(slug)
 }
 
 // --- Backup / restore ---

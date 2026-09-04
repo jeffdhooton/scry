@@ -194,6 +194,22 @@ func TestEntityPutAndAliasResolution(t *testing.T) {
 	}
 }
 
+func TestPutEntityAndFactRejectDelimiterAmbiguousSlugs(t *testing.T) {
+	s := openTemp(t)
+	if err := s.PutEntity(Entity{Slug: "bad:slug", Name: "Bad slug", Type: "concept"}); !errors.Is(err, ErrInvalidSlug) {
+		t.Fatalf("PutEntity error = %v, want ErrInvalidSlug", err)
+	}
+	if _, err := s.GetEntity("bad:slug"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("invalid entity was partially written: %v", err)
+	}
+	if owner, found, err := s.ResolveAlias("Bad slug"); err != nil || found {
+		t.Fatalf("invalid entity claimed alias: owner=%q found=%v err=%v", owner, found, err)
+	}
+	if err := s.PutFact(Fact{Src: "bad:slug", Relation: "status", Value: "ready", ValidFrom: time.Now()}); !errors.Is(err, ErrInvalidSlug) {
+		t.Fatalf("PutFact error = %v, want ErrInvalidSlug", err)
+	}
+}
+
 func TestPutEntityPrunesStaleAliases(t *testing.T) {
 	s := openTemp(t)
 	now := time.Now()

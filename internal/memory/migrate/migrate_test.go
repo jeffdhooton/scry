@@ -374,7 +374,7 @@ func TestRepairInversionsPutsTheNewerFactBack(t *testing.T) {
 	jun := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	jul := time.Date(2026, 7, 22, 22, 24, 35, 0, time.UTC)
 	born := jul.Add(300 * time.Millisecond)
-	for _, e := range []string{"aasa", "not-cached", "live", "loom", "one", "two", "app", "hostA", "hostB"} {
+	for _, e := range []string{"aasa", "not-cached", "live", "loom", "one", "two", "app", "host-a", "host-b"} {
 		if err := st.PutEntity(store.Entity{Slug: e, Name: e, Type: "project", CreatedAt: jun, LastSeen: jun}); err != nil {
 			t.Fatal(err)
 		}
@@ -394,8 +394,8 @@ func TestRepairInversionsPutsTheNewerFactBack(t *testing.T) {
 	put(store.Fact{Src: "loom", Relation: "status", Value: "two", Fact: "loom is two", ValidFrom: jul, Confidence: 1})
 	// A non-exclusive relation: the newer fact comes back and the older
 	// one stays current, because both hold at once.
-	put(store.Fact{Src: "app", Relation: "deployed_on", Dst: "hostA", Fact: "app runs on hostA", ValidFrom: jun, Confidence: 1})
-	put(store.Fact{Src: "app", Relation: "deployed_on", Dst: "hostB", Fact: "app runs on hostB", ValidFrom: jul, InvalidAt: &born, Confidence: 1})
+	put(store.Fact{Src: "app", Relation: "deployed_on", Dst: "host-a", Fact: "app runs on hostA", ValidFrom: jun, Confidence: 1})
+	put(store.Fact{Src: "app", Relation: "deployed_on", Dst: "host-b", Fact: "app runs on hostB", ValidFrom: jul, InvalidAt: &born, Confidence: 1})
 
 	var rep Report
 	if err := repairInversions(st, false, &rep); err != nil {
@@ -421,7 +421,7 @@ func TestRepairInversionsPutsTheNewerFactBack(t *testing.T) {
 	if got := state("loom"); !got["two"] || got["one"] {
 		t.Errorf("loom = %v, a real supersede must be left alone", got)
 	}
-	if got := state("app"); !got["hostA"] || !got["hostB"] {
+	if got := state("app"); !got["host-a"] || !got["host-b"] {
 		t.Errorf("app = %v, want both deployments current", got)
 	}
 
