@@ -1260,3 +1260,111 @@ Benchmarks after the migration, none regressed:
 | heldout-2026-09-03 | 53/62 | 11,895 | 0 |
 | heldout-b | 35/66 | 13,344 | 0 |
 | probes | 7/7, every one at rank 1 | 11,361 | 0 |
+
+## Round thirteen
+
+Both graders returned FAIL again, and between them they falsified two things
+this project had written down as true.
+
+### The values grader: four regressions, each with a before and after
+
+Every one was introduced by this session's own commits, and every one came
+with a measured comparison against the commit that introduced it.
+
+| rule | what it did | cost |
+|---|---|---|
+| `versionNumberRE` | `^v?\d+(\.\d+)+$` also matches an IPv4 address | `ssh 100.96.45.73` — this machine's own mini — stopped being a command line and became a name |
+| `literalValues` | held `on`, `off`, `enabled`, `disabled` | `feature:enabled`, `cache:off`, `telemetry:disabled` read as settings when they name switches |
+| `enumEndings` | held `error`, `timeout`, `required`, `missing`, `valid` | 23 real identifiers refused in a corpus of 4,000 harvested from source on this machine: `CURLOPT_TIMEOUT`, `E_USER_ERROR`, `CMAKE_MINIMUM_REQUIRED` |
+| `titleOpeningOnAState` | let a capitalised title open on a state word | re-admitted `Ready For Review`, `Pending Legal Review`, `Blocked By Legal`, `Needs Design Input` |
+
+All four are undone in `245face`. The last is a full revert: invented titles
+justified it — `Ready Player One` was a grader's example, not a name in this
+store — and it cost a dozen shapes that really do appear.
+
+Two misses are now accepted and written into the guard test rather than
+quietly carried: `CHANGES_REQUIRED` stays a name, the price of letting
+`CMAKE_MINIMUM_REQUIRED` through, and `onDelete: cascade` stays a name, the
+price of letting `db:seed` through.
+
+**One grader claim did not hold up.** Its table lists `Done For Now` as
+REJECT before and ADMIT after. It is admitted in both, in this version and the
+one before it — a genuine miss, but not a regression, and the guard test says
+so where anyone would look for it.
+
+### What the values grader confirmed passing
+
+39 distinct relations on current facts, exactly `resolve.Canonical`, nothing
+outside it and nothing unused. All 39 now enumerated in the decision log, 0
+absent. Zero entities named a bare number. Git branches effectively closed.
+Every benchmark exactly at baseline with every payload under 24 KB. And on
+4,722 real names drawn from outside the store — Homebrew formulae,
+`/Applications`, env-var names, npm script names, 4,000 `ALL_CAPS` identifiers
+harvested from source — the false-rejection rate is **0.7%, down from 4.0%**.
+
+Still failing: 42 status-valued entities (26 with facts), 13 measurements, 15
+code positions, 8 colon settings. `NotAnIdentity` refuses none of them, and
+the table tests pin a hand-picked list rather than anything the store holds.
+
+### The identities grader: a commit that fired on nothing
+
+`7f4a991` refused a *typed* entity taking a fact-bearing concept's alias, and
+its message claimed a grader had found 429 aliases in that state. The grader
+measured the 429 directly:
+
+| loser holds facts | loser | winner | count |
+|---|---|---|---|
+| yes | concept | concept | 77 |
+| yes | tool | tool | 115 |
+| yes | project | project | 105 |
+| yes | service | service | 80 |
+| yes | other | same | 38 |
+| no | any | any | 14 |
+| | | **cross-type** | **0** |
+
+Zero have the shape the guard covered. It fired on nothing, and the commit
+message was wrong. `db718ab` drops the condition on the claimant's type: what
+decides is what the loser stands to lose.
+
+The real hole was elsewhere. Mention resolution let a name reach an entity
+through an alias whenever `TypesCompatible` allowed, and that calls concept a
+wildcard — so one episode mentioning a machine could bypass the real machine,
+land its facts on a concept listing its name, and retype the concept on the
+way past. A cross-type merge of two existing identities on **one** episode,
+with no attestation, because that path is not the admission path. The grader
+wrote the test; it now lives as
+`TestOneMentionCannotLandOnAFactBearingConcept`, and it fails without the fix.
+
+### A false claim in the decision log, corrected
+
+`docs/DECISIONS.md` asserted that admission refuses `Hermes tmux`, `Hermes
+Slack gateway` and `Jeff's own Hermes` with the reason "names hermes (its name
+plus kind words)". It does not. `AdmitAlias` returns
+`true, "already indexed to this entity"` before `namedByKindWords` ever runs,
+so admission **accepts** all three — and all 46 aliases on the three Hermes
+entities are admitted for that reason. The probe behind the original claim
+called `namedByKindWords` directly, against a store where the alias was not
+yet indexed. The entry now carries the correction inline.
+
+That shortcut is also why 0 of 18,581 stored aliases are refused by anything:
+an alias admitted under a rule since replaced is never re-examined.
+
+### Standing failures, unchanged
+
+67 facts misfiled on `hermes-ops` by the grader's hand count (41 by a
+conservative reproducible floor), and `recall "Hermes agent"` still returns
+the project ahead of the service. 315 cross-type fold collisions with hygiene
+converged at zero changes. `childscribe-laravel` holds 130 aliases and 1,502
+facts and owns the alias index for `docket`, `childscribe-mobile`, `haulyard`
+and `loom` — the largest fusion in the store, and invisible to every metric
+reported here, because its paths do not fold to any of those names.
+
+### Live state
+
+```
+migrate  1 value entity retired (Cell Saviors Main), 1 fact converted
+pass 2   complete no-op
+backup   /Users/jclaw/.scry/backups/memory-20260904T010634Z.badger
+store    21,176 entities, 53,117 facts, 6,647 episodes
+bench    tuning 47/50, strict 44/50, probes 7/7
+```
