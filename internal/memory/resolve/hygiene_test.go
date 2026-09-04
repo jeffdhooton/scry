@@ -10,6 +10,21 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
+// putLegacyCollision deliberately uses the explicit alias-claim path before
+// storing e. Hygiene tests need malformed, pre-fix stores; ordinary PutEntity
+// writes no longer manufacture these collisions.
+func putLegacyCollision(t *testing.T, st *store.Store, e store.Entity) {
+	t.Helper()
+	for _, spelling := range append([]string{e.Name}, e.Aliases...) {
+		if err := st.ClaimAlias(spelling, e.Slug); err != nil {
+			t.Fatalf("claim %q for %s: %v", spelling, e.Slug, err)
+		}
+	}
+	if err := st.PutEntity(e); err != nil {
+		t.Fatalf("put legacy collision %s: %v", e.Slug, err)
+	}
+}
+
 func TestHygiene_CleansAliasesAndDeadRepoRefs(t *testing.T) {
 	st := openTemp(t)
 	now := time.Now().UTC()
@@ -123,9 +138,7 @@ func TestHygieneCountsCollisionsItPlansToClean(t *testing.T) {
 		if err := st.PutEntity(store.Entity{Slug: "m1", Name: c.machine, Type: "machine", CreatedAt: now, LastSeen: now}); err != nil {
 			t.Fatal(err)
 		}
-		if err := st.PutEntity(store.Entity{Slug: "p1", Name: c.project, Type: "project", CreatedAt: now, LastSeen: now}); err != nil {
-			t.Fatal(err)
-		}
+		putLegacyCollision(t, st, store.Entity{Slug: "p1", Name: c.project, Type: "project", CreatedAt: now, LastSeen: now})
 		for _, dry := range []bool{true, false} {
 			rep, err := Hygiene(st, dry)
 			if err != nil {
@@ -146,9 +159,7 @@ func TestHygieneCountsAConceptStubAgainstARealType(t *testing.T) {
 	if err := st.PutEntity(store.Entity{Slug: "mac-mini", Name: "Mac mini", Type: "machine", Aliases: []string{"mini"}, CreatedAt: now, LastSeen: now}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.PutEntity(store.Entity{Slug: "mothership-thing", Name: "mothership thing", Type: "concept", Aliases: []string{"mini"}, CreatedAt: now, LastSeen: now}); err != nil {
-		t.Fatal(err)
-	}
+	putLegacyCollision(t, st, store.Entity{Slug: "mothership-thing", Name: "mothership thing", Type: "concept", Aliases: []string{"mini"}, CreatedAt: now, LastSeen: now})
 	rep, err := Hygiene(st, true)
 	if err != nil {
 		t.Fatal(err)
@@ -182,9 +193,7 @@ func TestHygieneMergesADuplicateStubButNeverTwoTypedEntities(t *testing.T) {
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
 	put := func(e store.Entity) {
 		e.CreatedAt, e.LastSeen = now, now
-		if err := st.PutEntity(e); err != nil {
-			t.Fatal(err)
-		}
+		putLegacyCollision(t, st, e)
 	}
 	put(store.Entity{Slug: "android-assetlinks", Name: "Android App Links", Type: "service"})
 	put(store.Entity{Slug: "android-assetlinksjson", Name: "Android App Links", Type: "concept", Aliases: []string{"assetlinks.json"}, RepoRefs: []string{"/Users/jeff/workspace/mobile"}})
@@ -295,9 +304,7 @@ func TestHygieneStillDropsRolesAndHardware(t *testing.T) {
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
 	put := func(e store.Entity) {
 		e.CreatedAt, e.LastSeen = now, now
-		if err := st.PutEntity(e); err != nil {
-			t.Fatal(err)
-		}
+		putLegacyCollision(t, st, e)
 	}
 	put(store.Entity{Slug: "jeff", Name: "Jeff", Type: "person",
 		Aliases: []string{"jeffdhooton", "Claude agent", "review subagent", "/Users/jeff", "coding-agent"}})
@@ -337,9 +344,7 @@ func TestStubsGiveUpNamesATypedEntityAnswersTo(t *testing.T) {
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
 	put := func(e store.Entity) {
 		e.CreatedAt, e.LastSeen = now, now
-		if err := st.PutEntity(e); err != nil {
-			t.Fatal(err)
-		}
+		putLegacyCollision(t, st, e)
 	}
 	put(store.Entity{Slug: "photon-node-sidecar", Name: "photon node sidecar", Type: "service", Aliases: []string{"sidecar"}})
 	put(store.Entity{Slug: "meta", Name: "-meta", Type: "concept", Aliases: []string{"sidecar", "meta helper"}})
@@ -396,10 +401,8 @@ func TestUnreferencedEntitiesAreCountedOutNotRemoved(t *testing.T) {
 	st := openTemp(t)
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
 	put := func(slug, name, typ string, aliases ...string) {
-		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: typ,
-			Aliases: aliases, CreatedAt: now, LastSeen: now}); err != nil {
-			t.Fatal(err)
-		}
+		putLegacyCollision(t, st, store.Entity{Slug: slug, Name: name, Type: typ,
+			Aliases: aliases, CreatedAt: now, LastSeen: now})
 	}
 	put("real-tool", "widget tool", "tool", "widget")
 	put("empty-machine", "widget machine", "machine", "widget")
@@ -430,9 +433,7 @@ func TestAThingNamedByWhereItIsIsThatThing(t *testing.T) {
 	st := openTemp(t)
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
 	put := func(slug, name, typ string) {
-		if err := st.PutEntity(store.Entity{Slug: slug, Name: name, Type: typ, CreatedAt: now, LastSeen: now}); err != nil {
-			t.Fatal(err)
-		}
+		putLegacyCollision(t, st, store.Entity{Slug: slug, Name: name, Type: typ, CreatedAt: now, LastSeen: now})
 	}
 	put("mac-mini", "Mac mini", "machine")
 	put("mac-mini-at-100964573", "Mac mini at 100.96.45.73", "machine")

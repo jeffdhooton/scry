@@ -52,8 +52,14 @@ const (
 	keySchemaVersion = prefixMeta + "schema_version"
 )
 
-// ErrNotFound is returned by single-item getters when the key does not exist.
-var ErrNotFound = errors.New("memory: not found")
+var (
+	// ErrNotFound is returned by single-item getters when the key does not exist.
+	ErrNotFound = errors.New("memory: not found")
+	// ErrAliasClaimed is returned when an ordinary entity write tries to add a
+	// name or alias whose index entry belongs to another entity. Moving an
+	// existing claim requires the explicit ClaimAlias or entity-merge path.
+	ErrAliasClaimed = errors.New("memory: alias already claimed")
+)
 
 // Episode is one ingested slice of source material (a session transcript
 // span, a loom run, a manually seeded fact, etc.) that facts and entities
@@ -292,11 +298,17 @@ func (s *Store) AllEpisodes() ([]Episode, error) {
 
 // --- Entities ---
 
-// PutEntity writes e and (re)indexes al: keys for its Name and every alias.
+// PutEntity writes e and indexes previously unclaimed names and aliases.
+// It never transfers an al: key from another entity: a newly introduced
+// conflicting spelling returns ErrAliasClaimed and the whole write is
+// aborted. A conflict already present on the stored version is tolerated so
+// ordinary metadata updates can repair legacy stores without stealing the
+// current owner's index entry. Transfers belong to the explicit ClaimAlias
+// or entity-merge path.
+//
 // If an entity already exists at e.Slug, any al: key the old version owned
-// that the new version no longer claims is deleted — but only when that
-// al: key still points at e.Slug, so a alias another entity has since
-// claimed for itself is never clobbered.
+// that the new version no longer claims is deleted, but only while that key
+// still points at e.Slug.
 func (s *Store) PutEntity(e Entity) error {
 	b, err := json.Marshal(e)
 	if err != nil {
@@ -308,8 +320,25 @@ func (s *Store) PutEntity(e Entity) error {
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
 		}
+		prevNorms := map[string]bool{}
 		if err == nil {
-			for norm := range normalizedNameSet(prev.Name, prev.Aliases) {
+			prevNorms = normalizedNameSet(prev.Name, prev.Aliases)
+		}
+
+		// Preflight every new claim before changing either the entity record
+		// or the index. Badger keeps the check and write in one transaction.
+		for norm := range newNorms {
+			owner, found, err := aliasOwnerTxn(txn, norm)
+			if err != nil {
+				return err
+			}
+			if found && owner != e.Slug && !prevNorms[norm] {
+				return fmt.Errorf("%w: %q belongs to %s, not %s", ErrAliasClaimed, norm, owner, e.Slug)
+			}
+		}
+
+		if len(prevNorms) > 0 {
+			for norm := range prevNorms {
 				if newNorms[norm] {
 					continue
 				}
@@ -323,6 +352,21 @@ func (s *Store) PutEntity(e Entity) error {
 			return err
 		}
 		for norm := range newNorms {
+			owner, found, err := aliasOwnerTxn(txn, norm)
+			if err != nil {
+				return err
+			}
+			if found && owner != e.Slug {
+				// A legacy collision present on the previous entity is allowed
+				// to remain, but an unrelated update must not transfer it.
+				continue
+			}
+			if !found && prevNorms[norm] {
+				// An unindexed spelling on a legacy entity is ambiguous: another
+				// entity may also list it. A metadata update is not authority to
+				// pick this entity as the winner.
+				continue
+			}
 			if err := txn.Set([]byte(prefixAlias+norm), []byte(e.Slug)); err != nil {
 				return err
 			}
@@ -333,6 +377,22 @@ func (s *Store) PutEntity(e Entity) error {
 		s.notify(Event{Kind: "entity", Op: "put", Entity: e})
 	}
 	return err
+}
+
+// aliasOwnerTxn reads an already-normalized alias key within txn.
+func aliasOwnerTxn(txn *badger.Txn, norm string) (string, bool, error) {
+	item, err := txn.Get([]byte(prefixAlias + norm))
+	if errors.Is(err, badger.ErrKeyNotFound) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	owner, err := item.ValueCopy(nil)
+	if err != nil {
+		return "", false, err
+	}
+	return string(owner), true, nil
 }
 
 // normalizedNameSet returns the set of non-empty Normalize()d forms of name
@@ -427,6 +487,30 @@ func (s *Store) ResolveAlias(name string) (string, bool, error) {
 		})
 	})
 	return slug, found, err
+}
+
+// AliasClaims returns a snapshot of the normalized alias index. It is an
+// audit surface for migrations and merge postconditions; callers must treat
+// the returned map as read-only data, not as authority to infer identities.
+func (s *Store) AliasClaims() (map[string]string, error) {
+	claims := map[string]string{}
+	pb := []byte(prefixAlias)
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 256
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(pb); it.ValidForPrefix(pb); it.Next() {
+			key := string(it.Item().KeyCopy(nil))
+			owner, err := it.Item().ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			claims[strings.TrimPrefix(key, prefixAlias)] = string(owner)
+		}
+		return nil
+	})
+	return claims, err
 }
 
 // Entities returns every entity, sorted by slug.

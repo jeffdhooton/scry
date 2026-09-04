@@ -28,6 +28,14 @@ func seedAuditStore(t *testing.T, st *store.Store) {
 	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
 	put := func(e store.Entity) {
 		e.CreatedAt, e.LastSeen = now, now
+		// This fixture intentionally represents a pre-fix store with fused
+		// aliases. Manufacture it through the explicit claim path: ordinary
+		// PutEntity writes no longer steal an existing alias entry.
+		for _, spelling := range append([]string{e.Name}, e.Aliases...) {
+			if err := st.ClaimAlias(spelling, e.Slug); err != nil {
+				t.Fatal(err)
+			}
+		}
 		if err := st.PutEntity(e); err != nil {
 			t.Fatal(err)
 		}

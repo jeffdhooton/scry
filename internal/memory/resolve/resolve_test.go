@@ -1220,3 +1220,44 @@ func TestOneMentionCannotLandOnAFactBearingConcept(t *testing.T) {
 		t.Error("one mention retyped the concept to machine")
 	}
 }
+
+func TestExactIdentityBeatsACompatibleStolenAlias(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	real := store.Entity{Slug: "aurora", Name: "Aurora", Type: "service"}
+	interceptor := store.Entity{Slug: "aurora-gateway", Name: "Aurora Gateway", Type: "service", Aliases: []string{"Aurora"}}
+	if err := st.PutEntity(real); err != nil {
+		t.Fatal(err)
+	}
+	// Manufacture the pre-fix stolen routing entry explicitly.
+	if err := st.ClaimAlias("Aurora", interceptor.Slug); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutEntity(interceptor); err != nil {
+		t.Fatal(err)
+	}
+
+	ep := store.Episode{ID: "ep-compatible-mention", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+	if _, err := Apply(st, ep, "", extract.Result{
+		Entities: []extract.Ent{{Name: "Aurora", Type: "service"}},
+		Facts:    []extract.Fct{{Src: "Aurora", Relation: "uses", Dst: "tailscale", Fact: "Aurora uses tailscale", Confidence: 0.9}},
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustFacts(t, st, real.Slug); len(got) == 0 {
+		t.Fatal("the exact service's fact landed on its same-type interceptor")
+	}
+	if got := mustFacts(t, st, interceptor.Slug); len(got) != 0 {
+		t.Fatalf("the interceptor gained the exact service's fact: %+v", got)
+	}
+	if owner, ok, err := st.ResolveAlias("Aurora"); err != nil || !ok || owner != real.Slug {
+		t.Fatalf("Aurora resolves to %q, %v, %v; want %s", owner, ok, err, real.Slug)
+	}
+	updated, err := st.GetEntity(interceptor.Slug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(updated.Aliases) != 0 {
+		t.Fatalf("interceptor kept the stolen alias: %v", updated.Aliases)
+	}
+}

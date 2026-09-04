@@ -132,6 +132,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	if err != nil {
 		return err
 	}
+	naturalSlug := store.Slugify(ent.Name)
 	// A generic name must never pull an entity in by alias: that is the
 	// runaway-merge path. Give it its own slug and let it stand alone.
 	if found && isGenericAlias(ent.Name) {
@@ -141,9 +142,17 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	// different kind of thing, is a different thing. "Mac mini" (machine)
 	// must not merge into hermes-ops (project) because the project once
 	// collected "mini" as an alias.
-	if found && slug != store.Slugify(ent.Name) {
+	if found && slug != naturalSlug {
+		// Routing state cannot override an established exact identity. This
+		// applies within a type too: a service that once stole another
+		// service's name must not intercept every later mention of the real
+		// entity. claimNameFromAliasHolders below performs the explicit index
+		// repair after this selects the exact entity.
+		if exact, gerr := st.GetEntity(naturalSlug); gerr == nil && store.Normalize(exact.Name) == store.Normalize(ent.Name) {
+			found = false
+		}
 		owner, gerr := st.GetEntity(slug)
-		if gerr == nil && !TypesCompatible(owner.Type, ent.Type) {
+		if gerr == nil && found && !TypesCompatible(owner.Type, ent.Type) {
 			found = false
 		}
 		// TypesCompatible calls concept a wildcard, which let one mention
@@ -161,7 +170,7 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		}
 	}
 	if !found {
-		slug = store.Slugify(ent.Name)
+		slug = naturalSlug
 	}
 	if slug == "" {
 		// Unresolvable name: never write an empty-slug key.
@@ -928,7 +937,17 @@ func claimNameFromAliasHolders(st *store.Store, name, slug, typ string) error {
 	if err != nil {
 		return nil
 	}
-	if TypesCompatible(holder.Type, typ) || store.Normalize(holder.Name) == store.Normalize(name) {
+	// An established entity's exact name outranks a routing entry left on a
+	// different entity, including a concept (which TypesCompatible otherwise
+	// treats as a wildcard). This is an explicit transfer, not a PutEntity
+	// side effect. Two entities actually named the same thing remain a
+	// reviewed collision; one mention does not choose between them.
+	target, targetErr := st.GetEntity(slug)
+	targetOwnsName := targetErr == nil && store.Normalize(target.Name) == store.Normalize(name)
+	if store.Normalize(holder.Name) == store.Normalize(name) {
+		return nil
+	}
+	if !targetOwnsName && TypesCompatible(holder.Type, typ) {
 		return nil
 	}
 	kept := holder.Aliases[:0]
@@ -940,12 +959,14 @@ func claimNameFromAliasHolders(st *store.Store, name, slug, typ string) error {
 		}
 		kept = append(kept, a)
 	}
-	if !dropped {
-		return nil
+	if dropped {
+		holder.Aliases = kept
+		if err := st.PutEntity(holder); err != nil {
+			return err
+		}
 	}
-	holder.Aliases = kept
-	if err := st.PutEntity(holder); err != nil {
-		return err
+	if !dropped && !targetOwnsName {
+		return nil
 	}
 	return st.ClaimAlias(name, slug)
 }

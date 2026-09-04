@@ -259,7 +259,11 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		return false, "", err
 	}
 	if owned && owner == e.Slug {
-		return true, "already indexed to this entity", nil
+		// The alias index is routing state, not identity evidence. Older
+		// PutEntity writes could steal this key before admission ran; treating
+		// that theft as proof made every historical mistake permanent. Judge
+		// the spelling below as though the routing entry did not exist.
+		owned = false
 	}
 
 	// Another entity's name plus its kind words names that entity: "Hermes
@@ -307,18 +311,17 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 				return false, why, nil
 			}
 		}
-		// Within a type, two independent episodes may still merge two
-		// entities, which is what the done bar asks for. A grader called
-		// this a risk — two tools can swallow each other's names — and it
-		// is, but the alternative is refusing every legitimate merge of
-		// two spellings of one thing, and merges are recoverable from a
-		// backup while a graph of near-duplicates is not.
+		// Repeated independent mentions are evidence for a merge, not
+		// authority to perform one by moving only the alias index. Returning
+		// true here used to orphan the losing entity's facts. The reviewed
+		// merge command consumes this evidence together with an explicit
+		// manifest and moves the complete identity atomically.
 		n, err := st.AttestAlias(e.Slug, norm, episodeID)
 		if err != nil {
 			return false, "", err
 		}
 		if n >= AttestationThreshold {
-			return true, "attested by " + itoa(n) + " episodes, would merge with " + owner, nil
+			return false, "attested by " + itoa(n) + " episodes; explicit merge with " + owner + " required", nil
 		}
 		return false, "owned by " + owner + ", attested by " + itoa(n) + " episode(s)", nil
 	}

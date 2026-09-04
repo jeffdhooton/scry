@@ -497,7 +497,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 		e.Aliases = kept
 		e.RepoRefs = keptRefs
 		if err := st.PutEntity(e); err != nil {
-			return rep, err
+			return rep, fmt.Errorf("hygiene update %s: %w", e.Slug, err)
 		}
 	}
 
@@ -510,7 +510,7 @@ func Hygiene(st *store.Store, dryRun bool) (HygieneReport, error) {
 			}
 			e.Aliases = unionStrings(e.Aliases, names)
 			if err := st.PutEntity(e); err != nil {
-				return rep, err
+				return rep, fmt.Errorf("hygiene grant aliases to %s: %w", e.Slug, err)
 			}
 		}
 	}
@@ -900,10 +900,12 @@ func mergeStub(st *store.Store, stub, target store.Entity) error {
 	for _, a := range target.Aliases {
 		have[store.Normalize(a)] = true
 	}
+	var transferred []string
 	for _, a := range append([]string{stub.Name}, stub.Aliases...) {
 		if n := store.Normalize(a); n != "" && !have[n] && !neverAlias(a) {
 			have[n] = true
 			target.Aliases = append(target.Aliases, a)
+			transferred = append(transferred, a)
 		}
 	}
 	refs := map[string]bool{}
@@ -917,8 +919,16 @@ func mergeStub(st *store.Store, stub, target store.Entity) error {
 		}
 	}
 	sort.Strings(target.RepoRefs)
+	// PutEntity intentionally cannot steal these claims. This legacy exact-
+	// duplicate repair is itself the explicit transfer path, so move only
+	// the spellings copied from the retiring stub before writing metadata.
+	for _, a := range transferred {
+		if err := st.ClaimAlias(a, target.Slug); err != nil {
+			return fmt.Errorf("merge stub %s claim %q for %s: %w", stub.Slug, a, target.Slug, err)
+		}
+	}
 	if err := st.PutEntity(target); err != nil {
-		return err
+		return fmt.Errorf("merge stub %s metadata into %s: %w", stub.Slug, target.Slug, err)
 	}
 	if err := st.DeleteEntity(stub.Slug); err != nil {
 		return err
@@ -978,7 +988,7 @@ func dropStubClaims(st *store.Store, dryRun bool) (int, error) {
 		}
 		e.Aliases = kept
 		if err := st.PutEntity(e); err != nil {
-			return dropped, err
+			return dropped, fmt.Errorf("drop stub claims from %s: %w", e.Slug, err)
 		}
 	}
 	return dropped, nil

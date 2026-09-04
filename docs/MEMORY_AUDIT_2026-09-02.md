@@ -1979,3 +1979,45 @@ So the status family is where the lexical approach ends, and this is the
 fourth round to reach the same wall from a different direction. Item 4 fails
 on one of its four named categories, with the other three closed and the
 reason for the fourth written down rather than papered over.
+
+## 2026-09-04 — prevention gate before entity consolidation
+
+The two alias-admission holes left open in the handoff are now closed in code
+and measured on a fresh replica before deployment.
+
+`PutEntity` no longer implements last-writer-wins for alias ownership. A new
+name or alias claimed by another slug returns `ErrAliasClaimed` and the entity
+write is atomic. Existing dirty listings do not make harmless metadata updates
+fail, but those updates preserve the other owner — and preserve a missing
+index entry rather than guessing which legacy listing deserves it.
+
+The `AdmitAlias` shortcut that returned true solely because the index already
+pointed at the claimant is gone. Existing routing state is re-evaluated under
+the current rules. Repeated mentions of an alias owned by another compatible
+entity now produce merge evidence, not a half-merge: admission refuses and
+requires the explicit merge operation. Mention resolution separately gives an
+established exact-name entity priority over a stolen index entry across both
+compatible and incompatible types, then repairs that one exact claim
+explicitly before its facts resolve.
+
+Replica evidence, restored from the 93,948,817-byte live backup
+`/Users/jclaw/.scry/backups/memory-20260904T173049Z.badger`:
+
+| check | result |
+|---|---:|
+| replica shape | 22,904 entities · 57,041 facts · 6,956 episodes |
+| unchanged entities rewritten | 22,904/22,904 |
+| alias-index claims before/after | 41,406/41,406, exact map equality |
+| conflicting new claim | refused atomically with `ErrAliasClaimed` |
+| heldout-2026-09-03 | 54/62 |
+| heldout-b | 34/66 |
+| probes | 7/7 |
+| tuning-strict | 44/50 |
+| tuning | 47/50 |
+| payloads over 24 KB | 0 |
+| full Go suite | green |
+
+The replica test remains in `internal/memory/store/live_test.go`, gated by
+`SCRY_STORE_CHECK_DIR`, so future changes can rerun the same ownership-neutral
+rewrite against a restored production backup. No live store mutation was made
+by this code in this step; the backup itself is the only new live artifact.

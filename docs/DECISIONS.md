@@ -2920,3 +2920,49 @@ all, and rules should stop reading it as if it did.
 next session, and `internal/memory/queue` now logs the count on every
 resolution, so the answer will show up in the daemon log without anyone
 running an experiment.
+
+## Alias routing state is not identity authority (2026-09-04)
+
+**Decision.** An ordinary `store.PutEntity` may create an unclaimed name or
+alias, but it may never transfer an alias-index key already owned by another
+entity. A newly introduced conflicting spelling aborts the entire write with
+`ErrAliasClaimed`. A spelling already present on a legacy entity may survive a
+metadata update, but that update preserves the current index owner (or the
+absence of an owner) byte for byte. Only an explicit claim or the reviewed
+entity-merge operation may change ownership.
+
+`AdmitAlias` also stops treating `"already indexed to this entity"` as proof
+that an alias belongs there. That index entry may be the residue of an older
+`PutEntity` theft. The spelling now passes through the current identity rules.
+Two independent episodes can record evidence that two compatible entities
+should merge, but admission returns false and directs the caller to the
+explicit merge path; it no longer moves routing while leaving the losing
+entity's facts behind.
+
+**Exact established identities veto routing mistakes.** If an entity whose
+slug and normalized name exactly match a mention already exists, it wins over
+an alias-index entry on another entity, even when both entities have the same
+type. The resolver removes the stolen alias listing when present and calls the
+explicit claim operation before resolving the mention's facts. This closes the
+same-type interception that a type-compatibility check alone cannot see.
+
+**Why legacy conflicts are tolerated.** Rejecting every update to an entity
+that already lists a stolen alias would stop unrelated description, repo-ref,
+and last-seen repairs throughout the dirty live store. Silently reclaiming an
+unindexed legacy spelling would be just as bad: several entities may list it,
+and a metadata update is no basis for choosing a winner. The safe boundary is
+whether the proposed version newly introduces the spelling.
+
+**Measured.** Backup `memory-20260904T173049Z.badger` was restored into a local
+replica containing 22,904 entities, 57,041 facts, and 6,956 episodes. A gated
+live-store test rewrote all 22,904 entities unchanged and preserved all 41,406
+alias claims exactly; a conflicting probe returned `ErrAliasClaimed`, wrote no
+partial metadata, and left the complete index equal to its starting snapshot.
+The five recall baselines on that replica were 54/62, 34/66, 7/7, 44/50, and
+47/50, with zero payloads over 24 KB. `go test ./...` is green.
+
+**What would change this.** A caller that legitimately needs to introduce an
+already-owned spelling must present the identity decision to the merge or
+claim API; evidence that ordinary metadata writes cannot be separated from
+intent would require a different transaction boundary. No such caller
+appeared in the complete test suite or in the replica rewrite.

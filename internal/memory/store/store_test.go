@@ -231,7 +231,7 @@ func TestPutEntityPrunesStaleAliases(t *testing.T) {
 	}
 }
 
-func TestPutEntityDoesNotClobberAliasClaimedByAnotherEntity(t *testing.T) {
+func TestPutEntityRequiresExplicitAliasTransfer(t *testing.T) {
 	s := openTemp(t)
 	now := time.Now()
 
@@ -241,22 +241,51 @@ func TestPutEntityDoesNotClobberAliasClaimedByAnotherEntity(t *testing.T) {
 		t.Fatalf("PutEntity x: %v", err)
 	}
 
-	// y claims "shared" too; last-writer wins.
-	if err := s.PutEntity(Entity{Slug: "y", Name: "Y", Type: "concept",
-		Aliases: []string{"shared"}, CreatedAt: now, LastSeen: now}); err != nil {
-		t.Fatalf("PutEntity y: %v", err)
+	// An ordinary write cannot move x's claim to y. The transaction also
+	// cannot leave behind the partly-written y entity.
+	err := s.PutEntity(Entity{Slug: "y", Name: "Y", Type: "concept",
+		Aliases: []string{"shared"}, CreatedAt: now, LastSeen: now})
+	if !errors.Is(err, ErrAliasClaimed) {
+		t.Fatalf("PutEntity y error = %v; want ErrAliasClaimed", err)
+	}
+	if _, err := s.GetEntity("y"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("conflicting PutEntity wrote y: %v", err)
 	}
 
 	slug, ok, err := s.ResolveAlias("shared")
 	if err != nil {
 		t.Fatalf("ResolveAlias(shared) after y claims it: %v", err)
 	}
-	if !ok || slug != "y" {
-		t.Fatalf("ResolveAlias(shared) = %q, %v; want y, true", slug, ok)
+	if !ok || slug != "x" {
+		t.Fatalf("ResolveAlias(shared) = %q, %v; want x, true", slug, ok)
 	}
 
-	// Re-putting x without "shared" must not delete y's mapping, since x no
-	// longer owns that al: key.
+	// The explicit transfer path can move it after y exists.
+	if err := s.PutEntity(Entity{Slug: "y", Name: "Y", Type: "concept",
+		CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatalf("PutEntity y without conflicting alias: %v", err)
+	}
+	if err := s.ClaimAlias("shared", "y"); err != nil {
+		t.Fatalf("ClaimAlias(shared, y): %v", err)
+	}
+
+	// Re-putting x while its legacy entity record still lists "shared" is
+	// allowed, but must preserve y's claim. This is the shape found in the
+	// live store and lets unrelated metadata repairs continue.
+	if err := s.PutEntity(Entity{Slug: "x", Name: "X", Type: "concept",
+		Aliases: []string{"shared"}, Description: "updated", CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatalf("PutEntity legacy x update: %v", err)
+	}
+
+	slug, ok, err = s.ResolveAlias("shared")
+	if err != nil {
+		t.Fatalf("ResolveAlias(shared) after legacy update: %v", err)
+	}
+	if !ok || slug != "y" {
+		t.Fatalf("legacy update moved shared: got %q, %v; want y, true", slug, ok)
+	}
+
+	// Dropping x's stale listing likewise must not delete y's mapping.
 	if err := s.PutEntity(Entity{Slug: "x", Name: "X", Type: "concept",
 		Aliases: nil, CreatedAt: now, LastSeen: now}); err != nil {
 		t.Fatalf("PutEntity x again: %v", err)
@@ -268,6 +297,29 @@ func TestPutEntityDoesNotClobberAliasClaimedByAnotherEntity(t *testing.T) {
 	}
 	if !ok || slug != "y" {
 		t.Fatalf("re-putting x must not clobber y's alias: got %q, %v; want y, true", slug, ok)
+	}
+}
+
+func TestPutEntityRejectsNewAliasOnExistingEntity(t *testing.T) {
+	s := openTemp(t)
+	now := time.Now()
+	if err := s.PutEntity(Entity{Slug: "x", Name: "X", Type: "concept", CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PutEntity(Entity{Slug: "y", Name: "Y", Type: "concept", Aliases: []string{"shared"}, CreatedAt: now, LastSeen: now}); err != nil {
+		t.Fatal(err)
+	}
+
+	err := s.PutEntity(Entity{Slug: "x", Name: "X", Type: "concept", Aliases: []string{"shared"}, Description: "must not persist", CreatedAt: now, LastSeen: now})
+	if !errors.Is(err, ErrAliasClaimed) {
+		t.Fatalf("PutEntity x error = %v; want ErrAliasClaimed", err)
+	}
+	x, err := s.GetEntity("x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if x.Description != "" || len(x.Aliases) != 0 {
+		t.Fatalf("conflicting update was not atomic: %+v", x)
 	}
 }
 

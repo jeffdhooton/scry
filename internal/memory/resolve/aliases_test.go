@@ -69,13 +69,16 @@ func TestAdmitAliasOwnedByAnotherEntity(t *testing.T) {
 			t.Fatalf("episode %d admitted a machine's alias onto a project", i+1)
 		}
 	}
-	// Another entity's own name, compatible type: two attestations.
+	// Another entity's own name, compatible type: two attestations establish
+	// evidence, but only the explicit merge path may transfer ownership.
 	tool := putEntity(t, st, "hermes-agent", "hermes-agent", "service")
 	if ok, _, _ := AdmitAlias(st, tool, "Hermes", "e1"); ok {
 		t.Fatal("one episode must not merge two existing entities")
 	}
-	if ok, reason, _ := AdmitAlias(st, tool, "Hermes", "e2"); !ok {
-		t.Fatalf("two episodes must admit a compatible merge: %s", reason)
+	if ok, reason, _ := AdmitAlias(st, tool, "Hermes", "e2"); ok {
+		t.Fatal("two episodes transferred an alias without an explicit merge")
+	} else if !strings.Contains(reason, "explicit merge") {
+		t.Fatalf("two episodes should produce merge evidence, got: %s", reason)
 	}
 }
 
@@ -712,7 +715,7 @@ func TestLeakChecksJudgeTheAddedWords(t *testing.T) {
 func TestAdmitAliasAndTheConceptWildcard(t *testing.T) {
 	newStore := func(t *testing.T) *store.Store { return openTemp(t) }
 
-	t.Run("a typed entity may promote an empty concept stub", func(t *testing.T) {
+	t.Run("an empty concept promotion still requires explicit merge", func(t *testing.T) {
 		st := newStore(t)
 		stub := store.Entity{Slug: "aurora-ops", Name: "aurora ops", Type: "concept"}
 		if err := st.PutEntity(stub); err != nil {
@@ -736,8 +739,11 @@ func TestAdmitAliasAndTheConceptWildcard(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !ok {
-			t.Errorf("promotion of an empty stub refused: %s", why)
+		if ok {
+			t.Error("alias admission moved identity without the explicit merge path")
+		}
+		if !strings.Contains(why, "explicit merge") {
+			t.Errorf("reason should direct the caller to merge, got %q", why)
 		}
 	})
 
