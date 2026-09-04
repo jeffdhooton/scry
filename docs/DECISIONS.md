@@ -2602,3 +2602,72 @@ Two properties worth stating, both measured rather than asserted: no current
 fact carries a relation outside this list, and no name on the list is unused.
 If either stops being true the migration's `non_canonical_after` counter and
 this table's row count are where it shows.
+
+## Recall's ceiling is retrieval vocabulary, not ranking (2026-09-03)
+
+**The measurement.** On `heldout-b.json`, 66 questions written by a grader
+that the builder never saw, recall scores 35. Widening the cut-off does almost
+nothing:
+
+| top N | hits |
+|---|---|
+| 20 | 35 / 66 |
+| 50 | 39 / 66 |
+| 100 | 39 / 66 |
+| 200 | 39 / 66 |
+
+It plateaus at 50. **Four of the 31 misses are ranking failures; 27 are
+retrieval failures** — the answering fact is never a candidate at any depth.
+
+A fact satisfying the question exists in the store for **all 66**, so none of
+this is an extraction gap. Classifying the 31 misses by how many words the
+question and its answering fact share, stop words removed:
+
+| overlap | misses |
+|---|---|
+| none | 10 |
+| one word | 15 |
+| two or three | 6 |
+| four or more | 0 |
+
+"What is serving the local model chat interface on the mac mini and how does
+it survive reboots?" is answered by "Open WebUI is under launchd on mini with
+KeepAlive, on port 9999." They share the word `mini`. No re-ranker reaches a
+fact its retriever never returned, and this is why the six ranking ideas built
+this session — relevance feedback, entity-name expansion, graph traversal,
+coverage weighting three times, and vector retrieval — each measured worse or
+neutral. They were re-ordering candidate sets that lacked the answer two times
+in five.
+
+**Why the local vector model cannot close it.** It is already trained on
+everything the store holds: `Index.Load` indexes facts, entity names, and
+episode summaries, and `BuildEmbedding` learns from all of them. That is 7.4 MB
+of fact text and 2.6 MB of summaries — around 10 MB, of which the facts are one
+sentence each. Random indexing over that learns which words share a sentence.
+It does not learn that KeepAlive under launchd is what surviving a reboot
+means, because nothing in the corpus says so.
+
+**Decision.** No seventh ranking change. The gap is characterised rather than
+patched, and the two ways out are both larger decisions than a tuning pass:
+
+1. **Retain episode text.** Episodes keep a summary and no transcript; the
+   store discards the text after extraction. Keeping it would grow the corpus
+   by roughly two orders of magnitude and give random indexing real
+   co-occurrence to learn from. The cost is storage and a much larger local
+   privacy surface — the full transcripts of every session on the machine,
+   at rest, forever. That is the user's call, not the builder's.
+2. **A real local embedding model.** Permitted by the house rules, which allow
+   local embeddings and forbid only hosted ones. It collides with "no CGO,
+   single static binary": a genuine model means either a pure-Go inference
+   path or an external process.
+
+**What would change our minds about the diagnosis.** A held-out set where the
+misses show strong question-to-answer word overlap. Then the problem would be
+ranking after all and a re-ranker could earn its place. Every set measured so
+far says otherwise.
+
+**On item 3's status.** A grader's own 72-question set passed the bar on
+2026-09-03 and this 66-question set scores 53%. Both are held out. The honest
+statement is that recall meets the bar on questions phrased in the store's own
+vocabulary and falls well short on questions phrased in the user's, and the
+done bar does not say which kind its 50 questions should be.
