@@ -36,6 +36,28 @@ import (
 // shares nothing with the entity's name.
 const AttestationThreshold = 2
 
+// factBearingConcept reports why an alias may not move off owner, when
+// owner is a concept that has facts of its own. An empty reason means the
+// alias is free to move.
+//
+// Shared by admission and by mention resolution, which used to disagree:
+// TypesCompatible treats concept as a wildcard, so a single mention could
+// land a machine's facts on a concept and retype it, with no attestation at
+// all. Both paths ask this instead.
+func factBearingConcept(st *store.Store, ownerSlug, ownerType string) (string, error) {
+	if !concepts(ownerType) {
+		return "", nil
+	}
+	held, err := st.FactsAbout(ownerSlug, false)
+	if err != nil {
+		return "", err
+	}
+	if len(held) == 0 {
+		return "", nil
+	}
+	return "owned by " + ownerSlug + ", a concept holding " + strconv.Itoa(len(held)) + " facts of its own", nil
+}
+
 // concepts reports whether t is the fallback bucket rather than a claim
 // about what something is.
 func concepts(t string) bool {
@@ -240,20 +262,25 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		if err == nil && (e.Type == "" || e.Type == "concept") && other.Type != "" && other.Type != "concept" {
 			return false, "already answers for the " + other.Type + " " + owner, nil
 		}
-		// And the other direction. A typed entity taking a concept's name
-		// is usually promotion: the extractor said "concept" before it
-		// knew better, the stub holds nothing, and nothing is lost. Once
-		// the concept has facts of its own it is a node, and moving the
-		// index leaves those facts answering to nobody — the alias list
-		// still names it while lookups go elsewhere. That is the shape
-		// the identities grader found 429 times.
-		if err == nil && concepts(other.Type) && !concepts(e.Type) {
-			held, err := st.FactsAbout(owner, false)
-			if err != nil {
-				return false, "", err
+		// And the other direction. Taking a concept's name is usually
+		// promotion: the extractor said "concept" before it knew better,
+		// the stub holds nothing, and nothing is lost. Once the concept
+		// has facts of its own it is a node, and moving the index leaves
+		// those facts answering to nobody — the alias list still names it
+		// while lookups go elsewhere.
+		//
+		// The claimant's own type is not part of this. A first version
+		// asked for a typed claimant, and a grader measured that no live
+		// alias has that shape while 77 concept-to-concept steals do: the
+		// check fired on nothing. What matters is what the loser stands
+		// to lose.
+		if err == nil {
+			why, cerr := factBearingConcept(st, owner, other.Type)
+			if cerr != nil {
+				return false, "", cerr
 			}
-			if len(held) > 0 {
-				return false, "owned by " + owner + ", a concept holding " + strconv.Itoa(len(held)) + " facts of its own", nil
+			if why != "" {
+				return false, why, nil
 			}
 		}
 		// Within a type, two independent episodes may still merge two

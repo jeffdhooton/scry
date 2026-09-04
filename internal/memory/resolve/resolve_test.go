@@ -1169,3 +1169,54 @@ func TestApply_OlderEpisodeSupersedesHintIsIgnored(t *testing.T) {
 		}
 	}
 }
+
+// HOLE 3, the round-13 grader's claim-breaker. A machine exists; a concept
+// happens to list its name as an alias. One episode mentioning the machine
+// used to bypass the machine entirely, land its facts on the concept, and
+// retype the concept to machine — a cross-type merge of two existing
+// identities on a single episode, with no attestation asked for, because
+// this is the mention path rather than the alias-admission path.
+func TestOneMentionCannotLandOnAFactBearingConcept(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+
+	machine := store.Entity{Slug: "aurora", Name: "Aurora", Type: "machine"}
+	if err := st.PutEntity(machine); err != nil {
+		t.Fatal(err)
+	}
+	concept := store.Entity{Slug: "aurora-ops", Name: "aurora ops", Type: "concept"}
+	if err := st.PutEntity(concept); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ClaimAlias("Aurora", concept.Slug); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutFact(store.Fact{
+		Src: concept.Slug, Relation: "status", Value: "documented",
+		Fact: "aurora ops is documented", ValidFrom: at, Episodes: []string{"e0"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	ep := store.Episode{ID: "ep-mention", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+	if _, err := Apply(st, ep, "", extract.Result{
+		Entities: []extract.Ent{{Name: "Aurora", Type: "machine", Description: "the box"}},
+		Facts: []extract.Fct{
+			{Src: "Aurora", Relation: "runs_on", Dst: "tailscale", Fact: "Aurora is reachable over tailscale", Confidence: 0.9},
+		},
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	onMachine := mustFacts(t, st, "aurora")
+	onConcept := mustFacts(t, st, "aurora-ops")
+	if len(onMachine) == 0 {
+		t.Errorf("the machine's fact did not land on the machine (concept has %d)", len(onConcept))
+	}
+	if len(onConcept) != 1 {
+		t.Errorf("the concept gained facts that were not its own: %+v", onConcept)
+	}
+	if e, err := st.GetEntity("aurora-ops"); err == nil && e.Type == "machine" {
+		t.Error("one mention retyped the concept to machine")
+	}
+}

@@ -146,6 +146,19 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		if gerr == nil && !TypesCompatible(owner.Type, ent.Type) {
 			found = false
 		}
+		// TypesCompatible calls concept a wildcard, which let one mention
+		// carry a machine's facts onto a concept that happened to list its
+		// name, and retype the concept on the way past. No attestation was
+		// asked for, because this path is not the alias-admission path.
+		if gerr == nil && found {
+			why, cerr := factBearingConcept(st, slug, owner.Type)
+			if cerr != nil {
+				return cerr
+			}
+			if why != "" && !concepts(ent.Type) {
+				found = false
+			}
+		}
 	}
 	if !found {
 		slug = store.Slugify(ent.Name)

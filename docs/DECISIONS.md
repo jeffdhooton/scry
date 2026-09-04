@@ -2494,10 +2494,20 @@ on `hermes-ops` stay misfiled for now.
 **Why it looked right.** The identities grader observed that `hermes-ops`, a
 project, still holds `Hermes tmux`, `Hermes Slack gateway` and `Jeff's own
 Hermes` — the three aliases `hygiene.go`'s own comment names as the defect it
-exists to fix — and that hygiene reports `reattached=0`. Admission refuses all
-three today, with the reason `names hermes (its name plus kind words)`. A rule
-that exists, works, and agrees with the write path, simply never asked of
-stored data: the obvious fix is to ask.
+exists to fix — and that hygiene reports `reattached=0`. A rule that exists,
+works, and agrees with the write path, simply never asked of stored data: the
+obvious fix is to ask.
+
+> **Correction, 2026-09-03.** This entry first claimed "admission refuses all
+> three today, with the reason `names hermes (its name plus kind words)`."
+> That is false, and the round-13 grader caught it. `AdmitAlias` returns
+> `true, "already indexed to this entity"` at `aliases.go:215`, *before*
+> `namedByKindWords` runs. As the code actually executes, admission **accepts**
+> all three, and all 46 aliases on `hermes-ops`, `hermes` and `mac-mini` are
+> admitted for that reason. The refusal only appears when `namedByKindWords`
+> is called directly — which is what the probe behind the original claim did,
+> against a store where the alias was not yet indexed. Admission and cleanup
+> do not agree; admission simply never re-examines what it already holds.
 
 **What the measurement said.** Against a replica restored from a live backup
 (21,187 entities, 53,117 facts — identical to live), hygiene as it stands
@@ -2671,3 +2681,62 @@ far says otherwise.
 statement is that recall meets the bar on questions phrased in the store's own
 vocabulary and falls well short on questions phrased in the user's, and the
 done bar does not say which kind its 50 questions should be.
+
+## The concept wildcard, corrected and narrowed (2026-09-03)
+
+**What the first version got wrong.** `7f4a991` refused a *typed* entity
+taking a fact-bearing concept's alias, and its message claimed the grader had
+"found 429 aliases in that state". The round-13 grader measured the 429
+directly. They are real — an entity lists an alias whose index points
+elsewhere, so its facts are orphaned — but their shapes are:
+
+| loser holds facts | loser type | winner type | count |
+|---|---|---|---|
+| yes | concept | concept | 77 |
+| yes | tool | tool | 115 |
+| yes | project | project | 105 |
+| yes | service | service | 80 |
+| yes | other | same | 38 |
+| no | any | any | 14 |
+| — | — | **cross-type** | **0** |
+
+**Zero are the shape the first guard covered.** It fired on nothing. The claim
+in that commit message was wrong and this entry is the correction.
+
+**Decision.** The guard drops the condition on the claimant's type. What
+decides is what the *loser* stands to lose: a concept holding facts of its own
+keeps its name, whoever is asking. An empty stub is still free to be promoted,
+because promotion loses nothing. One helper, `factBearingConcept`, is now
+called by alias admission and by mention resolution.
+
+**Mention resolution was the real hole.** `resolve.go` let a name reach an
+entity through an alias whenever `TypesCompatible` allowed it, and that
+function calls concept a wildcard. So a single episode mentioning a machine
+could bypass the real machine, land its facts on a concept that happened to
+list the machine's name, and retype the concept on the way past — a cross-type
+merge of two existing identities on **one** episode, with no attestation,
+because this path is not the alias-admission path. The grader wrote the test;
+`TestOneMentionCannotLandOnAFactBearingConcept` is it.
+
+**Two holes the same grader found are left open, deliberately.**
+
+1. **An entity's own name never passes through `AdmitAlias`.**
+   `store.PutEntity` writes `al:<Normalize(name)> = slug` unconditionally
+   (`store.go:325-329`), so one episode can retype a fact-bearing concept by
+   naming it. Closing this means putting the entity-name write behind the
+   attestation gate, which changes how every new entity is created. It needs
+   its own replica measurement before it is touched.
+
+2. **The `"already indexed to this entity"` shortcut** (`aliases.go:215`)
+   returns before every other check, which is why 0 of 18,581 stored aliases
+   are refused by anything. It makes every past theft permanent: an alias
+   admitted under a rule since replaced is never re-examined. Removing it is
+   the same store-scale change that has now failed three times, and the
+   correct order is replica first.
+
+**Same-type steals stay.** 415 of the 429 are same-type, and an earlier entry
+decided that two independent episodes may merge two entities of one type
+because "merges are recoverable from a backup while a graph of near-duplicates
+is not". That policy stands. What is not defensible is the *orphaning*: the
+alias moves and the facts do not. Recorded as open rather than fixed, because
+moving facts at store scale is the change that keeps measuring wrong.

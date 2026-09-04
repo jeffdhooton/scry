@@ -797,3 +797,44 @@ func TestAdmitAliasAndTheConceptWildcard(t *testing.T) {
 		}
 	})
 }
+
+// The round-13 identities grader wrote four failing tests against the first
+// version of the concept guard. These are its first and third, which the
+// shared factBearingConcept check closes. Its second and fourth (an entity
+// claiming a name through store.PutEntity, and the "already indexed"
+// shortcut) are recorded as open in docs/DECISIONS.md.
+func TestGraderConceptHoles(t *testing.T) {
+	// HOLE 1: the first guard asked for a typed claimant, so a concept
+	// could still swallow a fact-bearing concept. The grader measured 77
+	// live cases of this shape and zero of the shape the guard covered.
+	t.Run("a concept may not swallow a fact-bearing concept", func(t *testing.T) {
+		st := openTemp(t)
+		holder := store.Entity{Slug: "aurora-ops", Name: "aurora ops", Type: "concept"}
+		if err := st.PutEntity(holder); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.ClaimAlias("aurora ops", holder.Slug); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.PutFact(store.Fact{
+			Src: holder.Slug, Relation: "status", Value: "running",
+			Fact: "aurora ops is running", ValidFrom: time.Now(), Episodes: []string{"e1"},
+		}); err != nil {
+			t.Fatal(err)
+		}
+		claimant := store.Entity{Slug: "aurora-notes", Name: "aurora notes", Type: "concept"}
+		if err := st.PutEntity(claimant); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := AdmitAlias(st, claimant, "aurora ops", "ep-a"); err != nil {
+			t.Fatal(err)
+		}
+		ok, why, err := AdmitAlias(st, claimant, "aurora ops", "ep-b")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Errorf("a concept swallowed a fact-bearing concept's name: %q", why)
+		}
+	})
+}
