@@ -2438,3 +2438,50 @@ rehome, and close/reopen persistence. The prior unrelated observer-write test
 still proves callbacks run outside the lock. Focused store, resolver, and queue
 tests pass with the race detector. Nothing has been deployed or applied live,
 and the consecutive retirement review count resets.
+
+### Retirement spelling review exposes a rehome/storage-key distinction
+
+A fresh isolated review of exact `7ac727ead601b09ec26b3419dbcf2cffa6d01ddc`
+passed the original full suite and targeted races but disproved the new rehome
+boundary through public APIs. Retire `obsolete` (named `Retired Verdict`),
+rehome alias `obsolete` to an existing `target-service`, then ingest service
+`Obsolete!`: the old implementation committed a new `en:obsolete`.
+
+The correction adds an unconditional `rs:<exact-slug>` marker alongside the
+existing `rt:` value markers. Rehomes exempt spelling classification only;
+ordinary entity writes cannot recreate the retired key and a new alias cannot
+point at that key. The exact failing Apply is now a regression; valid alias
+lookup and ingestion still target the reviewed survivor. Tests also cover
+restart persistence and updates to the legitimate alias owner. No schema wipe,
+deployment, live retirement, or new fact disposition was performed.
+
+Local verification: `go test ./...`, `go vet ./...`, and
+`go test -race ./internal/memory/store ./internal/memory/resolve ./internal/mcp ./cmd/scry`
+passed. The additional rehome-and-reopen test passed separately after the suite.
+This is builder verification, not a fresh passing reviewer verdict. The failed
+review is posted to room `221c0d69ed04` at sequence 56.
+
+### Assessment follow-through: client orientation and content-free recall metrics
+
+The workflow assessment revealed useful gaps beyond identity cleanup. Read-only
+checks reproduced another concrete bug: `scry memory orient --cwd .` returned
+unrelated CadFormats projects, while the absolute Scry repository path returned
+the repository section. The CLI forwarded explicit relative paths unchanged to
+the remote daemon. It now resolves cwd on the client before RPC, preserving
+absolute paths; an actual Unix-socket command test checks default, dot, relative
+and absolute paths and the character budget.
+
+MCP recall logging now records delivered fact count, first returned score, and
+raw payload bytes. It does not confuse `total_matches` with delivered facts,
+does not retain query/fact text, and marks malformed/missing fact arrays with
+count -1. Tests exercise empty/null arrays, zero/missing scores, malformed
+shapes, response preservation and content-free local logs. These changes do
+not alter recall ranking, its response, or its cap. The full and focused race
+checks above include these changes; they have not been deployed.
+
+`docs/MEMORY_IMPLEMENTATION_GOAL_2026-09-04.md` now preserves the full existing
+goal contract in the repository and adds an ordered checkpoint and assessment
+follow-on plan. It distinguishes coverage/orientation work from the existing
+ten-clause live bar and explicitly preserves approval boundaries for hooks,
+new source rollout, global config, and local embeddings. The user-provided
+assessment is unchanged. No goal state or hook settings were edited.
