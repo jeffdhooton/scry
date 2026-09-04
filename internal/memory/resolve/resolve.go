@@ -457,7 +457,7 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// targets its own (usually different) triple via an explicit ref,
 		// independent of what happened to rf's own triple in Phase A.
 		if rf.fct.Supersedes != nil {
-			if err := applySupersedes(st, ep, *rf.fct.Supersedes, resolvedEntities, stats); err != nil {
+			if err := applySupersedes(st, ep, *rf.fct.Supersedes, declared, resolvedEntities, stats); err != nil {
 				return err
 			}
 		}
@@ -569,7 +569,7 @@ func mergeFact(st *store.Store, ep store.Episode, current store.Fact, incomingVa
 // silently miss its target and never invalidate anything. A hint whose
 // relation normalizes to empty is skipped outright, same as a fact whose
 // own relation does.
-func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, resolvedEntities map[string]string, stats *Stats) error {
+func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, declared map[string]bool, resolvedEntities map[string]string, stats *Stats) error {
 	raw := normalizeRelation(ref.Relation)
 	if raw == "" {
 		return nil
@@ -587,9 +587,16 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, reso
 	if err != nil {
 		return err
 	}
-	if !srcKnown && IsValueName(src) && dstKnown && relation != RelStatus {
+	_, exactSrc := exactEstablishedIdentity(st, src)
+	_, exactDst := exactEstablishedIdentity(st, dst)
+	srcDeclared := resolvedEntities[store.Normalize(src)] != ""
+	dstDeclared := resolvedEntities[store.Normalize(dst)] != ""
+	srcIsValue := (!srcKnown && (IsValueName(src) || untrustedStatusShape(src))) || (!srcDeclared && !exactSrc && declaredValue(st, declared, src))
+	dstIsValue := (!dstKnown && (IsValueName(dst) || untrustedStatusShape(dst))) || (!dstDeclared && !exactDst && declaredValue(st, declared, dst))
+	if srcIsValue && !dstIsValue && relation != RelStatus {
 		src, dst = dst, src
 		srcKnown, dstKnown = dstKnown, false
+		srcIsValue, dstIsValue = false, true
 	}
 	if relation == RelStatus && dstKnown {
 		relation = RelRelatedTo
@@ -603,7 +610,7 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, reso
 		return nil
 	}
 	var keyDst string
-	if (relation == RelStatus && !dstKnown) || (!dstKnown && IsValueName(dst)) {
+	if (relation == RelStatus && !dstKnown) || dstIsValue {
 		keyDst = store.AttrDst(dst)
 	} else {
 		dstSlug, err := resolveSlugOnly(st, dst, resolvedEntities)

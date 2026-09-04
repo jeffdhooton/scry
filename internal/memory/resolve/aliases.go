@@ -116,7 +116,10 @@ func neverAlias(alias string) bool {
 	if referenceWords[n] || isDeterminerPhrase(n) || ordinalPhrase(n) {
 		return true
 	}
-	if isEphemeralName(n) || isGenericAlias(n) || isGenericEntityName(n) || IsValueName(n) {
+	// An alias has no future episode declaration to disambiguate it. Refuse
+	// ambiguous status shapes as routing keys; a durable identifier with the
+	// same spelling can still exist as an exact, context-declared entity name.
+	if isEphemeralName(n) || isGenericAlias(n) || isGenericEntityName(n) || untrustedStatusShape(n) {
 		return true
 	}
 	if mangledPath(strings.TrimSpace(alias)) {

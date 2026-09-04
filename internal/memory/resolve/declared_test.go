@@ -339,6 +339,63 @@ func TestSupersedesResolvesEstablishedStatusShapedIdentities(t *testing.T) {
 	}
 }
 
+func TestSupersedesResolvesContextDeclaredAmbiguousValues(t *testing.T) {
+	for i, value := range []string{"validation_failed", "DONE_WITH_CONCERNS"} {
+		st := openTemp(t)
+		at := time.Now().Add(-time.Hour)
+		first := store.Episode{ID: fmt.Sprintf("ep-value-first-%d", i), Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+		initial := extract.Result{
+			Entities: []extract.Ent{{Name: "Scry", Type: "project"}, {Name: value, Type: "value"}},
+			Facts:    []extract.Fct{{Src: "Scry", Relation: "reports", Dst: value, Fact: "old status", Confidence: .9}},
+		}
+		if _, err := Apply(st, first, "", initial, nil); err != nil {
+			t.Fatal(err)
+		}
+		ep := store.Episode{ID: fmt.Sprintf("ep-supersedes-value-%d", i), Source: "manual", SourceRef: "x", OccurredAt: at.Add(time.Minute), IngestedAt: at.Add(time.Minute)}
+		result := extract.Result{
+			Entities: []extract.Ent{{Name: "Replacement", Type: "concept"}, {Name: value, Type: "value"}},
+			Facts: []extract.Fct{{Src: "Replacement", Relation: "related_to", Dst: "Scry", Fact: "replacement observation", Confidence: .9,
+				Supersedes: &extract.SupRef{Src: "Scry", Relation: "reports", Dst: value}}},
+		}
+		stats, err := Apply(st, ep, "", result, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		facts, err := st.FactsFrom("scry", true)
+		if stats.FactsInvalidated != 1 || err != nil || len(facts) != 1 || facts[0].InvalidAt == nil {
+			t.Errorf("declared value %q was not superseded: stats=%+v facts=%+v err=%v", value, stats, facts, err)
+		}
+	}
+}
+
+func TestAmbiguousStatusAliasCannotPoisonLaterFactRouting(t *testing.T) {
+	st := openTemp(t)
+	for i := 0; i < 2; i++ {
+		at := time.Now().Add(time.Duration(i) * time.Minute)
+		ep := store.Episode{ID: fmt.Sprintf("ep-status-alias-%d", i), Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+		result := extract.Result{Entities: []extract.Ent{{Name: "validation failed handler", Type: "service", Aliases: []string{"validation_failed"}}}}
+		if _, err := Apply(st, ep, "", result, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if owner, found, err := st.ResolveAlias("validation_failed"); err != nil || found {
+		t.Fatalf("ambiguous status alias became a routing key: owner=%q found=%v err=%v", owner, found, err)
+	}
+	at := time.Now().Add(3 * time.Minute)
+	ep := store.Episode{ID: "ep-status-alias-fact", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}
+	result := extract.Result{
+		Entities: []extract.Ent{{Name: "Scry", Type: "project"}},
+		Facts:    []extract.Fct{{Src: "Scry", Relation: "reports", Dst: "validation_failed", Fact: "Scry reports validation failed", Confidence: .9}},
+	}
+	if _, err := Apply(st, ep, "", result, nil); err != nil {
+		t.Fatal(err)
+	}
+	facts := mustFacts(t, st, "scry")
+	if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != "validation_failed" {
+		t.Errorf("ambiguous status alias poisoned fact routing: %+v", facts)
+	}
+}
+
 func TestArtifactVetoPrecedesBranchAndStatusSpelling(t *testing.T) {
 	st := openTemp(t)
 	names := []string{"/usr/bin/true", "/usr/bin/false", "/usr/bin/open", "/usr/bin/head", "/usr/bin/yes", "release/mac-arm64"}
