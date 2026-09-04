@@ -1630,8 +1630,8 @@ shape. Fact text, relation, raw relation, validity, timestamps, confidence,
 and episode provenance are immutable. Copy expected into the manifest after
 the completed dry run. Apply refuses incomplete review, snapshot drift,
 missing endpoints, self-loops, duplicate keys, or external alias listings.
-It preflights the whole manifest, takes a nonempty backup, and commits each
-independent entity plus all its facts and aliases in one transaction.
+It preflights the whole manifest, takes a nonempty backup, and commits the
+entire manifest plus all its facts and aliases in one transaction.
 An externally listed spelling requires rehome_aliases with an explicit target
 that already lists it; no recipient is inferred.
 
@@ -1701,34 +1701,24 @@ that already lists it; no recipient is inferred.
 				return printJSON(result, pretty)
 			}
 
-			backupPath := filepath.Join(filepath.Dir(dir), "backups", "memory-pre-retirement-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
-			if err := os.MkdirAll(filepath.Dir(backupPath), 0o755); err != nil {
-				return err
-			}
-			backup, err := os.Create(backupPath)
+			backupPath, backup, err := createOfflineRetirementBackup(filepath.Join(filepath.Dir(dir), "backups", "memory-pre-retirement-"+time.Now().UTC().Format("20060102T150405Z")+".badger"))
 			if err != nil {
 				return err
 			}
-			if _, err := st.Backup(backup); err != nil {
-				backup.Close()
-				return err
+			backupBytes, previews, applyErr := st.BackupAndRetireEntities(backup, groups)
+			if backupBytes == 0 || previews == nil {
+				_ = os.Remove(backupPath)
 			}
-			if err := backup.Close(); err != nil {
-				return err
+			if applyErr != nil {
+				return fmt.Errorf("retire-entities offline manifest aborted atomically (backup %s): %w", backupPath, applyErr)
 			}
 			info, err := os.Stat(backupPath)
-			if err != nil || info.Size() == 0 {
+			if err != nil || info.Size() == 0 || uint64(info.Size()) != backupBytes {
 				return fmt.Errorf("retire-entities: backup is missing or empty at %s", backupPath)
 			}
 			result.BackupPath = backupPath
-			for i, group := range groups {
-				preview, err := st.RetireEntity(group)
-				if err != nil {
-					return fmt.Errorf("retire-entities offline group %s aborted after %d committed group(s) (backup %s): %w", group.ID, result.Applied, backupPath, err)
-				}
-				result.Groups[i] = preview
-				result.Applied++
-			}
+			result.Groups = previews
+			result.Applied = len(previews)
 			pretty, _ := cmd.Flags().GetBool("pretty")
 			return printJSON(result, pretty)
 		},
@@ -1737,4 +1727,24 @@ that already lists it; no recipient is inferred.
 	cmd.Flags().String("dir", "", "run against an offline restored store directory instead of the daemon")
 	cmd.Flags().Bool("apply", false, "apply every preflighted group after taking a backup")
 	return cmd
+}
+
+func createOfflineRetirementBackup(path string) (string, *os.File, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return "", nil, err
+	}
+	base := strings.TrimSuffix(path, ".badger")
+	for suffix := 0; ; suffix++ {
+		candidate := path
+		if suffix > 0 {
+			candidate = fmt.Sprintf("%s-%d.badger", base, suffix)
+		}
+		backup, err := os.OpenFile(candidate, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+		if err == nil {
+			return candidate, backup, nil
+		}
+		if !os.IsExist(err) {
+			return "", nil, err
+		}
+	}
 }
