@@ -1088,3 +1088,126 @@ established-entity guard, and the lexical floor for undeclared names. The
 measurement that matters, the share of value entities the model catches that
 the rules miss, has to wait for credit. That is a real gap in the evidence and
 is recorded as one.
+
+## Round twelve
+
+Two fresh graders, both returning FAIL, and the values grader caught a
+data-loss bug in the change shipped an hour earlier.
+
+### The value type would have deleted real entities
+
+`305b8c8`'s prompt called a file path and a ticket id values and closed with
+"when in doubt between value and another type, choose value". The resolver
+obeyed. In the grader's constructed case five real identities were dropped and
+`issue-91 fixed_by PR-402` was deleted outright, because a fact whose two
+endpoints are both values is dropped rather than kept.
+
+| class | live entities | current facts on them |
+|---|---|---|
+| file-path-shaped | 2,038 | 5,104 |
+| ticket / run id | 376 | 1,269 |
+
+Existing entities survived only through the `ResolveAlias` grandfather clause.
+The grader's phrase for that — "grandfathered, not correct" — is right.
+
+`39d16ff` fixes both halves. The prompt now calls a path, directory, ticket
+and pull request things and says *not* to choose value in doubt. The resolver
+stops taking the prompt's word for it: `namesAnArtifact` vetoes a value verdict
+on anything shaped like a file or a ticket, whatever the model said. The veto
+is narrow on purpose and `TestAValueVerdictOnAPlainNameIsStillHonoured` pins
+what it does not cover.
+
+### What else the values grader measured
+
+- **39 distinct relations on current facts, exactly `resolve.Canonical`,** none
+  outside it and none unused. Item 4's vocabulary half passes. Its caveat is
+  fair: `DECISIONS.md` records the decision, not the enumeration, and 13 of the
+  39 names appear nowhere in it.
+- **Run-probe ids: 17 → 0.** Closed.
+- Still open: 44 status-valued entities (16 carrying facts), 13 colon-bound
+  settings, 13 measurements, 6 code positions.
+- **7 of 176 independently chosen real names wrongly rejected (4.0%).**
+
+Two of those false-positive families closed this round. A dotted word after a
+shell verb was read as a path argument, refusing eight tool names — `Python
+3.13 shim`, `Go 1.23 toolchain`, `curl 8.11 HTTP3` — two of which are phrases
+from this repo's own `CLAUDE.md`; a version number may now name a tool. And a
+capitalised title opening on a state word was read as a verdict: `Ready Player
+One` survives now, while `Ready With Caveats` correctly does not, because a
+verdict keeps its vocabulary past its first word. Colon-bound settings
+(`think:false`, `onDelete: set null`) join the equals-sign spelling as values.
+
+`names_guard_test.go` now pins both directions in one test. Every round that
+fixed one direction has cost the other, and measuring them apart is how that
+kept happening.
+
+### The identities grader
+
+Three of its six assertions hold: the three entities are separate, Qwen holds
+no gpt-oss aliases, and there are zero cross-type collisions at the
+alias-index key *and* at the alias-list level. All three admission holes
+earlier rounds found are closed on live data — 0 of 18,582 aliases refused by
+`leakReason` or `RevalidateAliases`.
+
+Three fail. 81 facts remain misfiled on `hermes-ops` (69 the Hermes agent, 12
+the Mac mini). Hygiene still reports 315 cross-type collisions and is
+converged, so it will never fix them. And the merge gate merged across types
+whenever the loser was a concept.
+
+**The "only the index key matters" defence is withdrawn.** The grader produced
+the counterexample: `machine:qwen3-8-27b-uncensored-q5` and
+`tool:qwen38-27b-uncensored-q5` are the same model, fold to one key, share no
+index key, and a recall for the model's exact name returns all eight facts
+from one twin and none from the other. That is a wrong recall caused by a
+folding-level collision. The argument does not survive contact with it.
+
+`7f4a991` closes the merge gate's concept side. `TypesCompatible` granted
+concept a wildcard while `sameKind` in the audit denied it — a contradiction,
+and concepts are 51% of the store, so it was the majority case. Admission now
+refuses when the concept holds facts of its own (moving the index orphans
+them; the grader found 429 aliases in that state) and still allows promotion
+of an empty stub.
+
+### Two incidents
+
+`git add -A` swept both graders' scratch directories into commits, including a
+**317 MB backup of the private memory store**. Purged with `filter-branch`
+over the four unpushed commits; `.git` went from 200 MB to 3.5 MB and nothing
+was pushed. Both directories are now in `.gitignore`.
+
+The same grader noticed `~/.scry/backups` full of **44-byte files** — five on
+the laptop, three on the mini. `Store.Backup` reported success while capturing
+nothing, which made the house rule "every migration takes a backup first and
+can be rolled back from it" false for those runs. It now fails when a store
+holding data writes no more than a header. The next real backup measured
+107,068,968 bytes.
+
+### Items re-measured
+
+**Item 2**, under today's builds with both providers genuinely refusing: 20 of
+20 remembers accepted through the real `scry mcp` path, p50 137 ms, **p95 149
+ms**, the queue grew by exactly 20, 0 parked, 0 dead-letter files.
+
+**Item 6, first clause: holds.** 71 `kimi-session` and 32 `opencode-session`
+episodes are in the store, produced by the sweep, with 1,504 facts tracing
+back to them. The audit's original finding — "Kimi and OpenCode contribute
+only through explicit remembers" — no longer stands.
+
+**Item 6, second clause: fails.** `orient` surfaced a fact from those sessions
+in 1 of 5 repos those sessions touched. Diagnosis first: their episodes are
+recent, not stale (median 2026-08-23 against claude's 08-17), every fact has a
+`valid_from`, and the entities carry repo refs — so none of the three obvious
+causes held. What was true is that both facts `orient` shows for an entity came
+from **the same episode 54% of the time**, so one long session spoke twice
+while another went unheard. `b2d6ad2` prefers a fact from an episode not
+already quoted. That moved 1 of 5 to 2 of 5 — a real gain, honestly short of
+the clause.
+
+### Item 1's zero-socket-error clause
+
+Restarting the daemon mid-sweep produced **54 errors** ("DB Closed", "daemon
+closed connection"), one per transcript in flight. `3f9fbb6` retries three
+times, two seconds apart, on the three shapes that mean a restart rather than
+an answer, which is safe here because enqueue dedupes on episode id, commit is
+idempotent by episode id, and a cursor put is a set. Repeating the identical
+action afterwards produced **0**.

@@ -2484,3 +2484,58 @@ loosening argument in the round-seven entry can be revisited with real data.
 no episode has been extracted under the new prompt. Four table tests in
 `declared_test.go` cover the mechanism; none of them is evidence about the
 model's judgement. Recorded in the audit as a gap, not as a result.
+
+## The write path's alias test cannot be run over stored aliases (2026-09-03)
+
+**Decision.** `Hygiene` does not call `namedByKindWords` on aliases already in
+the store. Admission keeps it; cleanup does not get it. The 81 facts misfiled
+on `hermes-ops` stay misfiled for now.
+
+**Why it looked right.** The identities grader observed that `hermes-ops`, a
+project, still holds `Hermes tmux`, `Hermes Slack gateway` and `Jeff's own
+Hermes` — the three aliases `hygiene.go`'s own comment names as the defect it
+exists to fix — and that hygiene reports `reattached=0`. Admission refuses all
+three today, with the reason `names hermes (its name plus kind words)`. A rule
+that exists, works, and agrees with the write path, simply never asked of
+stored data: the obvious fix is to ask.
+
+**What the measurement said.** Against a replica restored from a live backup
+(21,187 entities, 53,117 facts — identical to live), hygiene as it stands
+reports 0 splits and 0 reattachments. With `namedByKindWords` applied to
+stored aliases it reports **6,027 aliases split and 674 facts reattached**. A
+random sample of 30, hand-judged:
+
+```
+unmount behavior      → behavior
+payment rows          → payment
+gateway epic          → epic
+subprotocol handshake → subprotocol
+facilities concept    → concept
+AI activity metering  → activity
+REQUEST_TIMEOUT_MS    → timeout
+0330_charge_evidence.sql → charge
+```
+
+Almost none are right. Adding a `distinctiveName` guard on the recipient moved
+6,153 to 6,027 — two per cent — so the guard is not the missing piece.
+
+**Why the rule inverts at scale.** `namedByKindWords` asks whether an alias is
+some other entity's name plus a kind word. At admission that question is asked
+once, about one new alias, and the store is the authority. Over 18,582 stored
+aliases the store is also the *problem*: it has accumulated thousands of
+generic one-word entities — `behavior`, `epic`, `message`, `concept`,
+`timeout`, `payment` — and against that population nearly every compound alias
+reads as "that entity plus kind words". The test's precision depends on the
+store being clean, which is what it was meant to establish.
+
+**What would change our minds.** A version that requires the named entity to
+be a proper name rather than a common noun, measured the same way, on the same
+replica, and sampled by hand before anything touches the live store. The bar
+is precision in a hand-judged sample, not the size of the number. This is the
+third store-scale alias change to be built, measured, and thrown away — after
+the alias transfer and the entity prune — and all three failed the same way:
+plausible on one example, wrong in bulk. Build the replica first next time.
+
+**What stays broken.** 81 facts on `hermes-ops` belong to the Hermes agent
+(69) or the Mac mini (12); the audit does not count them and no pass moves
+them. Recorded as an open failure of done-bar item 5 rather than closed.
