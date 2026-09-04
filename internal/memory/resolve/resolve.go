@@ -54,6 +54,10 @@ type Stats struct {
 	// values (a number related to a status word says nothing about any
 	// entity).
 	FactsRejected int
+	// ValuesRejected counts entities the extraction model itself typed as
+	// values, so the share of the judgement the model is carrying is
+	// visible rather than inferred.
+	ValuesRejected int
 }
 
 // Apply resolves res into st's entities and facts, attributing everything to
@@ -89,15 +93,17 @@ func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result
 		return Stats{}, nil
 	}
 
-	// Rule 2: entities.
+	// Rule 2: entities. The model's own "value" verdicts are collected
+	// first so a fact endpoint gets the same answer the entity list did.
+	declared := DeclaredValues(res.Entities)
 	for _, ent := range res.Entities {
-		if err := resolveEntity(st, ep, cwd, ent, &stats); err != nil {
+		if err := resolveEntity(st, ep, cwd, ent, declared, &stats); err != nil {
 			return stats, err
 		}
 	}
 
 	// Rules 3-6: facts.
-	if err := resolveFacts(st, ep, res.Facts, exclusive, &stats); err != nil {
+	if err := resolveFacts(st, ep, res.Facts, exclusive, declared, &stats); err != nil {
 		return stats, err
 	}
 
@@ -111,11 +117,15 @@ func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result
 }
 
 // resolveEntity implements Rule 2 for a single extracted entity.
-func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, stats *Stats) error {
+func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.Ent, declared map[string]bool, stats *Stats) error {
 	// A run artifact is not an identity. Storing one pollutes recall forever
 	// and can never be usefully recalled later. Neither is a value: "main",
 	// "in-progress", and "46 GiB" describe things, they are not things.
 	if isEphemeralName(ent.Name) || isGenericEntityName(ent.Name) || IsValueName(ent.Name) {
+		return nil
+	}
+	if declaredValue(st, declared, ent.Name) {
+		stats.ValuesRejected++
 		return nil
 	}
 	slug, found, err := st.ResolveAlias(ent.Name)
@@ -263,7 +273,7 @@ func (rf resolvedFact) keyDst() string {
 // restatement of the old target would invalidate-then-recreate the old
 // fact from scratch instead of merging onto it, losing its provenance and
 // confidence history.
-func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclusive map[string]bool, stats *Stats) error {
+func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclusive map[string]bool, declared map[string]bool, stats *Stats) error {
 	// Rule 3: resolve every fact's endpoints (creating concept stubs as
 	// needed) and ValidFrom up front. Relation is normalized (see
 	// normalizeRelation) before anything else touches it: facts whose
@@ -296,8 +306,8 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		// process vocabulary) must not become a node: before this, a fact
 		// endpoint bypassed the entity checks entirely and
 		// "setpoint-wt-lpj7ikz0 worktree" became an entity.
-		srcIsValue := NotAnIdentity(fct.Src)
-		dstIsValue := NotAnIdentity(fct.Dst)
+		srcIsValue := NotAnIdentity(fct.Src) || declaredValue(st, declared, fct.Src)
+		dstIsValue := NotAnIdentity(fct.Dst) || declaredValue(st, declared, fct.Dst)
 		if relation == RelStatus {
 			// "status" almost always points at a state word, and those are
 			// attributes. When it points at a real identity the model meant
