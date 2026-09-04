@@ -13,9 +13,9 @@ import (
 // value or failed to give a documented identity type. An unknown type is not
 // affirmative identity evidence and therefore cannot open the fact-endpoint
 // path around resolveEntity. Keys are store.Normalize'd so a fact endpoint
-// matches the entity's exact name.
-// Aliases are intentionally excluded: one value declaration must not poison
-// a separately declared identity that happens to share one of its aliases.
+// matches the entity's exact name or one of its explicitly supplied aliases.
+// A separately declared or previously established exact identity still wins
+// at the call site, so a value alias cannot demote a real identity.
 //
 // The lexical rules in values.go work on the name alone, which is all they
 // have. The model read the episode, so it can tell "main" the branch from
@@ -25,6 +25,12 @@ import (
 // model that forgets to use it.
 func DeclaredValues(ents []extract.Ent) map[string]bool {
 	var out map[string]bool
+	declaredIdentities := make(map[string]bool, len(ents))
+	for _, ent := range ents {
+		if trustedIdentityType(ent) {
+			declaredIdentities[store.Normalize(ent.Name)] = true
+		}
+	}
 	for _, ent := range ents {
 		if ent.Type != "value" && (trustedIdentityType(ent) || !untrustedStatusShape(ent.Name)) {
 			continue
@@ -33,6 +39,13 @@ func DeclaredValues(ents []extract.Ent) map[string]bool {
 			out = map[string]bool{}
 		}
 		out[store.Normalize(ent.Name)] = true
+		if ent.Type == "value" {
+			for _, alias := range ent.Aliases {
+				if normalized := store.Normalize(alias); normalized != "" && !declaredIdentities[normalized] {
+					out[normalized] = true
+				}
+			}
+		}
 	}
 	return out
 }

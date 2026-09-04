@@ -119,7 +119,7 @@ func neverAlias(alias string) bool {
 	// An alias has no future episode declaration to disambiguate it. Refuse
 	// ambiguous status shapes as routing keys; a durable identifier with the
 	// same spelling can still exist as an exact, context-declared entity name.
-	if isEphemeralName(n) || isGenericAlias(n) || isGenericEntityName(n) || untrustedStatusShape(n) {
+	if isEphemeralName(n) || isGenericAlias(n) || isGenericEntityName(n) || untrustedStatusShape(alias) {
 		return true
 	}
 	if mangledPath(strings.TrimSpace(alias)) {

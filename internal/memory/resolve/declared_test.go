@@ -9,7 +9,7 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
-func TestDeclaredValuesCollectsExactNamesNotAliases(t *testing.T) {
+func TestDeclaredValuesCollectsNamesAndExplicitValueAliases(t *testing.T) {
 	got := DeclaredValues([]extract.Ent{
 		{Name: "Loom", Type: "project"},
 		{Name: "46 GiB", Type: "value"},
@@ -23,8 +23,58 @@ func TestDeclaredValuesCollectsExactNamesNotAliases(t *testing.T) {
 	if got[store.Normalize("Loom")] {
 		t.Error("a project must not be collected as a value")
 	}
-	if got[store.Normalize("workflow-stage")] {
-		t.Error("a value alias must not poison a separately declared exact identity")
+	if !got[store.Normalize("workflow-stage")] {
+		t.Error("an explicit value alias must be available to classify fact endpoints")
+	}
+}
+
+func TestParsedShoutedStatusAliasesNeverBecomeRoutingKeys(t *testing.T) {
+	for _, status := range []string{"DONE_WITH_CONCERNS", "DIRTY_WORKING_TREE"} {
+		st := openTemp(t)
+		for i := 0; i < 2; i++ {
+			parsed, err := extract.ParseResult(fmt.Sprintf(`{"episode_summary":"alias attestation","entities":[{"name":"review concern handler","type":"service","description":"review service","aliases":[%q]}],"facts":[]}`, status))
+			if err != nil {
+				t.Fatal(err)
+			}
+			at := time.Unix(int64(100+i), 0).UTC()
+			if _, err := Apply(st, store.Episode{ID: fmt.Sprintf("alias-%s-%d", status, i), Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", parsed, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if owner, found, err := st.ResolveAlias(status); err != nil || found {
+			t.Fatalf("shouted status %q became routing alias: owner=%q found=%v err=%v", status, owner, found, err)
+		}
+		parsed, err := extract.ParseResult(fmt.Sprintf(`{"episode_summary":"status report","entities":[{"name":"scry","type":"project","description":"memory system"}],"facts":[{"src":"scry","relation":"reports","dst":%q,"fact":"run status","confidence":0.9}]}`, status))
+		if err != nil {
+			t.Fatal(err)
+		}
+		at := time.Unix(103, 0).UTC()
+		if _, err := Apply(st, store.Episode{ID: "report-" + status, Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", parsed, nil); err != nil {
+			t.Fatal(err)
+		}
+		facts := mustFacts(t, st, "scry")
+		if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != status {
+			t.Fatalf("shouted status %q did not remain an attribute: %+v", status, facts)
+		}
+	}
+}
+
+func TestParsedExplicitValueAliasClassifiesFactEndpoint(t *testing.T) {
+	st := openTemp(t)
+	parsed, err := extract.ParseResult(`{"episode_summary":"completion report","entities":[{"name":"scry","type":"project","description":"memory system"},{"name":"completion_state","type":"value","description":"run state","aliases":["current_completion"]}],"facts":[{"src":"scry","relation":"reports","dst":"current_completion","fact":"current completion was reported","confidence":0.9}]}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := time.Unix(110, 0).UTC()
+	if _, err := Apply(st, store.Episode{ID: "value-alias", Source: "manual", SourceRef: "x", OccurredAt: at, IngestedAt: at}, "", parsed, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, found, err := st.ResolveAlias("current_completion"); err != nil || found {
+		t.Fatalf("value alias became entity: found=%v err=%v", found, err)
+	}
+	facts := mustFacts(t, st, "scry")
+	if len(facts) != 1 || facts[0].Dst != "" || facts[0].Value != "current_completion" {
+		t.Fatalf("value alias endpoint did not become attribute: %+v", facts)
 	}
 }
 
