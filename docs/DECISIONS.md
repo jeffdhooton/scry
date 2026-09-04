@@ -2767,12 +2767,46 @@ permanent — every session on the machine, in full, at rest, indefinitely. A
 certain privacy cost for an unmeasured retrieval gain is the wrong trade to
 make on someone else's behalf.
 
-**What would change our minds.** A cheap experiment that does not touch
-retention: take the transcripts already on disk under `~/.claude/projects`,
-`~/.codex/sessions` and the rest, build a throwaway embedding from them
-offline, and measure `heldout-b` against it. If the score moves materially,
-the trade becomes a real question with a number attached. If it does not, this
-decision was right for a second reason and the matter closes.
+**The experiment was run.** It does not touch retention: read the transcripts
+already on disk under `~/.claude/projects` and `~/.codex/sessions`, build a
+throwaway model from them offline, and measure where the answering fact ranks
+by vector similarity. `internal/memory/search/transcript_corpus_experiment_test.go`
+is it, skipped unless `SCRY_REPLICA` and `SCRY_QUESTIONS` are set.
+
+124.6 MB of transcript against 46,463 current facts, on `heldout-b`, counting
+how many of the 66 answering facts rank inside each cut-off by vector
+similarity alone:
+
+| cut-off | facts and summaries only | with transcripts |
+|---|---|---|
+| top 20 | 11 | 8 |
+| top 50 | 16 | 11 |
+| top 100 | 18 | 16 |
+| top 500 | 25 | 24 |
+| top 2000 | 35 | 33 |
+
+**Worse at every depth.** A hundredfold more text made the model slightly
+worse at finding the fact that answers the question.
+
+A first run was far more dramatic — 11 down to 2 at top-20 — and that turned
+out to be a packaging artifact worth recording. Each transcript file was one
+enormous document, so nearly every term appeared in nearly every document, and
+the inverse-document-frequency weights flattened to nothing. Chunking the
+transcripts to roughly the size of a fact, which is the fair comparison, gives
+the table above. The lesson generalises: when a corpus of one-sentence facts is
+mixed with anything, the documents have to be comparable in size or the
+weights measure the packaging.
+
+**Two limits on this result, stated rather than buried.** It measures vector
+similarity alone, not the lexical-plus-vector ranking recall actually uses; and
+it measures random indexing, not embeddings in general. A trained embedding
+model might do what this cannot. What it does settle is the specific trade that
+was on the table — retain transcripts so *this* model has more to learn from —
+and the answer is that it would cost storage and privacy for nothing.
+
+Worth noting alongside: vector similarity alone finds 11 of 66 answers in its
+top 20 where the lexical index finds 35. That is consistent with the earlier
+decision to keep the vector model as a re-ranker and not a retriever.
 
 **Item 3 stands where it stands.** It meets the bar on questions phrased in
 the store's own vocabulary and falls short on questions phrased in the user's,
