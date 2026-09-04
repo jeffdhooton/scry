@@ -151,6 +151,9 @@ type Cursor struct {
 // Store is an open BadgerDB-backed handle on the global memory store.
 type Store struct {
 	db *badger.DB
+	// maintenanceMu lets backup-coupled maintenance hold an exclusive
+	// rollback boundary while ordinary store mutations take the shared side.
+	maintenanceMu sync.RWMutex
 
 	obsMu    sync.RWMutex
 	observer func(Event)
@@ -222,6 +225,8 @@ func (s *Store) schemaVersionOnDisk() (int, error) {
 // --- Episodes ---
 
 func (s *Store) PutEpisode(e Episode) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	b, err := json.Marshal(e)
 	if err != nil {
 		return err
@@ -310,6 +315,8 @@ func (s *Store) AllEpisodes() ([]Episode, error) {
 // that the new version no longer claims is deleted, but only while that key
 // still points at e.Slug.
 func (s *Store) PutEntity(e Entity) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	b, err := json.Marshal(e)
 	if err != nil {
 		return err
@@ -574,8 +581,10 @@ func adjKey(dst, src, relation string, validFrom time.Time) []byte {
 // An attribute fact has no reverse index: a value is not a node anyone
 // traverses to.
 func (s *Store) PutFact(f Fact) error {
-	if f.Dst == "" && f.Value == "" {
-		return fmt.Errorf("memory: fact %s -[%s]-> has neither dst nor value", f.Src, f.Relation)
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
+	if (f.Dst == "") == (f.Value == "") {
+		return fmt.Errorf("memory: fact %s -[%s]-> must have exactly one of dst or value", f.Src, f.Relation)
 	}
 	b, err := json.Marshal(f)
 	if err != nil {
@@ -716,6 +725,8 @@ func (s *Store) AllFacts() ([]Fact, error) {
 // validFrom) and sets its InvalidAt timestamp. dst is the key slot: the
 // entity slug for an edge, Fact.KeyDst() for an attribute fact.
 func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Time) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	key := factKey(src, relation, dst, validFrom)
 	var updated Fact
 	err := s.db.Update(func(txn *badger.Txn) error {
@@ -758,6 +769,8 @@ func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Tim
 // value first, DeleteFact the old key, then PutFact the new one. Returns
 // ErrNotFound if no such fact exists.
 func (s *Store) DeleteFact(src, relation, dst string, validFrom time.Time) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	key := factKey(src, relation, dst, validFrom)
 	err := s.db.Update(func(txn *badger.Txn) error {
 		if _, err := txn.Get(key); err != nil {
@@ -810,6 +823,8 @@ func (s *Store) GetCursor(path string) (Cursor, bool, error) {
 }
 
 func (s *Store) PutCursor(c Cursor) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	b, err := json.Marshal(c)
 	if err != nil {
 		return err
@@ -896,6 +911,12 @@ func Slugify(name string) string {
 // returns the number of bytes written. It runs against the live database,
 // so the daemon can take one before a migration without stopping.
 func (s *Store) Backup(w io.Writer) (uint64, error) {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
+	return s.backupUnlocked(w)
+}
+
+func (s *Store) backupUnlocked(w io.Writer) (uint64, error) {
 	episodes, entities, facts, err := s.Counts()
 	if err != nil {
 		return 0, err
@@ -936,6 +957,8 @@ func (c *countingWriter) Write(p []byte) (int, error) {
 // schema marker is re-checked afterwards so a restored store from the same
 // schema version opens cleanly.
 func (s *Store) Restore(r io.Reader) error {
+	s.maintenanceMu.Lock()
+	defer s.maintenanceMu.Unlock()
 	if err := s.db.DropAll(); err != nil {
 		return fmt.Errorf("wipe before restore: %w", err)
 	}
@@ -949,6 +972,8 @@ func (s *Store) Restore(r io.Reader) error {
 // it. Facts are untouched: a migration that retires an entity relocates or
 // invalidates its facts first. Deleting a missing entity is not an error.
 func (s *Store) DeleteEntity(slug string) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	err := s.db.Update(func(txn *badger.Txn) error {
 		prev, err := getEntityTxn(txn, slug)
 		if errors.Is(err, ErrNotFound) {
@@ -976,6 +1001,8 @@ func (s *Store) DeleteEntity(slug string) error {
 // ClaimAlias points al:<Normalize(name)> at slug unconditionally. Hygiene
 // uses it after deciding which of several entities keeps a shared alias.
 func (s *Store) ClaimAlias(name, slug string) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	norm := Normalize(name)
 	if norm == "" {
 		return nil
@@ -1001,6 +1028,8 @@ func (s *Store) DropAlias(slug, alias string) (bool, error) {
 // already lists the spelling. This is the reviewed repair path for legacy
 // stores where the entity list and alias index disagree.
 func (s *Store) DropAliasRehome(slug, alias, rehomeTo string) (bool, error) {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	norm := Normalize(alias)
 	if norm == "" {
 		return false, nil
@@ -1078,6 +1107,8 @@ func (s *Store) DropAliasRehome(slug, alias, rehomeTo string) (bool, error) {
 // until its key is free, so both facts survive with their own text and
 // their own validity. The old key is deleted either way.
 func (s *Store) RelocateFact(old, updated Fact) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	oldKey := factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom)
 	newKey := factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
 	if string(oldKey) == string(newKey) {

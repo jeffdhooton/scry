@@ -62,6 +62,8 @@ type PendingEpisode struct {
 
 // PutPending writes or replaces a pending episode.
 func (s *Store) PutPending(p PendingEpisode) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	b, err := json.Marshal(p)
 	if err != nil {
 		return err
@@ -107,6 +109,8 @@ func (s *Store) HasPending(id string) (bool, error) {
 // DeletePending removes id from the queue. Deleting a missing id is not an
 // error: the worker may race a manual retry.
 func (s *Store) DeletePending(id string) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	return s.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(prefixPending + id))
 	})
@@ -168,6 +172,8 @@ func (s *Store) PendingCounts(now time.Time) (ready, backoff, parked int, err er
 
 // PutMetaTime stores t under meta:<key> as RFC3339Nano.
 func (s *Store) PutMetaTime(key string, t time.Time) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	return s.db.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixMeta+key), []byte(t.UTC().Format(time.RFC3339Nano)))
 	})
@@ -196,6 +202,8 @@ func (s *Store) GetMetaTime(key string) (t time.Time, found bool, err error) {
 
 // PutMetaJSON stores v as JSON under meta:<key>.
 func (s *Store) PutMetaJSON(key string, v any) error {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -236,6 +244,8 @@ const maxAttestations = 8
 // AttestAlias records that episodeID claimed alias norm for slug and
 // returns the number of distinct episodes that have done so.
 func (s *Store) AttestAlias(slug, norm, episodeID string) (int, error) {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	key := []byte(prefixAttest + slug + ":" + norm)
 	var eps []string
 	err := s.db.Update(func(txn *badger.Txn) error {

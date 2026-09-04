@@ -541,14 +541,7 @@ func (d *Daemon) handleMemoryBackup(_ context.Context, raw json.RawMessage) (any
 	if err != nil {
 		return nil, err
 	}
-	path := p.Path
-	if path == "" {
-		path = filepath.Join(d.scryHome(), "backups", "memory-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return nil, err
-	}
-	f, err := os.Create(path)
+	path, f, err := d.createMemoryBackupFile(p.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -562,6 +555,35 @@ func (d *Daemon) handleMemoryBackup(_ context.Context, raw json.RawMessage) (any
 	}
 	log.Printf("memory: backup written to %s (%d bytes)", path, n)
 	return &MemoryBackupResult{Path: path, Bytes: n}, nil
+}
+
+// createMemoryBackupFile never overwrites a rollback point. Automatic names
+// retain the readable second-resolution base and add a numeric suffix when
+// another backup already exists in that second. Explicit existing paths are
+// refused rather than truncated.
+func (d *Daemon) createMemoryBackupFile(requested string) (string, *os.File, error) {
+	path := requested
+	automatic := path == ""
+	if automatic {
+		path = filepath.Join(d.scryHome(), "backups", "memory-"+time.Now().UTC().Format("20060102T150405Z")+".badger")
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return "", nil, err
+	}
+	base := strings.TrimSuffix(path, ".badger")
+	for suffix := 0; ; suffix++ {
+		candidate := path
+		if suffix > 0 {
+			candidate = fmt.Sprintf("%s-%d.badger", base, suffix)
+		}
+		f, err := os.OpenFile(candidate, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+		if err == nil {
+			return candidate, f, nil
+		}
+		if !automatic || !os.IsExist(err) {
+			return "", nil, err
+		}
+	}
 }
 
 // --- memory.migrate ---

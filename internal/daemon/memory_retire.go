@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
@@ -67,19 +68,20 @@ func (d *Daemon) handleMemoryRetireEntities(_ context.Context, raw json.RawMessa
 		return result, nil
 	}
 
-	backup, err := d.handleMemoryBackup(context.Background(), nil)
+	backupPath, backupFile, err := d.createMemoryBackupFile("")
 	if err != nil {
 		return nil, fmt.Errorf("retire-entities: backup first: %w", err)
 	}
-	result.BackupPath = backup.(*MemoryBackupResult).Path
-	for i, group := range params.Groups {
-		preview, err := st.RetireEntity(group)
-		if err != nil {
-			return nil, fmt.Errorf("retire-entities group %s aborted after %d committed group(s) (backup %s): %w", retirementGroupName(group), result.Applied, result.BackupPath, err)
-		}
-		result.Groups[i] = preview
-		result.Applied++
+	result.BackupPath = backupPath
+	backupBytes, previews, applyErr := st.BackupAndRetireEntities(backupFile, params.Groups)
+	if backupBytes == 0 || previews == nil {
+		_ = os.Remove(backupPath)
 	}
+	if applyErr != nil {
+		return nil, fmt.Errorf("retire-entities manifest aborted atomically (backup %s): %w", backupPath, applyErr)
+	}
+	result.Groups = previews
+	result.Applied = len(previews)
 	return result, nil
 }
 

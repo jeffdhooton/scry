@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -752,6 +753,45 @@ func TestMemoryBackupWritesAFile(t *testing.T) {
 	}
 	if _, err := os.Stat(r.Path); err != nil {
 		t.Errorf("backup file missing: %v", err)
+	}
+}
+
+func TestMemoryBackupNeverOverwritesAnExistingPath(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	st, _ := d.memoryStore()
+	if err := st.PutEpisode(memstore.Episode{ID: "first", Source: "manual"}); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "rollback.badger")
+	params := mustJSON(t, MemoryBackupParams{Path: path})
+	if _, err := d.handleMemoryBackup(context.Background(), params); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(path)
+	if err != nil || len(before) == 0 {
+		t.Fatalf("first backup missing: bytes=%d err=%v", len(before), err)
+	}
+	if err := st.PutEpisode(memstore.Episode{ID: "second", Source: "manual"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.handleMemoryBackup(context.Background(), params); err == nil {
+		t.Fatal("second backup overwrote an explicit rollback path")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatalf("refused backup changed existing rollback point: before=%d after=%d err=%v", len(before), len(after), err)
+	}
+
+	first, err := d.handleMemoryBackup(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := d.handleMemoryBackup(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.(*MemoryBackupResult).Path == second.(*MemoryBackupResult).Path {
+		t.Fatalf("automatic backups reused %q", first.(*MemoryBackupResult).Path)
 	}
 }
 

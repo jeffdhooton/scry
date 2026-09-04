@@ -162,6 +162,9 @@ func TestAttributeFactsHaveNoReverseIndexAndDistinctKeys(t *testing.T) {
 	if err := s.PutFact(Fact{Src: "scry", Relation: "status", Fact: "scry is in progress", ValidFrom: now, Confidence: 0.9}); err == nil {
 		t.Fatal("a fact with neither dst nor value must be rejected")
 	}
+	if err := s.PutFact(Fact{Src: "scry", Relation: "status", Dst: "ready", Value: "in-progress", Fact: "malformed", ValidFrom: now}); err == nil {
+		t.Fatal("a fact with both dst and value must be rejected")
+	}
 	a := Fact{Src: "scry", Relation: "status", Value: "in-progress", Fact: "scry is in progress", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e1"}}
 	b := Fact{Src: "scry", Relation: "status", Value: "done", Fact: "scry is done", ValidFrom: now, Confidence: 0.9, Episodes: []string{"e2"}}
 	for _, f := range []Fact{a, b} {

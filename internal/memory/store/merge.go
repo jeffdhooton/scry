@@ -119,6 +119,8 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 // read-your-writes entity/fact snapshot. An error aborts the merge before any
 // write becomes durable.
 func (s *Store) MergeEntitiesChecked(req EntityMergeRequest, postcondition func([]Entity, []Fact) error) (EntityMergePreview, error) {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
 	var analysis entityMergeAnalysis
 	err := s.db.Update(func(txn *badger.Txn) error {
 		var err error

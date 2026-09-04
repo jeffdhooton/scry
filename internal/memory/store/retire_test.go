@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -189,6 +190,48 @@ func TestRetireEntityPreservesAttributeShapeAndValue(t *testing.T) {
 	})
 }
 
+func TestRetireEntityRefusesMalformedOriginalFact(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []Entity{
+		{Slug: "obsolete", Name: "Obsolete", Type: "concept"},
+		{Slug: "target", Name: "Target", Type: "project"},
+		{Slug: "owner", Name: "Owner", Type: "project"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	legacy := Fact{Src: "obsolete", Relation: "related_to", Dst: "target", Value: "LITERAL_MUST_SURVIVE", Fact: "legacy malformed fact", ValidFrom: time.Unix(17, 0).UTC()}
+	encoded, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.db.Update(func(txn *badger.Txn) error {
+		if err := txn.Set(factKey(legacy.Src, legacy.Relation, legacy.KeyDst(), legacy.ValidFrom), encoded); err != nil {
+			return err
+		}
+		return txn.Set(adjKey(legacy.Dst, legacy.Src, legacy.Relation, legacy.ValidFrom), nil)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed non-identity"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || len(preview.FactFingerprints) != 1 {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	row := preview.FactFingerprints[0]
+	updated := row.Snapshot
+	updated.Src, updated.Value = "owner", ""
+	req.Replacements = []EntityRetirementReplacement{{OldKey: row.Key, ExpectedSHA256: row.SHA256, Replacement: updated, Why: "attempted cleanup"}}
+	preview, err = st.PreviewEntityRetirement(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Ready || !strings.Contains(strings.Join(preview.Problems, " "), "malformed with both dst and value") {
+		t.Fatalf("malformed original was accepted: %+v", preview)
+	}
+}
+
 func TestRetireEntityRemovesHollowNodeAndStaleWrongOwnerClaim(t *testing.T) {
 	st := openTemp(t)
 	status := Entity{Slug: "obsolete-status", Name: "OBSOLETE", Type: "concept", Aliases: []string{"old-state"}}
@@ -264,6 +307,110 @@ func TestRetireEntitySnapshotDriftAndPostconditionAreAtomic(t *testing.T) {
 			t.Fatalf("callback failure changed facts: %+v", facts)
 		}
 	})
+}
+
+func TestRetireEntitiesManifestDriftAbortsEveryGroup(t *testing.T) {
+	st := openTemp(t)
+	at := time.Unix(25, 0).UTC()
+	for _, entity := range []Entity{
+		{Slug: "app", Name: "App", Type: "project"},
+		{Slug: "ready", Name: "READY", Type: "concept"},
+		{Slug: "failed", Name: "FAILED", Type: "concept"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i, status := range []string{"ready", "failed"} {
+		if err := st.PutFact(Fact{Src: "app", Relation: "status", Dst: status, Fact: "App is " + status, ValidFrom: at.Add(time.Duration(i) * time.Second)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ready := retirementWith(t, st, "ready", func(fact Fact) Fact { fact.Dst, fact.Value = "", "READY"; return fact })
+	ready.ID = "ready-status"
+	failed := retirementWith(t, st, "failed", func(fact Fact) Fact { fact.Dst, fact.Value = "", "FAILED"; return fact })
+	failed.ID = "failed-status"
+	failed.Expected.Entities["failed"] = "reviewed-snapshot-was-corrupted"
+
+	if _, err := st.RetireEntitiesChecked([]EntityRetirementRequest{ready, failed}, nil); err == nil || !strings.Contains(err.Error(), "snapshot changed") {
+		t.Fatalf("want atomic snapshot refusal, got %v", err)
+	}
+	for _, slug := range []string{"ready", "failed"} {
+		if _, err := st.GetEntity(slug); err != nil {
+			t.Fatalf("failed manifest partially retired %s: %v", slug, err)
+		}
+	}
+	facts, err := st.FactsFrom("app", false)
+	if err != nil || len(facts) != 2 || facts[0].Dst == "" || facts[1].Dst == "" {
+		t.Fatalf("failed manifest partially rewrote facts: %+v err=%v", facts, err)
+	}
+}
+
+type blockingDurableBackup struct {
+	bytes.Buffer
+	syncStarted chan struct{}
+	releaseSync chan struct{}
+	closed      bool
+}
+
+func (w *blockingDurableBackup) Sync() error {
+	close(w.syncStarted)
+	<-w.releaseSync
+	return nil
+}
+
+func (w *blockingDurableBackup) Close() error {
+	w.closed = true
+	return nil
+}
+
+func TestBackupAndRetireExcludesConcurrentWritersUntilAtomicApply(t *testing.T) {
+	st := openTemp(t)
+	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete", Type: "concept"}); err != nil {
+		t.Fatal(err)
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow non-identity"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	w := &blockingDurableBackup{syncStarted: make(chan struct{}), releaseSync: make(chan struct{})}
+	maintenanceDone := make(chan error, 1)
+	go func() {
+		_, _, err := st.BackupAndRetireEntities(w, []EntityRetirementRequest{req})
+		maintenanceDone <- err
+	}()
+	<-w.syncStarted
+
+	writeStarted := make(chan struct{})
+	writeDone := make(chan error, 1)
+	go func() {
+		close(writeStarted)
+		writeDone <- st.PutEntity(Entity{Slug: "concurrent", Name: "Concurrent", Type: "project"})
+	}()
+	<-writeStarted
+	select {
+	case err := <-writeDone:
+		t.Fatalf("writer crossed backup/apply boundary: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(w.releaseSync)
+	if err := <-maintenanceDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-writeDone; err != nil {
+		t.Fatal(err)
+	}
+	if !w.closed || w.Len() == 0 {
+		t.Fatalf("backup was not durably completed before apply: closed=%v bytes=%d", w.closed, w.Len())
+	}
+	if _, err := st.GetEntity("obsolete"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("retirement did not apply: %v", err)
+	}
+	if _, err := st.GetEntity("concurrent"); err != nil {
+		t.Fatalf("blocked writer did not resume after apply: %v", err)
+	}
 }
 
 func TestRetireEntityRefusesCollisionSelfLoopAndExternalListing(t *testing.T) {

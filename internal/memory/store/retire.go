@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"sort"
 	"strings"
@@ -97,106 +98,78 @@ func (s *Store) RetireEntity(req EntityRetirementRequest) (EntityRetirementPrevi
 // transaction. The optional postcondition sees a read-your-writes snapshot;
 // returning an error aborts every fact, entity, and alias mutation.
 func (s *Store) RetireEntityChecked(req EntityRetirementRequest, postcondition func([]Entity, []Fact) error) (EntityRetirementPreview, error) {
-	var analysis entityRetirementAnalysis
+	previews, err := s.RetireEntitiesChecked([]EntityRetirementRequest{req}, postcondition)
+	if len(previews) == 0 {
+		return EntityRetirementPreview{}, err
+	}
+	return previews[0], err
+}
+
+// RetireEntitiesChecked commits a reviewed manifest as one transaction. A
+// drift or failed postcondition in any group aborts every group.
+func (s *Store) RetireEntitiesChecked(reqs []EntityRetirementRequest, postcondition func([]Entity, []Fact) error) ([]EntityRetirementPreview, error) {
+	s.maintenanceMu.RLock()
+	defer s.maintenanceMu.RUnlock()
+	return s.retireEntitiesCheckedUnlocked(reqs, postcondition)
+}
+
+type durableBackupWriter interface {
+	io.Writer
+	Sync() error
+	Close() error
+}
+
+// BackupAndRetireEntities holds the store's exclusive maintenance lock from
+// the backup snapshot through the manifest transaction. The backup is synced
+// and closed before any write. Ordinary writers cannot land a change between
+// that verified rollback point and apply.
+func (s *Store) BackupAndRetireEntities(w durableBackupWriter, reqs []EntityRetirementRequest) (uint64, []EntityRetirementPreview, error) {
+	s.maintenanceMu.Lock()
+	defer s.maintenanceMu.Unlock()
+	n, err := s.backupUnlocked(w)
+	if err != nil {
+		_ = w.Close()
+		return n, nil, err
+	}
+	if err := w.Sync(); err != nil {
+		_ = w.Close()
+		return n, nil, fmt.Errorf("sync retirement backup: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return n, nil, fmt.Errorf("close retirement backup: %w", err)
+	}
+	previews, err := s.retireEntitiesCheckedUnlocked(reqs, nil)
+	return n, previews, err
+}
+
+func (s *Store) retireEntitiesCheckedUnlocked(reqs []EntityRetirementRequest, postcondition func([]Entity, []Fact) error) ([]EntityRetirementPreview, error) {
+	if len(reqs) == 0 {
+		return nil, errors.New("memory: retirement manifest is empty")
+	}
+	analyses := make([]entityRetirementAnalysis, len(reqs))
 	err := s.db.Update(func(txn *badger.Txn) error {
-		var err error
-		analysis, err = analyzeEntityRetirementTxn(txn, req)
-		if err != nil {
-			return err
-		}
-		if err := verifyRetirementExpected(req.Expected, analysis.preview.Expected); err != nil {
-			return err
-		}
-		if !analysis.preview.Ready {
-			return fmt.Errorf("memory: retirement %s is not ready: %s", retirementLabel(req), strings.Join(analysis.preview.Problems, "; "))
-		}
-
-		for _, fact := range analysis.facts {
-			if err := txn.Delete(factKey(fact.Src, fact.Relation, fact.KeyDst(), fact.ValidFrom)); err != nil {
-				return err
-			}
-			if fact.Dst != "" {
-				if err := txn.Delete(adjKey(fact.Dst, fact.Src, fact.Relation, fact.ValidFrom)); err != nil {
-					return err
-				}
-			}
-		}
-		for _, fact := range analysis.replacements {
-			encoded, err := json.Marshal(fact)
+		for i, req := range reqs {
+			var err error
+			analyses[i], err = analyzeEntityRetirementTxn(txn, req)
 			if err != nil {
 				return err
 			}
-			if err := txn.Set(factKey(fact.Src, fact.Relation, fact.KeyDst(), fact.ValidFrom), encoded); err != nil {
+			if err := verifyRetirementExpected(req.Expected, analyses[i].preview.Expected); err != nil {
 				return err
 			}
-			if fact.Dst != "" {
-				if err := txn.Set(adjKey(fact.Dst, fact.Src, fact.Relation, fact.ValidFrom), nil); err != nil {
-					return err
-				}
+			if !analyses[i].preview.Ready {
+				return fmt.Errorf("memory: retirement %s is not ready: %s", retirementLabel(req), strings.Join(analyses[i].preview.Problems, "; "))
 			}
-		}
-		for norm := range analysis.claimNorms {
-			// Every relevant claim was fingerprinted and reviewed. Clear it
-			// regardless of its legacy owner, then restore only explicit rehomes;
-			// preserving a stale wrong-owner claim would leave an index ghost.
-			if err := txn.Delete([]byte(prefixAlias + norm)); err != nil {
+			if err := applyEntityRetirementTxn(txn, req, analyses[i]); err != nil {
 				return err
-			}
-		}
-		for norm, target := range analysis.rehomeNorms {
-			if err := txn.Set([]byte(prefixAlias+norm), []byte(target)); err != nil {
-				return err
-			}
-		}
-		if err := txn.Delete([]byte(prefixEntity + req.Entity)); err != nil {
-			return err
-		}
-
-		if _, err := txn.Get([]byte(prefixEntity + req.Entity)); !errors.Is(err, badger.ErrKeyNotFound) {
-			return fmt.Errorf("memory: retirement postcondition: entity %s still exists", req.Entity)
-		}
-		for norm := range analysis.claimNorms {
-			owner, found, err := aliasOwnerTxn(txn, norm)
-			if err != nil {
-				return err
-			}
-			if _, rehomed := analysis.rehomeNorms[norm]; !rehomed && found {
-				return fmt.Errorf("memory: retirement postcondition: dropped alias %q still resolves to %q", norm, owner)
-			}
-		}
-		for norm, target := range analysis.rehomeNorms {
-			owner, found, err := aliasOwnerTxn(txn, norm)
-			if err != nil || !found || owner != target {
-				return fmt.Errorf("memory: retirement postcondition: rehomed alias %q resolves to %q, found=%v: %w", norm, owner, found, err)
-			}
-		}
-		postFacts, err := factsTxn(txn)
-		if err != nil {
-			return err
-		}
-		if len(postFacts) != analysis.allFactCount {
-			return errors.New("memory: retirement postcondition: fact count changed")
-		}
-		for _, fact := range postFacts {
-			if fact.Src == req.Entity || fact.Dst == req.Entity {
-				return fmt.Errorf("memory: retirement postcondition: fact still references %s", req.Entity)
-			}
-		}
-		for _, want := range analysis.replacements {
-			item, err := txn.Get(factKey(want.Src, want.Relation, want.KeyDst(), want.ValidFrom))
-			if err != nil {
-				return fmt.Errorf("memory: retirement postcondition: replacement fact missing: %w", err)
-			}
-			var got Fact
-			if err := item.Value(func(value []byte) error { return json.Unmarshal(value, &got) }); err != nil {
-				return err
-			}
-			if !reflect.DeepEqual(got, want) {
-				return errors.New("memory: retirement postcondition: replacement fact changed")
 			}
 		}
 		if postcondition != nil {
 			postEntities, err := entitiesTxn(txn)
+			if err != nil {
+				return err
+			}
+			postFacts, err := factsTxn(txn)
 			if err != nil {
 				return err
 			}
@@ -206,16 +179,110 @@ func (s *Store) RetireEntityChecked(req EntityRetirementRequest, postcondition f
 		}
 		return nil
 	})
+	previews := make([]EntityRetirementPreview, len(analyses))
+	for i := range analyses {
+		previews[i] = analyses[i].preview
+	}
 	if err != nil {
-		return analysis.preview, err
+		return previews, err
 	}
-	analysis.preview.Applied = true
-	for i, old := range analysis.facts {
-		s.notify(Event{Kind: "fact", Op: "delete", Fact: old})
-		s.notify(Event{Kind: "fact", Op: "put", Fact: analysis.replacements[i]})
+	for i := range analyses {
+		previews[i].Applied = true
+		for j, old := range analyses[i].facts {
+			s.notify(Event{Kind: "fact", Op: "delete", Fact: old})
+			s.notify(Event{Kind: "fact", Op: "put", Fact: analyses[i].replacements[j]})
+		}
+		s.notify(Event{Kind: "entity", Op: "delete", Slug: reqs[i].Entity})
 	}
-	s.notify(Event{Kind: "entity", Op: "delete", Slug: req.Entity})
-	return analysis.preview, nil
+	return previews, nil
+}
+
+func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, analysis entityRetirementAnalysis) error {
+	for _, fact := range analysis.facts {
+		if err := txn.Delete(factKey(fact.Src, fact.Relation, fact.KeyDst(), fact.ValidFrom)); err != nil {
+			return err
+		}
+		if fact.Dst != "" {
+			if err := txn.Delete(adjKey(fact.Dst, fact.Src, fact.Relation, fact.ValidFrom)); err != nil {
+				return err
+			}
+		}
+	}
+	for _, fact := range analysis.replacements {
+		encoded, err := json.Marshal(fact)
+		if err != nil {
+			return err
+		}
+		if err := txn.Set(factKey(fact.Src, fact.Relation, fact.KeyDst(), fact.ValidFrom), encoded); err != nil {
+			return err
+		}
+		if fact.Dst != "" {
+			if err := txn.Set(adjKey(fact.Dst, fact.Src, fact.Relation, fact.ValidFrom), nil); err != nil {
+				return err
+			}
+		}
+	}
+	for norm := range analysis.claimNorms {
+		// Every relevant claim was fingerprinted and reviewed. Clear it
+		// regardless of its legacy owner, then restore only explicit rehomes;
+		// preserving a stale wrong-owner claim would leave an index ghost.
+		if err := txn.Delete([]byte(prefixAlias + norm)); err != nil {
+			return err
+		}
+	}
+	for norm, target := range analysis.rehomeNorms {
+		if err := txn.Set([]byte(prefixAlias+norm), []byte(target)); err != nil {
+			return err
+		}
+	}
+	if err := txn.Delete([]byte(prefixEntity + req.Entity)); err != nil {
+		return err
+	}
+
+	if _, err := txn.Get([]byte(prefixEntity + req.Entity)); !errors.Is(err, badger.ErrKeyNotFound) {
+		return fmt.Errorf("memory: retirement postcondition: entity %s still exists", req.Entity)
+	}
+	for norm := range analysis.claimNorms {
+		owner, found, err := aliasOwnerTxn(txn, norm)
+		if err != nil {
+			return err
+		}
+		if _, rehomed := analysis.rehomeNorms[norm]; !rehomed && found {
+			return fmt.Errorf("memory: retirement postcondition: dropped alias %q still resolves to %q", norm, owner)
+		}
+	}
+	for norm, target := range analysis.rehomeNorms {
+		owner, found, err := aliasOwnerTxn(txn, norm)
+		if err != nil || !found || owner != target {
+			return fmt.Errorf("memory: retirement postcondition: rehomed alias %q resolves to %q, found=%v: %w", norm, owner, found, err)
+		}
+	}
+	postFacts, err := factsTxn(txn)
+	if err != nil {
+		return err
+	}
+	if len(postFacts) != analysis.allFactCount {
+		return errors.New("memory: retirement postcondition: fact count changed")
+	}
+	for _, fact := range postFacts {
+		if fact.Src == req.Entity || fact.Dst == req.Entity {
+			return fmt.Errorf("memory: retirement postcondition: fact still references %s", req.Entity)
+		}
+	}
+	for _, want := range analysis.replacements {
+		item, err := txn.Get(factKey(want.Src, want.Relation, want.KeyDst(), want.ValidFrom))
+		if err != nil {
+			return fmt.Errorf("memory: retirement postcondition: replacement fact missing: %w", err)
+		}
+		var got Fact
+		if err := item.Value(func(value []byte) error { return json.Unmarshal(value, &got) }); err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(got, want) {
+			return errors.New("memory: retirement postcondition: replacement fact changed")
+		}
+	}
+	return nil
 }
 
 func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (entityRetirementAnalysis, error) {
@@ -319,6 +386,9 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 		allFactKeys[key] = true
 		if fact.Src != req.Entity && fact.Dst != req.Entity {
 			continue
+		}
+		if fact.Dst != "" && fact.Value != "" {
+			problem("touching fact is malformed with both dst and value: " + key)
 		}
 		a.facts = append(a.facts, fact)
 		oldByKey[key] = fact
@@ -426,7 +496,8 @@ func sameRetirementFactPayload(old, updated Fact) bool {
 	return old.Relation == updated.Relation && old.RawRelation == updated.RawRelation &&
 		old.Fact == updated.Fact && old.ValidFrom.Equal(updated.ValidFrom) &&
 		reflect.DeepEqual(old.InvalidAt, updated.InvalidAt) && old.Confidence == updated.Confidence &&
-		reflect.DeepEqual(old.Episodes, updated.Episodes)
+		reflect.DeepEqual(old.Episodes, updated.Episodes) &&
+		(old.Value == "" || old.Value == updated.Value)
 }
 
 // invalidRetirementFactShape constrains a replacement to the smallest change
