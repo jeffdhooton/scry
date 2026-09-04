@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -701,4 +702,98 @@ func TestLeakChecksJudgeTheAddedWords(t *testing.T) {
 			t.Errorf("%s must keep %q: %s", c.slug, c.alias, why)
 		}
 	}
+}
+
+// The identities grader wrote a version of this and it failed: a typed
+// entity could take a concept's alias on two episodes, the index moved, and
+// the concept's own facts stayed behind answering to nobody. Admission and
+// the hygiene audit disagreed by construction, since sameKind denies
+// concept the wildcard that TypesCompatible grants it.
+func TestAdmitAliasAndTheConceptWildcard(t *testing.T) {
+	newStore := func(t *testing.T) *store.Store { return openTemp(t) }
+
+	t.Run("a typed entity may promote an empty concept stub", func(t *testing.T) {
+		st := newStore(t)
+		stub := store.Entity{Slug: "aurora-ops", Name: "aurora ops", Type: "concept"}
+		if err := st.PutEntity(stub); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.ClaimAlias("aurora ops", stub.Slug); err != nil {
+			t.Fatal(err)
+		}
+		claimant := store.Entity{Slug: "aurora", Name: "Aurora", Type: "machine"}
+		if err := st.PutEntity(claimant); err != nil {
+			t.Fatal(err)
+		}
+		// Two independent episodes, which is the merge gate the done bar
+		// asks for; one is refused on attestation alone.
+		if ok, _, err := AdmitAlias(st, claimant, "aurora ops", "ep-a"); err != nil {
+			t.Fatal(err)
+		} else if ok {
+			t.Fatal("one episode should not be enough to merge")
+		}
+		ok, why, err := AdmitAlias(st, claimant, "aurora ops", "ep-b")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			t.Errorf("promotion of an empty stub refused: %s", why)
+		}
+	})
+
+	t.Run("a concept holding facts keeps its name", func(t *testing.T) {
+		st := newStore(t)
+		holder := store.Entity{Slug: "aurora-ops", Name: "aurora ops", Type: "concept"}
+		if err := st.PutEntity(holder); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.ClaimAlias("aurora ops", holder.Slug); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.PutFact(store.Fact{
+			Src: holder.Slug, Relation: "status", Value: "running",
+			Fact: "aurora ops is running", ValidFrom: time.Now(), Episodes: []string{"e1"},
+		}); err != nil {
+			t.Fatal(err)
+		}
+		claimant := store.Entity{Slug: "aurora", Name: "Aurora", Type: "machine"}
+		if err := st.PutEntity(claimant); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := AdmitAlias(st, claimant, "aurora ops", "ep-a"); err != nil {
+			t.Fatal(err)
+		}
+		ok, why, err := AdmitAlias(st, claimant, "aurora ops", "ep-b")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Error("a machine took a fact-bearing concept's name; its facts would be orphaned")
+		}
+		if !strings.Contains(why, "facts of its own") {
+			t.Errorf("reason should name the cause, got %q", why)
+		}
+	})
+
+	t.Run("a concept still may not take a typed entity's name", func(t *testing.T) {
+		st := newStore(t)
+		typed := store.Entity{Slug: "aurora", Name: "Aurora", Type: "machine"}
+		if err := st.PutEntity(typed); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.ClaimAlias("aurora", typed.Slug); err != nil {
+			t.Fatal(err)
+		}
+		stub := store.Entity{Slug: "aurora-notes", Name: "aurora notes", Type: "concept"}
+		if err := st.PutEntity(stub); err != nil {
+			t.Fatal(err)
+		}
+		ok, _, err := AdmitAlias(st, stub, "aurora", "ep-a")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Error("a concept took a machine's name")
+		}
+	})
 }

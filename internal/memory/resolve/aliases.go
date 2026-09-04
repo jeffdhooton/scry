@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +35,13 @@ import (
 // before it can redirect a name that another entity already owns, or that
 // shares nothing with the entity's name.
 const AttestationThreshold = 2
+
+// concepts reports whether t is the fallback bucket rather than a claim
+// about what something is.
+func concepts(t string) bool {
+	t = strings.ToLower(strings.TrimSpace(t))
+	return t == "" || t == "concept"
+}
 
 // TypesCompatible reports whether entities of types a and b may share an
 // alias or be merged. "concept" is the fallback bucket the resolver
@@ -231,6 +239,22 @@ func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit
 		// matter how many episodes say so.
 		if err == nil && (e.Type == "" || e.Type == "concept") && other.Type != "" && other.Type != "concept" {
 			return false, "already answers for the " + other.Type + " " + owner, nil
+		}
+		// And the other direction. A typed entity taking a concept's name
+		// is usually promotion: the extractor said "concept" before it
+		// knew better, the stub holds nothing, and nothing is lost. Once
+		// the concept has facts of its own it is a node, and moving the
+		// index leaves those facts answering to nobody — the alias list
+		// still names it while lookups go elsewhere. That is the shape
+		// the identities grader found 429 times.
+		if err == nil && concepts(other.Type) && !concepts(e.Type) {
+			held, err := st.FactsAbout(owner, false)
+			if err != nil {
+				return false, "", err
+			}
+			if len(held) > 0 {
+				return false, "owned by " + owner + ", a concept holding " + strconv.Itoa(len(held)) + " facts of its own", nil
+			}
 		}
 		// Within a type, two independent episodes may still merge two
 		// entities, which is what the done bar asks for. A grader called
