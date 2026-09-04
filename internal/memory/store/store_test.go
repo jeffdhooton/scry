@@ -210,6 +210,24 @@ func TestPutEntityAndFactRejectDelimiterAmbiguousSlugs(t *testing.T) {
 	}
 }
 
+func TestPutEntityCannotOverwriteANameAtACollidingSlug(t *testing.T) {
+	s := openTemp(t)
+	original := Entity{Slug: "ready-after-fixes", Name: "Unrelated Owner", Type: "concept", Description: "keep"}
+	if err := s.PutEntity(original); err != nil {
+		t.Fatal(err)
+	}
+	replacement := original
+	replacement.Name = "READY_AFTER_FIXES"
+	replacement.Description = "must not persist"
+	if err := s.PutEntity(replacement); !errors.Is(err, ErrAliasClaimed) {
+		t.Fatalf("colliding name update error = %v, want ErrAliasClaimed", err)
+	}
+	got, err := s.GetEntity(original.Slug)
+	if err != nil || got.Name != original.Name || got.Description != original.Description {
+		t.Fatalf("colliding write mutated owner: got=%+v err=%v", got, err)
+	}
+}
+
 func TestPutEntityPrunesStaleAliases(t *testing.T) {
 	s := openTemp(t)
 	now := time.Now()

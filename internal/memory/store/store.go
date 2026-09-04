@@ -336,6 +336,13 @@ func (s *Store) PutEntity(e Entity) error {
 		}
 		prevNorms := map[string]bool{}
 		if err == nil {
+			// Sharing a slug is not evidence that two names identify the same
+			// thing. Ordinary writes may update an entity only through a spelling
+			// it already lists; changing identity metadata at a colliding natural
+			// slug belongs to the reviewed merge path.
+			if !normalizedNameSet(prev.Name, prev.Aliases)[Normalize(e.Name)] {
+				return fmt.Errorf("%w: slug %q belongs to %q, not %q", ErrAliasClaimed, e.Slug, prev.Name, e.Name)
+			}
 			prevNorms = normalizedNameSet(prev.Name, prev.Aliases)
 		}
 

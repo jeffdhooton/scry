@@ -23,6 +23,7 @@ package resolve
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -217,6 +218,9 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	existing, err := st.GetEntity(slug)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return "", err
+	}
+	if err == nil && !entityListsMention(existing, store.Normalize(ent.Name)) {
+		return "", fmt.Errorf("%w: natural slug %q belongs to %q, not %q", store.ErrAliasClaimed, slug, existing.Name, ent.Name)
 	}
 
 	if errors.Is(err, store.ErrNotFound) {
