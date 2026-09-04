@@ -16,6 +16,16 @@ func TestNamesGuard(t *testing.T) {
 		"gpt-oss-120b", "Qwen3.8-Flash-Next", "buildctl", "trawl",
 		"scry: a code intelligence daemon for AI agents",
 		"9:00 standup",
+		// Namespaced identifiers: npm and artisan scripts, skills, model
+		// tags, meta properties. A replica dry run caught 82 of these on
+		// their way to being retired as colon-bound settings.
+		"db:seed", "blog:audit-links", "superpowers:test-driven-development",
+		"qwen3.5:9b", "gpt-oss:120b", "og:image", "test:coverage",
+		"setpoint-qwen:latest", "chapters:generate-monthly",
+		// Feature flags: the flag is the thing, true or false is its value.
+		"BATTERY_DESIGNER_ENABLED", "MEMORY_SHARING_ENABLED",
+		// Environment variables and ordinary snake_case names.
+		"SCRY_MEMORY_SOCKET", "QUICKBOOKS_CLIENT_SECRET", "PORT", "user_login_failed",
 	} {
 		if IsValueName(n) {
 			t.Errorf("REJECTED a real name: %q", n)
@@ -26,10 +36,21 @@ func TestNamesGuard(t *testing.T) {
 		"in-progress", "In Progress", "Completed Successfully", "Ready With Caveats",
 		"46 GiB", "main", "build-failed", "completed successfully",
 		"SCRY_MEMORY_UI_ADDR=off", "GRADER2-20260903T000246Z-3",
-		"think:false", "onDelete: set null", "spineWidth:0.25in",
+		"think:false", "onDelete: set null",
 		"Cache-Control: public, max-age=3600",
 		"go vet", "npm ci", "git bisect",
 		"https://example.com/x",
+		// Enum members, by shape rather than by word list.
+		"QUALITY_OK", "SPEC_OK", "VALIDATION_FAILED", "CHANGES_REQUIRED",
+		"attempt_status_pending", "attempt_status_unknown",
+		// A branch keeps being one under a preposition.
+		"on feature/demo-account-seeder",
+		// Colon-bound settings, where the value side is a literal.
+		"turn_detection: null", "calendar_context: {}",
+		// Deliberately NOT here: "spineWidth:0.25in". Tightening the colon
+		// rule to an explicit literal on the value side gave that up in
+		// exchange for the 82 namespaced identifiers above, which is the
+		// right way round to be wrong.
 	} {
 		if !IsValueName(n) {
 			t.Errorf("ACCEPTED a value: %q", n)

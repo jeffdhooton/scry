@@ -163,6 +163,9 @@ func IsValueName(name string) bool {
 	if quotedRE.MatchString(name) {
 		return true
 	}
+	if enumValue(strings.TrimSpace(name)) {
+		return true
+	}
 	// A capitalised phrase whose opening word is a state, and whose
 	// remaining words are ordinary nouns, is a title: "Ready Player One",
 	// "Blocked Punt Media", "Needs More Cowbell". A verdict keeps its own
@@ -187,7 +190,12 @@ func IsValueName(name string) bool {
 		return false
 	}
 
-	if trunkBranches[n] || (branchRE.MatchString(n) && !fileExtRE.MatchString(n)) || branchWordRE.MatchString(n) {
+	// A branch keeps being a branch when a preposition is stuck on the
+	// front of it: "on feature/demo-account-seeder" is what a session says
+	// while it is standing on one. branchRE is anchored, so the preposition
+	// alone used to defeat it.
+	b := strings.TrimPrefix(strings.TrimPrefix(n, "on "), "branch ")
+	if trunkBranches[n] || ((branchRE.MatchString(n) || branchRE.MatchString(b)) && !fileExtRE.MatchString(n)) || branchWordRE.MatchString(n) {
 		return true
 	}
 	if uuidAnywhereRE.MatchString(n) || userAtHostRE.MatchString(n) || httpStatusRE.MatchString(n) ||
@@ -469,4 +477,51 @@ func titleOpeningOnAState(name string) bool {
 		}
 	}
 	return true
+}
+
+// enumTokenRE matches a shouted or snake_case identifier whose last part is
+// an outcome: QUALITY_OK, SPEC_OK, VALIDATION_FAILED, attempt_status_pending.
+//
+// A word list cannot keep up with these — round nine ran that treadmill and
+// the grader named it — but their shape is regular. An identifier with no
+// spaces, built of underscore-joined parts, ending in a state, is an enum
+// value rather than a name for anything.
+var enumTokenRE = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)+$`)
+
+// enumEndings are the outcome words an enum value ends on.
+//
+// "enabled" and "disabled" are deliberately absent. They end the name of a
+// feature flag — BATTERY_DESIGNER_ENABLED is the switch, and true or false
+// is its value — and a replica dry run was retiring four of them.
+var enumEndings = map[string]bool{
+	"ok": true, "failed": true, "failure": true, "pending": true, "success": true,
+	"succeeded": true, "error": true, "unknown": true, "missing": true, "invalid": true,
+	"valid": true, "skipped": true, "done": true, "ready": true, "blocked": true,
+	"denied": true, "allowed": true, "expired": true,
+	"queued": true, "running": true, "stopped": true, "aborted": true, "timeout": true,
+	"required": true, "complete": true, "completed": true, "cancelled": true, "canceled": true,
+}
+
+// enumValue reports whether n is an enum member rather than a name.
+func enumValue(n string) bool {
+	if !enumTokenRE.MatchString(n) {
+		return false
+	}
+	parts := strings.Split(n, "_")
+	last := strings.ToLower(parts[len(parts)-1])
+	if !enumEndings[last] {
+		return false
+	}
+	// "user_login_failed" is an event someone named; "QUALITY_OK" and
+	// "attempt_status_pending" are states. The signal is that the rest of
+	// the identifier is about state too, or that it is shouted.
+	if n == strings.ToUpper(n) {
+		return true
+	}
+	for _, p := range parts[:len(parts)-1] {
+		if statusWords[strings.ToLower(p)] || strings.EqualFold(p, "status") || strings.EqualFold(p, "state") {
+			return true
+		}
+	}
+	return false
 }

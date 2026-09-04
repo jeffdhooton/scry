@@ -887,29 +887,44 @@ func ValueShape(n string) bool {
 
 // boundByColon reports whether n is a setting written with a colon.
 //
-// Two shapes are deliberately excluded. A clock time ("10:30") is a value
-// already judged elsewhere and would drag every "9:00 standup" in with it,
-// and a URL or a namespace ("https://x", "scry::refs") is not a setting.
-// The value side must also be short: "cockpit: an observatory rather than a
-// process runner" is prose someone wrote about an entity, not a binding.
+// The colon is also how a namespace is spelled, and the store is full of
+// them: npm and artisan scripts ("db:seed", "blog:audit-links"), skills
+// ("superpowers:test-driven-development"), model tags ("qwen3.5:9b",
+// "gpt-oss:120b"), meta properties ("og:image"). Those are things sessions
+// talk about, not values. A dry run against a replica of the live store
+// caught 82 of them on the way to being retired.
+//
+// So the value side has to be a literal, not merely present: a keyword like
+// true, false or null, or an assignment. Everything else is left alone,
+// which misses "spineWidth:0.25in" and is the right way round to be wrong.
 func boundByColon(n string) bool {
 	if !settingColonRE.MatchString(n) {
 		return false
 	}
-	if strings.Contains(n, "://") || strings.Contains(n, "::") {
+	if strings.Contains(n, "://") || strings.Contains(n, "::") || clockTimeRE.MatchString(n) {
 		return false
 	}
 	i := strings.IndexByte(n, ':')
 	key, val := n[:i], strings.TrimSpace(n[i+1:])
-	if clockTimeRE.MatchString(n) {
+	if len(key) > 40 || val == "" {
 		return false
 	}
-	// A key nobody would type as a setting: it has to look like an
-	// identifier, which settingColonRE already requires, and be short.
-	if len(key) > 40 || len(strings.Fields(val)) > 4 {
+	if strings.Contains(val, "=") {
+		return true
+	}
+	fields := strings.Fields(val)
+	if len(fields) == 0 || len(fields) > 4 {
 		return false
 	}
-	return true
+	return literalValues[strings.ToLower(strings.Trim(fields[len(fields)-1], `"'`+"`"+`,;`))]
+}
+
+// literalValues are the words that make the right of a colon a value rather
+// than a name.
+var literalValues = map[string]bool{
+	"true": true, "false": true, "null": true, "nil": true, "none": true,
+	"off": true, "on": true, "undefined": true, "{}": true, "[]": true,
+	"\"\"": true, "yes": true, "no": true, "enabled": true, "disabled": true,
 }
 
 // clockTimeRE matches a time of day, which is a value judged by its own
