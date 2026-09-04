@@ -2745,3 +2745,35 @@ because "merges are recoverable from a backup while a graph of near-duplicates
 is not". That policy stands. What is not defensible is the *orphaning*: the
 alias moves and the facts do not. Recorded as open rather than fixed, because
 moving facts at store scale is the change that keeps measuring wrong.
+
+## Episode transcripts stay discarded (2026-09-04)
+
+**Decision.** Episodes keep their summary and continue to discard the
+transcript text after extraction. Jeff's call, asked directly and answered
+"not without more thought".
+
+**What it costs.** The entry above locates recall's ceiling in retrieval:
+27 of 31 held-out misses are answered by facts the retriever never returns at
+any depth, because the question and the answering fact share one word or none.
+The local vector model has around 10 MB to learn from — 7.4 MB of
+one-sentence facts and 2.6 MB of summaries — which is not enough to learn that
+KeepAlive under launchd is what surviving a reboot means. Retaining text would
+grow that corpus by roughly two orders of magnitude.
+
+**Why the answer is reasonable.** The gain is a hypothesis, not a
+measurement: nobody has shown that random indexing over 1 GB of transcript
+learns the associations these questions need. The cost is certain and
+permanent — every session on the machine, in full, at rest, indefinitely. A
+certain privacy cost for an unmeasured retrieval gain is the wrong trade to
+make on someone else's behalf.
+
+**What would change our minds.** A cheap experiment that does not touch
+retention: take the transcripts already on disk under `~/.claude/projects`,
+`~/.codex/sessions` and the rest, build a throwaway embedding from them
+offline, and measure `heldout-b` against it. If the score moves materially,
+the trade becomes a real question with a number attached. If it does not, this
+decision was right for a second reason and the matter closes.
+
+**Item 3 stands where it stands.** It meets the bar on questions phrased in
+the store's own vocabulary and falls short on questions phrased in the user's,
+and that is recorded rather than averaged away.
