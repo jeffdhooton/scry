@@ -1784,3 +1784,39 @@ are the ones that name more than one agent:
 
 That is item 6's "produced from real sessions by the same sweep" shown rather
 than argued: one sweep pass, three agents, in one line.
+
+## The Qwen split, consolidated
+
+The round-13 identities grader demonstrated a wrong recall caused by a
+folding-level collision, and it was the strongest single piece of evidence
+against the builder's earlier defence that only the alias-index key matters.
+`machine:qwen3-8-27b-uncensored-q5` (8 facts) and
+`tool:qwen38-27b-uncensored-q5` (6 facts) are the same model. Asking the store
+for the model by its exact name returned facts from one twin and none from the
+other.
+
+Reading all fourteen facts confirms one model, wrongly typed twice: one twin
+carries "Qwen 27B Q5 via Lemonade runs on halo using 19.5 GB", the other
+"Qwen3.8-27B Q5 registered in Lemonade after sudo install script ran". The
+`machine` typing is simply wrong — a model is not a machine.
+
+All eight facts moved to the tool-typed entity, four from each end:
+
+```
+dry run   moved 8, refused 0, warned 0
+applied   backup /Users/jclaw/.scry/backups/memory-20260904T162226Z.badger
+after     qwen38-27b-uncensored-q5  14 facts
+          qwen3-8-27b-uncensored-q5  0 facts
+```
+
+Recall for the model's exact name no longer returns the machine twin at all.
+
+**A hypothesis worth recording because it was wrong.** The collision count
+moved 326 → 325, and the first guess was that the metric counts name pairs
+rather than harm — that an emptied twin would go on being counted while
+causing nothing. It does not. `auditNames` already skips an entity no fact
+mentions, so the count fell by exactly the one pair that was fixed. The metric
+responds correctly, which means the remaining 325 are pairs with facts on both
+sides and every one of them is a real conflation waiting for the same
+treatment. The metric was better than the builder assumed, and checking before
+writing is the only reason that is recorded this way round.
