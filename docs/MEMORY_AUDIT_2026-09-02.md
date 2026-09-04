@@ -2485,3 +2485,53 @@ follow-on plan. It distinguishes coverage/orientation work from the existing
 ten-clause live bar and explicitly preserves approval boundaries for hooks,
 new source rollout, global config, and local embeddings. The user-provided
 assessment is unchanged. No goal state or hook settings were edited.
+
+### Rehome correction tested against a restored live backup
+
+At exact code commit `63d3e62`, an isolated archive at
+`/tmp/scry-rehome-replica.qWnqjE` restored the 99,201,482-byte backup at
+`/tmp/scry-retire-replica.GIj4iD/live.badger` (Mini snapshot from
+`memory-20260904T192417Z.badger`). SHA-256:
+`cec0f4f789255ef9bb22e68f0232db9e5e872e68b1e2a7839fc1e7964136c01c`.
+The restored image contained 24,498 entities, 62,245 facts, 7,562 episodes and
+192,502 keys.
+
+The supplementary replica test introduced only explicitly named synthetic
+fixtures, exercised current and historical fact retirement plus alias rehome,
+and verified SHA-256 equality of every original key's value afterward. An
+injected postcondition failure left all keys byte-identical. The successful
+apply took a coupled 99,202,863-byte backup first. A subsequent backup/restore
+preserved the unconditional slug marker, usable rehome, and historical validity,
+confidence and provenance. No original live-snapshot entity or fact was repaired
+by this test; it demonstrates primitive isolation/persistence, not semantic
+approval of any live manifest.
+
+Reproduction: in that archive, run
+`go test ./internal/memory/store -run '^TestRehomeOnRestoredLiveReplica$' -count=1 -v`.
+The test and archive remain in `/tmp`; its disposable restored stores were
+test-managed. Result: PASS in 4.233s. Live state remains untouched.
+
+An archive build of the same SHA succeeded with `CGO_ENABLED=0`, `-trimpath`,
+`-buildvcs=false`, and version `63d3e62` (Go 1.26.2, darwin/arm64). Artifact
+`/tmp/scry-rehome-replica.qWnqjE/scry` SHA-256:
+`a0069013c840f178b1c5c6fe3a515029a4e272801a2af75e9f831736a8307f7c`.
+This is a test artifact, not a deployed binary or a two-machine parity claim.
+
+### Fresh rehome/orientation/metrics review passes the bounded change
+
+The fresh-context grader failed to disprove exact
+`63d3e6275138d19a2e60d2c6d969a833bfdc0a37` in isolated archive
+`/tmp/scry-retirement-review.3yhPqO`. Its own full suite and focused races
+passed. Independent reproductions covered six punctuation variants, refused
+dangling alias claims, legitimate owner updates, failed-postcondition rollback,
+pre/post-retirement backup restoration, complete historical metadata equality,
+atomic resolver rollback, subsequent value ingestion and affirmative alias
+identity routing. Independent orientation and metrics checks preserved the
+remote-path semantics, returned bytes and content-free metrics. The plan's
+original safety boundaries were retained.
+
+The reviewer explicitly notes that a contextual model `value` verdict can
+override an alias under the existing policy; that behavior is unchanged by
+this delta. This is one bounded passing review, not two consecutive whole-goal
+rounds, approval of a live repair manifest, deployment verification, or a claim
+that Scry memory is finished. No live repair or deployment occurred.
