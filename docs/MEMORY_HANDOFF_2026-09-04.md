@@ -79,7 +79,7 @@ anything, all default to a dry run, all take a Badger backup before the first wr
 | Facts moved off `hermes-ops`, three batches | 34 | a fresh reviewer vetoed batches 1 and 3 before they landed |
 | Leaking aliases dropped from `hermes-ops` | 16 | the reviewer's own list of leaks |
 | Value entities retired across four migrations | 53 | replica dry run, hand-judged each time |
-| Leaking aliases dropped from `childscribe-laravel` | 33 | applied 2026-09-04 17:00; **benchmarks not re-run afterwards** |
+| Leaking aliases dropped from `childscribe-laravel` | 33 | applied 2026-09-04 17:00; benchmarks verified unchanged afterwards |
 | The split Qwen model's facts moved onto one entity | 8 | a grader had proved the split caused a wrong recall |
 
 > **The Qwen repair is half a repair.** `reattach` moves fact edges and nothing
@@ -336,9 +336,9 @@ round nine ran and the round-13 grader explicitly warned against running again.
   `~/workspace/childscribe-mobile`, `legacy loom`, `setpoint orchestrator`) or were
   generic enough to collect anything (`CS`, `RN`, `frontend`, `scratchpad`,
   `product name`). That entity still holds 89 aliases and 2,206 facts, and other entities
-  have the same problem. **The benchmark run that would have confirmed the second prune
-  caused no regression did not happen** — it is the one outstanding check on a change
-  that is already live. Backup: `memory-20260904T170026Z.badger` on the mini.
+  have the same problem. The benchmark run afterwards came back unchanged —
+  tuning 47/50, strict 44/50, probes 7/7, max payload 11,480 B — so the prune cost
+  nothing measurable. Backup: `memory-20260904T170026Z.badger` on the mini.
 - **Two admission holes stay open on purpose.** An entity's own name never passes through
   `AdmitAlias` — `store.PutEntity` writes the index entry unconditionally
   (`store.go:325-329`). And the `"already indexed to this entity"` shortcut
