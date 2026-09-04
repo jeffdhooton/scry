@@ -2811,3 +2811,50 @@ decision to keep the vector model as a re-ranker and not a retriever.
 **Item 3 stands where it stands.** It meets the bar on questions phrased in
 the store's own vocabulary and falls short on questions phrased in the user's,
 and that is recorded rather than averaged away.
+
+## Facts move from a list, not from a rule (2026-09-04)
+
+**Decision.** `scry memory reattach --file <json>` moves named facts between
+entities. Each entry names one fact by the four fields that key it — source,
+relation, destination-or-value, and valid-from — plus the entity it belongs to
+and a reason. The daemon re-reads every fact before touching it and refuses,
+with a reason, when the fact has changed, has been invalidated, when the
+destination does not exist, or when the move would make a self-loop. A dry run
+is the default and writes nothing. An apply takes a Badger backup first.
+
+**Why not a rule.** Done-bar item 5 asks that the Hermes agent, the Mac mini,
+and the hermes-ops project hold each other's facts correctly. Three attempts
+to satisfy it by rule are recorded above and all three were thrown away on
+measured evidence:
+
+| attempt | proposed | why it failed |
+|---|---|---|
+| refile by what the sentence names | 9,329 moves | landed facts on entities called `allow`, `setup`, `delivery` |
+| the same, hardware only | 54 moves | `sandbox` is typed `machine`, so permission facts followed it |
+| the write path's alias test over stored aliases | 6,027 splits, 674 moves | `payment rows → payment`, `gateway epic → epic` |
+
+The pattern is consistent: a rule that reads a fact's sentence and picks an
+owner is right on the example that motivated it and wrong in bulk, because the
+store is full of ordinary words that happen to be entity names. A fourth
+variation would fail the same way.
+
+**What replaces it.** Judgement, applied one fact at a time, by something that
+can read the sentence and knows what the entities are — and then written down
+where a reviewer can check it line by line. The tool's job is not to decide;
+it is to make a decision someone else made safe to execute: verified against
+the store, reversible, and refusing anything it was not handed exactly.
+
+**The first list.** 14 moves off `hermes-ops`: twelve to the Hermes service
+(its configured model, its fallback chain, its messaging channel, and four
+settings out of `~/.hermes/config.yaml`) and two to the Mac mini. Graders hand-
+counted 54 to 69 agent facts and 12 to 13 mini facts on that project, so 14 is
+deliberately far short of the total. Every fact whose text carries repo
+evidence — a file path, a test, a patch, a commit, a branch — was excluded,
+because the gateway's source really does live in that repo and "Patched
+gateway/platforms/slack.py" is a fact about the project.
+
+**What would change our minds.** If reviewing a list turns out to cost more
+than it is worth for the remaining ~50, the alternative is not a better rule —
+it is the extraction model typing entities correctly in the first place, which
+is what the `value` type and a sharper `machine` definition are for. Those
+need provider credit and have never run.
