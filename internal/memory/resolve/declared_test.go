@@ -29,6 +29,39 @@ func TestDeclaredValuesCollectsNamesAndExplicitValueAliases(t *testing.T) {
 	}
 }
 
+func TestSameEpisodeIdentityWinsConflictingValueInEitherOrder(t *testing.T) {
+	identity := extract.Ent{Name: "READY-AFTER-FIXES", Type: "concept", Description: "a durable release marker"}
+	value := extract.Ent{Name: "READY-AFTER-FIXES", Type: "value", Description: "a run verdict"}
+	for _, tc := range []struct {
+		name     string
+		entities []extract.Ent
+	}{
+		{name: "identity-first", entities: []extract.Ent{{Name: "Catalog", Type: "project"}, identity, value}},
+		{name: "value-first", entities: []extract.Ent{{Name: "Catalog", Type: "project"}, value, identity}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			st := openTemp(t)
+			at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+			ep := store.Episode{ID: "same-name-" + tc.name, Source: "manual", SourceRef: "test", OccurredAt: at, IngestedAt: at}
+			result := extract.Result{
+				Entities: tc.entities,
+				Facts: []extract.Fct{{
+					Src: "Catalog", Relation: "contains", Dst: "READY-AFTER-FIXES",
+					Fact: "Catalog contains the READY-AFTER-FIXES marker", Confidence: .9,
+				}},
+			}
+			if _, err := Apply(st, ep, "", result, nil); err != nil {
+				t.Fatal(err)
+			}
+			marker := mustSlug(t, st, "READY-AFTER-FIXES")
+			facts := mustFacts(t, st, "catalog")
+			if len(facts) != 1 || facts[0].Dst != marker || facts[0].Value != "" {
+				t.Fatalf("same-episode identity became a value: %+v", facts)
+			}
+		})
+	}
+}
+
 func TestParsedShoutedStatusAliasesNeverBecomeRoutingKeys(t *testing.T) {
 	for _, status := range []string{"DONE_WITH_CONCERNS", "DIRTY_WORKING_TREE"} {
 		st := openTemp(t)

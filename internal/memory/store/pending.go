@@ -68,7 +68,7 @@ func (s *Store) PutPending(p PendingEpisode) error {
 	if err != nil {
 		return err
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
+	return s.update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixPending+p.ID), b)
 	})
 }
@@ -76,7 +76,7 @@ func (s *Store) PutPending(p PendingEpisode) error {
 // GetPending returns the pending episode with id, or ErrNotFound.
 func (s *Store) GetPending(id string) (PendingEpisode, error) {
 	var p PendingEpisode
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(prefixPending + id))
 		if err != nil {
 			return err
@@ -92,7 +92,7 @@ func (s *Store) GetPending(id string) (PendingEpisode, error) {
 // HasPending reports whether id is queued.
 func (s *Store) HasPending(id string) (bool, error) {
 	found := false
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		_, err := txn.Get([]byte(prefixPending + id))
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return nil
@@ -111,7 +111,7 @@ func (s *Store) HasPending(id string) (bool, error) {
 func (s *Store) DeletePending(id string) error {
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
-	return s.db.Update(func(txn *badger.Txn) error {
+	return s.update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(prefixPending + id))
 	})
 }
@@ -121,7 +121,7 @@ func (s *Store) DeletePending(id string) error {
 func (s *Store) Pending(limit int) ([]PendingEpisode, error) {
 	var out []PendingEpisode
 	pb := []byte(prefixPending)
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 64
 		it := txn.NewIterator(opts)
@@ -174,7 +174,7 @@ func (s *Store) PendingCounts(now time.Time) (ready, backoff, parked int, err er
 func (s *Store) PutMetaTime(key string, t time.Time) error {
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
-	return s.db.Update(func(txn *badger.Txn) error {
+	return s.update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixMeta+key), []byte(t.UTC().Format(time.RFC3339Nano)))
 	})
 }
@@ -182,7 +182,7 @@ func (s *Store) PutMetaTime(key string, t time.Time) error {
 // GetMetaTime reads meta:<key>; found is false when it was never written.
 func (s *Store) GetMetaTime(key string) (t time.Time, found bool, err error) {
 	var raw string
-	err = s.db.View(func(txn *badger.Txn) error {
+	err = s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(prefixMeta + key))
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return nil
@@ -208,14 +208,14 @@ func (s *Store) PutMetaJSON(key string, v any) error {
 	if err != nil {
 		return err
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
+	return s.update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixMeta+key), b)
 	})
 }
 
 // GetMetaJSON decodes meta:<key> into out; found is false when absent.
 func (s *Store) GetMetaJSON(key string, out any) (found bool, err error) {
-	err = s.db.View(func(txn *badger.Txn) error {
+	err = s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(prefixMeta + key))
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return nil
@@ -248,7 +248,7 @@ func (s *Store) AttestAlias(slug, norm, episodeID string) (int, error) {
 	defer s.maintenanceMu.RUnlock()
 	key := []byte(prefixAttest + slug + ":" + norm)
 	var eps []string
-	err := s.db.Update(func(txn *badger.Txn) error {
+	err := s.update(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
 		if err == nil {
 			if err := item.Value(func(val []byte) error { return json.Unmarshal(val, &eps) }); err != nil {
@@ -277,7 +277,7 @@ func (s *Store) AttestAlias(slug, norm, episodeID string) (int, error) {
 // AliasAttestations lists the episodes that claimed alias norm for slug.
 func (s *Store) AliasAttestations(slug, norm string) ([]string, error) {
 	var eps []string
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(prefixAttest + slug + ":" + norm))
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return nil

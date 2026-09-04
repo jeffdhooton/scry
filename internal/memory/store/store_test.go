@@ -133,6 +133,90 @@ func TestEpisodePutHasGet(t *testing.T) {
 	}
 }
 
+func TestAtomicWriteCommitsOrRollsBackAsOneUnit(t *testing.T) {
+	s := openTemp(t)
+	now := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	episode := Episode{ID: "atomic-episode", Source: "manual", SourceRef: "test", OccurredAt: now, IngestedAt: now}
+	alpha := Entity{Slug: "alpha", Name: "Alpha", Type: "project"}
+	beta := Entity{Slug: "beta", Name: "Beta", Type: "service"}
+	fact := Fact{Src: alpha.Slug, Relation: "uses", Dst: beta.Slug, Fact: "Alpha uses Beta", ValidFrom: now, Episodes: []string{episode.ID}}
+
+	var observed []Event
+	s.SetObserver(func(event Event) { observed = append(observed, event) })
+	injected := errors.New("injected apply failure")
+	err := s.AtomicWrite(func(tx *Store) error {
+		if err := tx.PutEntity(alpha); err != nil {
+			return err
+		}
+		if err := tx.PutEntity(beta); err != nil {
+			return err
+		}
+		if got, err := tx.GetEntity(alpha.Slug); err != nil || got.Name != alpha.Name {
+			t.Fatalf("transaction did not read its entity write: got=%+v err=%v", got, err)
+		}
+		if owner, found, err := tx.ResolveAlias(alpha.Name); err != nil || !found || owner != alpha.Slug {
+			t.Fatalf("transaction did not read its alias write: owner=%q found=%v err=%v", owner, found, err)
+		}
+		if err := tx.PutFact(fact); err != nil {
+			return err
+		}
+		if facts, err := tx.FactsFrom(alpha.Slug, true); err != nil || len(facts) != 1 || facts[0].Dst != beta.Slug {
+			t.Fatalf("transaction did not read its fact write: facts=%+v err=%v", facts, err)
+		}
+		if err := tx.PutEpisode(episode); err != nil {
+			return err
+		}
+		if len(observed) != 0 {
+			t.Fatalf("observer saw uncommitted events: %+v", observed)
+		}
+		return injected
+	})
+	if !errors.Is(err, injected) {
+		t.Fatalf("AtomicWrite error = %v, want injected failure", err)
+	}
+	for _, slug := range []string{alpha.Slug, beta.Slug} {
+		if _, err := s.GetEntity(slug); !errors.Is(err, ErrNotFound) {
+			t.Fatalf("rolled-back entity %q remains: %v", slug, err)
+		}
+	}
+	if owner, found, err := s.ResolveAlias(alpha.Name); err != nil || found {
+		t.Fatalf("rolled-back alias remains: owner=%q found=%v err=%v", owner, found, err)
+	}
+	if facts, err := s.FactsFrom(alpha.Slug, true); err != nil || len(facts) != 0 {
+		t.Fatalf("rolled-back fact remains: facts=%+v err=%v", facts, err)
+	}
+	if has, err := s.HasEpisode(episode.ID); err != nil || has {
+		t.Fatalf("rolled-back episode remains: has=%v err=%v", has, err)
+	}
+	if len(observed) != 0 {
+		t.Fatalf("observer saw rolled-back events: %+v", observed)
+	}
+
+	if err := s.AtomicWrite(func(tx *Store) error {
+		if err := tx.PutEntity(alpha); err != nil {
+			return err
+		}
+		if err := tx.PutEntity(beta); err != nil {
+			return err
+		}
+		if err := tx.PutFact(fact); err != nil {
+			return err
+		}
+		if err := tx.PutEpisode(episode); err != nil {
+			return err
+		}
+		if len(observed) != 0 {
+			t.Fatalf("observer saw events before commit: %+v", observed)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("AtomicWrite commit: %v", err)
+	}
+	if len(observed) != 4 {
+		t.Fatalf("observer events after commit = %d, want 4: %+v", len(observed), observed)
+	}
+}
+
 func TestAllEpisodes(t *testing.T) {
 	s := openTemp(t)
 	now := time.Now()

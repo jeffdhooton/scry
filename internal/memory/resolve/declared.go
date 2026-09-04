@@ -39,6 +39,12 @@ func DeclaredValues(ents []extract.Ent) map[string]bool {
 		if ent.Type != "value" && (trustedIdentityType(ent) || !untrustedStatusShape(ent.Name)) {
 			continue
 		}
+		// A same-episode affirmative identity is stronger than a conflicting
+		// value verdict for the exact same spelling, regardless of declaration
+		// order. Value aliases already receive the same protection below.
+		if normalized := store.Normalize(ent.Name); normalized == "" || declaredIdentities[normalized] {
+			continue
+		}
 		if out == nil {
 			out = map[string]bool{}
 		}

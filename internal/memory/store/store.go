@@ -33,6 +33,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
@@ -156,9 +157,20 @@ type Cursor struct {
 // Store is an open BadgerDB-backed handle on the global memory store.
 type Store struct {
 	db *badger.DB
+	// txn is set only on the short-lived facade passed to AtomicWrite. Store
+	// methods use it instead of opening nested Badger transactions, so a
+	// resolver can compose its ordinary reads and writes into one commit.
+	txn *badger.Txn
+	// pendingEvents belongs to the same facade. Observers must never see a
+	// write that the surrounding transaction later rolls back.
+	pendingEvents *[]Event
 	// maintenanceMu lets backup-coupled maintenance hold an exclusive
 	// rollback boundary while ordinary store mutations take the shared side.
 	maintenanceMu sync.RWMutex
+	// retirementRevision changes after each successful entity-retirement
+	// transaction. An AtomicWrite that was already waiting on that retirement
+	// must abort rather than reinterpret its now-retired endpoints as new stubs.
+	retirementRevision atomic.Uint64
 
 	obsMu    sync.RWMutex
 	observer func(Event)
@@ -186,6 +198,58 @@ func Open(dir string) (*Store, error) {
 // Close closes the underlying database.
 func (s *Store) Close() error { return s.db.Close() }
 
+// view runs fn in the active transaction, when this is an AtomicWrite
+// facade, or in an ordinary read transaction otherwise.
+func (s *Store) view(fn func(*badger.Txn) error) error {
+	if s.txn != nil {
+		return fn(s.txn)
+	}
+	return s.db.View(fn)
+}
+
+// update runs fn in the active transaction, when this is an AtomicWrite
+// facade, or in an ordinary write transaction otherwise.
+func (s *Store) update(fn func(*badger.Txn) error) error {
+	if s.txn != nil {
+		return fn(s.txn)
+	}
+	return s.db.Update(fn)
+}
+
+// AtomicWrite runs fn against a transactional Store facade. Every supported
+// read observes the same snapshot plus the callback's earlier writes, and any
+// error rolls all of those writes back. Observer events are published only
+// after Badger commits successfully.
+//
+// The facade is valid only for the duration of fn and must not escape it.
+func (s *Store) AtomicWrite(fn func(*Store) error) error {
+	if s.txn != nil {
+		return fn(s)
+	}
+
+	var events []Event
+	retirementRevision := s.retirementRevision.Load()
+	err := func() error {
+		s.maintenanceMu.RLock()
+		defer s.maintenanceMu.RUnlock()
+		if s.retirementRevision.Load() != retirementRevision {
+			return fmt.Errorf("memory: entity retirement completed while atomic write waited: %w", ErrNotFound)
+		}
+		return s.db.Update(func(txn *badger.Txn) error {
+			events = events[:0]
+			transactional := &Store{db: s.db, txn: txn, pendingEvents: &events}
+			return fn(transactional)
+		})
+	}()
+	if err != nil {
+		return err
+	}
+	for _, event := range events {
+		s.notify(event)
+	}
+	return nil
+}
+
 func (s *Store) ensureSchema() error {
 	disk, err := s.schemaVersionOnDisk()
 	if err != nil {
@@ -212,7 +276,7 @@ func (s *Store) ensureSchema() error {
 
 func (s *Store) schemaVersionOnDisk() (int, error) {
 	var v int
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(keySchemaVersion))
 		if err != nil {
 			return err
@@ -236,7 +300,7 @@ func (s *Store) PutEpisode(e Episode) error {
 	if err != nil {
 		return err
 	}
-	err = s.db.Update(func(txn *badger.Txn) error {
+	err = s.update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixEpisode+e.ID), b)
 	})
 	if err == nil {
@@ -247,7 +311,7 @@ func (s *Store) PutEpisode(e Episode) error {
 
 func (s *Store) GetEpisode(id string) (Episode, error) {
 	var e Episode
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(prefixEpisode + id))
 		if err != nil {
 			return err
@@ -264,7 +328,7 @@ func (s *Store) GetEpisode(id string) (Episode, error) {
 
 func (s *Store) HasEpisode(id string) (bool, error) {
 	found := false
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		_, err := txn.Get([]byte(prefixEpisode + id))
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return nil
@@ -282,7 +346,7 @@ func (s *Store) HasEpisode(id string) (bool, error) {
 func (s *Store) AllEpisodes() ([]Episode, error) {
 	var episodes []Episode
 	pb := []byte(prefixEpisode)
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 256
 		it := txn.NewIterator(opts)
@@ -330,7 +394,7 @@ func (s *Store) PutEntity(e Entity) error {
 		return err
 	}
 	newNorms := normalizedNameSet(e.Name, e.Aliases)
-	err = s.db.Update(func(txn *badger.Txn) error {
+	err = s.update(func(txn *badger.Txn) error {
 		prev, err := getEntityTxn(txn, e.Slug)
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
@@ -473,7 +537,7 @@ func deleteAliasIfOwnedBy(txn *badger.Txn, norm, slug string) error {
 
 func (s *Store) GetEntity(slug string) (Entity, error) {
 	var e Entity
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(prefixEntity + slug))
 		if err != nil {
 			return err
@@ -494,7 +558,7 @@ func (s *Store) ResolveAlias(name string) (string, bool, error) {
 	norm := Normalize(name)
 	var slug string
 	found := false
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(prefixAlias + norm))
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return nil
@@ -517,7 +581,7 @@ func (s *Store) ResolveAlias(name string) (string, bool, error) {
 func (s *Store) AliasClaims() (map[string]string, error) {
 	claims := map[string]string{}
 	pb := []byte(prefixAlias)
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 256
 		it := txn.NewIterator(opts)
@@ -539,7 +603,7 @@ func (s *Store) AliasClaims() (map[string]string, error) {
 func (s *Store) Entities() ([]Entity, error) {
 	var entities []Entity
 	pb := []byte(prefixEntity)
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 256
 		it := txn.NewIterator(opts)
@@ -615,7 +679,7 @@ func (s *Store) putFactUnlocked(f Fact) error {
 	if err != nil {
 		return err
 	}
-	err = s.db.Update(func(txn *badger.Txn) error {
+	err = s.update(func(txn *badger.Txn) error {
 		if err := validateFactEndpointsTxn(txn, f); err != nil {
 			return err
 		}
@@ -649,7 +713,7 @@ func validateFactEndpointsTxn(txn *badger.Txn, f Fact) error {
 func (s *Store) FactsFrom(slug string, includeInvalid bool) ([]Fact, error) {
 	var facts []Fact
 	pb := []byte(prefixFact + slug + ":")
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 256
 		it := txn.NewIterator(opts)
@@ -689,7 +753,7 @@ func (s *Store) FactsAbout(slug string, includeInvalid bool) ([]Fact, error) {
 	}
 
 	pb := []byte(prefixAdj + slug + ":")
-	err = s.db.View(func(txn *badger.Txn) error {
+	err = s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
@@ -738,7 +802,7 @@ func (s *Store) FactsAbout(slug string, includeInvalid bool) ([]Fact, error) {
 func (s *Store) AllFacts() ([]Fact, error) {
 	var facts []Fact
 	pb := []byte(prefixFact)
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 256
 		it := txn.NewIterator(opts)
@@ -769,7 +833,7 @@ func (s *Store) InvalidateFact(src, relation, dst string, validFrom, at time.Tim
 	defer s.maintenanceMu.RUnlock()
 	key := factKey(src, relation, dst, validFrom)
 	var updated Fact
-	err := s.db.Update(func(txn *badger.Txn) error {
+	err := s.update(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return ErrNotFound
@@ -812,7 +876,7 @@ func (s *Store) DeleteFact(src, relation, dst string, validFrom time.Time) error
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
 	key := factKey(src, relation, dst, validFrom)
-	err := s.db.Update(func(txn *badger.Txn) error {
+	err := s.update(func(txn *badger.Txn) error {
 		if _, err := txn.Get(key); err != nil {
 			if errors.Is(err, badger.ErrKeyNotFound) {
 				return ErrNotFound
@@ -843,7 +907,7 @@ func cursorKey(path string) []byte {
 func (s *Store) GetCursor(path string) (Cursor, bool, error) {
 	var c Cursor
 	found := false
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get(cursorKey(path))
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return nil
@@ -869,7 +933,7 @@ func (s *Store) PutCursor(c Cursor) error {
 	if err != nil {
 		return err
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
+	return s.update(func(txn *badger.Txn) error {
 		return txn.Set(cursorKey(c.Path), b)
 	})
 }
@@ -878,7 +942,7 @@ func (s *Store) PutCursor(c Cursor) error {
 func (s *Store) Cursors() ([]Cursor, error) {
 	var cursors []Cursor
 	pb := []byte(prefixCursor)
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 256
 		it := txn.NewIterator(opts)
@@ -914,7 +978,7 @@ func (s *Store) Counts() (episodes, entities, facts int, err error) {
 func (s *Store) countPrefix(prefix string) int {
 	var n int
 	pb := []byte(prefix)
-	_ = s.db.View(func(txn *badger.Txn) error {
+	_ = s.view(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
@@ -1022,7 +1086,7 @@ func (s *Store) Restore(r io.Reader) error {
 func (s *Store) DeleteEntity(slug string) error {
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
-	err := s.db.Update(func(txn *badger.Txn) error {
+	err := s.update(func(txn *badger.Txn) error {
 		prev, err := getEntityTxn(txn, slug)
 		if errors.Is(err, ErrNotFound) {
 			return nil
@@ -1055,7 +1119,7 @@ func (s *Store) ClaimAlias(name, slug string) error {
 	if norm == "" {
 		return nil
 	}
-	return s.db.Update(func(txn *badger.Txn) error {
+	return s.update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixAlias+norm), []byte(slug))
 	})
 }
@@ -1083,7 +1147,7 @@ func (s *Store) DropAliasRehome(slug, alias, rehomeTo string) (bool, error) {
 		return false, nil
 	}
 	changed := false
-	err := s.db.Update(func(txn *badger.Txn) error {
+	err := s.update(func(txn *badger.Txn) error {
 		e, err := getEntityTxn(txn, slug)
 		if err != nil {
 			return err
@@ -1168,7 +1232,7 @@ func (s *Store) RelocateFact(old, updated Fact) error {
 	defer s.maintenanceMu.RUnlock()
 	oldKey := factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom)
 	newKey := factKey(updated.Src, updated.Relation, updated.KeyDst(), updated.ValidFrom)
-	err := s.db.Update(func(txn *badger.Txn) error {
+	err := s.update(func(txn *badger.Txn) error {
 		item, err := txn.Get(oldKey)
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			return ErrNotFound
@@ -1249,6 +1313,10 @@ func (s *Store) SetObserver(fn func(Event)) {
 }
 
 func (s *Store) notify(ev Event) {
+	if s.pendingEvents != nil {
+		*s.pendingEvents = append(*s.pendingEvents, ev)
+		return
+	}
 	s.obsMu.RLock()
 	fn := s.observer
 	s.obsMu.RUnlock()

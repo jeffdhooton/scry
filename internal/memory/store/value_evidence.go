@@ -34,7 +34,7 @@ func (s *Store) RecordValueEvidence(name, episodeID string) error {
 	}
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
-	return s.db.Update(func(txn *badger.Txn) error {
+	return s.update(func(txn *badger.Txn) error {
 		key := []byte(prefixValueEvidence + norm)
 		evidence := ValueEvidence{Normalized: norm}
 		item, err := txn.Get(key)
@@ -66,7 +66,7 @@ func (s *Store) GetValueEvidence(name string) (ValueEvidence, error) {
 	if norm == "" {
 		return ValueEvidence{}, ErrNotFound
 	}
-	err := s.db.View(func(txn *badger.Txn) error {
+	err := s.view(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(prefixValueEvidence + norm))
 		if err != nil {
 			return err

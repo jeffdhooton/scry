@@ -84,6 +84,22 @@ type ApplyOptions struct {
 // ApplyWith is Apply with options.
 func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result, exclusive map[string]bool, o ApplyOptions) (Stats, error) {
 	var stats Stats
+	err := st.AtomicWrite(func(transactional *store.Store) error {
+		var err error
+		stats, err = applyWith(transactional, ep, cwd, res, exclusive, o)
+		return err
+	})
+	if err != nil {
+		return Stats{}, err
+	}
+	return stats, nil
+}
+
+// applyWith performs one resolution inside the caller's transaction. Keeping
+// idempotency, entity resolution, fact changes, value evidence, and the
+// episode marker in that transaction makes an extraction all-or-nothing.
+func applyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result, exclusive map[string]bool, o ApplyOptions) (Stats, error) {
+	var stats Stats
 
 	// Rule 1: idempotency.
 	has, err := st.HasEpisode(ep.ID)

@@ -335,6 +335,96 @@ func TestNewEntityNameRequiresExplicitAliasRepair(t *testing.T) {
 	}
 }
 
+func TestApplyAliasRefusalRollsBackEarlierWrites(t *testing.T) {
+	st := openTemp(t)
+	putEntity(t, st, "wrong-owner", "Wrong Owner", "concept")
+	if err := st.ClaimAlias("SQLite CLI", "wrong-owner"); err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "atomic-alias-refusal", Source: "manual", SourceRef: "test", OccurredAt: at, IngestedAt: at}
+	result := extract.Result{Entities: []extract.Ent{
+		{Name: "Earlier Entity", Type: "project"},
+		{Name: "SQLite CLI", Type: "concept", TypeFallback: true},
+	}}
+	stats, err := Apply(st, ep, "", result, DefaultExclusive)
+	if !errors.Is(err, store.ErrAliasClaimed) {
+		t.Fatalf("Apply error = %v, want ErrAliasClaimed", err)
+	}
+	if stats != (Stats{}) {
+		t.Fatalf("failed atomic apply reported committed writes: %+v", stats)
+	}
+	if _, err := st.GetEntity("earlier-entity"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("entity written before refusal survived rollback: %v", err)
+	}
+	if has, err := st.HasEpisode(ep.ID); err != nil || has {
+		t.Fatalf("failed episode was recorded: has=%v err=%v", has, err)
+	}
+	if owner, found, err := st.ResolveAlias("SQLite CLI"); err != nil || !found || owner != "wrong-owner" {
+		t.Fatalf("preexisting stale claim changed: owner=%q found=%v err=%v", owner, found, err)
+	}
+}
+
+func TestApplyWaitingOnRetirementAbortsWithoutPartialEpisode(t *testing.T) {
+	st := openTemp(t)
+	for _, entity := range []store.Entity{
+		{Slug: "reporter", Name: "Reporter", Type: "service"},
+		{Slug: "safe-target", Name: "Safe Target", Type: "service"},
+		{Slug: "retiring-target", Name: "Retiring Target", Type: "concept"},
+	} {
+		if err := st.PutEntity(entity); err != nil {
+			t.Fatal(err)
+		}
+	}
+	req := store.EntityRetirementRequest{Entity: "retiring-target", Why: "reviewed hollow status node"}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("retirement preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	retireDone := make(chan error, 1)
+	go func() {
+		_, err := st.RetireEntityChecked(req, func(_ []store.Entity, _ []store.Fact) error {
+			close(entered)
+			<-release
+			return nil
+		})
+		retireDone <- err
+	}()
+	<-entered
+
+	at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	ep := store.Episode{ID: "concurrent-retirement-apply", Source: "manual", SourceRef: "test", OccurredAt: at, IngestedAt: at}
+	applyDone := make(chan error, 1)
+	go func() {
+		_, err := Apply(st, ep, "", extract.Result{Facts: []extract.Fct{
+			{Src: "Reporter", Relation: "uses", Dst: "Safe Target", Fact: "first valid fact", Confidence: .9},
+			{Src: "Reporter", Relation: "uses", Dst: "Retiring Target", Fact: "second racing fact", Confidence: .9},
+		}}, nil)
+		applyDone <- err
+	}()
+	select {
+	case err := <-applyDone:
+		t.Fatalf("Apply crossed retirement boundary before release: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	if err := <-retireDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-applyDone; !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("Apply error = %v, want ErrNotFound", err)
+	}
+	if has, err := st.HasEpisode(ep.ID); err != nil || has {
+		t.Fatalf("failed episode recorded: has=%v err=%v", has, err)
+	}
+	if facts, err := st.FactsFrom("reporter", false); err != nil || len(facts) != 0 {
+		t.Fatalf("failed episode left partial facts: facts=%+v err=%v", facts, err)
+	}
+}
+
 func TestRoleAndOrdinalAliasesAreRefused(t *testing.T) {
 	jeff := store.Entity{Slug: "jeff", Name: "Jeff", Type: "person"}
 	for _, a := range []string{

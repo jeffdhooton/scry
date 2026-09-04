@@ -145,7 +145,11 @@ func (s *Store) RetireEntitiesChecked(reqs []EntityRetirementRequest, postcondit
 	// landing a dangling fact outside the retirement transaction's snapshot.
 	s.maintenanceMu.Lock()
 	defer s.maintenanceMu.Unlock()
-	return s.retireEntitiesCheckedUnlocked(reqs, postcondition)
+	previews, err := s.retireEntitiesCheckedUnlocked(reqs, postcondition)
+	if err == nil {
+		s.retirementRevision.Add(1)
+	}
+	return previews, err
 }
 
 type durableBackupWriter interface {
@@ -174,6 +178,9 @@ func (s *Store) BackupAndRetireEntities(w durableBackupWriter, reqs []EntityReti
 		return n, nil, fmt.Errorf("close retirement backup: %w", err)
 	}
 	previews, err := s.retireEntitiesCheckedUnlocked(reqs, nil)
+	if err == nil {
+		s.retirementRevision.Add(1)
+	}
 	return n, previews, err
 }
 
