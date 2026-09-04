@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,12 +20,22 @@ import (
 // alias, and touching-fact snapshot. The reviewer then supplies exactly one
 // replacement for every fact and copies Expected into the apply manifest.
 type EntityRetirementRequest struct {
-	ID            string                        `json:"id,omitempty"`
-	Entity        string                        `json:"entity"`
-	Replacements  []EntityRetirementReplacement `json:"replacements,omitempty"`
-	RehomeAliases []EntityRetirementAliasRehome `json:"rehome_aliases,omitempty"`
-	Expected      EntityRetirementExpected      `json:"expected,omitempty"`
-	Why           string                        `json:"why"`
+	ID                  string                            `json:"id,omitempty"`
+	Entity              string                            `json:"entity"`
+	Replacements        []EntityRetirementReplacement     `json:"replacements,omitempty"`
+	ReviewedAdjacencies []EntityRetirementAdjacencyReview `json:"reviewed_adjacencies,omitempty"`
+	RehomeAliases       []EntityRetirementAliasRehome     `json:"rehome_aliases,omitempty"`
+	Expected            EntityRetirementExpected          `json:"expected,omitempty"`
+	Why                 string                            `json:"why"`
+}
+
+// EntityRetirementAdjacencyReview explicitly authorizes removal of an
+// anomalous reverse-index record. Ordinary empty mirrors of reviewed facts
+// need no separate entry; stale records and nonempty values always do.
+type EntityRetirementAdjacencyReview struct {
+	Key            string `json:"key"`
+	ExpectedSHA256 string `json:"expected_sha256"`
+	Why            string `json:"why"`
 }
 
 // EntityRetirementAliasRehome preserves a spelling that legitimately belongs
@@ -63,25 +74,29 @@ type EntityRetirementAdjacencyFingerprint struct {
 	SHA256           string `json:"sha256"`
 	CanonicalFactKey string `json:"canonical_fact_key"`
 	Stale            bool   `json:"stale"`
+	ValueBase64      string `json:"value_base64"`
+	ValueBytes       int    `json:"value_bytes"`
+	NeedsReview      bool   `json:"needs_review"`
 }
 
 type EntityRetirementPreview struct {
-	ID                string                                 `json:"id,omitempty"`
-	Entity            Entity                                 `json:"entity_snapshot"`
-	Expected          EntityRetirementExpected               `json:"expected"`
-	FactFingerprints  []EntityMergeFactFingerprint           `json:"fact_fingerprints"`
-	Adjacencies       []EntityRetirementAdjacencyFingerprint `json:"adjacency_fingerprints"`
-	Replacements      []EntityRetirementReplacement          `json:"replacements,omitempty"`
-	CurrentFacts      int                                    `json:"current_facts"`
-	InvalidatedFacts  int                                    `json:"invalidated_facts"`
-	AliasClaims       map[string]string                      `json:"alias_claims"`
-	RehomeAliases     []EntityRetirementAliasRehome          `json:"rehome_aliases,omitempty"`
-	ExternalListings  []string                               `json:"external_listings,omitempty"`
-	SelfLoops         []string                               `json:"self_loops,omitempty"`
-	FactKeyCollisions []string                               `json:"fact_key_collisions,omitempty"`
-	Problems          []string                               `json:"problems,omitempty"`
-	Ready             bool                                   `json:"ready"`
-	Applied           bool                                   `json:"applied"`
+	ID                  string                                 `json:"id,omitempty"`
+	Entity              Entity                                 `json:"entity_snapshot"`
+	Expected            EntityRetirementExpected               `json:"expected"`
+	FactFingerprints    []EntityMergeFactFingerprint           `json:"fact_fingerprints"`
+	Adjacencies         []EntityRetirementAdjacencyFingerprint `json:"adjacency_fingerprints"`
+	ReviewedAdjacencies []EntityRetirementAdjacencyReview      `json:"reviewed_adjacencies,omitempty"`
+	Replacements        []EntityRetirementReplacement          `json:"replacements,omitempty"`
+	CurrentFacts        int                                    `json:"current_facts"`
+	InvalidatedFacts    int                                    `json:"invalidated_facts"`
+	AliasClaims         map[string]string                      `json:"alias_claims"`
+	RehomeAliases       []EntityRetirementAliasRehome          `json:"rehome_aliases,omitempty"`
+	ExternalListings    []string                               `json:"external_listings,omitempty"`
+	SelfLoops           []string                               `json:"self_loops,omitempty"`
+	FactKeyCollisions   []string                               `json:"fact_key_collisions,omitempty"`
+	Problems            []string                               `json:"problems,omitempty"`
+	Ready               bool                                   `json:"ready"`
+	Applied             bool                                   `json:"applied"`
 }
 
 type entityRetirementAnalysis struct {
@@ -317,7 +332,7 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 
 func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (entityRetirementAnalysis, error) {
 	a := entityRetirementAnalysis{claimNorms: map[string]string{}, rehomeNorms: map[string]string{}, rehomeTargets: map[string]Entity{}}
-	a.preview = EntityRetirementPreview{ID: req.ID, AliasClaims: map[string]string{}, Replacements: append([]EntityRetirementReplacement(nil), req.Replacements...), RehomeAliases: append([]EntityRetirementAliasRehome(nil), req.RehomeAliases...)}
+	a.preview = EntityRetirementPreview{ID: req.ID, AliasClaims: map[string]string{}, Replacements: append([]EntityRetirementReplacement(nil), req.Replacements...), ReviewedAdjacencies: append([]EntityRetirementAdjacencyReview(nil), req.ReviewedAdjacencies...), RehomeAliases: append([]EntityRetirementAliasRehome(nil), req.RehomeAliases...)}
 	problem := func(message string) { a.preview.Problems = append(a.preview.Problems, message) }
 	if strings.TrimSpace(req.Entity) == "" {
 		return a, errors.New("memory: retirement entity is required")
@@ -442,6 +457,37 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 	for _, adjacency := range adjacencies {
 		a.adjacencyKeys = append(a.adjacencyKeys, []byte(adjacency.Key))
 	}
+	adjacencyByKey := make(map[string]EntityRetirementAdjacencyFingerprint, len(adjacencies))
+	for _, adjacency := range adjacencies {
+		adjacencyByKey[adjacency.Key] = adjacency
+	}
+	seenAdjacencyReviews := map[string]bool{}
+	for _, review := range req.ReviewedAdjacencies {
+		adjacency, found := adjacencyByKey[review.Key]
+		if !found {
+			problem("adjacency review names unknown key: " + review.Key)
+			continue
+		}
+		if seenAdjacencyReviews[review.Key] {
+			problem("adjacency review repeats key: " + review.Key)
+			continue
+		}
+		seenAdjacencyReviews[review.Key] = true
+		if review.ExpectedSHA256 == "" || review.ExpectedSHA256 != adjacency.SHA256 {
+			problem("adjacency review fingerprint mismatch: " + review.Key)
+		}
+		if strings.TrimSpace(review.Why) == "" {
+			problem("adjacency review requires a reason: " + review.Key)
+		}
+		if !adjacency.NeedsReview {
+			problem("adjacency review is unnecessary for canonical empty mirror: " + review.Key)
+		}
+	}
+	for _, adjacency := range adjacencies {
+		if adjacency.NeedsReview && !seenAdjacencyReviews[adjacency.Key] {
+			problem("anomalous adjacency has no explicit review: " + adjacency.Key)
+		}
+	}
 	seenOld := map[string]bool{}
 	targetKeys := map[string]string{}
 	inputByKey := map[string]EntityRetirementReplacement{}
@@ -565,6 +611,7 @@ func adjacencyReferencesTxn(txn *badger.Txn, retired string, factsByKey map[stri
 				Key   string `json:"key"`
 				Value []byte `json:"value"`
 			}{Key: string(key), Value: value}), CanonicalFactKey: canonicalKey, Stale: !corresponds,
+			ValueBase64: base64.StdEncoding.EncodeToString(value), ValueBytes: len(value), NeedsReview: !corresponds || len(value) != 0,
 		})
 	}
 	if fingerprints == nil {

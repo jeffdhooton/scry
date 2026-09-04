@@ -1622,13 +1622,16 @@ func memoryRetireEntitiesCmd() *cobra.Command {
 		Short: "Retire reviewed value nodes while preserving every fact",
 		Long: `Reads a JSON array of reviewed non-identity retirements. The first
 dry run needs only entity/why and returns the complete entity, alias claims,
-and every touching current or invalidated fact with exact keys and hashes.
+every touching current or invalidated fact, and every reverse-index record
+with exact keys, safely encoded values, and hashes.
 
 For each fact, copy its snapshot into a replacement, identify old_key and
 expected_sha256, and change only the reviewed endpoint or edge-to-attribute
 shape. Fact text, relation, raw relation, validity, timestamps, confidence,
 and episode provenance are immutable. Copy expected into the manifest after
-the completed dry run. Apply refuses incomplete review, snapshot drift,
+the completed dry run. Stale adjacency records or records with nonempty
+values require reviewed_adjacencies entries copying their key and hash plus
+a reason. Apply refuses incomplete review, snapshot drift,
 missing endpoints, self-loops, duplicate keys, or external alias listings.
 It preflights the whole manifest, takes a nonempty backup, and commits the
 entire manifest plus all its facts and aliases in one transaction.

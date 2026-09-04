@@ -281,8 +281,13 @@ func TestRetireEntityReviewsAndRemovesStaleAdjacencyReferences(t *testing.T) {
 
 	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow non-identity"}
 	preview, err := st.PreviewEntityRetirement(req)
-	if err != nil || !preview.Ready || len(preview.Adjacencies) != 1 || !preview.Adjacencies[0].Stale {
+	if err != nil || preview.Ready || len(preview.Adjacencies) != 1 || !preview.Adjacencies[0].Stale || preview.Adjacencies[0].ValueBase64 != "bGVnYWN5LWdob3N0" || preview.Adjacencies[0].ValueBytes != 12 || !preview.Adjacencies[0].NeedsReview {
 		t.Fatalf("stale adjacency was not exposed for review: preview=%+v err=%v", preview, err)
+	}
+	req.ReviewedAdjacencies = []EntityRetirementAdjacencyReview{{Key: preview.Adjacencies[0].Key, ExpectedSHA256: preview.Adjacencies[0].SHA256, Why: "reviewed stale legacy reverse-index payload"}}
+	preview, err = st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("explicit stale adjacency review was refused: preview=%+v err=%v", preview, err)
 	}
 	req.Expected = preview.Expected
 	if _, err := st.RetireEntity(req); err != nil {
@@ -325,13 +330,18 @@ func TestRetireEntityReviewsAndRemovesMalformedAdjacencyReferences(t *testing.T)
 	}
 	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed hollow non-identity"}
 	preview, err := st.PreviewEntityRetirement(req)
-	if err != nil || !preview.Ready || len(preview.Adjacencies) != len(ghostKeys) {
+	if err != nil || preview.Ready || len(preview.Adjacencies) != len(ghostKeys) {
 		t.Fatalf("malformed adjacencies were not exposed: preview=%+v err=%v", preview, err)
 	}
 	for _, row := range preview.Adjacencies {
-		if !row.Stale || row.CanonicalFactKey != "" {
+		if !row.Stale || row.CanonicalFactKey != "" || !row.NeedsReview {
 			t.Fatalf("malformed adjacency was not classified stale: %+v", row)
 		}
+		req.ReviewedAdjacencies = append(req.ReviewedAdjacencies, EntityRetirementAdjacencyReview{Key: row.Key, ExpectedSHA256: row.SHA256, Why: "reviewed malformed reverse-index ghost"})
+	}
+	preview, err = st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("explicit malformed adjacency reviews were refused: preview=%+v err=%v", preview, err)
 	}
 	req.Expected = preview.Expected
 	if _, err := st.RetireEntity(req); err != nil {
