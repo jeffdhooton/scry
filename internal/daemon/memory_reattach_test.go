@@ -247,3 +247,70 @@ func TestMemoryReattachMovesTheFarEnd(t *testing.T) {
 		t.Errorf("the fact changed: %+v", got[0])
 	}
 }
+
+// Reattaching facts without pruning the aliases that attracted them is, in
+// a reviewer's phrase, bailing a boat with the hole still in it.
+func TestMemoryUnalias(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	st, _ := d.memoryStore()
+	ops := memstore.Entity{Slug: "ops", Name: "hermes-ops", Type: "project",
+		Aliases: []string{"Hermes Slack gateway", "Jeff's own Hermes", "ops repo"}}
+	agent := memstore.Entity{Slug: "agent", Name: "Hermes", Type: "service"}
+	for _, e := range []memstore.Entity{ops, agent} {
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := st.ClaimAlias("Hermes Slack gateway", "ops"); err != nil {
+		t.Fatal(err)
+	}
+	// A spelling another entity has since claimed must survive on that one.
+	if err := st.ClaimAlias("Jeff's own Hermes", "agent"); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("refuses what the entity does not list", func(t *testing.T) {
+		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: true,
+			Drops: []MemoryUnaliasDrop{{Entity: "ops", Alias: "not held"}}}))
+		if res := out.(*MemoryUnaliasResult); res.Refused != 1 || res.Dropped != 0 {
+			t.Errorf("%+v", res)
+		}
+	})
+
+	t.Run("refuses the entity's own name", func(t *testing.T) {
+		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: true,
+			Drops: []MemoryUnaliasDrop{{Entity: "ops", Alias: "hermes-ops"}}}))
+		if res := out.(*MemoryUnaliasResult); res.Refused != 1 {
+			t.Errorf("%+v", res)
+		}
+	})
+
+	t.Run("drops the leak and leaves the index another entity owns", func(t *testing.T) {
+		out, err := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{
+			Drops: []MemoryUnaliasDrop{
+				{Entity: "ops", Alias: "Hermes Slack gateway"},
+				{Entity: "ops", Alias: "Jeff's own Hermes"},
+			}}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := out.(*MemoryUnaliasResult)
+		if res.Dropped != 2 || res.BackupPath == "" {
+			t.Fatalf("%+v", res)
+		}
+		e, _ := st.GetEntity("ops")
+		if len(e.Aliases) != 1 || e.Aliases[0] != "ops repo" {
+			t.Errorf("aliases = %v", e.Aliases)
+		}
+		// The gateway spelling pointed at ops, so its index entry goes.
+		if _, found, _ := st.ResolveAlias("Hermes Slack gateway"); found {
+			t.Error("the alias index still resolves the dropped leak")
+		}
+		// This one pointed at the agent, so the agent keeps it.
+		slug, found, _ := st.ResolveAlias("Jeff's own Hermes")
+		if !found || slug != "agent" {
+			t.Errorf("a spelling another entity owns was stripped: %q %v", slug, found)
+		}
+	})
+}

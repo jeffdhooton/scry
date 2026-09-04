@@ -82,7 +82,7 @@ it.`,
 	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
-		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd(), memoryReattachCmd())
+		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd(), memoryReattachCmd(), memoryUnaliasCmd())
 	return cmd
 }
 
@@ -1417,5 +1417,54 @@ before the first write.
 	}
 	cmd.Flags().String("file", "", "JSON array of moves (required)")
 	cmd.Flags().Bool("apply", false, "write the moves; without it, report what would move")
+	return cmd
+}
+
+// --- unalias ---
+
+func memoryUnaliasCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "unalias",
+		Short: "Take named spellings off named entities, from a reviewed list",
+		Long: `Reads a JSON array of {"entity","alias","why"} and removes each spelling.
+
+Moving a fact off an entity does not stop the next episode putting it back.
+A project that answers to "Hermes Slack gateway" collects every sentence
+about the gateway, however many facts are moved away from it.
+
+Each entry is checked before anything is dropped: the entity must exist, it
+must actually list that spelling, and the spelling must not be its own name.
+The alias index entry goes only when it points at this entity, so dropping a
+leak can never strip a name from its rightful owner. The daemon takes a
+backup before the first write, and a dry run is the default.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, _ := cmd.Flags().GetString("file")
+			if file == "" {
+				return fmt.Errorf("--file is required")
+			}
+			b, err := os.ReadFile(file)
+			if err != nil {
+				return err
+			}
+			var drops []daemon.MemoryUnaliasDrop
+			if err := json.Unmarshal(b, &drops); err != nil {
+				return fmt.Errorf("%s: %w", file, err)
+			}
+			apply, _ := cmd.Flags().GetBool("apply")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			var res daemon.MemoryUnaliasResult
+			if err := callMemoryDaemon(ctx, "memory.unalias", &daemon.MemoryUnaliasParams{
+				Drops: drops, DryRun: !apply,
+			}, &res); err != nil {
+				return err
+			}
+			pretty, _ := cmd.Flags().GetBool("pretty")
+			return printJSON(res, pretty)
+		},
+	}
+	cmd.Flags().String("file", "", "JSON array of {entity, alias, why} (required)")
+	cmd.Flags().Bool("apply", false, "write the drops; without it, report what would drop")
 	return cmd
 }

@@ -901,6 +901,65 @@ func (s *Store) ClaimAlias(name, slug string) error {
 	})
 }
 
+// DropAlias removes one spelling from an entity: both the entity's alias
+// list and the alias index entry, but only when that index entry actually
+// points at this entity. A spelling another entity has since claimed is
+// left alone, so dropping a leak can never strip a name from its rightful
+// owner.
+//
+// It reports whether anything changed.
+func (s *Store) DropAlias(slug, alias string) (bool, error) {
+	norm := Normalize(alias)
+	if norm == "" {
+		return false, nil
+	}
+	changed := false
+	err := s.db.Update(func(txn *badger.Txn) error {
+		e, err := getEntityTxn(txn, slug)
+		if err != nil {
+			return err
+		}
+		kept := make([]string, 0, len(e.Aliases))
+		for _, a := range e.Aliases {
+			if Normalize(a) == norm {
+				changed = true
+				continue
+			}
+			kept = append(kept, a)
+		}
+		if changed {
+			e.Aliases = kept
+			b, err := json.Marshal(e)
+			if err != nil {
+				return err
+			}
+			if err := txn.Set([]byte(prefixEntity+slug), b); err != nil {
+				return err
+			}
+		}
+		// The index entry goes only if it names this entity.
+		key := []byte(prefixAlias + norm)
+		switch item, err := txn.Get(key); {
+		case errors.Is(err, badger.ErrKeyNotFound):
+		case err != nil:
+			return err
+		default:
+			owner, err := item.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			if string(owner) == slug {
+				if err := txn.Delete(key); err != nil {
+					return err
+				}
+				changed = true
+			}
+		}
+		return nil
+	})
+	return changed, err
+}
+
 // RelocateFact moves a fact from its current key to the key implied by
 // updated (a new relation, endpoints, or value), keeping text, validity,
 // confidence, provenance, and raw relation. If a fact already exists at the
