@@ -1484,3 +1484,96 @@ under a real outage rather than a simulated one.
 What remains unmeasurable until credit returns is item 2's sixth clause —
 that queued work resolves into facts within ten minutes of the provider
 coming back, with no duplicate episodes.
+
+## Item 2 passes, 2026-09-04
+
+The provider returned at 15:30:57Z after refusing on billing for twenty-two
+hours. That made the one clause nobody could test measurable on the real
+thing rather than a simulation.
+
+| clause | result |
+|---|---|
+| over twenty `scry_remember` calls through the MCP server | 20 |
+| p95 latency under one second | **149 ms** (p50 137 ms, max 165 ms) |
+| provider deliberately unreachable | genuinely unreachable, 22 hours |
+| all twenty succeed at the call | 20 of 20 |
+| all twenty resolve into facts within ten minutes of the provider returning | **20 of 20** |
+| no duplicate episodes | 0 created in the window |
+| no dead-letter files | 0 on the laptop, 0 on the mini |
+
+What the queue did in the first fifty seconds, sampled every 25:
+
+```
+11:31:29  ready 1829  backoff 363  parked 0   facts 53141
+11:31:54  ready 2136  backoff  57  parked 0   facts 53144
+11:32:19  ready 2190  backoff   0  parked 0   facts 53176
+```
+
+Every backed-off item became ready within a minute of the provider answering,
+and adaptive concurrency climbed 2 → 8 → 10 as it succeeded. 56 manual
+episodes committed inside the window and **all 56 produced at least one
+fact**.
+
+The four manual episodes in the store with identical summaries are all from
+July and August — a person issuing the same remember twice, seconds apart.
+None was created by the outage or the replay.
+
+## Item 5: twelve facts moved, and the bar still unmet
+
+`scry memory reattach` moved twelve facts off the `hermes-ops` project:
+eleven to the Hermes service and one to the Mac mini. The list was reviewed
+by a fresh agent before anything was applied, and that review is why the list
+shrank rather than grew.
+
+**What the reviewer rejected.** It read the fourteen proposed moves against
+the live store and vetoed three:
+
+| move | why it was dropped |
+|---|---|
+| `hermes uses gpt-oss-120b-q4-k-m` | hermes already held that exact fact at the identical `valid_from` |
+| `hermes uses lemonade` | the text is a *recommended plan* naming a third entity's endpoint, not a use |
+| `mac-mini uses ollama` | the sentence's subject is Hermes; the builder's own rubric pointed at hermes and the stated reason was written afterwards |
+
+It also found two config facts arbitrarily excluded — `approvals.mode` and
+`security.allow_private_urls`, the same `~/.hermes/config.yaml` family as the
+four already being moved — and those were added. Fourteen became thirteen.
+
+**Two claims in the code were false, and the reviewer found them.** The
+comment said a fact whose text had changed would be refused; the move struct
+had no field for the text, so the sentence a reviewer signs off on was decoded
+and discarded. It said an invalidated fact would be refused; the lookup passed
+`includeInvalid=true`. Both are implemented now, with tests. This is the third
+time this session that something written down as a guarantee turned out not to
+be in the code, and the pattern is worth naming: a claim in a comment costs
+nothing to write and is not checked by anything.
+
+**A silent answer made loud.** `RelocateFact` resolves a destination key
+collision by advancing `valid_from` a nanosecond until the key is free. Two of
+the original fourteen collided exactly. A collision means the destination
+already holds the fact, so reattach now refuses and says which fact; a
+destination asserting the same relation in different words warns and proceeds.
+On the live run this fired exactly once each:
+
+```
+refused: hermes already holds this exact fact at the same time: Hermes agent default model…
+warning: hermes already says uses telegram: Hermes delivers notifications to Telegram…
+moved 12, refused 1, warned 1
+backup /Users/jclaw/.scry/backups/memory-20260904T153901Z.badger (101,211,629 bytes)
+```
+
+Re-running refuses all thirteen, since the facts are no longer on the project.
+
+**One reviewer claim did not hold.** It reported "139 of the 274 are
+self-loops (`src == dst == hermes-ops`)" and called the decision log wrong for
+saying migrate invalidates self-loops. Measured: 139 is the number of facts
+with hermes-ops as the *destination*. True self-loops on that entity are **0**,
+and store-wide **0**. The decision log was right. That is the second grader
+claim this round that did not survive checking, and both are recorded, because
+a grader's number is evidence and not a verdict.
+
+**The bar is not met and this says so.** Graders hand-counted 54 to 69 agent
+facts and 12 to 13 mini facts on the project. Twelve moved. 123 facts still
+have `hermes-ops` as their source and 139 point at it. `recall "Hermes agent"`
+no longer returns the project first, but it does not return the service first
+either. Item 5 fails, by a smaller margin, with the mechanism understood and
+the remaining work being judgement on roughly fifty more sentences.
