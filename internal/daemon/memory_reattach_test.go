@@ -120,3 +120,83 @@ func TestMemoryReattach(t *testing.T) {
 		}
 	})
 }
+
+// The pre-apply reviewer found that reattach claimed two guarantees it did
+// not implement: it never compared the fact's text, and it matched
+// invalidated facts. It also found that a key collision on the destination
+// was resolved by nudging valid_from a nanosecond, silently, twice on the
+// first real list. These cover all three.
+func TestMemoryReattachRefusesWhatItCannotVerify(t *testing.T) {
+	d := newTestMemoryDaemon(t)
+	ctx := context.Background()
+	st, _ := d.memoryStore()
+	at := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	for _, e := range []memstore.Entity{
+		{Slug: "ops", Name: "ops", Type: "project"},
+		{Slug: "agent", Name: "agent", Type: "service"},
+		{Slug: "thing", Name: "thing", Type: "concept"},
+	} {
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put := func(src, text string, at time.Time, invalid bool) {
+		f := memstore.Fact{Src: src, Relation: "uses", Dst: "thing", Fact: text, ValidFrom: at, Episodes: []string{"e"}}
+		if invalid {
+			inv := at.Add(time.Hour)
+			f.InvalidAt = &inv
+		}
+		if err := st.PutFact(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("a fact whose text has changed is refused", func(t *testing.T) {
+		put("ops", "the sentence as it is now", at, false)
+		out, _ := d.handleMemoryReattach(ctx, mustJSON(t, MemoryReattachParams{DryRun: true, Moves: []MemoryReattachMove{
+			{Src: "ops", Relation: "uses", Dst: "thing", ValidFrom: at, Fact: "the sentence the reviewer read", To: "agent"},
+		}}))
+		res := out.(*MemoryReattachResult)
+		if res.Moved != 0 || res.Refused != 1 || !strings.Contains(strings.Join(res.Details, " "), "reads differently") {
+			t.Errorf("%+v", res)
+		}
+	})
+
+	t.Run("an invalidated fact is refused", func(t *testing.T) {
+		iat := at.Add(48 * time.Hour)
+		put("ops", "retired", iat, true)
+		out, _ := d.handleMemoryReattach(ctx, mustJSON(t, MemoryReattachParams{DryRun: true, Moves: []MemoryReattachMove{
+			{Src: "ops", Relation: "uses", Dst: "thing", ValidFrom: iat, To: "agent"},
+		}}))
+		res := out.(*MemoryReattachResult)
+		if res.Moved != 0 || res.Refused != 1 {
+			t.Errorf("an invalidated fact must not move: %+v", res)
+		}
+	})
+
+	t.Run("a destination already holding the fact at the same time is refused", func(t *testing.T) {
+		cat := at.Add(72 * time.Hour)
+		put("ops", "the project's copy", cat, false)
+		put("agent", "the service's copy", cat, false)
+		out, _ := d.handleMemoryReattach(ctx, mustJSON(t, MemoryReattachParams{DryRun: true, Moves: []MemoryReattachMove{
+			{Src: "ops", Relation: "uses", Dst: "thing", ValidFrom: cat, To: "agent"},
+		}}))
+		res := out.(*MemoryReattachResult)
+		if res.Moved != 0 || res.Refused != 1 || !strings.Contains(strings.Join(res.Details, " "), "same time") {
+			t.Errorf("a key collision must be reported, not nudged: %+v", res)
+		}
+	})
+
+	t.Run("a destination already saying it differently warns but proceeds", func(t *testing.T) {
+		wat := at.Add(96 * time.Hour)
+		put("ops", "the project's wording", wat, false)
+		put("agent", "the service's older wording", wat.Add(-time.Hour), false)
+		out, _ := d.handleMemoryReattach(ctx, mustJSON(t, MemoryReattachParams{DryRun: true, Moves: []MemoryReattachMove{
+			{Src: "ops", Relation: "uses", Dst: "thing", ValidFrom: wat, To: "agent"},
+		}}))
+		res := out.(*MemoryReattachResult)
+		if res.Moved != 1 || res.Warned != 1 {
+			t.Errorf("a duplicate edge should warn and proceed: %+v", res)
+		}
+	})
+}

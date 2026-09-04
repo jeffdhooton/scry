@@ -19,8 +19,13 @@ type MemoryReattachMove struct {
 	Dst       string    `json:"dst,omitempty"`
 	Value     string    `json:"value,omitempty"`
 	ValidFrom time.Time `json:"valid_from"`
-	To        string    `json:"to"`
-	Why       string    `json:"why,omitempty"`
+	// Fact is the sentence the reviewer read. It is compared against the
+	// stored text, so a fact re-extracted into different words under the
+	// same key is refused rather than moved on the strength of a review
+	// that was about something else.
+	Fact string `json:"fact,omitempty"`
+	To   string `json:"to"`
+	Why  string `json:"why,omitempty"`
 }
 
 // MemoryReattachParams is a reviewed list of moves. DryRun reports what
@@ -33,11 +38,14 @@ type MemoryReattachParams struct {
 // MemoryReattachResult reports what was moved and what was refused, with a
 // reason per refusal, so a partially-valid list is still useful.
 type MemoryReattachResult struct {
-	DryRun     bool     `json:"dry_run"`
-	BackupPath string   `json:"backup_path,omitempty"`
-	Moved      int      `json:"moved"`
-	Refused    int      `json:"refused"`
-	Details    []string `json:"details"`
+	DryRun     bool   `json:"dry_run"`
+	BackupPath string `json:"backup_path,omitempty"`
+	Moved      int    `json:"moved"`
+	Refused    int    `json:"refused"`
+	// Warned counts moves that go ahead onto a destination already
+	// asserting the same relation and target in different words.
+	Warned  int      `json:"warned"`
+	Details []string `json:"details"`
 }
 
 // handleMemoryReattach moves named facts from one entity to another.
@@ -91,7 +99,9 @@ func (d *Daemon) handleMemoryReattach(_ context.Context, raw json.RawMessage) (a
 			res.Details = append(res.Details, "refused: would be a self-loop: "+m.Src+" -> "+m.Dst)
 			continue
 		}
-		facts, err := st.FactsFrom(m.Src, true)
+		// Current facts only. An invalidated fact is history; moving it
+		// rewrites the past rather than repairing the present.
+		facts, err := st.FactsFrom(m.Src, false)
 		if err != nil {
 			return nil, err
 		}
@@ -108,6 +118,42 @@ func (d *Daemon) handleMemoryReattach(_ context.Context, raw json.RawMessage) (a
 			res.Details = append(res.Details, "refused: no current fact "+m.Src+" -["+m.Relation+"]-> "+m.Dst+m.Value+" at that time")
 			continue
 		}
+		if m.Fact != "" && m.Fact != found.Fact {
+			res.Refused++
+			res.Details = append(res.Details, "refused: the fact now reads differently than the list says: "+truncate(found.Fact, 60))
+			continue
+		}
+		// What the destination already holds decides whether this is a
+		// repair or a duplicate. Two of the first fourteen moves proposed
+		// against the live store collided with a fact the destination
+		// already carried, at the identical valid-from, and RelocateFact
+		// resolves that by nudging the timestamp a nanosecond until the
+		// key is free. That is a silent answer to a real question, so the
+		// question is asked here instead.
+		dupes, err := st.FactsFrom(m.To, false)
+		if err != nil {
+			return nil, err
+		}
+		var clash, sameEdge *memstore.Fact
+		for i := range dupes {
+			f := &dupes[i]
+			if f.Relation != m.Relation || f.Dst != m.Dst || f.Value != m.Value {
+				continue
+			}
+			sameEdge = f
+			if f.ValidFrom.Equal(found.ValidFrom) {
+				clash = f
+			}
+		}
+		if clash != nil {
+			res.Refused++
+			res.Details = append(res.Details, "refused: "+m.To+" already holds this exact fact at the same time: "+truncate(clash.Fact, 60))
+			continue
+		}
+		if sameEdge != nil {
+			res.Warned++
+			res.Details = append(res.Details, "warning: "+m.To+" already says "+m.Relation+" "+m.Dst+m.Value+": "+truncate(sameEdge.Fact, 60))
+		}
 		updated := *found
 		updated.Src = m.To
 		res.Moved++
@@ -120,4 +166,12 @@ func (d *Daemon) handleMemoryReattach(_ context.Context, raw json.RawMessage) (a
 		}
 	}
 	return res, nil
+}
+
+// truncate bounds a fact sentence for a report line.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…"
 }
