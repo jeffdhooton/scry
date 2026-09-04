@@ -3154,8 +3154,9 @@ source receives its own reviewed owner. One global owner for a generic verdict
 is forbidden.
 
 **Why.** The first candidate list contained eight durable identities and missed
-69 current status/outcome nodes. `CHANGES` alone has outgoing facts in four
-unrelated contexts, proving that source ownership cannot be inferred once per
-retired spelling. The corrected candidate inventory is still not an apply
-manifest; unresolved source facts block it until their individual owners are
-documented.
+69 current status/outcome nodes. A second independent scan confirmed those
+calls but found another 140 omissions, bringing the review inventory to 266.
+`CHANGES` alone has outgoing facts in four unrelated contexts, proving that
+source ownership cannot be inferred once per retired spelling. The corrected
+candidate inventory is still not an apply manifest; unresolved source facts
+block it until their individual owners are documented.

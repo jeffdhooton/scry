@@ -2301,10 +2301,27 @@ north-star run, two tested behaviors, two invariants/contracts, the ChildScribe
 recap-email policy, the outputs-field contract, and the named Gate 5 restart
 test. They were removed rather than forced into attributes.
 
-The reviewer found 65 additional current status/outcome/measurement nodes plus
+The first reviewer found 65 additional current status/outcome/measurement nodes plus
 four source-bearing ones: `changes`, `gates-passing`, `updated`, and
 `clean-slate`. `changes` has four outgoing facts spanning unrelated projects,
 so no single source owner is defensible. The corrected candidate inventory has
-126 entries (57 retained plus 69 added) and explicitly blocks apply until each
-outgoing fact has an evidence-backed owner. No fingerprints were copied from
-the changing live store and no candidate was applied.
+126 entries (57 retained plus 69 added). A second independent review confirmed
+all 126 classifications and all nine exclusions, then found another 140 current
+status/result nodes with a deterministic description/morphology/measurement
+scan confirmed through `Store.GetEntity`. The inventory now has 266 entries.
+That review also rejected `gate-green -> docket` as insufficiently precise;
+the fact remains unresolved between `codex-dispatch-live` and `dispatch-live`.
+Apply stays blocked until every outgoing fact has an evidence-backed owner. No
+fingerprints were copied from the changing live store and no candidate was
+applied.
+
+### Relocation writers share the retirement endpoint invariant
+
+Fresh retirement review of `2ae8e59` found that a public `RelocateFact` blocked
+behind retirement could resume afterward and move an unrelated fact onto the
+just-deleted endpoint. Commit `4682fd9` validates relocated shape and endpoints
+inside the write transaction, verifies the complete old fact snapshot before
+deletion, and avoids reacquiring the maintenance read lock on same-key updates.
+The concurrent regression proves a refused relocation leaves the original fact
+and adjacency intact. Full tests and vet passed; fresh retirement review
+restarted and no code was deployed.
