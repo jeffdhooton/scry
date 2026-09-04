@@ -3260,3 +3260,19 @@ slug-only marker would still permit recreation through an old alias, while
 treating every later mention as an error would stall healthy ingestion. Durable
 spelling classification closes all three paths without putting callbacks back
 under the lock.
+
+## Retired storage keys and rehomed spellings have different lifetimes (2026-09-04)
+
+**Decision.** Retirement also writes an unconditional `rs:<exact-slug>` marker
+in the same transaction. `rt:` continues to classify non-rehomed spellings as
+values. `PutEntity` refuses a retired storage key even when its normalized
+spelling was explicitly rehomed, and `ClaimAlias` cannot point a fresh spelling
+at that deleted key. The legitimate rehome target can still use and update its
+reviewed alias. Both marker families persist through Badger backup and reopen;
+the memory schema version is not bumped or rebuilt.
+
+**Why.** A fresh review of `7ac727e` reproduced `Obsolete!` being slugged back
+to `obsolete` after the original `obsolete` spelling was rehomed to another
+service. Exempting a spelling from value classification must not exempt the
+deleted entity key from retirement. This separates those meanings without
+guessing that every punctuation variant belongs to the rehome target.

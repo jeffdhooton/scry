@@ -573,6 +573,9 @@ func TestRetiredEntityTombstoneSurvivesReopen(t *testing.T) {
 	if err := st.ClaimAlias("VerdictWidget", "alias-target"); !errors.Is(err, ErrEntityRetired) {
 		t.Fatalf("ClaimAlias with retired spelling = %v, want ErrEntityRetired", err)
 	}
+	if err := st.ClaimAlias("BrandNewAlias", "obsolete"); !errors.Is(err, ErrEntityRetired) {
+		t.Fatalf("ClaimAlias targeting retired slug after reopen = %v, want ErrEntityRetired", err)
+	}
 	for _, spelling := range []string{"obsolete", "Obsolete", "VerdictWidget", "PhantomVerdict"} {
 		if retired, err := st.IsRetiredSpelling(spelling); err != nil || !retired {
 			t.Errorf("IsRetiredSpelling(%q) = %v, %v; want true", spelling, retired, err)
@@ -580,6 +583,51 @@ func TestRetiredEntityTombstoneSurvivesReopen(t *testing.T) {
 	}
 	if _, err := st.GetEntity("obsolete"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("retired entity exists after refused recreation: %v", err)
+	}
+}
+
+func TestRetiredSlugRemainsProtectedAfterRehomeAndReopen(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "badger")
+	st, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	for _, e := range []Entity{
+		{Slug: "obsolete", Name: "Retired Verdict", Type: "concept"},
+		{Slug: "target-service", Name: "Target Service", Type: "service", Aliases: []string{"obsolete"}},
+	} {
+		if err := st.PutEntity(e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	req := EntityRetirementRequest{Entity: "obsolete", Why: "reviewed value", RehomeAliases: []EntityRetirementAliasRehome{{Alias: "obsolete", Entity: "target-service", Why: "reviewed existing alias"}}}
+	preview, err := st.PreviewEntityRetirement(req)
+	if err != nil || !preview.Ready {
+		t.Fatalf("preview=%+v err=%v", preview, err)
+	}
+	req.Expected = preview.Expected
+	if _, err := st.RetireEntity(req); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Close(); err != nil {
+		t.Fatal(err)
+	}
+	st, err = Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutEntity(Entity{Slug: "obsolete", Name: "Obsolete!", Type: "service"}); !errors.Is(err, ErrEntityRetired) {
+		t.Fatalf("recreated rehomed slug after restart: %v", err)
+	}
+	if err := st.ClaimAlias("new-spelling", "obsolete"); !errors.Is(err, ErrEntityRetired) {
+		t.Fatalf("created dangling claim to retired slug: %v", err)
+	}
+	if owner, found, err := st.ResolveAlias("obsolete"); err != nil || !found || owner != "target-service" {
+		t.Fatalf("rehome lost after reopen: owner=%q found=%v err=%v", owner, found, err)
+	}
+	if retired, err := st.IsRetiredSpelling("obsolete"); err != nil || retired {
+		t.Fatalf("rehomed spelling classified as value after restart: retired=%v err=%v", retired, err)
 	}
 }
 
@@ -1072,6 +1120,12 @@ func TestRetireEntityRefusesCollisionSelfLoopAndExternalListing(t *testing.T) {
 		}
 		if retired, err := st.IsRetiredSpelling("FAILED"); err != nil || retired {
 			t.Fatalf("rehomed spelling was tombstoned: retired=%v err=%v", retired, err)
+		}
+		if err := st.PutEntity(Entity{Slug: "failed", Name: "Failed!", Type: "service"}); !errors.Is(err, ErrEntityRetired) {
+			t.Fatalf("rehomed slug recreated: %v", err)
+		}
+		if err := st.PutEntity(app); err != nil {
+			t.Fatalf("reviewed owner update refused: %v", err)
 		}
 	})
 }

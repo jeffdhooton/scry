@@ -52,6 +52,9 @@ const (
 	prefixAdj     = "adj:"
 	prefixCursor  = "cur:"
 	prefixRetired = "rt:"
+	// Slug retirement is independent of spelling classification: a reviewed
+	// rehome may reuse a spelling, but may never resurrect the deleted key.
+	prefixRetiredSlug = "rs:"
 
 	keySchemaVersion = prefixMeta + "schema_version"
 )
@@ -399,6 +402,11 @@ func (s *Store) PutEntity(e Entity) error {
 	}
 	newNorms := normalizedNameSet(e.Name, e.Aliases)
 	err = s.update(func(txn *badger.Txn) error {
+		if retired, err := slugRetiredTxn(txn, e.Slug); err != nil {
+			return err
+		} else if retired {
+			return fmt.Errorf("%w: slug %q", ErrEntityRetired, e.Slug)
+		}
 		retiredNorms := make(map[string]bool, len(newNorms)+1)
 		for norm := range newNorms {
 			retiredNorms[norm] = true
@@ -484,7 +492,15 @@ func (s *Store) PutEntity(e Entity) error {
 }
 
 func entityRetiredTxn(txn *badger.Txn, slug string) (bool, error) {
-	_, err := txn.Get([]byte(prefixRetired + Normalize(slug)))
+	return retirementMarkerTxn(txn, prefixRetired+Normalize(slug))
+}
+
+func slugRetiredTxn(txn *badger.Txn, slug string) (bool, error) {
+	return retirementMarkerTxn(txn, prefixRetiredSlug+slug)
+}
+
+func retirementMarkerTxn(txn *badger.Txn, key string) (bool, error) {
+	_, err := txn.Get([]byte(key))
 	switch {
 	case err == nil:
 		return true, nil
@@ -1171,6 +1187,11 @@ func (s *Store) ClaimAlias(name, slug string) error {
 		return nil
 	}
 	return s.update(func(txn *badger.Txn) error {
+		if retired, err := slugRetiredTxn(txn, slug); err != nil {
+			return err
+		} else if retired {
+			return fmt.Errorf("%w: alias target %q", ErrEntityRetired, slug)
+		}
 		if retired, err := entityRetiredTxn(txn, norm); err != nil {
 			return err
 		} else if retired {

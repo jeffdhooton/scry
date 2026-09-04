@@ -319,6 +319,9 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 	if err != nil {
 		return err
 	}
+	if err := txn.Set([]byte(prefixRetiredSlug+req.Entity), tombstone); err != nil {
+		return err
+	}
 	// claimNorms is the complete reviewed spelling set: entity slug/name/aliases
 	// plus any stale routing key that still pointed at it. Rehomes are the only
 	// spellings deliberately exempted from value classification.
@@ -340,6 +343,9 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 
 	if _, err := txn.Get([]byte(prefixEntity + req.Entity)); !errors.Is(err, badger.ErrKeyNotFound) {
 		return fmt.Errorf("memory: retirement postcondition: entity %s still exists", req.Entity)
+	}
+	if retired, err := slugRetiredTxn(txn, req.Entity); err != nil || !retired {
+		return fmt.Errorf("memory: retirement postcondition: slug %s tombstone missing: %v", req.Entity, err)
 	}
 	for norm := range retiredNorms {
 		retired, err := entityRetiredTxn(txn, norm)
