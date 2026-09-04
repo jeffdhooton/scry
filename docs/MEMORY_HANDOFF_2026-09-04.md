@@ -79,7 +79,16 @@ anything, all default to a dry run, all take a Badger backup before the first wr
 | Facts moved off `hermes-ops`, three batches | 34 | a fresh reviewer vetoed batches 1 and 3 before they landed |
 | Leaking aliases dropped from `hermes-ops` | 16 | the reviewer's own list of leaks |
 | Value entities retired across four migrations | 53 | replica dry run, hand-judged each time |
-| The split Qwen model consolidated onto one entity | 8 | a grader had proved the split caused a wrong recall |
+| Leaking aliases dropped from `childscribe-laravel` | 33 | applied 2026-09-04 17:00; **benchmarks not re-run afterwards** |
+| The split Qwen model's facts moved onto one entity | 8 | a grader had proved the split caused a wrong recall |
+
+> **The Qwen repair is half a repair.** `reattach` moves fact edges and nothing
+> else — not the loser's name, slug, aliases, description or type. So
+> `qwen3-8-27b-uncensored-q5` still exists, still answers to `Qwen3.8`, and now
+> returns `[]` for both. The split was not healed; it was inverted into a
+> one-sided blackout. `scry memory recall` is fuzzy enough to still rank the
+> surviving entity first, so the damage is confined to exact `memory facts`
+> lookups plus a zero-fact distractor carrying a stale description.
 
 ---
 
@@ -291,18 +300,45 @@ round nine ran and the round-13 grader explicitly warned against running again.
 
 - **~40 more facts** on `hermes-ops` needing the same judgement, one sentence at a time.
   The tool and the review process are in place; this is unglamorous reading.
-- **325 cross-type collisions**, of which **40 have facts on every side** and are the
-  ones that can split a recall. Each is one thing spelled twice — `flash-next`/
-  `flashnext`, `glm-53-flash`/`glm-5-3-flash`, `faq-vue`/`faqvue`,
-  `here-travel-matrix-provider`/`heretravelmatrixprovider`. A **103-move consolidation is
-  built and dry-run clean but unreviewed** (`scratchpad/proposal6.json` pattern: keep the
-  side with more facts, move everything else). It is larger than anything applied so far
-  and must be reviewed before it lands.
-- **The alias leak is only half closed.** Sixteen spellings came off `hermes-ops`; other
-  entities have the same problem. `childscribe-laravel` holds 130 aliases and 2,206 facts
-  and owns the alias index for `docket`, `childscribe-mobile`, `haulyard` and `loom` —
-  the largest fusion in the store, invisible to every metric reported here because its
-  paths do not fold to any of those names.
+- **Item 5's collision clause is not satisfiable with the tools that exist.** This is the
+  most important thing in this section and it was established by the last reviewer of the
+  run. A 115-move consolidation of the 41 cross-type collisions that have facts on every
+  side was built, dry-run, and reviewed line by line. Its verdict was APPLY-A-SUBSET, and
+  the numbers underneath it are the point:
+
+  - it takes cross-type collisions from **322 to 281**, not to zero;
+  - **7 of the 41 groups do not move the number at all**, because `auditNames` skips
+    only entities nothing references, `referencedSlugs` is built from `AllFacts()` which
+    includes invalidated facts, and a loser holding one invalidated fact stays counted;
+  - it would create **36 hollow entities holding 89 spellings** that return facts today
+    and would return `[]`.
+
+  The clause says *no two entities of different types share an alias anywhere in the
+  store*. `reattach` cannot satisfy it, because it never touches a name, an alias or a
+  type; `unalias` only removes a spelling, which makes lookups worse rather than better.
+  **Closing this needs a capability the repo does not have: an entity merge that
+  transfers name, aliases and type to the survivor and removes the husk.** Build that
+  before attempting the consolidation again.
+
+  The reviewer also caught two groups the mechanical rule got wrong — `homepageredesign`
+  fuses ChildScribe's marketing home page with DBA Filing Guide's state-first homepage
+  (two different products that fold to one key), and `pr80`'s single moved fact is about
+  PR #75. Its error rate on the rule was 2 groups in 41. Its filtered subset is at
+  `scratchpad/rev_subset.json` if this is picked up. It also flagged four groups where
+  "keep the side with more facts" entrenches a wrong type: `glm53flash` (an LLM survives
+  as `project`), `healmemorybookorders` (a console command as `decision`),
+  `invoicerepository` (a TS module as `machine`), `termsvue` (a Vue page as `service`
+  while the identical `faqvue` and `privacyvue` groups survive as `tool` — the same rule
+  giving opposite answers).
+- **The alias leak is partly closed.** Sixteen spellings came off `hermes-ops` and 33 off
+  `childscribe-laravel`, taking the largest fusion in the store from 122 aliases to 89 —
+  the dropped ones named other projects (`docket workspace`, `Mock Docket`,
+  `~/workspace/childscribe-mobile`, `legacy loom`, `setpoint orchestrator`) or were
+  generic enough to collect anything (`CS`, `RN`, `frontend`, `scratchpad`,
+  `product name`). That entity still holds 89 aliases and 2,206 facts, and other entities
+  have the same problem. **The benchmark run that would have confirmed the second prune
+  caused no regression did not happen** — it is the one outstanding check on a change
+  that is already live. Backup: `memory-20260904T170026Z.badger` on the mini.
 - **Two admission holes stay open on purpose.** An entity's own name never passes through
   `AdmitAlias` — `store.PutEntity` writes the index entry unconditionally
   (`store.go:325-329`). And the `"already indexed to this entity"` shortcut
