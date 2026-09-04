@@ -2539,3 +2539,66 @@ plausible on one example, wrong in bulk. Build the replica first next time.
 **What stays broken.** 81 facts on `hermes-ops` belong to the Hermes agent
 (69) or the Mac mini (12); the audit does not count them and no pass moves
 them. Recorded as an open failure of done-bar item 5 rather than closed.
+
+## The relation vocabulary, enumerated (2026-09-03)
+
+The decision to close the vocabulary at 39 names is recorded above. What was
+missing was the vocabulary itself: a values grader checked and found **13 of
+the 39 names appear nowhere in this file**, so "the mapping is recorded in the
+decision log" was true only in the sense that a decision pointing at a Go
+table is a record. Here is the table, with the count of current facts carrying
+each relation on the live store immediately after the 2026-09-03 migration.
+
+The list is `resolve.Canonical` in `internal/memory/resolve/vocab.go`, in that
+file's order of definition. Anything the extraction model emits that is not on
+it maps to `related_to`, which is `resolve.Fallback`: the edge stops
+pretending to be typed while the fact sentence keeps the nuance.
+
+| relation | current facts |
+|---|---|
+| `status` | 7,692 |
+| `uses` | 4,975 |
+| `related_to` | 2,876 |
+| `contains` | 2,743 |
+| `blocked_by` | 2,584 |
+| `depends_on` | 2,523 |
+| `decided` | 2,430 |
+| `implements` | 2,284 |
+| `documents` | 2,021 |
+| `tests` | 2,013 |
+| `owns` | 1,582 |
+| `deployed_on` | 1,274 |
+| `reviews` | 1,265 |
+| `part_of` | 1,246 |
+| `fixes` | 1,237 |
+| `merged_into` | 1,155 |
+| `located_at` | 1,058 |
+| `modifies` | 965 |
+| `assigned_to` | 892 |
+| `requires` | 832 |
+| `lacks` | 814 |
+| `has_issue` | 805 |
+| `runs_on` | 774 |
+| `produces` | 753 |
+| `provides` | 749 |
+| `approves` | 731 |
+| `passes` | 657 |
+| `calls` | 633 |
+| `enforces` | 574 |
+| `replaced_by` | 558 |
+| `targets` | 478 |
+| `causes` | 428 |
+| `monitors` | 420 |
+| `configures` | 333 |
+| `excludes` | 316 |
+| `conflicts_with` | 200 |
+| `references` | 120 |
+| `same_as` | 71 |
+| `notifies` | 56 |
+
+total distinct: 39 | total facts: 53117
+
+Two properties worth stating, both measured rather than asserted: no current
+fact carries a relation outside this list, and no name on the list is unused.
+If either stops being true the migration's `non_canonical_after` counter and
+this table's row count are where it shows.
