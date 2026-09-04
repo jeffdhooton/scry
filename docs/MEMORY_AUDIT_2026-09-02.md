@@ -1211,3 +1211,52 @@ times, two seconds apart, on the three shapes that mean a restart rather than
 an answer, which is safe here because enqueue dedupes on episode id, commit is
 idempotent by episode id, and a cursor put is a set. Repeating the identical
 action afterwards produced **0**.
+
+### Round twelve, applied
+
+`68be4c0` closed three more of the values grader's families, and this time the
+replica came first.
+
+The colon rule from `39d16ff` was too eager. A dry run against a replica of the
+live store showed it retiring **82 entities, most of them real**: npm and
+artisan scripts (`db:seed`, `blog:audit-links`), skills
+(`superpowers:test-driven-development`), model tags (`qwen3.5:9b`,
+`gpt-oss:120b`), meta properties (`og:image`). The colon is how a namespace is
+spelled as much as a setting. The value side now has to be a literal.
+
+The enum rule replaces a word list with a shape: an underscore-joined
+identifier ending in an outcome, either shouted or carrying a state word among
+its parts. It catches `QUALITY_OK` and `attempt_status_pending` and leaves
+`SCRY_MEMORY_SOCKET`, `QUICKBOOKS_CLIENT_SECRET` and `user_login_failed`
+alone. `enabled` and `disabled` are deliberately not outcomes — they end the
+name of a feature flag, and a first run was retiring four of those.
+
+| dry run | entities retired | judgement |
+|---|---|---|
+| first attempt | 82 | most were real names |
+| after tightening | 17 | four feature flags wrong |
+| shipped | **13** | every one a value |
+
+Applied to the live store after the dry run on live matched the replica
+exactly:
+
+```
+backup   /Users/jclaw/.scry/backups/memory-20260904T004045Z.badger  268,028,792 bytes
+applied  value_entities 13, facts converted 19, dropped 1, aliases dropped 1
+pass 2   value_entities  0, facts converted  0, dropped 0, aliases dropped 0
+store    21,177 entities, 53,117 facts, 6,647 episodes
+```
+
+Facts and episodes unchanged; ten fewer entities. The migration converges to a
+complete no-op on the second pass. The backup is real, which is the first time
+this round that has been checked rather than assumed.
+
+Benchmarks after the migration, none regressed:
+
+| file | result | max payload | over 24 KB |
+|---|---|---|---|
+| tuning | 47/50 | 11,493 | 0 |
+| tuning-strict | 44/50 | 11,493 | 0 |
+| heldout-2026-09-03 | 53/62 | 11,895 | 0 |
+| heldout-b | 35/66 | 13,344 | 0 |
+| probes | 7/7, every one at rank 1 | 11,361 | 0 |
