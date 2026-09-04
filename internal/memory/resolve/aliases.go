@@ -119,8 +119,32 @@ func neverAlias(alias string) bool {
 	if isEphemeralName(n) || isGenericAlias(n) || isGenericEntityName(n) || IsValueName(n) {
 		return true
 	}
+	if mangledPath(strings.TrimSpace(alias)) {
+		return true
+	}
 	return false
 }
+
+// mangledPath reports whether alias is a path the extraction model
+// mistyped: a comma inside it, or a tilde with a space after it.
+//
+// The largest fusion in the store carried seven of these — "~,/workspace/
+// docket", "~ / workspace / docket", "~/,workspace/docket" — each a
+// spelling of a path belonging to a different project, and each making that
+// project's path resolve to the wrong entity. A path never contains a comma
+// and a home directory never has a space after the tilde, so the two
+// signals are unambiguous.
+//
+// Deliberately not included: whitespace around an inner slash. That catches
+// "/forms/ API" and "check-in / check-out", which are names.
+func mangledPath(alias string) bool {
+	if alias == "" || (alias[0] != '~' && alias[0] != '/') {
+		return false
+	}
+	return strings.Contains(alias, ",") || tildeSpaceRE.MatchString(alias)
+}
+
+var tildeSpaceRE = regexp.MustCompile(`^~\s`)
 
 // commonNouns are words that name a kind of thing, not a thing. An alias
 // made only of these ("migration", "design spec", "the switch") can be a

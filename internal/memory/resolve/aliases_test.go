@@ -838,3 +838,38 @@ func TestGraderConceptHoles(t *testing.T) {
 		}
 	})
 }
+
+func TestMangledPathAliases(t *testing.T) {
+	cases := []struct {
+		alias string
+		want  bool
+	}{
+		// The seven found on the store's largest fusion, each a spelling of
+		// another project's path.
+		{"~,/workspace/docket", true},
+		{"~/,workspace/docket", true},
+		{"~ / workspace / docket", true},
+		{"~, / workspace / docket", true},
+		{"~ /workspace/childscribe-mobile", true},
+		{"~, /workspace/docket", true},
+		{"~  /workspace/scribe", true},
+
+		// Real path aliases must survive.
+		{"~/workspace/docket", false},
+		{"/Users/jeff/Herd/childscribe", false},
+		{"~/.config/docket", false},
+		{"/forms/ API", false},
+		{"check-in / check-out", false},
+		{"GET /api/v1/books", false},
+		{"", false},
+		{"docket workspace", false},
+	}
+	for _, c := range cases {
+		if got := mangledPath(c.alias); got != c.want {
+			t.Errorf("mangledPath(%q) = %v, want %v", c.alias, got, c.want)
+		}
+		if c.want && !neverAlias(c.alias) {
+			t.Errorf("neverAlias(%q) should refuse a mangled path", c.alias)
+		}
+	}
+}
