@@ -3328,3 +3328,30 @@ not recognize. The CLI also clears its response object before apply so a
 response omitting preview fields cannot inherit the preceding ready verdict.
 The downgrade reproduction is a committed regression; the failed build was
 not deployed.
+
+## Identity relations require a whole-relation assertion (2026-09-05)
+
+**Decision.** The normal relation mapper may emit `same_as` only for an
+explicit whole-relation synonym in its existing closed vocabulary table,
+optionally qualified by an existing tense/modality prefix. Partial verb
+stems, trailing-preposition stripping and passive-voice recursion cannot
+independently manufacture identity. Unknown identity-like compounds fall
+back to `related_to`; their sentence and raw relation remain on the fact.
+The canonical vocabulary remains exactly 39 relations.
+
+**Why.** Ordinary ingestion of audit discussion mapped `aliases_index_to`
+and `rehomes_aliases_to` to `same_as`, asserting false ChildScribe-to-API and
+ChildScribe-to-Forge identity edges. An alias-routing operation concerns
+index ownership, not equivalence between the entities it mentions. The same
+stem heuristic also misread shared measurements and duplicate-record
+operations. This guard covers the inference boundary rather than listing
+the observed bad spellings as special cases. Tests preserve every explicit
+identity synonym, prefixed forms and negation, and exercise actual Apply
+with complete routing sentences and episode provenance.
+
+This is normal-write prevention, not authorization to rewrite old facts or
+merge identities. Existing false edges need exact, separately reviewed
+repairs after this prevention is deployed. We would revisit the boundary
+only with independently reviewed evidence that a broader contextual
+identity mapping preserves both true identities and nonidentity operations;
+more stem exceptions alone are not that evidence.

@@ -1,10 +1,13 @@
 package resolve
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestVocabularyIsClosedAndSmall(t *testing.T) {
-	if len(Canonical) > 40 {
-		t.Fatalf("Canonical has %d relations, the ceiling is 40", len(Canonical))
+	if len(Canonical) != 39 {
+		t.Fatalf("Canonical has %d relations, want the documented 39", len(Canonical))
 	}
 	seen := map[string]bool{}
 	for _, r := range Canonical {
@@ -144,6 +147,51 @@ func TestStem(t *testing.T) {
 	} {
 		if got := stem(in); got != want {
 			t.Errorf("stem(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// Routing a spelling is not asserting that its former and current owners are
+// the same identity. Nor does a shared measurement or an unknown compound
+// containing an identity verb establish identity.
+func TestMapIdentityRequiresWholeRelation(t *testing.T) {
+	for _, raw := range []string{
+		"aliases_index_to", "rehomes_aliases_to", // observed ingestion failures
+		"aliases_registry", "aliasing_configuration", "equal_latency",
+		"equivalent_capacity", "duplicate_records", "clones_configuration",
+		"identical_measurements", "unknown_synonyms", "unknown_aliases",
+		"aliases_by", "same_as_with", "alias_of_to",
+	} {
+		for _, prefix := range []string{"", "currently_", "was_", "will_"} {
+			got, flip := Map(prefix + raw)
+			if got == RelSameAs || !IsCanonical(got) || flip {
+				t.Errorf("Map(%q) = %q, flip=%v; must not infer identity", prefix+raw, got, flip)
+			}
+		}
+	}
+	for _, raw := range []string{"aliases_index_to", "rehomes_aliases_to"} {
+		if got, flip := Map(raw); got != Fallback || flip {
+			t.Errorf("Map(%q) = %q, flip=%v; untyped routing must retain sentence nuance in fallback", raw, got, flip)
+		}
+	}
+}
+
+func TestMapPreservesEveryExplicitIdentityRelation(t *testing.T) {
+	for raw, want := range synonyms {
+		if want.rel != RelSameAs {
+			continue
+		}
+		for _, prefix := range []string{"", "currently_", "was_", "will_", "has_been_", "already_is_"} {
+			input := " __" + strings.ToUpper(prefix+raw) + "__ "
+			got, flip := Map(input)
+			if got != want.rel || flip != want.flip {
+				t.Errorf("Map(%q) = %q, flip=%v; want explicit identity %q, flip=%v", input, got, flip, want.rel, want.flip)
+			}
+		}
+	}
+	for _, raw := range []string{"not_alias_of", "does_not_equal", "is_not_same_as", "never_aliases"} {
+		if got, flip := Map(raw); got != RelLacks || flip {
+			t.Errorf("Map(%q) = %q, flip=%v; negation must survive", raw, got, flip)
 		}
 	}
 }

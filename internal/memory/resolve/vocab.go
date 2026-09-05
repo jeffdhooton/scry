@@ -249,6 +249,30 @@ var tensePrefixes = []string{"now_", "still_", "already_", "will_", "was_", "wer
 // relations land on Fallback without a flip.
 func Map(raw string) (rel string, flip bool) {
 	raw = strings.Trim(strings.ToLower(strings.TrimSpace(raw)), "_")
+	rel, flip = mapRelation(raw)
+	// Identity is stronger than sharing a verb stem, measurement, or alias
+	// routing operation. Only an explicit whole-relation synonym (possibly
+	// tense-qualified) may assert it. This also fences recursive preposition
+	// and passive-voice stripping, not just the stem fallback.
+	if rel == RelSameAs && !explicitIdentityRelation(raw) {
+		return Fallback, false
+	}
+	return rel, flip
+}
+
+func explicitIdentityRelation(raw string) bool {
+	if mp, ok := synonyms[raw]; ok {
+		return mp.rel == RelSameAs
+	}
+	for _, p := range tensePrefixes {
+		if strings.HasPrefix(raw, p) && len(raw) > len(p) {
+			return explicitIdentityRelation(raw[len(p):])
+		}
+	}
+	return false
+}
+
+func mapRelation(raw string) (rel string, flip bool) {
 	if raw == "" {
 		return Fallback, false
 	}

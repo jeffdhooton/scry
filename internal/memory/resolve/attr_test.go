@@ -109,6 +109,46 @@ func TestApply_RelationsMapOntoTheClosedVocabulary(t *testing.T) {
 	}
 }
 
+func TestApply_AliasRoutingIsNotIdentity(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 9, 5, 0, 0, 0, 0, time.UTC)
+	for _, ent := range []store.Entity{
+		{Slug: "childscribe-laravel", Name: "childscribe-laravel", Type: "project"},
+		{Slug: "api", Name: "api", Type: "project"},
+		{Slug: "forge", Name: "forge", Type: "tool"},
+	} {
+		if err := st.PutEntity(ent); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want := []extract.Fct{
+		{Src: "childscribe-laravel", Relation: "aliases_index_to", Dst: "api", Fact: "Three API-spelling aliases already route/index to api; those routing keys must be preserved when removing childscribe-laravel's listings.", Confidence: 0.91},
+		{Src: "childscribe-laravel", Relation: "rehomes_aliases_to", Dst: "forge", Fact: "The Laravel Forge and forge-ssh-access aliases require explicit rehoming to forge, which already lists them.", Confidence: 0.87},
+	}
+	stats := applyOne(t, st, "routing-evidence", at, want...)
+	if stats.FactsAdded != len(want) || stats.EntitiesCreated != 0 {
+		t.Fatalf("unexpected stats: %+v", stats)
+	}
+	facts := mustFacts(t, st, "childscribe-laravel")
+	if len(facts) != len(want) {
+		t.Fatalf("facts: %+v", facts)
+	}
+	for _, f := range facts {
+		var original *extract.Fct
+		for i := range want {
+			if want[i].Dst == f.Dst {
+				original = &want[i]
+			}
+		}
+		if original == nil || f.Relation != Fallback || f.RawRelation != original.Relation || f.Fact != original.Fact || f.Confidence != original.Confidence || !f.ValidFrom.Equal(at) {
+			t.Errorf("routing sentence or provenance changed: %+v", f)
+		}
+		if len(f.Episodes) != 1 || f.Episodes[0] != "routing-evidence" {
+			t.Errorf("missing episode provenance: %+v", f)
+		}
+	}
+}
+
 func TestApply_ValueNamedEntitiesAreNotCreated(t *testing.T) {
 	st := openTemp(t)
 	at := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
