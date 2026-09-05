@@ -807,3 +807,25 @@ rejections. Its manifest remains `memory-repairs/hollow-four-batch-2026-09-05.js
 The next stops-table semantic gate passed separately, but its exact technical
 manifest and fresh full replica remain unreviewed. Third ten Hermes records
 have explicit unresolved proposals under independent review; no fact moves.
+
+### 2026-09-05 22:53 UTC — four records now retired
+
+Actual three-alias independent review is fully PASS (report SHA cb8495e1,
+archived `memory-repairs/child-three-actual-independent-review-2026-09-05.md`).
+After independent four-record freshness checks and another root full raw
+comparison, the exact four-record manifest was applied at 22:53:02. Actual
+backup `memory-20260905T225302Z.badger` SHA cf7843f7; immediate post
+`memory-20260905T225312Z.badger` SHA efa7466e. Full paths/hashes/tool outputs
+are in `memory-repairs/hollow-four-actual-receipt-2026-09-05.json`.
+80,602 facts / 9,354 episodes unchanged, entities 30,611 to 30,607, queue 0/0/10.
+All five scores remain 51/29/7/45/47; second dry run refuses all four.
+Independent actual four-record grading is still running, not yet claimed PASS.
+
+Third ten Hermes records now have independent PASS_UNRESOLVED verdicts after
+raw-key and wording corrections; no fact moved. The stops-table single-alias
+candidate is under fresh technical/semantic review on the post-four backup:
+`/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/stops-table-post-four-225312/manifest-replica-only.json`,
+SHA 94484a6d7929e98ac42b06aa49b9276b0fc812976bc4cf275613abcf3ffd5c87.
+No stops-table live apply, previous 49/33 rejection backfill, queue retry or
+broader cleanup occurred. Global 484 collisions and original recall floors
+remain open; two final grading rounds have not begun.

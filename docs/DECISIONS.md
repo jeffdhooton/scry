@@ -3457,3 +3457,12 @@ old/new recall tests traced the new miss to predeployment corpus drift; the unme
 recall floors remain separate work, not a reason to discard source-supported facts
 or downgrade to marker-unaware writers. Full reports are archived under
 `docs/memory-repairs/alias-rejection-{actual-deploy-review,recall-attribution}-2026-09-05.md`.
+
+**Compatibility boundary activated, 2026-09-05 22:38 UTC.** The independently
+reviewed three-alias ChildScribe repair created the first three live rejection
+records. Removal and negative ownership were one backed-up transaction, preserving
+all 80,586 facts. Both running binaries remain d1f0a958. The retained 62cf6e0
+executables are evidence/recovery artifacts, not safe standalone downgrades for
+this marker-bearing store. A later repair must preserve these decisions; any
+restore must explicitly reconcile subsequent ingestion. No automatic rejection
+backfill for earlier removals or marker inheritance across identity merges follows.

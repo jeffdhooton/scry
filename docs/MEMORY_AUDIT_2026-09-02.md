@@ -3398,3 +3398,57 @@ Later external manual ingestion at 22:42:34 added one CADFormats episode and
 80,602 facts / 30,611 entities / 9,354 episodes, queue 0/0/10. This is not
 alias-apply drift or a new root remember. The four-record independent gate is
 being extended to this newer source before any separate retirement apply.
+
+### 2026-09-05 22:53 UTC — four empty outcomes retired; third-ten review
+
+The complete independent actual Child report is now PASS and archived as
+`memory-repairs/child-three-actual-independent-review-2026-09-05.md`, SHA
+cb8495e1b7ab503b51008f932d1edbbc3301bce4001d27053d91a6a5131db9c6.
+It proves the exact seven-key actual change, full backup restoration, preserved
+history/provenance, durable negative ownership, repeated no-write refusal,
+complete defect inventories and five-suite snapshot controls. Small mean
+payload differences between live/offline are disclosed, not called byte-identical.
+Room 105 records this bounded verdict; both original recall floors remain open.
+
+After the separate four-record semantic/replica extension, an independent full
+22:47:43 freshness comparison proved all 242,798 raw keys/values identical to
+22:42:38. Root's final 22:52:13 backup/restore again reproduced the complete
+raw-stream hash f73ddb5f21efbcd6e2267d7ec703bb1fb00dbf43339103a1049fc7dde3487361.
+Both installed/retained binary hashes were rechecked, and all four immediate
+previews were ready, each with zero current and historical fact endpoints.
+
+Exact committed manifest 8908910eae87bf9b1f288af86ccc4c2693a0173becb521ee13acd1d21ba9ffd5
+was applied at 22:53:02: all-tasks-implemented, api-2312-tests-passing,
+engine-unavailable, git-diff-check-clean. Automatic nonempty backup
+`/Users/jclaw/.scry/backups/memory-20260905T225302Z.badger`, 73,551,199 bytes,
+SHA cf7843f7c145b8af0497fc2409b7eb743e62bc4681f48fd0f23323931b13410a.
+Immediate post `memory-20260905T225312Z.badger`, 73,553,026 bytes, SHA
+efa7466e022fb6a67918876aba8960eff9ae4aa1b1027eeeac52dd41ead9058a.
+Complete transfers match both Mini hashes. Root restored both: all 80,602 facts
+(7,820 historical), all 9,354 episodes preserved; full fact inventory SHA
+94e40140e80fdce63f78b18a1005e08f982b4b8ba32028bf0c2de766bf038e39 on both.
+Entities 30,611 to 30,607, queue 0/0/10. Before exact lookups were four empty
+arrays; after, four not-found responses. Second dry run applied 0 / refused 4.
+
+All five before/after scores remain 51/62, 29/66, 7/7, 45/50, 47/50; maximum
+post payload 13,353 bytes, zero over cap. Broad hygiene still reports 484
+collisions; no broad proposal was applied. Full live tool receipts are in
+`memory-repairs/hollow-four-actual-receipt-2026-09-05.json`. Room 106 records apply.
+Independent ACTUAL four-record raw/retained-assertion/benchmark grading is
+running; the preceding replica PASS is not mislabeled as that actual verdict.
+
+Third-ten Hermes review passed ten explicit UNRESOLVED dispositions, no fact
+move or implied keep. The full report is `memory-repairs/hermes-third-ten-independent-review-2026-09-05.md`.
+It independently restores the 22:21:40 source (867 unique trio facts), verifies
+all ten selected payloads, ten episodes/endpoints and 133 companions, and
+preserves two historical source-boundary limitations. Two draft defects were
+fixed before approval: raw Badger keys use UnixNano, unlike RFC3339Nano search
+keys; the adopted-shell limitations are supported, while the enumeration-to-
+required-Hermes-runtime conclusion is not. All thirty reviewed records across
+the three batches remain only a small portion of the current trio inventory.
+
+The stops-table semantic review passed its expanded twelve-source/164-fact
+closure. Root's single-drop replica on the actual post-four source preserves
+every fact and refuses normal readmission; exact candidate manifest SHA
+94484a6d7929e98ac42b06aa49b9276b0fc812976bc4cf275613abcf3ffd5c87
+is under a separate fresh technical/semantic gate. It has NOT been applied.

@@ -5,7 +5,7 @@
   "source_sha256": "35a6e1b8f333fa772ea25537bba2c1979addf25d55eced7dd8f2878558f30d45",
   "inventory_unique_facts": 867,
   "reviewed_records": 10,
-  "independently_graded_records": 0,
+  "independently_graded_records": 10,
   "evidence_read": "Complete ten selected facts, ten source episode records, all 133 same-episode companion payloads, all ten selected endpoint metadata records; six exact-ID reproduced complete source projections; two complete recorded parent spans with explicit historical chunk-ID limitations; complete available Helm seed; full manual summary. No omitted tool/thinking payload is claimed read.",
   "evidence_root": "/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/hermes-third-ten-review",
   "source_projection_roots": [
@@ -13,7 +13,7 @@
     "/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/hermes-third-ten-sources-tail",
     "/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/hermes-third-recorded-spans"
   ],
-  "hash_format": "expected_sha256 is SHA-256 of production Go json.Marshal(Fact); old_key is production search.FactKey with UTC RFC3339Nano, not a nanosecond-number surrogate.",
+  "hash_format": "expected_sha256 is SHA-256 of production Go json.Marshal(Fact). old_key is the raw Badger fact key with UnixNano timestamp; index_key is search.FactKey with RFC3339Nano. These formats are distinct.",
   "rules": "No fact changed/discarded. UNRESOLVED is not an implicit keep or approved relocation. Each reason distinguishes possible ownership from missing relation/status/source evidence. Later store drift must be inventoried separately; this is not a complete trio audit.",
   "records": [
     {
@@ -30,14 +30,15 @@
           "b06112856fa1cb5a40881ac410282e6bd916664fbd849fa1f2f0df823c436cc6"
         ]
       },
-      "old_key": "fa:build:implements:hermes:2026-08-27T21:03:28.672Z",
+      "old_key": "fa:build:implements:hermes:1787864608672000000",
+      "index_key": "fa:build:implements:hermes:2026-08-27T21:03:28.672Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The complete Build comparison describes an integration backend and one permitted durable-session kind, not Build implementing Jeff's standing gateway. The stored Hermes entity denotes the gateway/agent; no exact identity between the generic Hermes backend/session kind and that particular runtime is established.",
         "caveat": "Review integration-versus-runtime identity and supports-versus-implements semantics; retain all endpoint and raw supports text pending that decision.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -54,14 +55,15 @@
           "96bbebf5dcd7eec7d3d733966ac54a1a8d7731bdd3d80021c3fd396493d1417b"
         ]
       },
-      "old_key": "fa:build:references:hermes:2026-09-01T08:15:02.58Z",
+      "old_key": "fa:build:references:hermes:1788250502580000000",
+      "index_key": "fa:build:references:hermes:2026-09-01T08:15:02.58Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The complete source is a request to assess mechanisms in BUILD_APP_SUBSYSTEMS.md and discovery of that document. It names Hermes in the design title but does not identify the named mechanism as Jeff's standing gateway, or establish Build service as the referencing document. No positive runtime identity is inferred from the title.",
         "caveat": "A later local design document might clarify this, but its content/identity has not been separately reviewed for this exact historical assertion.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -78,14 +80,15 @@
           "7b7b97b5b9e3bd1377b5875d9da759934ef156c45d43c11f3da6fce9497cd0f3"
         ]
       },
-      "old_key": "fa:build:requires:hermes:2026-08-31T00:00:00Z",
+      "old_key": "fa:build:requires:hermes:1788134400000000000",
+      "index_key": "fa:build:requires:hermes:2026-08-31T00:00:00Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
-        "reason": "The full source says every catalog session must select one member of the claude/codex/hermes enumeration. It does not say Build requires the Hermes gateway for every session. Adjacent Claude requires and unsupported adopted-tmux-session statements expose the lost alternative constraint.",
+        "reason": "The full source says every catalog session must select one member of the claude/codex/hermes enumeration. It does not say Build requires the Hermes gateway for every session. The adjacent Claude requires edge shows the lost alternative constraint; the supported adopted-shell discussion explains why an unmodeled shell cannot satisfy that contract.",
         "caveat": "Preserve the enumeration sentence and timestamps; no guessed replacement relation or transfer to the repository.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -102,14 +105,15 @@
           "ba957e42954d7835d110be60022dfc009025e4feafb5cca772282f505841f5a3"
         ]
       },
-      "old_key": "fa:build:uses:hermes-ops:2026-08-30T16:55:44Z",
+      "old_key": "fa:build:uses:hermes-ops:1788108944000000000",
+      "index_key": "fa:build:uses:hermes-ops:2026-08-30T16:55:44Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The complete dogfood source describes BUILD_FAKE_EVENT, the sandbox directory, mirrored catalog fields, desktop installation and mobile gateway. It supplies no repository-level use of hermes-ops. Companion Build deployed_on hermes-ops and jbuild replaced_by Child are themselves unsupported, not independent corroboration.",
         "caveat": "Do not choose a host or runtime merely because the mobile gateway was on Mini. Exact intended endpoints remain unapproved.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -126,14 +130,15 @@
           "60a42e8931e13fe98557992f06c445938c06d6f55082fa9907931f9ea0d96dbc"
         ]
       },
-      "old_key": "fa:building-code-adoption-design-spec:assigned_to:hermes:2026-09-02T00:00:00Z",
+      "old_key": "fa:building-code-adoption-design-spec:assigned_to:hermes:1788307200000000000",
+      "index_key": "fa:building-code-adoption-design-spec:assigned_to:hermes:2026-09-02T00:00:00Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The complete recorded parent span offers two alternatives: run the blocking prebuild check first, or hand the spec to Hermes and start work. Jeff explicitly chose the check first; the idea was then killed. Canonical assigned_to overstates that unselected proposal.",
         "caveat": "Full parent span read; exact historical split1 chunk not reconstructed. Preserve the mooted wording and source, and do not promote this to a real assignment.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -150,14 +155,15 @@
           "8e5fd79c5b3deee5bc42fd826055ce90365efbcbada044c8a071d7bb512e5506"
         ]
       },
-      "old_key": "fa:building-codes-spec:assigned_to:hermes:2026-09-02T00:00:00Z",
+      "old_key": "fa:building-codes-spec:assigned_to:hermes:1788307200000000000",
+      "index_key": "fa:building-codes-spec:assigned_to:hermes:2026-09-02T00:00:00Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The complete recorded source span ends at Jeff's request to pick/spec another idea and then hand it to Hermes via one of two possible workers. Current distillation did not reproduce the historical episode ID, and this span does not contain the more detailed written-spec/phase assertions carried by stored companions.",
         "caveat": "Boundary/evidence gap remains explicit. Do not infer that all companion claims were present in this span or that a real assignment occurred; no endpoint move is proposed.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -174,14 +180,15 @@
           "777a4a215b08b460a2ff527f32c251b55698e1d8f71643bd603b1b5a2fb0ae23"
         ]
       },
-      "old_key": "fa:buildmd:documents:hermes-ops:2026-04-25T18:15:04.358Z",
+      "old_key": "fa:buildmd:documents:hermes-ops:1777140904358000000",
+      "index_key": "fa:buildmd:documents:hermes-ops:2026-04-25T18:15:04.358Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The exact source conversation explicitly identifies /Users/jeff/workspace/helm/BUILD.md and the signed/notarized Helm DMG release. The full BUILD.md entity metadata also identifies Helm. Hermes-ops is an unsupported documentation target.",
         "caveat": "Helm is a source-supported alternative for a future exact repair, not an approved move: review destination identity, current/history key conflicts and required preservation first.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -199,14 +206,15 @@
           "9e134a4001284b3ad668ed99adb76c69c58bf5c9da8e65343077ba97c8fd5808"
         ]
       },
-      "old_key": "fa:capture-user-path:fixes:hermes-ops:2026-04-22T16:39:54.866982929Z",
+      "old_key": "fa:capture-user-path:fixes:hermes-ops:1776875994866982929",
+      "index_key": "fa:capture-user-path:fixes:hermes-ops:2026-04-22T16:39:54.866982929Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The complete Helm architecture seed explicitly describes capture_user_path and ___HELM_PATH_START___ for Spotlight-launched GUI apps. It does not describe the Hermes operations repository. Other seed facts folded onto generic concept/hermes-ops are not corroboration.",
         "caveat": "The current seed file is available and read; historical content identity/mtime is not assumed. A future Helm-related repair needs complete exact target/conflict review.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -224,14 +232,15 @@
           "e64d1cec9c6e2ee0e568f0e7cc6de216bf3a5f3295b81f004612cce6d2f8638a"
         ]
       },
-      "old_key": "fa:checkpoint-gates-passing:tests:mac-mini:2026-09-05T00:00:00Z",
+      "old_key": "fa:checkpoint-gates-passing:tests:mac-mini:1788566400000000000",
+      "index_key": "fa:checkpoint-gates-passing:tests:mac-mini:2026-09-05T00:00:00Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The full manual source says StateLicenseLookup's release checks ran locally and on Mini. It does not say the checks tested the Mini itself. The source entity is a gate outcome/status value, not an established test identity.",
         "caveat": "A host-only destination adjustment cannot fix the value-shaped subject or tests-versus-verified_on relation. Preserve the statement and review explicit value conversion separately.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     },
@@ -248,14 +257,15 @@
           "881193ae725b6e3bc507c968ae797043517ced1bb55d550bd598def79559faec"
         ]
       },
-      "old_key": "fa:chief-of-staff-morning-brief:deployed_on:hermes-ops:2026-08-28T00:00:00Z",
+      "old_key": "fa:chief-of-staff-morning-brief:deployed_on:hermes-ops:1787875200000000000",
+      "index_key": "fa:chief-of-staff-morning-brief:deployed_on:hermes-ops:2026-08-28T00:00:00Z",
       "review": {
         "disposition": "UNRESOLVED",
         "proposed_src": null,
         "proposed_dst": null,
         "reason": "The complete source establishes a versioned skill folder inside hermes-ops and a runtime symlink/discovery path, but the stored source entity denotes a later scheduled morning-brief job, while the reviewed source explicitly deferred scheduling. Repository contents, installed skill and scheduled job cannot be silently equated.",
         "caveat": "The deployed_on repository edge also conflates repository containment with runtime deployment. Preserve all assertions and review source identity plus relation together; no automatic move to Hermes or Mini.",
-        "independent_review": "PENDING",
+        "independent_review": {"verdict":"PASS_UNRESOLVED","report":"hermes-third-ten-independent-review-2026-09-05.md","report_sha256":"d0afa825fa3e7641a2338e75f945193c9da7868c58f259c655127bd2afef7956","reviewed_proposal_sha256":"ed7ddf4de5adc77a04f5edad1d755badeae645c90bb4af6533392cc4e3eaf882"},
         "applied": false
       }
     }
