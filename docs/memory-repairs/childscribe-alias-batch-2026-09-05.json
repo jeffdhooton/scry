@@ -1,0 +1,496 @@
+{
+  "drops": [
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel backend",
+      "why": "Unqualified backend role also denotes Cell Saviors in the battery-designer fact; no global ChildScribe identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel repo",
+      "why": "Repository role, not a unique project name. ChildScribe demo facts explain local usage but cannot make every Laravel repository this entity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel app",
+      "why": "Generic application role. Facts explicitly call Advocates a Laravel application too."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Lararel Forge",
+      "why": "Unattested misspelling of Forge, a distinct deployment platform. No exact fact attests this spelling; do not invent a new Forge alias from the typo."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "childscribe.com (staging)",
+      "why": "Incorrect environment label: release-path facts separate childscribe.com production from child-scribe.com staging. Preserve correct domain names elsewhere."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "laravel backend",
+      "why": "Same normalized spelling and same cross-project evidence as Laravel backend (#1)."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel Forge",
+      "rehome_to": "forge",
+      "why": "Existing Forge identity lists Laravel Forge; independent Advocates and Cell Saviors deployment facts establish it is the deployment platform. Move exact index from ChildScribe to forge while removing ChildScribe listing."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "forge-ssh-access",
+      "rehome_to": "forge",
+      "why": "Forge already lists this exact alias alongside Laravel Forge. Platform/server-access meaning and Forge deployment facts support retaining it there; rehome index to forge, never clear it under a surviving Forge listing."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "prod web",
+      "why": "Unqualified production web role, not globally unique. ChildScribe health fact supplies context only."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "staging Laravel",
+      "why": "Unqualified environment/framework role. Staging Laravel facts describe ChildScribe deployment in context, not a unique global identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel staging",
+      "why": "Unqualified environment/framework role; deployment fact alone does not make all Laravel staging the ChildScribe app."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "prod Laravel",
+      "why": "No exact-text attestation; unqualified production/framework role is not a unique global identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "laravel-backend",
+      "why": "Unqualified framework/backend role with no literal text attestation; equivalent ambiguity to Laravel backend."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel API",
+      "why": "Generic API role. Facts describe both Cell Saviors Laravel API proxy and ChildScribe local API."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "web client",
+      "why": "Docket mount-table, driver-core extraction, and dispatch-client facts demonstrate cross-product generic client role. No global app identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "staging domain",
+      "why": "Unqualified domain role. Facts supply child-scribe.com as scoped staging value, not an alias for Laravel code."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "laravel app",
+      "why": "Same normalized generic Laravel app spelling as #4; Advocates provides direct counterexample."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel marketing",
+      "why": "Marketing subsystem role, not entire app identity; candidate ChildScribe marketing entities exist but this unqualified framework phrase is not globally unique."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "deploy-on-push",
+      "why": "Deployment behavior, not application identity; no literal fact attestation."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "production posture",
+      "why": "Operational state/posture; actual matching facts are login/badge rehearsal posture on pnpm-bar-prod."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "mobile/web side",
+      "why": "Cross-component area explicitly mapped by explorers, not a unique Laravel application. The existing web entity is itself mixed."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "web voice",
+      "why": "Voice feature/surface: runtime-verification and photo attachment facts do not name the whole Laravel app."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "refs/heads/main",
+      "why": "Git branch ref. Exact matching fact locates it on Docket shared main worktree; not application identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "marketing-site epic",
+      "why": "Facts explicitly place epic in Docket main/waves; task/epic is not Laravel identity and several Docket marketing-task candidates exist. Preserve their names, remove generic epic alias only."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "forge user",
+      "why": "Unix account role on multiple servers; Cell Saviors trawl-install facts directly contradict Laravel app ownership. Platform is not identical to its account either."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel web",
+      "why": "Generic framework/web surface. ChildScribe audit scope explains phrase locally but supplies no global unique identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "fleet worktree",
+      "why": "Many temporary fleet worktrees across tasks; exact ChildScribe-attached fact is a Docket worktree path. Generic worktree role cannot be a service alias."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Client Dashboard",
+      "why": "Unqualified dashboard role, no exact text evidence identifying one product. Existing dashboards retain their own names."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "client dashboard",
+      "why": "Same normalized generic dashboard as #53."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "api project",
+      "why": "Remove only ChildScribe listing; exact key already belongs to api and api still lists it. Preserve existing index. API facts contain Docket and Program Health contexts; this is not certification of api as a clean global identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "roll-off software",
+      "why": "Industry/software category; no exact text evidence. Does not name ChildScribe, nor does it justify selecting a roll-off vendor by word overlap."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "driver tree",
+      "why": "Fact names docket web/src/driver tree, a source area distinct from Laravel app. Generic tree phrase is not app identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "createApp",
+      "why": "Remove ChildScribe listing while preserving existing api index/listing. createApp facts concern an app-constructor function, so api retention is only current-state preservation pending separate function/API ownership review."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "fleet wave",
+      "why": "A wave is an execution grouping, not Laravel application identity. Numerous independent fleet-wave facts corroborate."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "api app",
+      "why": "Remove ChildScribe listing only, preserving existing api index/listing. Facts explicitly include Program Health API app as well as Hono/Docket contexts, so api needs separate identity audit."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "campaign engine",
+      "why": "Actual matching facts name Claude and Codex as two campaign engines. Generic execution role cannot name one Laravel app or one unique rehome target."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "fleet architecture",
+      "why": "Architecture facts explicitly concern setpoint/scry/fleet. Architecture topic is not identical to service or repository."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "fleet skill",
+      "why": "Exact phrase fact invokes room-worker fleet protocol. Generic skill role can mean fleet or room-worker, and is not an app alias."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "development build",
+      "why": "Generic build flavor with no exact fact evidence; not app identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "--dev-client",
+      "why": "Exact fact uses it as CLI flag in npx expo start command. Flag value is not Laravel, Expo, or mobile app identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "iOS client",
+      "why": "Platform/client role. Native WebRTC evidence locates a ChildScribe mobile client in context; unqualified iOS client is not globally unique."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "voice pipeline",
+      "why": "Feature/pipeline spans mobile and OpenAI Realtime, and later mobile/web exploration; not whole Laravel application."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "production profile",
+      "why": "EAS build configuration profile, not app. eas.json fact and mobile production-profile facts directly establish configuration context."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "prod environment",
+      "why": "Unqualified environment role with no literal attestation. Retain specific production identity elsewhere."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "marketing source",
+      "why": "Actual fact describes source-code boundary in Docket marketing, not ChildScribe code identity. Generic source-area phrase."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "web frontend",
+      "why": "Facts explicitly say frontend is part of Docket repo, including misattached self-loops. Generic frontend role is not Laravel identity."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Envoyer release deployment",
+      "why": "Deployment pattern from Cell Saviors fact, not app identity; no actual Envoyer identity or exact spelling attested. Preserve fact for later endpoint review."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel app symlink",
+      "why": "Facts describe the apps/ symlink relation and target. Unqualified symlink role is not service identity; preserve exact existing path identities rather than adding generic path label."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "Laravel Herd project",
+      "why": "Generic Herd-managed project class; facts explicitly state projects plural live under ~/Herd. Neither ChildScribe nor Herd tool owns every project."
+    }
+  ],
+  "expected": {
+    "plan": "8ff742fbe570347c726efe1f3ce66bb3a9de63c9e151038324d0e1e538f2250f",
+    "entities": {
+      "api": "a7aee0b0aac533d047ebcb83407f612389f5e2a68f5c3db5294438cadbc7bd2e",
+      "childscribe-laravel": "0e083a3dee7e93b69d90cbfc1a297314f1c30f59c3b9d7638513a2bde40a919d",
+      "forge": "6eba53cb7bd53cb753834800df18e7be22d7459a811ff80c6f7da70fa5cd83a4"
+    },
+    "facts": "600b7c956d817c6dfa0016380bf5b82a6c78fa280476b94877d66a0f30fde114",
+    "alias_claims": {
+      "--dev-client": "childscribe-laravel",
+      "api-app": "api",
+      "api-project": "api",
+      "campaign-engine": "childscribe-laravel",
+      "childscribe.com-(staging)": "childscribe-laravel",
+      "client-dashboard": "childscribe-laravel",
+      "createapp": "api",
+      "deploy-on-push": "childscribe-laravel",
+      "development-build": "childscribe-laravel",
+      "driver-tree": "childscribe-laravel",
+      "envoyer-release-deployment": "childscribe-laravel",
+      "fleet-architecture": "childscribe-laravel",
+      "fleet-skill": "childscribe-laravel",
+      "fleet-wave": "childscribe-laravel",
+      "fleet-worktree": "childscribe-laravel",
+      "forge-ssh-access": "childscribe-laravel",
+      "forge-user": "childscribe-laravel",
+      "ios-client": "childscribe-laravel",
+      "lararel-forge": "childscribe-laravel",
+      "laravel-api": "childscribe-laravel",
+      "laravel-app": "childscribe-laravel",
+      "laravel-app-symlink": "childscribe-laravel",
+      "laravel-backend": "childscribe-laravel",
+      "laravel-forge": "childscribe-laravel",
+      "laravel-herd-project": "childscribe-laravel",
+      "laravel-marketing": "childscribe-laravel",
+      "laravel-repo": "childscribe-laravel",
+      "laravel-staging": "childscribe-laravel",
+      "laravel-web": "childscribe-laravel",
+      "marketing-site-epic": "childscribe-laravel",
+      "marketing-source": "childscribe-laravel",
+      "mobile/web-side": "childscribe-laravel",
+      "prod-environment": "childscribe-laravel",
+      "prod-laravel": "childscribe-laravel",
+      "prod-web": "childscribe-laravel",
+      "production-posture": "childscribe-laravel",
+      "production-profile": "childscribe-laravel",
+      "refs/heads/main": "childscribe-laravel",
+      "roll-off-software": "childscribe-laravel",
+      "staging-domain": "childscribe-laravel",
+      "staging-laravel": "childscribe-laravel",
+      "voice-pipeline": "childscribe-laravel",
+      "web-client": "childscribe-laravel",
+      "web-frontend": "childscribe-laravel",
+      "web-voice": "childscribe-laravel"
+    },
+    "claim_present": {
+      "--dev-client": true,
+      "api-app": true,
+      "api-project": true,
+      "campaign-engine": true,
+      "childscribe.com-(staging)": true,
+      "client-dashboard": true,
+      "createapp": true,
+      "deploy-on-push": true,
+      "development-build": true,
+      "driver-tree": true,
+      "envoyer-release-deployment": true,
+      "fleet-architecture": true,
+      "fleet-skill": true,
+      "fleet-wave": true,
+      "fleet-worktree": true,
+      "forge-ssh-access": true,
+      "forge-user": true,
+      "ios-client": true,
+      "lararel-forge": true,
+      "laravel-api": true,
+      "laravel-app": true,
+      "laravel-app-symlink": true,
+      "laravel-backend": true,
+      "laravel-forge": true,
+      "laravel-herd-project": true,
+      "laravel-marketing": true,
+      "laravel-repo": true,
+      "laravel-staging": true,
+      "laravel-web": true,
+      "marketing-site-epic": true,
+      "marketing-source": true,
+      "mobile/web-side": true,
+      "prod-environment": true,
+      "prod-laravel": true,
+      "prod-web": true,
+      "production-posture": true,
+      "production-profile": true,
+      "refs/heads/main": true,
+      "roll-off-software": true,
+      "staging-domain": true,
+      "staging-laravel": true,
+      "voice-pipeline": true,
+      "web-client": true,
+      "web-frontend": true,
+      "web-voice": true
+    },
+    "listings": {
+      "--dev-client": [
+        "childscribe-laravel"
+      ],
+      "api-app": [
+        "api",
+        "childscribe-laravel"
+      ],
+      "api-project": [
+        "api",
+        "childscribe-laravel"
+      ],
+      "campaign-engine": [
+        "childscribe-laravel"
+      ],
+      "childscribe.com-(staging)": [
+        "childscribe-laravel"
+      ],
+      "client-dashboard": [
+        "childscribe-laravel"
+      ],
+      "createapp": [
+        "api",
+        "childscribe-laravel"
+      ],
+      "deploy-on-push": [
+        "childscribe-laravel"
+      ],
+      "development-build": [
+        "childscribe-laravel"
+      ],
+      "driver-tree": [
+        "childscribe-laravel"
+      ],
+      "envoyer-release-deployment": [
+        "childscribe-laravel"
+      ],
+      "fleet-architecture": [
+        "childscribe-laravel"
+      ],
+      "fleet-skill": [
+        "childscribe-laravel"
+      ],
+      "fleet-wave": [
+        "childscribe-laravel"
+      ],
+      "fleet-worktree": [
+        "childscribe-laravel"
+      ],
+      "forge-ssh-access": [
+        "childscribe-laravel",
+        "forge"
+      ],
+      "forge-user": [
+        "childscribe-laravel"
+      ],
+      "ios-client": [
+        "childscribe-laravel"
+      ],
+      "lararel-forge": [
+        "childscribe-laravel"
+      ],
+      "laravel-api": [
+        "childscribe-laravel"
+      ],
+      "laravel-app": [
+        "childscribe-laravel"
+      ],
+      "laravel-app-symlink": [
+        "childscribe-laravel"
+      ],
+      "laravel-backend": [
+        "childscribe-laravel"
+      ],
+      "laravel-forge": [
+        "childscribe-laravel",
+        "forge"
+      ],
+      "laravel-herd-project": [
+        "childscribe-laravel"
+      ],
+      "laravel-marketing": [
+        "childscribe-laravel"
+      ],
+      "laravel-repo": [
+        "childscribe-laravel"
+      ],
+      "laravel-staging": [
+        "childscribe-laravel"
+      ],
+      "laravel-web": [
+        "childscribe-laravel"
+      ],
+      "marketing-site-epic": [
+        "childscribe-laravel"
+      ],
+      "marketing-source": [
+        "childscribe-laravel"
+      ],
+      "mobile/web-side": [
+        "childscribe-laravel"
+      ],
+      "prod-environment": [
+        "childscribe-laravel"
+      ],
+      "prod-laravel": [
+        "childscribe-laravel"
+      ],
+      "prod-web": [
+        "childscribe-laravel"
+      ],
+      "production-posture": [
+        "childscribe-laravel"
+      ],
+      "production-profile": [
+        "childscribe-laravel"
+      ],
+      "refs/heads/main": [
+        "childscribe-laravel"
+      ],
+      "roll-off-software": [
+        "childscribe-laravel"
+      ],
+      "staging-domain": [
+        "childscribe-laravel"
+      ],
+      "staging-laravel": [
+        "childscribe-laravel"
+      ],
+      "voice-pipeline": [
+        "childscribe-laravel"
+      ],
+      "web-client": [
+        "childscribe-laravel"
+      ],
+      "web-frontend": [
+        "childscribe-laravel"
+      ],
+      "web-voice": [
+        "childscribe-laravel"
+      ]
+    }
+  }
+}

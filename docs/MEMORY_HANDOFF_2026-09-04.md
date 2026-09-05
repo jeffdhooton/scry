@@ -489,3 +489,36 @@ Queue now has two preserved deterministic conflicts, not one: the old
 `bec7e834a4912aad973fcf71f1c770d00fc39f9ab781a45e5ef3d134a1c340cb`
 (`cadformats-workbench-20260904` alias owned by `workbench`). Both need explicit
 identity review and exact retry; do not drop them or replay everything.
+
+### Later checkpoint: guarded deployment complete, 19:15 UTC
+
+Both machines now run the independently reviewed `53fafa9` artifact with
+SHA-256 `31f185d70e1439a315a8ea12eaadf4f12d75e77d558edfa0852c890531705aff`.
+Installation completed at 19:01 UTC; the previous binaries and both actual
+store backups above are retained. The five fixed suites remain
+51/62, 30/66, 7/7, 44/50, 46/50. Deployment evidence and reviewer report are
+in the audit and `memory-repairs/atomic-alias-deployment-review-2026-09-05.md`.
+
+Fresh stable postdeployment source backup is Mini
+`/Users/jclaw/.scry/backups/memory-20260905T190441Z.badger`, 77,105,082 bytes,
+SHA-256 `b8fda9a1c446d9f03dd8bc3116d1e49fd6020f7cd0e7d728553087b6ae445197`.
+It contains 30,231 entities / 79,692 facts / 9,292 episodes. The exact next
+49-row ChildScribe manifest is `memory-repairs/childscribe-alias-batch-2026-09-05.json`,
+SHA-256 `24a765acc82e122c270e812e99993dbe3eff5d8261f88f05a0e065f16eb61ba6`.
+Separate independent postdeployment replica review passed: full facts unchanged,
+92 to 43 aliases, collisions 489 to 486, and precisely 43 raw keys changed.
+The automatic backup restored to the entire original raw database. Report:
+`memory-repairs/childscribe-alias-batch-review-2026-09-05.md` (room 69).
+
+This is still NOT a live-apply receipt. A subsequent routine sweep queued
+new episodes; immediate queue stability and exact expected fingerprints must
+pass before apply. A third conflict is preserved/parked: episode
+`65030b2a89dfc0f937f1cadb2ae1385629c78e6facd0e431a82aa91f9b5569d4`,
+`scry-store` already owned by `scry`. Do not drop or broadly retry conflicts.
+
+Next prevention defect reproduced locally: the relation mapper inferred
+`same_as` from `aliases_index_to` and `rehomes_aliases_to` in ordinary
+extraction of audit discussion. The resulting ChildScribe-to-API/Forge facts
+are preserved by this alias repair, not semantic ownership evidence. A local
+whole-relation identity guard and regression tests are in progress; it is
+not deployed and no historical relation rewrite is approved.

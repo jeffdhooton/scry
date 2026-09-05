@@ -2806,3 +2806,39 @@ faults. Corrected bounded code verdict: PASS. Report:
 failed and corrected gates. No failed build was deployed. Observer panic still
 propagates after commit and can prevent later notifications; the review does
 not claim power-loss testing or certify a live manifest.
+
+### Guarded alias repair deployment — 2026-09-05, 19:01 UTC
+
+Fresh deployment-discipline review independently rebuilt exact `53fafa91`,
+matched all 329 archived source entries, passed the full tests, verified both
+rollback binaries, and restored both actual-store backups. Bounded PASS:
+`memory-repairs/atomic-alias-deployment-review-2026-09-05.md` (room 67).
+
+Both installed binaries now have SHA-256
+`31f185d70e1439a315a8ea12eaadf4f12d75e77d558edfa0852c890531705aff` and print
+`scry 53fafa9`. Source artifact:
+`/tmp/scry-unalias-deploy-sep05.Od8oCm/scry`, archive-built with
+`CGO_ENABLED=0 GOOS=darwin GOARCH=arm64`, `-trimpath` and the version stamp.
+Signature verified. Only existing labels were restarted; laptop PID 14274,
+Mini PID 30437, both launchd exit zero. Mini rebuilt its index and started
+the worker. Previous af77a6a binaries remain beside each installed binary as
+`scry.pre-53fafa9-20260905T1856Z`, retaining SHA-256
+`32fdcbad15dd0bb2f87a9987e07ecb887c1fefa7be2a2dbe4a299bfe5f2084e9`.
+
+Verified predeployment backups at 18:53:17:
+
+- Mini `/Users/jclaw/.scry/backups/memory-20260905T185317Z.badger`,
+  77,087,455 bytes, SHA-256
+  `d1e62fc142e348441ccf4c989070af1a906c1ad7ad8158fb65c272f34ac39aad`;
+  independently restored 30,224 entities / 79,679 facts / 9,291 episodes.
+- Laptop `/Users/jeff/.scry/backups/memory-20260905T185317Z.badger`,
+  19,445,024 bytes, SHA-256
+  `9f505bc3a1ea232c5198fc2e30e1dfabc24e3e12d6bb847910ef88f895cf981d`;
+  independently restored 14,200 entities / 21,004 facts / 2,689 episodes.
+
+No live semantic repair accompanied deployment (room 68). Postdeployment
+fixed-suite hits remained 51/62, 30/66, 7/7, 44/50, 46/50; largest payload
+13,369 bytes, none over cap. A pre-existing pending item completed at 19:03:15
+after restart; two deterministic identity conflicts remain parked, preserved.
+The first stable postdeployment backup at 19:04:41 contains 30,231 entities,
+79,692 facts and 9,292 episodes and is the next live manifest's source.
