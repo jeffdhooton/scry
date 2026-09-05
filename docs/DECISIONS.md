@@ -3318,3 +3318,13 @@ Older array-only apply manifests now need explicit regeneration and review;
 their historical receipts remain valid. Observer callbacks run after commit
 and lock release. No fact content, alias owner, or metadata recipient is
 selected by a store-scale lexical rule.
+
+**Reviewer correction.** A preview handshake alone does not bind subsequent
+connections or automatic retries to the same daemon version. Independent
+fault injection downgraded the handler between the two calls and the old
+handler wrote after ignoring `expected`. Guarded apply therefore uses the
+distinct `memory.unalias.apply-reviewed.v1` RPC method, which old daemons do
+not recognize. The CLI also clears its response object before apply so a
+response omitting preview fields cannot inherit the preceding ready verdict.
+The downgrade reproduction is a committed regression; the failed build was
+not deployed.

@@ -1485,7 +1485,12 @@ The backup is synced and closed before writing. Dry-run is the default.`,
 					return fmt.Errorf("unalias apply refused: daemon lacks guarded preview or reviewed inputs changed")
 				}
 			}
-			if err := callMemoryDaemon(ctx, "memory.unalias", &daemon.MemoryUnaliasParams{
+			method := "memory.unalias"
+			if apply {
+				method = "memory.unalias.apply-reviewed.v1"
+			}
+			res = daemon.MemoryUnaliasResult{}
+			if err := callMemoryDaemon(ctx, method, &daemon.MemoryUnaliasParams{
 				Drops: request.Drops, Expected: request.Expected, DryRun: &dryRun,
 			}, &res); err != nil {
 				return err

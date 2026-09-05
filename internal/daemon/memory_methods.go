@@ -54,6 +54,9 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.repairRepoRefs", d.handleMemoryRepairRepoRefs)
 	d.server.Register("memory.reattach", d.handleMemoryReattach)
 	d.server.Register("memory.unalias", d.handleMemoryUnalias)
+	// Versioned guarded writes cannot be dispatched to an old handler that
+	// silently ignores expected fields after a daemon restart or retry.
+	d.server.Register("memory.unalias.apply-reviewed.v1", d.handleMemoryUnalias)
 	d.server.Register("memory.mergeEntities", d.handleMemoryMergeEntities)
 	d.server.Register("memory.retireEntities", d.handleMemoryRetireEntities)
 }
