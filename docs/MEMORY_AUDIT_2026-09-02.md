@@ -2600,3 +2600,46 @@ the fix; it also verifies no private name snapshot reaches the parent cache.
 Full `go test ./...`, `go vet ./...`, and resolver/queue races pass locally.
 An opt-in `SCRY_MEMORY_TEST_BACKUP` regression restores a supplied backup into
 a temporary store and tests twelve committed episodes without model calls.
+
+### Corrected prevention passes review and is deployed
+
+The fresh regate failed to disprove exact
+`af77a6a5841ec58970887408480bf1b8452d84ce`. Full tests and resolver/queue/store
+races passed. On the fresh 30,156-entity, 79,524-fact replica, twelve committed
+episodes retained zero transaction caches (0→0); independent post-GC heap fell
+by 95,162,720 bytes. The lead's separate replica run also held 0→0 caches.
+Independent tests exercised a real commit conflict and retry, observer panic
+and recovery, rollback versus committed snapshots, parent-cache independence
+and cross-type alias protection. Evidence is in
+`/tmp/scry-prevention-regate.DhdjWm/internal/memory/resolve/regate_independent_test.go`.
+No natural in-resolver panic trigger was found; the review did not claim one.
+
+At 18:11 UTC, both machines received the same archive-built darwin/arm64
+`CGO_ENABLED=0` binary reporting `scry af77a6a`. SHA-256 on both installed paths:
+`32fdcbad15dd0bb2f87a9987e07ecb887c1fefa7be2a2dbe4a299bfe5f2084e9`.
+The staged artifact passed codesign verification. Before replacing either
+binary, both original binaries were preserved as
+`scry.pre-af77a6a-20260905T1810Z` beside their installed path, each retaining
+SHA-256 `ef5ce6c451ffabbf1e85f1c69c1efa700dbef3979e2b5ac2010e38ceb64bc8f1`.
+
+Immediately pre-install backups, both verified nonempty on their owning host:
+
+- Mini `/Users/jclaw/.scry/backups/memory-20260905T181031Z.badger`:
+  76,796,110 bytes, SHA-256
+  `a9ff6271c6480c2c48439377a3e20a6fca79d0259bcdcd2bee3da83c0d7a32ac`.
+- Laptop `/Users/jeff/.scry/backups/memory-20260905T181031Z.badger`:
+  19,445,024 bytes, SHA-256
+  `a345fbd123e724501a5573c3c5ec84593e5297599d03de160212e17bd71eb4ae`.
+
+Only the existing launchd labels were restarted. Mini PID 45597 and laptop
+PID 30568 were running the new installed paths; both launchd exit statuses
+were zero. Mini logs show the search index built and queue worker started.
+The installed CLI now emits the repo section for `memory orient --cwd .`.
+This proves routing, not standing-rule quality. Room sequence 59 records deploy.
+
+Post-deploy benchmark hits are unchanged: 51/62, 30/66, 7/7, 44/50, 46/50.
+Largest result was 13,357 bytes; none exceeded the cap. The three original
+floors remain outstanding, and the new 50-question holdout is not yet due
+because graph cleanup is unfinished. No live entity repair accompanied the
+deploy. The remaining alias-conflict queue item was still in backoff at the
+first check; parking/drain must be observed, not assumed from the code tests.

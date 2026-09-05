@@ -395,3 +395,33 @@ written by someone who has not seen the ranking code.
 
 Three bad passes and two false claims were caught at step 2 or 3. Nothing that reached
 the live store had to be rolled back.
+
+## Continuation checkpoint — 2026-09-05
+
+The later contract is preserved in `MEMORY_IMPLEMENTATION_GOAL_2026-09-04.md`.
+It supersedes the old 41-group proposal, which must not be applied. The
+workflow assessment is a follow-on roadmap, not permission to change hooks,
+install embeddings, or weaken the ten-clause memory-quality goal.
+
+Prevention is now deployed at `af77a6a` on both machines (18:11 UTC), with
+byte-identical no-CGO binaries, SHA-256
+`32fdcbad15dd0bb2f87a9987e07ecb887c1fefa7be2a2dbe4a299bfe5f2084e9`.
+Previous binaries are retained beside each installed binary as
+`scry.pre-af77a6a-20260905T1810Z`. Both actual stores were backed up immediately
+before installation as `memory-20260905T181031Z.badger`; the audit records
+absolute paths, sizes, hashes, process checks and reviewer evidence.
+
+The last deployment review first caught an unbounded per-episode alias-name
+cache leak, then passed the corrected build independently. Existing atomic
+Apply, retirement/rehome protection, deterministic queue parking, relative-cwd
+orientation and recall metrics are now installed. No live entity repair has
+yet been applied in this continuation.
+
+Post-deploy benchmarks match the immediate old-binary measurements: 51/62,
+30/66, 7/7, 44/50, 46/50. Three original floors remain missed; do not lower
+them or call these fresh held-outs. First observe the remaining queue work,
+then take a stable fresh backup and regenerate the Qwen repair. Its Q5 exact
+name is currently stolen by the distinct Q8 entity: a reviewed alias rehome
+must precede the Q5 merge. Current Qwen preview preserves 19 touching facts,
+including one invalidated fact, and drops ambiguous Q5/Qwen3/Qwen3.8 aliases.
+The preview is not authorization or an apply-ready live manifest.
