@@ -1,0 +1,65 @@
+{
+  "source_backup_sha256": "4a33e4d8b7e2786d3c9a936cf8bf71f7ca61603ecb8f3454b6f26a8dcb946382",
+  "matching_count": 5,
+  "matching_sha256": "d5c0906dad0f2e55a77789799f4e820d71d41142aa7bac943de554153afc0799",
+  "companion_count": 58,
+  "companions_sha256": "526643b8f4b34b69b17253b43610d84bf72d0e14d36274d91391f1cba7928be5",
+  "source_closures": [
+    {
+      "id": "7a57052a02a7b0dfedc6874c7d4791ea1de7abe16be8c89c5ed4c7290cda9928",
+      "raw_bytes": 1385848,
+      "raw_sha256": "fd89276d6559f449097ab5e798838d14088be4d1791d6dae5541659174f1373b",
+      "source_ref": "/Users/jeff/.claude/projects/-private-var-folders-p2-2x5hjv3j63d9m1b1t5y7typw0000gn-T-setpoint-wt-5v6agu8u/14dfd857-5834-4c47-bf1f-c9ec78ae2059.jsonl#13545-1399393",
+      "text_bytes": 15527,
+      "text_sha256": "74bafa24ae9d27a60fb5576b3d56b8b08cba3dd8f1d49c4f26f22ed458a9279f"
+    },
+    {
+      "id": "0d77c4f676e2e6a6393104c52299415155163e6992501fd7b0bf4ff72a03a4ef",
+      "raw_bytes": 53637,
+      "raw_sha256": "b0d09854bf5764ab63a1681590a54d19b544d76e3b168ab44d2e88fc32050e94",
+      "source_ref": "/Users/jeff/.codex/sessions/2026/08/18/rollout-2026-08-18T20-07-53-01a01758-88c6-7793-afd6-116effbca9dd.jsonl#197679-251316",
+      "text_bytes": 15011,
+      "text_sha256": "25751a62375858024a35c6ee3efe84b16c75d6b432c86e784e0423ebb8424fcd"
+    },
+    {
+      "id": "0b6898c54febd47a4a44c4a55b23d9d594b39971d42b97ddebbd0fa50e294e1a",
+      "raw_bytes": 67444,
+      "raw_sha256": "9e40680c529dddc38663ea8e5f32653d0338f530bb46dbdd5baa64b4f6541772",
+      "source_ref": "/Users/jeff/.claude/projects/-private-var-folders-p2-2x5hjv3j63d9m1b1t5y7typw0000gn-T-setpoint-wt-li7b9y0r/f18daa33-085d-4565-bedb-42962814234a.jsonl#18910-86354",
+      "text_bytes": 10334,
+      "text_sha256": "612af2feb37315072c68576df9394d445d198ac22aa611dacbf89f8360170975"
+    },
+    {
+      "id": "50453783931942ddb2eef968e51df6c99ceaadda6fabb9177c3200a013bbf9f1",
+      "raw_bytes": 62811,
+      "raw_sha256": "4a99d5254d8f1f87ae249199c18364c2a0b15202c179ec4b0587de4241bcb2d8",
+      "source_ref": "/Users/jeff/.codex/sessions/2026/08/18/rollout-2026-08-18T20-03-07-01a01754-2c8e-7501-8616-da32cfb3d8bf.jsonl#330374-393185",
+      "text_bytes": 15808,
+      "text_sha256": "c1a402a534456aab9d876735dd973ea9f807fe2d0c538ad6c5bd02d8141e4f9c"
+    },
+    {
+      "id": "4181bcf3ac309b97310e30b10ec058871d986ed45cf170e4e02d022967d1fa7a",
+      "raw_bytes": 31412,
+      "raw_sha256": "25dd5b5ede5468b2bd1793b40eba11da540c9ef9503c60b4179ac6e813da19a2",
+      "source_ref": "/Users/jeff/.claude/projects/-Users-jeff-workspace-docket/eea24ae3-47c8-4aa0-8c38-4cb77dd6ea3e.jsonl#39419-70831",
+      "text_bytes": 30670,
+      "text_sha256": "9731ec831554b659c0f3e895ea743599330624af8b023fafffda1a475ae866c9"
+    },
+    {
+      "id": "4d8170c99acd63995f2b89ce5433531fb1eeb2753ee60a506e17cb1b8c7b577d",
+      "raw_bytes": 68990,
+      "raw_sha256": "c5e455a754af67e25ba6937ea5d321f7f944d2443835962729bf4de050107046",
+      "source_ref": "/Users/jeff/.claude/projects/-Users-jeff-workspace-docket/a3f2376c-9a1f-4f82-9970-c846c9249d42.jsonl#135410-204400",
+      "text_bytes": 13897,
+      "text_sha256": "d5589ae5862952cd02633e7b5604808696688d9f79ca53ff0888e991810d85ff"
+    },
+    {
+      "id": "15057dba93645a8ee12176be91a4b95acb38880b5c1770cd5b71612df46d11a2",
+      "raw_bytes": 10588,
+      "raw_sha256": "a0eeb2430cf37bf9e7c2dd31f7dd54c0d54a17bcdcc9b594010b3f303d9874f0",
+      "source_ref": "/Users/jeff/.claude/projects/-private-var-folders-p2-2x5hjv3j63d9m1b1t5y7typw0000gn-T-setpoint-wt-5v6agu8u/14dfd857-5834-4c47-bf1f-c9ec78ae2059.jsonl#1397366-1407954",
+      "text_bytes": 3108,
+      "text_sha256": "bc715884222b2295a4c7395b2eefadf8e3b3a074ef27bad73079aa79cc8cb506"
+    }
+  ]
+}
