@@ -3103,3 +3103,59 @@ unresolved seeded-versus-published scope in `50-jurisdictions-published`.
 Preservation is not factual endorsement. The Hermes rubric is now explicit
 at `memory-repairs/hermes-ownership-rubric-2026-09-05.md`; its examples are
 not a completed 856-fact review or apply authorization.
+
+### Nine status retirements applied and independently verified — 2026-09-05, 20:27 UTC
+
+Exact manifest `memory-repairs/status-nine-retirement-2026-09-05.json`
+(committed 762f1b4), SHA-256
+`a739d9d95de7ac8a8ff8e92ea33e3f717cb1cdf2696d09327c64dbc6bd94f36a`,
+passed the final stable-source gate after the earlier 20:13 source's queue
+stability claim was disproved. That earlier source was not used for live apply.
+The fresh 20:19 source was restored and independently verified 0 ready /
+0 backoff / 5 parked. Immediate pre-live inventory matched complete facts,
+entities, episodes and claims. Actual automatic-pre raw state later proved
+byte-identical at the complete logical key/value level to that approved source.
+
+- Automatic pre: Mini `memory-20260905T202710Z.badger`, 77,910,559 bytes,
+  SHA-256 `9df09f52cdad787894c2996ae145d62b0f5d33e2c38c9962d7dec0fc3c30532c`.
+- Immediate post: Mini `memory-20260905T202741Z.badger`, 77,914,543 bytes,
+  SHA-256 `b87def29a4334517299b55e9fc288de141f509b873c4afbdfd79bd101208ae06`.
+- All 80,242 facts, including 7,793 invalidated facts, and 9,325 episodes
+  preserved. Only nine reviewed destination endpoints became exact-name
+  literal values. No source, sentence, relation, validity or provenance changed.
+- Entities 30,457→30,448. Exactly 36 raw records removed and 27 added;
+  entire actual post state equals independent prediction. Tombstones preserve
+  reviewed retirement decisions. Noncandidate records are byte-identical.
+- Current relation vocabulary 39, collisions 482, hollows 2,855, self-loop
+  facts 1,095 and dangling-endpoint facts 1,995 unchanged, including full
+  defect lists. These remain failures of the overall goal.
+- Exact repeated live preview applied 0 / refused 9 missing retirees. Reviewer
+  separately ran deployed 393eeec CLI against actual-post restoration and
+  proved no raw-state write. All nine preserved values were retrieved live.
+- Important existing defect: `dba-filing-guide` is claimed by `dbafilingguide`,
+  hiding the former source's fact both before and after. Its approved alias
+  `DBA filing guide project` retrieves the preserved `actively-building-maine`
+  assertion. No alias was fixed or source moved in this batch.
+- Fixed suites unchanged: 52/62, 29/66, 7/7, 45/50, 47/50, maximum 13,356
+  bytes, zero over cap. Initial heldout-b result capture was tool-truncated;
+  a read-only rerun captured full JSON with the same score/cap. First two
+  original floors still fail.
+
+Reports: `memory-repairs/status-nine-stable-review-2026-09-05.md`,
+`memory-repairs/status-nine-live-review-2026-09-05.md`; full live command,
+lookup and benchmark evidence: `status-nine-live-receipt-2026-09-05.json`.
+Independent actual result is PASS only for these nine representation changes.
+The two disputed field counts and seeded-versus-published assertion remain
+verbatim, unendorsed, and awaiting separate factual review.
+
+Post-state restored inventory finds 1,002 unique facts touching the old 502
+status candidates (156 outgoing) and 857 unique Hermes-trio facts: 331 on
+hermes-ops, 306 on hermes, 238 on mac-mini. Overlaps are not summed. Full
+per-fact ownership review remains unfinished.
+
+The canonical-name normal-write candidate has not been deployed. a965177
+failed retained homonyms and generic references; 1dac187 fixed those but
+failed normalized determiner references. Both failures were independently
+reproduced and retained as reports. Corrected 62cf6e0 passes full Go tests,
+vet and resolve/queue races, and is awaiting fresh independent regrade.
+Both live binaries remain 393eeec. No parked episode was retried.

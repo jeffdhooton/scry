@@ -1,0 +1,3181 @@
+{
+  "scope": "Exact nine status-node retirements; not broad cleanup or factual correction",
+  "manifest": "status-nine-retirement-2026-09-05.json",
+  "manifest_sha256": "a739d9d95de7ac8a8ff8e92ea33e3f717cb1cdf2696d09327c64dbc6bd94f36a",
+  "deployed_commit": "393eeec79f80d3b4becff276c4fcffd71fa68ac5",
+  "backups": [
+    {
+      "role": "automatic_pre",
+      "mini_path": "/Users/jclaw/.scry/backups/memory-20260905T202710Z.badger",
+      "bytes": 77910559,
+      "sha256": "9df09f52cdad787894c2996ae145d62b0f5d33e2c38c9962d7dec0fc3c30532c"
+    },
+    {
+      "role": "immediate_post",
+      "mini_path": "/Users/jclaw/.scry/backups/memory-20260905T202741Z.badger",
+      "bytes": 77914543,
+      "sha256": "b87def29a4334517299b55e9fc288de141f509b873c4afbdfd79bd101208ae06"
+    }
+  ],
+  "immediate_preview": {
+    "dry_run": true,
+    "applied": 0,
+    "refused": 0,
+    "groups": [
+      {
+        "id": "status-nine-1-complete-priority-cell",
+        "entity_snapshot": {
+          "slug": "1-complete-priority-cell",
+          "name": "1 complete priority cell",
+          "type": "concept",
+          "description": "Post-migration strict-gate coverage measured locally: only Texas nursing fully complete, not 7.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-03T19:43:59.88Z",
+          "last_seen": "2026-09-03T19:43:59.88Z"
+        },
+        "expected": {
+          "entities": {
+            "1-complete-priority-cell": "7a76690ef8e257d356f99c3afaac0e132ab6efa2da399f1c3d1d8f2c6c6e6cd9",
+            "licensing-site-project": "29adeb9b9b4c4fd715758be6d65437dde0c6eaaafded5783bd6943574b56b984"
+          },
+          "facts": "2b9be0d1825686ba056bbb7a913f11d8d1d1af688296e7195ba5da49cb0bad21",
+          "alias_claims": "17f21b2a1e715aa6cbb5d6deb4ba1b2c63dfcbb8630943c854c3c13a0327f0ad",
+          "adjacencies": "0933501026fcded0626b0da5983a7e0959c11e335c947289092b56f285abc715"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:licensing-site-project:related_to:1-complete-priority-cell:1788393600000000000",
+            "sha256": "983046031f476940267092fdf43eed8404f7c3eab9e0f13879df21d1be2799b3",
+            "invalidated": false,
+            "fact": "After full local migration, only Texas nursing meets the strict launch gate.",
+            "snapshot": {
+              "src": "licensing-site-project",
+              "relation": "related_to",
+              "dst": "1-complete-priority-cell",
+              "raw_relation": "status",
+              "fact": "After full local migration, only Texas nursing meets the strict launch gate.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "a822b883391758ea62522db113312f3babf48a3c1ef843edc66ff5a2959aa5d0"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:1-complete-priority-cell:licensing-site-project:related_to:1788393600000000000",
+            "sha256": "22922106bf0855f2c084760f1faa158601a54d8b0f83aaf3312839d6e2dfc3a5",
+            "canonical_fact_key": "fa:licensing-site-project:related_to:1-complete-priority-cell:1788393600000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:licensing-site-project:related_to:1-complete-priority-cell:1788393600000000000",
+            "expected_sha256": "983046031f476940267092fdf43eed8404f7c3eab9e0f13879df21d1be2799b3",
+            "replacement": {
+              "src": "licensing-site-project",
+              "relation": "related_to",
+              "dst": "",
+              "value": "1 complete priority cell",
+              "raw_relation": "status",
+              "fact": "After full local migration, only Texas nursing meets the strict launch gate.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "a822b883391758ea62522db113312f3babf48a3c1ef843edc66ff5a2959aa5d0"
+              ]
+            },
+            "why": "Episode a822b883 reports measured strict-gate coverage (one of 24 cells), not a named identity. Preserve the existing source and exact display-name literal."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "1-complete-priority-cell": "1-complete-priority-cell"
+        },
+        "ready": true,
+        "applied": false
+      },
+      {
+        "id": "status-nine-164-fields-have-field-evidence",
+        "entity_snapshot": {
+          "slug": "164-fields-have-field-evidence",
+          "name": "164 fields have field evidence",
+          "type": "concept",
+          "description": "Count of fields that currently have field evidence.",
+          "created_at": "2026-09-04T00:11:05.992398-04:00",
+          "last_seen": "2026-09-04T00:11:05.992398-04:00"
+        },
+        "expected": {
+          "entities": {
+            "164-fields-have-field-evidence": "41c042453eb99bfe1e367d5604b31c8522b3a4f7b4a3ff3a6607cf4c6008023f",
+            "field-evidence-backlog": "ef723b76f194ec51d25f457485f2a1b323e76f87058bd4bf006f3d9943ef129e"
+          },
+          "facts": "d5b5793bafcf30e030cf5dd92251b9a4b162ff44a9e4cca99af6d2b23367d4cd",
+          "alias_claims": "55d573fe745765d3ff2de71411f70038be1613ab20d62baf4cb5bab0290295cf",
+          "adjacencies": "b50ef82323067c2becb1c87b38a0fcd178b98faed6dd7174edafb0354b1eef69"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:field-evidence-backlog:related_to:164-fields-have-field-evidence:1788495065992398000",
+            "sha256": "8fbb1114bdea641353d1f1223a42fedc667ac3fee3a35c64b2cb86d339157e42",
+            "invalidated": false,
+            "fact": "164 fields currently have field evidence.",
+            "snapshot": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "164-fields-have-field-evidence",
+              "raw_relation": "status",
+              "fact": "164 fields currently have field evidence.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:164-fields-have-field-evidence:field-evidence-backlog:related_to:1788495065992398000",
+            "sha256": "bbae188984db45dbcc9677c626f3a4d6c61d64249b2a5f4f3c56ee5d6520e9f3",
+            "canonical_fact_key": "fa:field-evidence-backlog:related_to:164-fields-have-field-evidence:1788495065992398000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:164-fields-have-field-evidence:1788495065992398000",
+            "expected_sha256": "8fbb1114bdea641353d1f1223a42fedc667ac3fee3a35c64b2cb86d339157e42",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "164 fields have field evidence",
+              "raw_relation": "status",
+              "fact": "164 fields currently have field evidence.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "Episode 37eb697c reports this field-evidence count on the named backlog. The count is a measurement, not an independently referable object."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "164-fields-have-field-evidence": "164-fields-have-field-evidence"
+        },
+        "ready": true,
+        "applied": false
+      },
+      {
+        "id": "status-nine-193-pages-blocked-on-authority-verification",
+        "entity_snapshot": {
+          "slug": "193-pages-blocked-on-authority-verification",
+          "name": "193 pages blocked on authority verification",
+          "type": "concept",
+          "description": "Current backlog summary count of pages blocked pending authority verification.",
+          "created_at": "2026-09-04T00:11:05.992398-04:00",
+          "last_seen": "2026-09-04T00:11:05.992398-04:00"
+        },
+        "expected": {
+          "entities": {
+            "193-pages-blocked-on-authority-verification": "0bb623c2ee6a82fba422cb9318a7384e55213bbf80bc069a883113f123efc027",
+            "field-evidence-backlog": "ef723b76f194ec51d25f457485f2a1b323e76f87058bd4bf006f3d9943ef129e"
+          },
+          "facts": "18f703869822dd7b3253c3d6247f39e0c9df03a36816f26ad424c5037919bdeb",
+          "alias_claims": "884e796589c241b3b4645c52830db39cff719f5f3062a65da0f851bcb6c75bc5",
+          "adjacencies": "87c5f2945a6680a82b2f0619ea0346e8401a608863eece3c6998471bb450b994"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:field-evidence-backlog:related_to:193-pages-blocked-on-authority-verification:1788495065992398000",
+            "sha256": "77c16c6dcf6697a8d20b8a23c9c916eaeea38ce60a09b0c164625cdfc1ef4eac",
+            "invalidated": false,
+            "fact": "Current summary: 193 pages blocked on authority verification.",
+            "snapshot": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "193-pages-blocked-on-authority-verification",
+              "raw_relation": "status",
+              "fact": "Current summary: 193 pages blocked on authority verification.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:193-pages-blocked-on-authority-verification:field-evidence-backlog:related_to:1788495065992398000",
+            "sha256": "d216f5646cfae023461a76c7d0bd9325cf6babaff06ab8110f064ecc074b8d40",
+            "canonical_fact_key": "fa:field-evidence-backlog:related_to:193-pages-blocked-on-authority-verification:1788495065992398000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:193-pages-blocked-on-authority-verification:1788495065992398000",
+            "expected_sha256": "77c16c6dcf6697a8d20b8a23c9c916eaeea38ce60a09b0c164625cdfc1ef4eac",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "193 pages blocked on authority verification",
+              "raw_relation": "status",
+              "fact": "Current summary: 193 pages blocked on authority verification.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "The stored assertion is a backlog measurement, not an identity. Its number conflicts with episode 37eb697c summary (1062 blocked pages); preserve the existing assertion verbatim, do not silently correct it or claim factual verification. Separate evidence-correction review remains needed."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "193-pages-blocked-on-authority-verification": "193-pages-blocked-on-authority-verification"
+        },
+        "ready": true,
+        "applied": false
+      },
+      {
+        "id": "status-nine-21-suspect-bodies-removed",
+        "entity_snapshot": {
+          "slug": "21-suspect-bodies-removed",
+          "name": "21 suspect bodies removed",
+          "type": "concept",
+          "description": "Conservative sanitizer outcome: 21 suspect bodies removed and no facts promoted.",
+          "repo_refs": [
+            "/Users/jclaw/workspace/statelicenselookup-ingestion"
+          ],
+          "created_at": "2026-09-03T17:05:33.063Z",
+          "last_seen": "2026-09-03T17:05:33.063Z"
+        },
+        "expected": {
+          "entities": {
+            "21-suspect-bodies-removed": "ae9997099a9f9cd53ada09d5d0509ce1c6cd055eba1af7ae088e05ef5e67e235",
+            "trawl-ingestion-engine": "f48a6e4285f9f1b3848fb573495113db73ffcbf70d90650e24e7ae059a0e88f5"
+          },
+          "facts": "2cdbe012c6fc66a40e99c566cdc3baeec517e2a8a0f444bd724ad476c54f1275",
+          "alias_claims": "30db82855c865385467d6883177bcd580be3ca71bd836edfecfd2228bc30b19d",
+          "adjacencies": "1b5c48f6398fd4cd0b895babcb7474bd452b6b82a56e4d632fab9a55f3660cf9"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:trawl-ingestion-engine:related_to:21-suspect-bodies-removed:1788393600000000000",
+            "sha256": "3169157249b96d547c4000451eaefa96e0ddae8237d03b229618880800f7a5b6",
+            "invalidated": false,
+            "fact": "Conservative sanitizer removed 21 suspect bodies; no facts were promoted.",
+            "snapshot": {
+              "src": "trawl-ingestion-engine",
+              "relation": "related_to",
+              "dst": "21-suspect-bodies-removed",
+              "raw_relation": "status",
+              "fact": "Conservative sanitizer removed 21 suspect bodies; no facts were promoted.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "98402d3966acbe3609c25f1010543e2b65eba4c934f7839830780acebdf94429"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:21-suspect-bodies-removed:trawl-ingestion-engine:related_to:1788393600000000000",
+            "sha256": "c3594d2dabf870c8bb574caacfba72374e68b50e893bfca69430282dc83a1925",
+            "canonical_fact_key": "fa:trawl-ingestion-engine:related_to:21-suspect-bodies-removed:1788393600000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:trawl-ingestion-engine:related_to:21-suspect-bodies-removed:1788393600000000000",
+            "expected_sha256": "3169157249b96d547c4000451eaefa96e0ddae8237d03b229618880800f7a5b6",
+            "replacement": {
+              "src": "trawl-ingestion-engine",
+              "relation": "related_to",
+              "dst": "",
+              "value": "21 suspect bodies removed",
+              "raw_relation": "status",
+              "fact": "Conservative sanitizer removed 21 suspect bodies; no facts were promoted.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "98402d3966acbe3609c25f1010543e2b65eba4c934f7839830780acebdf94429"
+              ]
+            },
+            "why": "This is the sanitizer outcome described in the stored fact, not the ingestion engine or a named sanitizer. Keep the existing engine source and every evidence field."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "21-suspect-bodies-removed": "21-suspect-bodies-removed"
+        },
+        "ready": true,
+        "applied": false
+      },
+      {
+        "id": "status-nine-50-jurisdictions-published",
+        "entity_snapshot": {
+          "slug": "50-jurisdictions-published",
+          "name": "50-jurisdictions-published",
+          "type": "concept",
+          "description": "All 50 seeded jurisdictions live with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-04T00:24:15.283Z",
+          "last_seen": "2026-09-04T00:24:15.283Z"
+        },
+        "expected": {
+          "entities": {
+            "50-jurisdictions-published": "a5694cf6df64acba53c180e9a724647643c2542b8b28bd7c1177bcf1ced5518b",
+            "dbafilingguide": "7d8478c5cba04d398731720482f29c8842b28f34868ebdc4cdb0a98cf2d9195c"
+          },
+          "facts": "a2960156a77a94c2666825147512ededddce7e8f1e0d51b898d241019306ec91",
+          "alias_claims": "b43321ee8a2868c2c326ce68a6d29cfafaaebc724fccb5536ec0776bcae6e89a",
+          "adjacencies": "075c3a4afb2035c97964ddc8dbe5c58bdea0190469426d1aa35ea1862baac3f3"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:dbafilingguide:related_to:50-jurisdictions-published:1788393600000000000",
+            "sha256": "3da50a4d21684d77698f4821d28f91273f48926f74a4d33364e3c1739271cd34",
+            "invalidated": false,
+            "fact": "Remote migration 0013 plus full seed succeeded (12,044 statements, 28,369 rows) with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+            "snapshot": {
+              "src": "dbafilingguide",
+              "relation": "related_to",
+              "dst": "50-jurisdictions-published",
+              "raw_relation": "status",
+              "fact": "Remote migration 0013 plus full seed succeeded (12,044 statements, 28,369 rows) with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "53cff505c0de0533ada0b7a8ada3d3f1b889e0c347b33a74673f95169c10db51"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:50-jurisdictions-published:dbafilingguide:related_to:1788393600000000000",
+            "sha256": "240f318f03fdc925ebc509cea64f7f86dd7187ee683fd8e7914c8da89dc7a540",
+            "canonical_fact_key": "fa:dbafilingguide:related_to:50-jurisdictions-published:1788393600000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:dbafilingguide:related_to:50-jurisdictions-published:1788393600000000000",
+            "expected_sha256": "3da50a4d21684d77698f4821d28f91273f48926f74a4d33364e3c1739271cd34",
+            "replacement": {
+              "src": "dbafilingguide",
+              "relation": "related_to",
+              "dst": "",
+              "value": "50-jurisdictions-published",
+              "raw_relation": "status",
+              "fact": "Remote migration 0013 plus full seed succeeded (12,044 statements, 28,369 rows) with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "53cff505c0de0533ada0b7a8ada3d3f1b889e0c347b33a74673f95169c10db51"
+              ]
+            },
+            "why": "Episode 53cff505 reports a completed seed and its measured publication coverage. The independently named project remains the source; the result is a literal."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "50-jurisdictions-published": "50-jurisdictions-published"
+        },
+        "ready": true,
+        "applied": false
+      },
+      {
+        "id": "status-nine-641-fields-have-content",
+        "entity_snapshot": {
+          "slug": "641-fields-have-content",
+          "name": "641 fields have content",
+          "type": "concept",
+          "description": "Count of fields that currently have content.",
+          "created_at": "2026-09-04T00:11:05.992398-04:00",
+          "last_seen": "2026-09-04T00:11:05.992398-04:00"
+        },
+        "expected": {
+          "entities": {
+            "641-fields-have-content": "34f18ddf09f55cc506ae7d09adff7c9d129406d30cbfecd29db4ca162b72a375",
+            "field-evidence-backlog": "ef723b76f194ec51d25f457485f2a1b323e76f87058bd4bf006f3d9943ef129e"
+          },
+          "facts": "e585fa35b96e17cb53d567aab265c67a6091cb7687f511478f6e9c34df04054e",
+          "alias_claims": "147bad644e0a9f318fbe7f78acd4b67a8e06e40fc166e5f2c05c27350d59d214",
+          "adjacencies": "fe207f9942fadd51e2335e3b8d545f1f956e5987afef299f731ba828ee2a2ae4"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:field-evidence-backlog:related_to:641-fields-have-content:1788495065992398000",
+            "sha256": "6603e5bf69354ace99835d4231a7b0eed724d7a236dbb46477617026a370f54a",
+            "invalidated": false,
+            "fact": "641 fields currently have content.",
+            "snapshot": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "641-fields-have-content",
+              "raw_relation": "status",
+              "fact": "641 fields currently have content.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:641-fields-have-content:field-evidence-backlog:related_to:1788495065992398000",
+            "sha256": "c4d680804628db8c82138dc13de39e739652bb79cffcc886a582be0876ed22b8",
+            "canonical_fact_key": "fa:field-evidence-backlog:related_to:641-fields-have-content:1788495065992398000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:641-fields-have-content:1788495065992398000",
+            "expected_sha256": "6603e5bf69354ace99835d4231a7b0eed724d7a236dbb46477617026a370f54a",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "641 fields have content",
+              "raw_relation": "status",
+              "fact": "641 fields currently have content.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "This stored assertion is a backlog count, not an identity. Episode 37eb697c summary instead says 193 fields have content; retain the stored assertion without correcting or endorsing it. Separate evidence-correction review remains needed."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "641-fields-have-content": "641-fields-have-content"
+        },
+        "ready": true,
+        "applied": false
+      },
+      {
+        "id": "status-nine-actively-building-maine",
+        "entity_snapshot": {
+          "slug": "actively-building-maine",
+          "name": "actively-building-maine",
+          "type": "concept",
+          "description": "DBA Filing Guide is healthy and actively building its Maine batch after the builder resumed.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-03T21:36:08.719Z",
+          "last_seen": "2026-09-03T21:36:08.719Z"
+        },
+        "expected": {
+          "entities": {
+            "actively-building-maine": "ce9bf690a7ba97ecfe2ea8a61184ac718e3be219771c3ad0475f0a71e9a3dac0",
+            "dba-filing-guide": "2746bbf95d31c47f048a8f2434374ae50af61c2f6d1688c4b292d224bdaef758"
+          },
+          "facts": "695b5372f168141297c5e75944db862f0d43721bb631f55f1974a80b9f52feeb",
+          "alias_claims": "ad0567054415d51b7419bc1bda5ba9218b9df5ed3a38dd3019e321743bd2a114",
+          "adjacencies": "59331ffa67c9d97627fa902d42fc67441731663efdd75716e19c8df63ecf5e6f"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:dba-filing-guide:related_to:actively-building-maine:1788471368719000000",
+            "sha256": "ad7652942e19cf3063e02b553b19a8350e2a6507211dc13f2f6456161e635531",
+            "invalidated": false,
+            "fact": "DBA Filing Guide is healthy and actively building Maine after its builder resumed.",
+            "snapshot": {
+              "src": "dba-filing-guide",
+              "relation": "related_to",
+              "dst": "actively-building-maine",
+              "raw_relation": "status",
+              "fact": "DBA Filing Guide is healthy and actively building Maine after its builder resumed.",
+              "valid_from": "2026-09-03T21:36:08.719Z",
+              "confidence": 0.95,
+              "episodes": [
+                "b038cfe6e24b4b5bec99d368a2968b6ebee4f0cec82eb285eef611b52572adde"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:actively-building-maine:dba-filing-guide:related_to:1788471368719000000",
+            "sha256": "555acdf54057b32ca86e49b3b756f3e897e6ca1af0d3205009f5672973b2389a",
+            "canonical_fact_key": "fa:dba-filing-guide:related_to:actively-building-maine:1788471368719000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:dba-filing-guide:related_to:actively-building-maine:1788471368719000000",
+            "expected_sha256": "ad7652942e19cf3063e02b553b19a8350e2a6507211dc13f2f6456161e635531",
+            "replacement": {
+              "src": "dba-filing-guide",
+              "relation": "related_to",
+              "dst": "",
+              "value": "actively-building-maine",
+              "raw_relation": "status",
+              "fact": "DBA Filing Guide is healthy and actively building Maine after its builder resumed.",
+              "valid_from": "2026-09-03T21:36:08.719Z",
+              "confidence": 0.95,
+              "episodes": [
+                "b038cfe6e24b4b5bec99d368a2968b6ebee4f0cec82eb285eef611b52572adde"
+              ]
+            },
+            "why": "Episode b038cfe6 describes the builder's time-specific activity on Maine, not a named build system or project. Preserve the existing project source without attempting project deduplication."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "actively-building-maine": "actively-building-maine"
+        },
+        "ready": true,
+        "applied": false
+      },
+      {
+        "id": "status-nine-addressing-review-findings",
+        "entity_snapshot": {
+          "slug": "addressing-review-findings",
+          "name": "addressing-review-findings",
+          "type": "concept",
+          "description": "Status of the implementer: working through all six reviewer findings.",
+          "created_at": "2026-08-18T23:55:12.333Z",
+          "last_seen": "2026-08-18T23:55:12.333Z"
+        },
+        "expected": {
+          "entities": {
+            "addressing-review-findings": "71650794e3e226da5f2a22e566c266123d469c6c9303c9da948d94cad325f009",
+            "codex-notification-template-rendering": "98a61148fab8a66de07d33cbf0d938ecc3efe97a70638014ee9996fffa7c03a8"
+          },
+          "facts": "580b4436c66477c79d6e67a1957c1c6e12ef3753a30b66c5f50a1da10fc43e99",
+          "alias_claims": "6c1e6bc2934eef7e0b7869504c278d24dc86a37aedb2c4e8337b5dd5f409b2b7",
+          "adjacencies": "3ac5f5e35ac58b1af80e9aae8bc7bc68a66d9e36464478cd45efda746f5ef0d8"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:codex-notification-template-rendering:related_to:addressing-review-findings:1787011200000000000",
+            "sha256": "bf12bec11ef20e2c07a6e9ad4406e711dfdf1d0a5cb97eb5155fae993a53a5bb",
+            "invalidated": false,
+            "fact": "Seq 45: resumed review round 1 in place from commit 7d966eb, addressing all six findings — subject CR/LF rejection, explicit email-HTML contract, caller-preformatted values, malformed-template code, missing channel/error coverage, and GSM form-feed accounting.",
+            "snapshot": {
+              "src": "codex-notification-template-rendering",
+              "relation": "related_to",
+              "dst": "addressing-review-findings",
+              "raw_relation": "status",
+              "fact": "Seq 45: resumed review round 1 in place from commit 7d966eb, addressing all six findings — subject CR/LF rejection, explicit email-HTML contract, caller-preformatted values, malformed-template code, missing channel/error coverage, and GSM form-feed accounting.",
+              "valid_from": "2026-08-18T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "5367e979805f43f7185be9649372255c3a0757d4dbca8744543b0e3d1b107988"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:addressing-review-findings:codex-notification-template-rendering:related_to:1787011200000000000",
+            "sha256": "2c8fbfe19c3b0e8b89f86505d3e95117ca45c21138e066d6c571dc896d4a7861",
+            "canonical_fact_key": "fa:codex-notification-template-rendering:related_to:addressing-review-findings:1787011200000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:codex-notification-template-rendering:related_to:addressing-review-findings:1787011200000000000",
+            "expected_sha256": "bf12bec11ef20e2c07a6e9ad4406e711dfdf1d0a5cb97eb5155fae993a53a5bb",
+            "replacement": {
+              "src": "codex-notification-template-rendering",
+              "relation": "related_to",
+              "dst": "",
+              "value": "addressing-review-findings",
+              "raw_relation": "status",
+              "fact": "Seq 45: resumed review round 1 in place from commit 7d966eb, addressing all six findings — subject CR/LF rejection, explicit email-HTML contract, caller-preformatted values, malformed-template code, missing channel/error coverage, and GSM form-feed accounting.",
+              "valid_from": "2026-08-18T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "5367e979805f43f7185be9649372255c3a0757d4dbca8744543b0e3d1b107988"
+              ]
+            },
+            "why": "Episode 5367e979 describes the implementer's round-one progress addressing six findings. It is a status of the existing implementer, not an independent review artifact."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "addressing-review-findings": "addressing-review-findings"
+        },
+        "ready": true,
+        "applied": false
+      },
+      {
+        "id": "status-nine-ai-sync-tests-15-passing",
+        "entity_snapshot": {
+          "slug": "ai-sync-tests-15-passing",
+          "name": "ai-sync-tests-15-passing",
+          "type": "concept",
+          "description": "Measurement: after the goal-prompt sync and ai-sync.py comment fix, the repo skill/MCP/link smoke test and all 15 ai-sync pytest tests pass (pytest being the project's real test harness).",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-04T17:18:09.037Z",
+          "last_seen": "2026-09-04T17:18:09.037Z"
+        },
+        "expected": {
+          "entities": {
+            "ai-sync-tests-15-passing": "bdf9e705ee2067208b88f9a867c1b8817bf88071eaddc6bd3e9651f5006414f5",
+            "ai-syncpy": "11ff80131aaa55f91bf5bee495592814e66e2a046754a31dc4de57a13606982f"
+          },
+          "facts": "362c24f40c7bb3bf873e599ca47684a84a728213b5630a578d8719ef9ea66177",
+          "alias_claims": "aaeedb719fce66edc39c17e0a01916399ef4a707f228ecdbe6167968399a860e",
+          "adjacencies": "b3c0c6a2b8c11a477a30d9eee6777152a2a5ccc17d40e329d7d418e5c4dc7f51"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:ai-syncpy:related_to:ai-sync-tests-15-passing:1788480000000000000",
+            "sha256": "8a5bb351574dc732b58c2054c4878c97335e15a62c26c7b2dbf70850807e9f99",
+            "invalidated": false,
+            "fact": "Repository smoke test (skill/MCP/link checks) and the full ai-sync pytest suite — 15 tests, pytest being the project's actual test harness — all pass after the goal-prompt work.",
+            "snapshot": {
+              "src": "ai-syncpy",
+              "relation": "related_to",
+              "dst": "ai-sync-tests-15-passing",
+              "raw_relation": "status",
+              "fact": "Repository smoke test (skill/MCP/link checks) and the full ai-sync pytest suite — 15 tests, pytest being the project's actual test harness — all pass after the goal-prompt work.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "886dd26c7492b0fb5c1ce41037b993046e53b0d24642e6cce86beb71ee8432f1"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:ai-sync-tests-15-passing:ai-syncpy:related_to:1788480000000000000",
+            "sha256": "d62c88c3fdd47bb489b83ab1ae200e6a9f5997845a9093b14874fa7b1193ff74",
+            "canonical_fact_key": "fa:ai-syncpy:related_to:ai-sync-tests-15-passing:1788480000000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:ai-syncpy:related_to:ai-sync-tests-15-passing:1788480000000000000",
+            "expected_sha256": "8a5bb351574dc732b58c2054c4878c97335e15a62c26c7b2dbf70850807e9f99",
+            "replacement": {
+              "src": "ai-syncpy",
+              "relation": "related_to",
+              "dst": "",
+              "value": "ai-sync-tests-15-passing",
+              "raw_relation": "status",
+              "fact": "Repository smoke test (skill/MCP/link checks) and the full ai-sync pytest suite — 15 tests, pytest being the project's actual test harness — all pass after the goal-prompt work.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "886dd26c7492b0fb5c1ce41037b993046e53b0d24642e6cce86beb71ee8432f1"
+              ]
+            },
+            "why": "Episode 886dd26c reports a fifteen-test passing result after goal-prompt work. The suite outcome is a measurement/status; retain ai-sync.py as source and do not retire the actual program or test suite."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "ai-sync-tests-15-passing": "ai-sync-tests-15-passing"
+        },
+        "ready": true,
+        "applied": false
+      }
+    ]
+  },
+  "apply": {
+    "dry_run": false,
+    "backup_path": "/Users/jclaw/.scry/backups/memory-20260905T202710Z.badger",
+    "applied": 9,
+    "refused": 0,
+    "groups": [
+      {
+        "id": "status-nine-1-complete-priority-cell",
+        "entity_snapshot": {
+          "slug": "1-complete-priority-cell",
+          "name": "1 complete priority cell",
+          "type": "concept",
+          "description": "Post-migration strict-gate coverage measured locally: only Texas nursing fully complete, not 7.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-03T19:43:59.88Z",
+          "last_seen": "2026-09-03T19:43:59.88Z"
+        },
+        "expected": {
+          "entities": {
+            "1-complete-priority-cell": "7a76690ef8e257d356f99c3afaac0e132ab6efa2da399f1c3d1d8f2c6c6e6cd9",
+            "licensing-site-project": "29adeb9b9b4c4fd715758be6d65437dde0c6eaaafded5783bd6943574b56b984"
+          },
+          "facts": "2b9be0d1825686ba056bbb7a913f11d8d1d1af688296e7195ba5da49cb0bad21",
+          "alias_claims": "17f21b2a1e715aa6cbb5d6deb4ba1b2c63dfcbb8630943c854c3c13a0327f0ad",
+          "adjacencies": "0933501026fcded0626b0da5983a7e0959c11e335c947289092b56f285abc715"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:licensing-site-project:related_to:1-complete-priority-cell:1788393600000000000",
+            "sha256": "983046031f476940267092fdf43eed8404f7c3eab9e0f13879df21d1be2799b3",
+            "invalidated": false,
+            "fact": "After full local migration, only Texas nursing meets the strict launch gate.",
+            "snapshot": {
+              "src": "licensing-site-project",
+              "relation": "related_to",
+              "dst": "1-complete-priority-cell",
+              "raw_relation": "status",
+              "fact": "After full local migration, only Texas nursing meets the strict launch gate.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "a822b883391758ea62522db113312f3babf48a3c1ef843edc66ff5a2959aa5d0"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:1-complete-priority-cell:licensing-site-project:related_to:1788393600000000000",
+            "sha256": "22922106bf0855f2c084760f1faa158601a54d8b0f83aaf3312839d6e2dfc3a5",
+            "canonical_fact_key": "fa:licensing-site-project:related_to:1-complete-priority-cell:1788393600000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:licensing-site-project:related_to:1-complete-priority-cell:1788393600000000000",
+            "expected_sha256": "983046031f476940267092fdf43eed8404f7c3eab9e0f13879df21d1be2799b3",
+            "replacement": {
+              "src": "licensing-site-project",
+              "relation": "related_to",
+              "dst": "",
+              "value": "1 complete priority cell",
+              "raw_relation": "status",
+              "fact": "After full local migration, only Texas nursing meets the strict launch gate.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "a822b883391758ea62522db113312f3babf48a3c1ef843edc66ff5a2959aa5d0"
+              ]
+            },
+            "why": "Episode a822b883 reports measured strict-gate coverage (one of 24 cells), not a named identity. Preserve the existing source and exact display-name literal."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "1-complete-priority-cell": "1-complete-priority-cell"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-nine-164-fields-have-field-evidence",
+        "entity_snapshot": {
+          "slug": "164-fields-have-field-evidence",
+          "name": "164 fields have field evidence",
+          "type": "concept",
+          "description": "Count of fields that currently have field evidence.",
+          "created_at": "2026-09-04T00:11:05.992398-04:00",
+          "last_seen": "2026-09-04T00:11:05.992398-04:00"
+        },
+        "expected": {
+          "entities": {
+            "164-fields-have-field-evidence": "41c042453eb99bfe1e367d5604b31c8522b3a4f7b4a3ff3a6607cf4c6008023f",
+            "field-evidence-backlog": "ef723b76f194ec51d25f457485f2a1b323e76f87058bd4bf006f3d9943ef129e"
+          },
+          "facts": "d5b5793bafcf30e030cf5dd92251b9a4b162ff44a9e4cca99af6d2b23367d4cd",
+          "alias_claims": "55d573fe745765d3ff2de71411f70038be1613ab20d62baf4cb5bab0290295cf",
+          "adjacencies": "b50ef82323067c2becb1c87b38a0fcd178b98faed6dd7174edafb0354b1eef69"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:field-evidence-backlog:related_to:164-fields-have-field-evidence:1788495065992398000",
+            "sha256": "8fbb1114bdea641353d1f1223a42fedc667ac3fee3a35c64b2cb86d339157e42",
+            "invalidated": false,
+            "fact": "164 fields currently have field evidence.",
+            "snapshot": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "164-fields-have-field-evidence",
+              "raw_relation": "status",
+              "fact": "164 fields currently have field evidence.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:164-fields-have-field-evidence:field-evidence-backlog:related_to:1788495065992398000",
+            "sha256": "bbae188984db45dbcc9677c626f3a4d6c61d64249b2a5f4f3c56ee5d6520e9f3",
+            "canonical_fact_key": "fa:field-evidence-backlog:related_to:164-fields-have-field-evidence:1788495065992398000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:164-fields-have-field-evidence:1788495065992398000",
+            "expected_sha256": "8fbb1114bdea641353d1f1223a42fedc667ac3fee3a35c64b2cb86d339157e42",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "164 fields have field evidence",
+              "raw_relation": "status",
+              "fact": "164 fields currently have field evidence.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "Episode 37eb697c reports this field-evidence count on the named backlog. The count is a measurement, not an independently referable object."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "164-fields-have-field-evidence": "164-fields-have-field-evidence"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-nine-193-pages-blocked-on-authority-verification",
+        "entity_snapshot": {
+          "slug": "193-pages-blocked-on-authority-verification",
+          "name": "193 pages blocked on authority verification",
+          "type": "concept",
+          "description": "Current backlog summary count of pages blocked pending authority verification.",
+          "created_at": "2026-09-04T00:11:05.992398-04:00",
+          "last_seen": "2026-09-04T00:11:05.992398-04:00"
+        },
+        "expected": {
+          "entities": {
+            "193-pages-blocked-on-authority-verification": "0bb623c2ee6a82fba422cb9318a7384e55213bbf80bc069a883113f123efc027",
+            "field-evidence-backlog": "ef723b76f194ec51d25f457485f2a1b323e76f87058bd4bf006f3d9943ef129e"
+          },
+          "facts": "18f703869822dd7b3253c3d6247f39e0c9df03a36816f26ad424c5037919bdeb",
+          "alias_claims": "884e796589c241b3b4645c52830db39cff719f5f3062a65da0f851bcb6c75bc5",
+          "adjacencies": "87c5f2945a6680a82b2f0619ea0346e8401a608863eece3c6998471bb450b994"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:field-evidence-backlog:related_to:193-pages-blocked-on-authority-verification:1788495065992398000",
+            "sha256": "77c16c6dcf6697a8d20b8a23c9c916eaeea38ce60a09b0c164625cdfc1ef4eac",
+            "invalidated": false,
+            "fact": "Current summary: 193 pages blocked on authority verification.",
+            "snapshot": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "193-pages-blocked-on-authority-verification",
+              "raw_relation": "status",
+              "fact": "Current summary: 193 pages blocked on authority verification.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:193-pages-blocked-on-authority-verification:field-evidence-backlog:related_to:1788495065992398000",
+            "sha256": "d216f5646cfae023461a76c7d0bd9325cf6babaff06ab8110f064ecc074b8d40",
+            "canonical_fact_key": "fa:field-evidence-backlog:related_to:193-pages-blocked-on-authority-verification:1788495065992398000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:193-pages-blocked-on-authority-verification:1788495065992398000",
+            "expected_sha256": "77c16c6dcf6697a8d20b8a23c9c916eaeea38ce60a09b0c164625cdfc1ef4eac",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "193 pages blocked on authority verification",
+              "raw_relation": "status",
+              "fact": "Current summary: 193 pages blocked on authority verification.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "The stored assertion is a backlog measurement, not an identity. Its number conflicts with episode 37eb697c summary (1062 blocked pages); preserve the existing assertion verbatim, do not silently correct it or claim factual verification. Separate evidence-correction review remains needed."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "193-pages-blocked-on-authority-verification": "193-pages-blocked-on-authority-verification"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-nine-21-suspect-bodies-removed",
+        "entity_snapshot": {
+          "slug": "21-suspect-bodies-removed",
+          "name": "21 suspect bodies removed",
+          "type": "concept",
+          "description": "Conservative sanitizer outcome: 21 suspect bodies removed and no facts promoted.",
+          "repo_refs": [
+            "/Users/jclaw/workspace/statelicenselookup-ingestion"
+          ],
+          "created_at": "2026-09-03T17:05:33.063Z",
+          "last_seen": "2026-09-03T17:05:33.063Z"
+        },
+        "expected": {
+          "entities": {
+            "21-suspect-bodies-removed": "ae9997099a9f9cd53ada09d5d0509ce1c6cd055eba1af7ae088e05ef5e67e235",
+            "trawl-ingestion-engine": "f48a6e4285f9f1b3848fb573495113db73ffcbf70d90650e24e7ae059a0e88f5"
+          },
+          "facts": "2cdbe012c6fc66a40e99c566cdc3baeec517e2a8a0f444bd724ad476c54f1275",
+          "alias_claims": "30db82855c865385467d6883177bcd580be3ca71bd836edfecfd2228bc30b19d",
+          "adjacencies": "1b5c48f6398fd4cd0b895babcb7474bd452b6b82a56e4d632fab9a55f3660cf9"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:trawl-ingestion-engine:related_to:21-suspect-bodies-removed:1788393600000000000",
+            "sha256": "3169157249b96d547c4000451eaefa96e0ddae8237d03b229618880800f7a5b6",
+            "invalidated": false,
+            "fact": "Conservative sanitizer removed 21 suspect bodies; no facts were promoted.",
+            "snapshot": {
+              "src": "trawl-ingestion-engine",
+              "relation": "related_to",
+              "dst": "21-suspect-bodies-removed",
+              "raw_relation": "status",
+              "fact": "Conservative sanitizer removed 21 suspect bodies; no facts were promoted.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "98402d3966acbe3609c25f1010543e2b65eba4c934f7839830780acebdf94429"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:21-suspect-bodies-removed:trawl-ingestion-engine:related_to:1788393600000000000",
+            "sha256": "c3594d2dabf870c8bb574caacfba72374e68b50e893bfca69430282dc83a1925",
+            "canonical_fact_key": "fa:trawl-ingestion-engine:related_to:21-suspect-bodies-removed:1788393600000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:trawl-ingestion-engine:related_to:21-suspect-bodies-removed:1788393600000000000",
+            "expected_sha256": "3169157249b96d547c4000451eaefa96e0ddae8237d03b229618880800f7a5b6",
+            "replacement": {
+              "src": "trawl-ingestion-engine",
+              "relation": "related_to",
+              "dst": "",
+              "value": "21 suspect bodies removed",
+              "raw_relation": "status",
+              "fact": "Conservative sanitizer removed 21 suspect bodies; no facts were promoted.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "98402d3966acbe3609c25f1010543e2b65eba4c934f7839830780acebdf94429"
+              ]
+            },
+            "why": "This is the sanitizer outcome described in the stored fact, not the ingestion engine or a named sanitizer. Keep the existing engine source and every evidence field."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "21-suspect-bodies-removed": "21-suspect-bodies-removed"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-nine-50-jurisdictions-published",
+        "entity_snapshot": {
+          "slug": "50-jurisdictions-published",
+          "name": "50-jurisdictions-published",
+          "type": "concept",
+          "description": "All 50 seeded jurisdictions live with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-04T00:24:15.283Z",
+          "last_seen": "2026-09-04T00:24:15.283Z"
+        },
+        "expected": {
+          "entities": {
+            "50-jurisdictions-published": "a5694cf6df64acba53c180e9a724647643c2542b8b28bd7c1177bcf1ced5518b",
+            "dbafilingguide": "7d8478c5cba04d398731720482f29c8842b28f34868ebdc4cdb0a98cf2d9195c"
+          },
+          "facts": "a2960156a77a94c2666825147512ededddce7e8f1e0d51b898d241019306ec91",
+          "alias_claims": "b43321ee8a2868c2c326ce68a6d29cfafaaebc724fccb5536ec0776bcae6e89a",
+          "adjacencies": "075c3a4afb2035c97964ddc8dbe5c58bdea0190469426d1aa35ea1862baac3f3"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:dbafilingguide:related_to:50-jurisdictions-published:1788393600000000000",
+            "sha256": "3da50a4d21684d77698f4821d28f91273f48926f74a4d33364e3c1739271cd34",
+            "invalidated": false,
+            "fact": "Remote migration 0013 plus full seed succeeded (12,044 statements, 28,369 rows) with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+            "snapshot": {
+              "src": "dbafilingguide",
+              "relation": "related_to",
+              "dst": "50-jurisdictions-published",
+              "raw_relation": "status",
+              "fact": "Remote migration 0013 plus full seed succeeded (12,044 statements, 28,369 rows) with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "53cff505c0de0533ada0b7a8ada3d3f1b889e0c347b33a74673f95169c10db51"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:50-jurisdictions-published:dbafilingguide:related_to:1788393600000000000",
+            "sha256": "240f318f03fdc925ebc509cea64f7f86dd7187ee683fd8e7914c8da89dc7a540",
+            "canonical_fact_key": "fa:dbafilingguide:related_to:50-jurisdictions-published:1788393600000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:dbafilingguide:related_to:50-jurisdictions-published:1788393600000000000",
+            "expected_sha256": "3da50a4d21684d77698f4821d28f91273f48926f74a4d33364e3c1739271cd34",
+            "replacement": {
+              "src": "dbafilingguide",
+              "relation": "related_to",
+              "dst": "",
+              "value": "50-jurisdictions-published",
+              "raw_relation": "status",
+              "fact": "Remote migration 0013 plus full seed succeeded (12,044 statements, 28,369 rows) with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "53cff505c0de0533ada0b7a8ada3d3f1b889e0c347b33a74673f95169c10db51"
+              ]
+            },
+            "why": "Episode 53cff505 reports a completed seed and its measured publication coverage. The independently named project remains the source; the result is a literal."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "50-jurisdictions-published": "50-jurisdictions-published"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-nine-641-fields-have-content",
+        "entity_snapshot": {
+          "slug": "641-fields-have-content",
+          "name": "641 fields have content",
+          "type": "concept",
+          "description": "Count of fields that currently have content.",
+          "created_at": "2026-09-04T00:11:05.992398-04:00",
+          "last_seen": "2026-09-04T00:11:05.992398-04:00"
+        },
+        "expected": {
+          "entities": {
+            "641-fields-have-content": "34f18ddf09f55cc506ae7d09adff7c9d129406d30cbfecd29db4ca162b72a375",
+            "field-evidence-backlog": "ef723b76f194ec51d25f457485f2a1b323e76f87058bd4bf006f3d9943ef129e"
+          },
+          "facts": "e585fa35b96e17cb53d567aab265c67a6091cb7687f511478f6e9c34df04054e",
+          "alias_claims": "147bad644e0a9f318fbe7f78acd4b67a8e06e40fc166e5f2c05c27350d59d214",
+          "adjacencies": "fe207f9942fadd51e2335e3b8d545f1f956e5987afef299f731ba828ee2a2ae4"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:field-evidence-backlog:related_to:641-fields-have-content:1788495065992398000",
+            "sha256": "6603e5bf69354ace99835d4231a7b0eed724d7a236dbb46477617026a370f54a",
+            "invalidated": false,
+            "fact": "641 fields currently have content.",
+            "snapshot": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "641-fields-have-content",
+              "raw_relation": "status",
+              "fact": "641 fields currently have content.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:641-fields-have-content:field-evidence-backlog:related_to:1788495065992398000",
+            "sha256": "c4d680804628db8c82138dc13de39e739652bb79cffcc886a582be0876ed22b8",
+            "canonical_fact_key": "fa:field-evidence-backlog:related_to:641-fields-have-content:1788495065992398000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:641-fields-have-content:1788495065992398000",
+            "expected_sha256": "6603e5bf69354ace99835d4231a7b0eed724d7a236dbb46477617026a370f54a",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "641 fields have content",
+              "raw_relation": "status",
+              "fact": "641 fields currently have content.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "This stored assertion is a backlog count, not an identity. Episode 37eb697c summary instead says 193 fields have content; retain the stored assertion without correcting or endorsing it. Separate evidence-correction review remains needed."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "641-fields-have-content": "641-fields-have-content"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-nine-actively-building-maine",
+        "entity_snapshot": {
+          "slug": "actively-building-maine",
+          "name": "actively-building-maine",
+          "type": "concept",
+          "description": "DBA Filing Guide is healthy and actively building its Maine batch after the builder resumed.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-03T21:36:08.719Z",
+          "last_seen": "2026-09-03T21:36:08.719Z"
+        },
+        "expected": {
+          "entities": {
+            "actively-building-maine": "ce9bf690a7ba97ecfe2ea8a61184ac718e3be219771c3ad0475f0a71e9a3dac0",
+            "dba-filing-guide": "2746bbf95d31c47f048a8f2434374ae50af61c2f6d1688c4b292d224bdaef758"
+          },
+          "facts": "695b5372f168141297c5e75944db862f0d43721bb631f55f1974a80b9f52feeb",
+          "alias_claims": "ad0567054415d51b7419bc1bda5ba9218b9df5ed3a38dd3019e321743bd2a114",
+          "adjacencies": "59331ffa67c9d97627fa902d42fc67441731663efdd75716e19c8df63ecf5e6f"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:dba-filing-guide:related_to:actively-building-maine:1788471368719000000",
+            "sha256": "ad7652942e19cf3063e02b553b19a8350e2a6507211dc13f2f6456161e635531",
+            "invalidated": false,
+            "fact": "DBA Filing Guide is healthy and actively building Maine after its builder resumed.",
+            "snapshot": {
+              "src": "dba-filing-guide",
+              "relation": "related_to",
+              "dst": "actively-building-maine",
+              "raw_relation": "status",
+              "fact": "DBA Filing Guide is healthy and actively building Maine after its builder resumed.",
+              "valid_from": "2026-09-03T21:36:08.719Z",
+              "confidence": 0.95,
+              "episodes": [
+                "b038cfe6e24b4b5bec99d368a2968b6ebee4f0cec82eb285eef611b52572adde"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:actively-building-maine:dba-filing-guide:related_to:1788471368719000000",
+            "sha256": "555acdf54057b32ca86e49b3b756f3e897e6ca1af0d3205009f5672973b2389a",
+            "canonical_fact_key": "fa:dba-filing-guide:related_to:actively-building-maine:1788471368719000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:dba-filing-guide:related_to:actively-building-maine:1788471368719000000",
+            "expected_sha256": "ad7652942e19cf3063e02b553b19a8350e2a6507211dc13f2f6456161e635531",
+            "replacement": {
+              "src": "dba-filing-guide",
+              "relation": "related_to",
+              "dst": "",
+              "value": "actively-building-maine",
+              "raw_relation": "status",
+              "fact": "DBA Filing Guide is healthy and actively building Maine after its builder resumed.",
+              "valid_from": "2026-09-03T21:36:08.719Z",
+              "confidence": 0.95,
+              "episodes": [
+                "b038cfe6e24b4b5bec99d368a2968b6ebee4f0cec82eb285eef611b52572adde"
+              ]
+            },
+            "why": "Episode b038cfe6 describes the builder's time-specific activity on Maine, not a named build system or project. Preserve the existing project source without attempting project deduplication."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "actively-building-maine": "actively-building-maine"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-nine-addressing-review-findings",
+        "entity_snapshot": {
+          "slug": "addressing-review-findings",
+          "name": "addressing-review-findings",
+          "type": "concept",
+          "description": "Status of the implementer: working through all six reviewer findings.",
+          "created_at": "2026-08-18T23:55:12.333Z",
+          "last_seen": "2026-08-18T23:55:12.333Z"
+        },
+        "expected": {
+          "entities": {
+            "addressing-review-findings": "71650794e3e226da5f2a22e566c266123d469c6c9303c9da948d94cad325f009",
+            "codex-notification-template-rendering": "98a61148fab8a66de07d33cbf0d938ecc3efe97a70638014ee9996fffa7c03a8"
+          },
+          "facts": "580b4436c66477c79d6e67a1957c1c6e12ef3753a30b66c5f50a1da10fc43e99",
+          "alias_claims": "6c1e6bc2934eef7e0b7869504c278d24dc86a37aedb2c4e8337b5dd5f409b2b7",
+          "adjacencies": "3ac5f5e35ac58b1af80e9aae8bc7bc68a66d9e36464478cd45efda746f5ef0d8"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:codex-notification-template-rendering:related_to:addressing-review-findings:1787011200000000000",
+            "sha256": "bf12bec11ef20e2c07a6e9ad4406e711dfdf1d0a5cb97eb5155fae993a53a5bb",
+            "invalidated": false,
+            "fact": "Seq 45: resumed review round 1 in place from commit 7d966eb, addressing all six findings — subject CR/LF rejection, explicit email-HTML contract, caller-preformatted values, malformed-template code, missing channel/error coverage, and GSM form-feed accounting.",
+            "snapshot": {
+              "src": "codex-notification-template-rendering",
+              "relation": "related_to",
+              "dst": "addressing-review-findings",
+              "raw_relation": "status",
+              "fact": "Seq 45: resumed review round 1 in place from commit 7d966eb, addressing all six findings — subject CR/LF rejection, explicit email-HTML contract, caller-preformatted values, malformed-template code, missing channel/error coverage, and GSM form-feed accounting.",
+              "valid_from": "2026-08-18T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "5367e979805f43f7185be9649372255c3a0757d4dbca8744543b0e3d1b107988"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:addressing-review-findings:codex-notification-template-rendering:related_to:1787011200000000000",
+            "sha256": "2c8fbfe19c3b0e8b89f86505d3e95117ca45c21138e066d6c571dc896d4a7861",
+            "canonical_fact_key": "fa:codex-notification-template-rendering:related_to:addressing-review-findings:1787011200000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:codex-notification-template-rendering:related_to:addressing-review-findings:1787011200000000000",
+            "expected_sha256": "bf12bec11ef20e2c07a6e9ad4406e711dfdf1d0a5cb97eb5155fae993a53a5bb",
+            "replacement": {
+              "src": "codex-notification-template-rendering",
+              "relation": "related_to",
+              "dst": "",
+              "value": "addressing-review-findings",
+              "raw_relation": "status",
+              "fact": "Seq 45: resumed review round 1 in place from commit 7d966eb, addressing all six findings — subject CR/LF rejection, explicit email-HTML contract, caller-preformatted values, malformed-template code, missing channel/error coverage, and GSM form-feed accounting.",
+              "valid_from": "2026-08-18T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "5367e979805f43f7185be9649372255c3a0757d4dbca8744543b0e3d1b107988"
+              ]
+            },
+            "why": "Episode 5367e979 describes the implementer's round-one progress addressing six findings. It is a status of the existing implementer, not an independent review artifact."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "addressing-review-findings": "addressing-review-findings"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-nine-ai-sync-tests-15-passing",
+        "entity_snapshot": {
+          "slug": "ai-sync-tests-15-passing",
+          "name": "ai-sync-tests-15-passing",
+          "type": "concept",
+          "description": "Measurement: after the goal-prompt sync and ai-sync.py comment fix, the repo skill/MCP/link smoke test and all 15 ai-sync pytest tests pass (pytest being the project's real test harness).",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-04T17:18:09.037Z",
+          "last_seen": "2026-09-04T17:18:09.037Z"
+        },
+        "expected": {
+          "entities": {
+            "ai-sync-tests-15-passing": "bdf9e705ee2067208b88f9a867c1b8817bf88071eaddc6bd3e9651f5006414f5",
+            "ai-syncpy": "11ff80131aaa55f91bf5bee495592814e66e2a046754a31dc4de57a13606982f"
+          },
+          "facts": "362c24f40c7bb3bf873e599ca47684a84a728213b5630a578d8719ef9ea66177",
+          "alias_claims": "aaeedb719fce66edc39c17e0a01916399ef4a707f228ecdbe6167968399a860e",
+          "adjacencies": "b3c0c6a2b8c11a477a30d9eee6777152a2a5ccc17d40e329d7d418e5c4dc7f51"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:ai-syncpy:related_to:ai-sync-tests-15-passing:1788480000000000000",
+            "sha256": "8a5bb351574dc732b58c2054c4878c97335e15a62c26c7b2dbf70850807e9f99",
+            "invalidated": false,
+            "fact": "Repository smoke test (skill/MCP/link checks) and the full ai-sync pytest suite — 15 tests, pytest being the project's actual test harness — all pass after the goal-prompt work.",
+            "snapshot": {
+              "src": "ai-syncpy",
+              "relation": "related_to",
+              "dst": "ai-sync-tests-15-passing",
+              "raw_relation": "status",
+              "fact": "Repository smoke test (skill/MCP/link checks) and the full ai-sync pytest suite — 15 tests, pytest being the project's actual test harness — all pass after the goal-prompt work.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "886dd26c7492b0fb5c1ce41037b993046e53b0d24642e6cce86beb71ee8432f1"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:ai-sync-tests-15-passing:ai-syncpy:related_to:1788480000000000000",
+            "sha256": "d62c88c3fdd47bb489b83ab1ae200e6a9f5997845a9093b14874fa7b1193ff74",
+            "canonical_fact_key": "fa:ai-syncpy:related_to:ai-sync-tests-15-passing:1788480000000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:ai-syncpy:related_to:ai-sync-tests-15-passing:1788480000000000000",
+            "expected_sha256": "8a5bb351574dc732b58c2054c4878c97335e15a62c26c7b2dbf70850807e9f99",
+            "replacement": {
+              "src": "ai-syncpy",
+              "relation": "related_to",
+              "dst": "",
+              "value": "ai-sync-tests-15-passing",
+              "raw_relation": "status",
+              "fact": "Repository smoke test (skill/MCP/link checks) and the full ai-sync pytest suite — 15 tests, pytest being the project's actual test harness — all pass after the goal-prompt work.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "886dd26c7492b0fb5c1ce41037b993046e53b0d24642e6cce86beb71ee8432f1"
+              ]
+            },
+            "why": "Episode 886dd26c reports a fifteen-test passing result after goal-prompt work. The suite outcome is a measurement/status; retain ai-sync.py as source and do not retire the actual program or test suite."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "ai-sync-tests-15-passing": "ai-sync-tests-15-passing"
+        },
+        "ready": true,
+        "applied": true
+      }
+    ]
+  },
+  "second_preview": {
+    "dry_run": true,
+    "applied": 0,
+    "refused": 9,
+    "groups": [
+      {
+        "id": "status-nine-1-complete-priority-cell",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:licensing-site-project:related_to:1-complete-priority-cell:1788393600000000000",
+            "expected_sha256": "983046031f476940267092fdf43eed8404f7c3eab9e0f13879df21d1be2799b3",
+            "replacement": {
+              "src": "licensing-site-project",
+              "relation": "related_to",
+              "dst": "",
+              "value": "1 complete priority cell",
+              "raw_relation": "status",
+              "fact": "After full local migration, only Texas nursing meets the strict launch gate.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "a822b883391758ea62522db113312f3babf48a3c1ef843edc66ff5a2959aa5d0"
+              ]
+            },
+            "why": "Episode a822b883 reports measured strict-gate coverage (one of 24 cells), not a named identity. Preserve the existing source and exact display-name literal."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: 1-complete-priority-cell"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-nine-164-fields-have-field-evidence",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:164-fields-have-field-evidence:1788495065992398000",
+            "expected_sha256": "8fbb1114bdea641353d1f1223a42fedc667ac3fee3a35c64b2cb86d339157e42",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "164 fields have field evidence",
+              "raw_relation": "status",
+              "fact": "164 fields currently have field evidence.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "Episode 37eb697c reports this field-evidence count on the named backlog. The count is a measurement, not an independently referable object."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: 164-fields-have-field-evidence"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-nine-193-pages-blocked-on-authority-verification",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:193-pages-blocked-on-authority-verification:1788495065992398000",
+            "expected_sha256": "77c16c6dcf6697a8d20b8a23c9c916eaeea38ce60a09b0c164625cdfc1ef4eac",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "193 pages blocked on authority verification",
+              "raw_relation": "status",
+              "fact": "Current summary: 193 pages blocked on authority verification.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "The stored assertion is a backlog measurement, not an identity. Its number conflicts with episode 37eb697c summary (1062 blocked pages); preserve the existing assertion verbatim, do not silently correct it or claim factual verification. Separate evidence-correction review remains needed."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: 193-pages-blocked-on-authority-verification"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-nine-21-suspect-bodies-removed",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:trawl-ingestion-engine:related_to:21-suspect-bodies-removed:1788393600000000000",
+            "expected_sha256": "3169157249b96d547c4000451eaefa96e0ddae8237d03b229618880800f7a5b6",
+            "replacement": {
+              "src": "trawl-ingestion-engine",
+              "relation": "related_to",
+              "dst": "",
+              "value": "21 suspect bodies removed",
+              "raw_relation": "status",
+              "fact": "Conservative sanitizer removed 21 suspect bodies; no facts were promoted.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "98402d3966acbe3609c25f1010543e2b65eba4c934f7839830780acebdf94429"
+              ]
+            },
+            "why": "This is the sanitizer outcome described in the stored fact, not the ingestion engine or a named sanitizer. Keep the existing engine source and every evidence field."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: 21-suspect-bodies-removed"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-nine-50-jurisdictions-published",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:dbafilingguide:related_to:50-jurisdictions-published:1788393600000000000",
+            "expected_sha256": "3da50a4d21684d77698f4821d28f91273f48926f74a4d33364e3c1739271cd34",
+            "replacement": {
+              "src": "dbafilingguide",
+              "relation": "related_to",
+              "dst": "",
+              "value": "50-jurisdictions-published",
+              "raw_relation": "status",
+              "fact": "Remote migration 0013 plus full seed succeeded (12,044 statements, 28,369 rows) with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "53cff505c0de0533ada0b7a8ada3d3f1b889e0c347b33a74673f95169c10db51"
+              ]
+            },
+            "why": "Episode 53cff505 reports a completed seed and its measured publication coverage. The independently named project remains the source; the result is a literal."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: 50-jurisdictions-published"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-nine-641-fields-have-content",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:field-evidence-backlog:related_to:641-fields-have-content:1788495065992398000",
+            "expected_sha256": "6603e5bf69354ace99835d4231a7b0eed724d7a236dbb46477617026a370f54a",
+            "replacement": {
+              "src": "field-evidence-backlog",
+              "relation": "related_to",
+              "dst": "",
+              "value": "641 fields have content",
+              "raw_relation": "status",
+              "fact": "641 fields currently have content.",
+              "valid_from": "2026-09-04T00:11:05.992398-04:00",
+              "confidence": 0.9,
+              "episodes": [
+                "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+              ]
+            },
+            "why": "This stored assertion is a backlog count, not an identity. Episode 37eb697c summary instead says 193 fields have content; retain the stored assertion without correcting or endorsing it. Separate evidence-correction review remains needed."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: 641-fields-have-content"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-nine-actively-building-maine",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:dba-filing-guide:related_to:actively-building-maine:1788471368719000000",
+            "expected_sha256": "ad7652942e19cf3063e02b553b19a8350e2a6507211dc13f2f6456161e635531",
+            "replacement": {
+              "src": "dba-filing-guide",
+              "relation": "related_to",
+              "dst": "",
+              "value": "actively-building-maine",
+              "raw_relation": "status",
+              "fact": "DBA Filing Guide is healthy and actively building Maine after its builder resumed.",
+              "valid_from": "2026-09-03T21:36:08.719Z",
+              "confidence": 0.95,
+              "episodes": [
+                "b038cfe6e24b4b5bec99d368a2968b6ebee4f0cec82eb285eef611b52572adde"
+              ]
+            },
+            "why": "Episode b038cfe6 describes the builder's time-specific activity on Maine, not a named build system or project. Preserve the existing project source without attempting project deduplication."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: actively-building-maine"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-nine-addressing-review-findings",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:codex-notification-template-rendering:related_to:addressing-review-findings:1787011200000000000",
+            "expected_sha256": "bf12bec11ef20e2c07a6e9ad4406e711dfdf1d0a5cb97eb5155fae993a53a5bb",
+            "replacement": {
+              "src": "codex-notification-template-rendering",
+              "relation": "related_to",
+              "dst": "",
+              "value": "addressing-review-findings",
+              "raw_relation": "status",
+              "fact": "Seq 45: resumed review round 1 in place from commit 7d966eb, addressing all six findings — subject CR/LF rejection, explicit email-HTML contract, caller-preformatted values, malformed-template code, missing channel/error coverage, and GSM form-feed accounting.",
+              "valid_from": "2026-08-18T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "5367e979805f43f7185be9649372255c3a0757d4dbca8744543b0e3d1b107988"
+              ]
+            },
+            "why": "Episode 5367e979 describes the implementer's round-one progress addressing six findings. It is a status of the existing implementer, not an independent review artifact."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: addressing-review-findings"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-nine-ai-sync-tests-15-passing",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:ai-syncpy:related_to:ai-sync-tests-15-passing:1788480000000000000",
+            "expected_sha256": "8a5bb351574dc732b58c2054c4878c97335e15a62c26c7b2dbf70850807e9f99",
+            "replacement": {
+              "src": "ai-syncpy",
+              "relation": "related_to",
+              "dst": "",
+              "value": "ai-sync-tests-15-passing",
+              "raw_relation": "status",
+              "fact": "Repository smoke test (skill/MCP/link checks) and the full ai-sync pytest suite — 15 tests, pytest being the project's actual test harness — all pass after the goal-prompt work.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "886dd26c7492b0fb5c1ce41037b993046e53b0d24642e6cce86beb71ee8432f1"
+              ]
+            },
+            "why": "Episode 886dd26c reports a fifteen-test passing result after goal-prompt work. The suite outcome is a measurement/status; retain ai-sync.py as source and do not retire the actual program or test suite."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: ai-sync-tests-15-passing"
+        ],
+        "ready": false,
+        "applied": false
+      }
+    ]
+  },
+  "live_value_lookups": [
+    {
+      "retired": "1-complete-priority-cell",
+      "source": "licensing-site-project",
+      "lookup": "licensing-site-project",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 1,
+          "dst": "",
+          "episodes": [
+            "a822b883391758ea62522db113312f3babf48a3c1ef843edc66ff5a2959aa5d0"
+          ],
+          "fact": "After full local migration, only Texas nursing meets the strict launch gate.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "licensing-site-project",
+          "valid_from": "2026-09-03T00:00:00Z",
+          "value": "1 complete priority cell"
+        }
+      ]
+    },
+    {
+      "retired": "164-fields-have-field-evidence",
+      "source": "field-evidence-backlog",
+      "lookup": "field-evidence-backlog",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 0.9,
+          "dst": "",
+          "episodes": [
+            "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+          ],
+          "fact": "164 fields currently have field evidence.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "field-evidence-backlog",
+          "valid_from": "2026-09-04T00:11:05.992398-04:00",
+          "value": "164 fields have field evidence"
+        }
+      ]
+    },
+    {
+      "retired": "193-pages-blocked-on-authority-verification",
+      "source": "field-evidence-backlog",
+      "lookup": "field-evidence-backlog",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 0.9,
+          "dst": "",
+          "episodes": [
+            "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+          ],
+          "fact": "Current summary: 193 pages blocked on authority verification.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "field-evidence-backlog",
+          "valid_from": "2026-09-04T00:11:05.992398-04:00",
+          "value": "193 pages blocked on authority verification"
+        }
+      ]
+    },
+    {
+      "retired": "21-suspect-bodies-removed",
+      "source": "trawl-ingestion-engine",
+      "lookup": "trawl-ingestion-engine",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 1,
+          "dst": "",
+          "episodes": [
+            "98402d3966acbe3609c25f1010543e2b65eba4c934f7839830780acebdf94429"
+          ],
+          "fact": "Conservative sanitizer removed 21 suspect bodies; no facts were promoted.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "trawl-ingestion-engine",
+          "valid_from": "2026-09-03T00:00:00Z",
+          "value": "21 suspect bodies removed"
+        }
+      ]
+    },
+    {
+      "retired": "50-jurisdictions-published",
+      "source": "dbafilingguide",
+      "lookup": "dbafilingguide",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 1,
+          "dst": "",
+          "episodes": [
+            "53cff505c0de0533ada0b7a8ada3d3f1b889e0c347b33a74673f95169c10db51"
+          ],
+          "fact": "Remote migration 0013 plus full seed succeeded (12,044 statements, 28,369 rows) with exact parity: 256 editorial sections, 1,251 claims, 247 current sources, zero drift.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "dbafilingguide",
+          "valid_from": "2026-09-03T00:00:00Z",
+          "value": "50-jurisdictions-published"
+        }
+      ]
+    },
+    {
+      "retired": "641-fields-have-content",
+      "source": "field-evidence-backlog",
+      "lookup": "field-evidence-backlog",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 0.9,
+          "dst": "",
+          "episodes": [
+            "37eb697c0e741aab11452cbfd5351787325ea4e0b2b1ae4d55d0edbc65417678"
+          ],
+          "fact": "641 fields currently have content.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "field-evidence-backlog",
+          "valid_from": "2026-09-04T00:11:05.992398-04:00",
+          "value": "641 fields have content"
+        }
+      ]
+    },
+    {
+      "retired": "actively-building-maine",
+      "source": "dba-filing-guide",
+      "lookup": "DBA filing guide project",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 0.95,
+          "dst": "",
+          "episodes": [
+            "b038cfe6e24b4b5bec99d368a2968b6ebee4f0cec82eb285eef611b52572adde"
+          ],
+          "fact": "DBA Filing Guide is healthy and actively building Maine after its builder resumed.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "dba-filing-guide",
+          "valid_from": "2026-09-03T21:36:08.719Z",
+          "value": "actively-building-maine"
+        }
+      ]
+    },
+    {
+      "retired": "addressing-review-findings",
+      "source": "codex-notification-template-rendering",
+      "lookup": "codex-notification-template-rendering",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 0.95,
+          "dst": "",
+          "episodes": [
+            "5367e979805f43f7185be9649372255c3a0757d4dbca8744543b0e3d1b107988"
+          ],
+          "fact": "Seq 45: resumed review round 1 in place from commit 7d966eb, addressing all six findings — subject CR/LF rejection, explicit email-HTML contract, caller-preformatted values, malformed-template code, missing channel/error coverage, and GSM form-feed accounting.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "codex-notification-template-rendering",
+          "valid_from": "2026-08-18T00:00:00Z",
+          "value": "addressing-review-findings"
+        }
+      ]
+    },
+    {
+      "retired": "ai-sync-tests-15-passing",
+      "source": "ai-syncpy",
+      "lookup": "ai-syncpy",
+      "exact": true,
+      "matches": [
+        {
+          "confidence": 1,
+          "dst": "",
+          "episodes": [
+            "886dd26c7492b0fb5c1ce41037b993046e53b0d24642e6cce86beb71ee8432f1"
+          ],
+          "fact": "Repository smoke test (skill/MCP/link checks) and the full ai-sync pytest suite — 15 tests, pytest being the project's actual test harness — all pass after the goal-prompt work.",
+          "raw_relation": "status",
+          "relation": "related_to",
+          "src": "ai-syncpy",
+          "valid_from": "2026-09-04T00:00:00Z",
+          "value": "ai-sync-tests-15-passing"
+        }
+      ]
+    }
+  ],
+  "lookup_caveat": "Existing dba-filing-guide claim routes to distinct dbafilingguide. Preserved actively-building-maine source dba-filing-guide is retrieved through its preexisting approved alias DBA filing guide project. No source or alias repair was authorized or applied.",
+  "benchmarks": {
+    "heldout-2026-09-03": {
+      "before": {
+        "total": 62,
+        "hits": 52,
+        "top_n": 20,
+        "hit_rate": 0.8387096774193549,
+        "mean_payload_bytes": 10551,
+        "max_payload_bytes": 12102,
+        "over_cap": 0,
+        "mean_latency_ms": 111.3225806451613,
+        "misses": [
+          {
+            "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+            "rank": -1,
+            "top": [
+              "halo-ssh-tunnel -[located_at]-> halo2: Second localhost SSH tunnel exposes halo2's Lemonade endpoint to Jeff's local Mac at 127.0.0.1:13306…",
+              "cron-mode -[decided]-> jeff: Jeff decided not to change cron_mode to 'approve' because the block couldn't be reproduced - flagging was from…",
+              "chatbox -[causes]-> lemonade: Chatbox couldn't fetch models because the API host omitted http://; verified working API Host http://halo:133…"
+            ]
+          },
+          {
+            "question": "What are we paying per million output tokens for the top Anthropic model?",
+            "rank": -1,
+            "top": [
+              "glm5next -[status]-> Z.AI: Z.ai pricing: $0.075 per million input tokens and $0.25 per million output tokens.",
+              "claude-opus-4-6 -[status]-> 25.00 USD: Claude Opus 4.6 output price is $25.00 per million tokens as of the 2026-06-24 cache",
+              "claude-opus-5 -[status]-> 25.00 USD: Claude Opus 5 output price is $25.00 per million tokens as of the 2026-06-24 cache"
+            ]
+          },
+          {
+            "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+            "rank": -1,
+            "top": [
+              "battery-designer -[provides]-> cloud-folder-navigation: Committed and pushed as 429b798: discoverable cloud folders with breadcrumbs and fo…",
+              "scry -[lacks]-> vue-sfc: Vue SFC is a coverage hole in existing scry TypeScript support, not a new language; ~4,500 files across 19 of 44 r…",
+              "jeff -[decided]-> nestjs: Jeff decided to build a NestJS + TypeORM + react-query practice repo to drill before the interview."
+            ]
+          },
+          {
+            "question": "What does Hermes use for inference when the primary model is down?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> halo-inference-backend: Best use of the box is a headless dedicated inference backend: add gpt-oss-120b and uncensored qw…",
+              "hermes -[uses]-> DeepSeek v4: Primary model is deepseek-v4-pro (provider deepseek, hosted)",
+              "hermes -[provides]-> halo2: The Hermes default profile runs inference on halo2 via lemonade with gpt-oss-120b-Q4_K_M."
+            ]
+          },
+          {
+            "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "flash-next -[uses]-> amd-halo: Flash-Next model runs on a single AMD Halo box (gfx1151) with full GPU offload, 32 cores, 125 GB memory.",
+              "hermes -[depends_on]-> lemonade: Hermes sends prompts and receives tokens over the LAN/Tailscale hop to the Halo — negligible versus infere…"
+            ]
+          },
+          {
+            "question": "Is the DBA filing site actually online yet?",
+            "rank": -1,
+            "top": [
+              "mississippi-dba -[produces]-> mississippi-online-portal: Earlier harvested fact: online portal for Mississippi DBA filing; provenance limit…",
+              "dbafiling-deploy -[part_of]-> hermes: dbafiling-deploy is a Hermes tmux session.",
+              "dbafilingguide -[deployed_on]-> dbafiling-deploy: Production inspections and deploys go through the scoped dbafiling-deploy session because…"
+            ]
+          },
+          {
+            "question": "What did Jeff want done about two-factor auth on the demo site?",
+            "rank": -1,
+            "top": [
+              "fortify-2fa -[status]-> Scribe: Two-factor authentication IS enabled",
+              "jeff -[related_to]-> gog: Jeff wants to add two more accounts to gog CLI",
+              "prior-owner-password-and-totp-factor -[related_to]-> owner@demo.programhealth.dev: The prior Owner password and TOTP factor are invalid aft…"
+            ]
+          },
+          {
+            "question": "What interface is Ollama bound to these days?",
+            "rank": -1,
+            "top": [
+              "ollama -[configures]-> ollama-memory-limits: Set via launchctl setenv: OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_KEEP_ALIVE…",
+              "jeff -[decided]-> ollama: Laptop Ollama must be bound to loopback only and published privately via Tailscale Serve for Jeff's own remote ac…",
+              "ollama -[excludes]-> ollama-env-plist: Ollama.app kept the old environment (5-minute keep-alive) until BOTH it and a lingering `ollama serv…"
+            ]
+          },
+          {
+            "question": "A memory write disappeared without an error - what happened?",
+            "rank": -1,
+            "top": [
+              "data-loss -[blocked_by]-> file-memories: File memories have everything, so nothing is lost despite the scry write failure.",
+              "opencode -[requires]-> enabled-providers: enabled_providers is an explicit allowlist: renaming the provider key ollama→mbp without updating…",
+              "validate -[status]-> healthy: Validation errors propagate to the job and pg-boss; invalid-PDF, missing fields, and oversized assets are nev…"
+            ]
+          },
+          {
+            "question": "What network did Jeff join so the hotspot's admin page would come up?",
+            "rank": -1,
+            "top": [
+              "jeff -[owns]-> toyota-hotspot: Jeff set up the vehicle hotspot through AT&T and supplied its SSID/password (read from the car's hotspot scr…",
+              "oui-spy -[depends_on]-> toyota-hotspot: In-car uplink: NetworkManager profile for 'TOYOTA 4Runner-2.4g_658eaa' (WPA2) provisioned offline w…",
+              "car-hotspot -[part_of]-> 4runner: SSID 'TOYOTA 4Runner-2.4g_658eaa' corresponds to the 4Runner's radio, not Jeff's phone — corrected prior …"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.115384615384615
+      },
+      "after": {
+        "total": 62,
+        "hits": 52,
+        "top_n": 20,
+        "hit_rate": 0.8387096774193549,
+        "mean_payload_bytes": 10549,
+        "max_payload_bytes": 12102,
+        "over_cap": 0,
+        "mean_latency_ms": 113.03225806451613,
+        "misses": [
+          {
+            "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+            "rank": -1,
+            "top": [
+              "halo-ssh-tunnel -[located_at]-> halo2: Second localhost SSH tunnel exposes halo2's Lemonade endpoint to Jeff's local Mac at 127.0.0.1:13306…",
+              "cron-mode -[decided]-> jeff: Jeff decided not to change cron_mode to 'approve' because the block couldn't be reproduced - flagging was from…",
+              "chatbox -[causes]-> lemonade: Chatbox couldn't fetch models because the API host omitted http://; verified working API Host http://halo:133…"
+            ]
+          },
+          {
+            "question": "What are we paying per million output tokens for the top Anthropic model?",
+            "rank": -1,
+            "top": [
+              "glm5next -[status]-> Z.AI: Z.ai pricing: $0.075 per million input tokens and $0.25 per million output tokens.",
+              "claude-opus-4-6 -[status]-> 25.00 USD: Claude Opus 4.6 output price is $25.00 per million tokens as of the 2026-06-24 cache",
+              "claude-opus-5 -[status]-> 25.00 USD: Claude Opus 5 output price is $25.00 per million tokens as of the 2026-06-24 cache"
+            ]
+          },
+          {
+            "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+            "rank": -1,
+            "top": [
+              "battery-designer -[provides]-> cloud-folder-navigation: Committed and pushed as 429b798: discoverable cloud folders with breadcrumbs and fo…",
+              "scry -[lacks]-> vue-sfc: Vue SFC is a coverage hole in existing scry TypeScript support, not a new language; ~4,500 files across 19 of 44 r…",
+              "jeff -[decided]-> nestjs: Jeff decided to build a NestJS + TypeORM + react-query practice repo to drill before the interview."
+            ]
+          },
+          {
+            "question": "What does Hermes use for inference when the primary model is down?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> halo-inference-backend: Best use of the box is a headless dedicated inference backend: add gpt-oss-120b and uncensored qw…",
+              "hermes -[uses]-> DeepSeek v4: Primary model is deepseek-v4-pro (provider deepseek, hosted)",
+              "hermes -[provides]-> halo2: The Hermes default profile runs inference on halo2 via lemonade with gpt-oss-120b-Q4_K_M."
+            ]
+          },
+          {
+            "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "flash-next -[uses]-> amd-halo: Flash-Next model runs on a single AMD Halo box (gfx1151) with full GPU offload, 32 cores, 125 GB memory.",
+              "hermes -[depends_on]-> lemonade: Hermes sends prompts and receives tokens over the LAN/Tailscale hop to the Halo — negligible versus infere…"
+            ]
+          },
+          {
+            "question": "Is the DBA filing site actually online yet?",
+            "rank": -1,
+            "top": [
+              "mississippi-dba -[produces]-> mississippi-online-portal: Earlier harvested fact: online portal for Mississippi DBA filing; provenance limit…",
+              "dbafiling-deploy -[part_of]-> hermes: dbafiling-deploy is a Hermes tmux session.",
+              "dbafilingguide -[deployed_on]-> dbafiling-deploy: Production inspections and deploys go through the scoped dbafiling-deploy session because…"
+            ]
+          },
+          {
+            "question": "What did Jeff want done about two-factor auth on the demo site?",
+            "rank": -1,
+            "top": [
+              "fortify-2fa -[status]-> Scribe: Two-factor authentication IS enabled",
+              "jeff -[related_to]-> gog: Jeff wants to add two more accounts to gog CLI",
+              "prior-owner-password-and-totp-factor -[related_to]-> owner@demo.programhealth.dev: The prior Owner password and TOTP factor are invalid aft…"
+            ]
+          },
+          {
+            "question": "What interface is Ollama bound to these days?",
+            "rank": -1,
+            "top": [
+              "ollama -[configures]-> ollama-memory-limits: Set via launchctl setenv: OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_KEEP_ALIVE…",
+              "jeff -[decided]-> ollama: Laptop Ollama must be bound to loopback only and published privately via Tailscale Serve for Jeff's own remote ac…",
+              "ollama -[excludes]-> ollama-env-plist: Ollama.app kept the old environment (5-minute keep-alive) until BOTH it and a lingering `ollama serv…"
+            ]
+          },
+          {
+            "question": "A memory write disappeared without an error - what happened?",
+            "rank": -1,
+            "top": [
+              "data-loss -[blocked_by]-> file-memories: File memories have everything, so nothing is lost despite the scry write failure.",
+              "opencode -[requires]-> enabled-providers: enabled_providers is an explicit allowlist: renaming the provider key ollama→mbp without updating…",
+              "validate -[status]-> healthy: Validation errors propagate to the job and pg-boss; invalid-PDF, missing fields, and oversized assets are nev…"
+            ]
+          },
+          {
+            "question": "What network did Jeff join so the hotspot's admin page would come up?",
+            "rank": -1,
+            "top": [
+              "jeff -[owns]-> toyota-hotspot: Jeff set up the vehicle hotspot through AT&T and supplied its SSID/password (read from the car's hotspot scr…",
+              "oui-spy -[depends_on]-> toyota-hotspot: In-car uplink: NetworkManager profile for 'TOYOTA 4Runner-2.4g_658eaa' (WPA2) provisioned offline w…",
+              "car-hotspot -[part_of]-> 4runner: SSID 'TOYOTA 4Runner-2.4g_658eaa' corresponds to the 4Runner's radio, not Jeff's phone — corrected prior …"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.096153846153846
+      },
+      "after_rerun": false
+    },
+    "heldout-b": {
+      "before": {
+        "total": 66,
+        "hits": 29,
+        "top_n": 20,
+        "hit_rate": 0.4393939393939394,
+        "mean_payload_bytes": 10634,
+        "max_payload_bytes": 13356,
+        "over_cap": 0,
+        "mean_latency_ms": 95.48484848484848,
+        "misses": [
+          {
+            "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+            "rank": -1,
+            "top": [
+              "ollama -[deployed_on]-> mac-mini: Local Ollama serving the Qwen worker model runs on the Mac mini (the 'mini-qwen' lane).",
+              "shared-scry-memory -[decided]-> mac-mini: Decision: make the always-on Mac Mini the single authoritative Scry memory plane serving Hermes, …",
+              "document-extraction-job -[owns]-> mac-mini: Four durable named tmux workers on the Mini drive the extraction and survive disconnects; the r…"
+            ]
+          },
+          {
+            "question": "What happened to the DeepSeek worker container on the second box?",
+            "rank": -1,
+            "top": [
+              "fine-tuning -[blocked_by]-> DeepSeek v4: Clustered DeepSeek uses both boxes, so fine-tuning cannot run simultaneously",
+              "halo2 -[decided]-> DeepSeek v4: DeepSeek-V4-Flash was chosen by the user as the model for the two-box cluster.",
+              "scry -[blocked_by]-> hosted-deepseek: DeepSeek extraction returns 402 with the account out of balance; both providers are empty simultaneou…"
+            ]
+          },
+          {
+            "question": "Where do the deep research agent's model calls actually go?",
+            "rank": -1,
+            "top": [
+              "deepresearch -[uses]-> deepresearch-model-api: The agent's model calls go through the OpenAI-compatible endpoint http://100.77.13.39:13306/…",
+              "deepresearch -[blocked_by]-> deepresearch-model-api: Each model call takes 2-3 minutes, so the full research workflow (planning → sub-agent…",
+              "cloud-deep-research-service -[replaced_by]-> deepresearch: deepresearch is the replacement for the paid cloud deep-research service: free, …"
+            ]
+          },
+          {
+            "question": "How often are the queue backups taken and how long do we keep them?",
+            "rank": -1,
+            "top": [
+              "entity-retirement -[uses]-> maintenance-lock: An exclusive maintenance lock is taken before backup, sync, close, and apply; race testing co…",
+              "childscribe-laravel-alias-prune -[monitors]-> store-backup-20260904T170026Z: Pre-prune store backup taken before the prune landed.",
+              "advocates -[produces]-> jobs_backup_20260612_184343: Database backup table created before queue cleanup containing 16,570 rows from stale q…"
+            ]
+          },
+          {
+            "question": "What address does the interview engine bind to so a real phone can hit it?",
+            "rank": -1,
+            "top": [
+              "scriptschildscribe-mobile-device-devsh -[depends_on]-> expo-public-engine-url: Launcher sets EXPO_PUBLIC_ENGINE_URL to http://{LAN_IP}:3100…",
+              "scry -[uses]-> address-suffix-merge-rule: A name that is another same-type entity's name plus an address (an IP, a .local/.ts.net host, a b…",
+              "interview-engine -[documents]-> post-apienginefeedback: Engine summarizes beta Q&A and POSTs to new internal endpoint with engine-auth secr…"
+            ]
+          },
+          {
+            "question": "Why was the mobile app failing to reach the engine from its environment file?",
+            "rank": -1,
+            "top": [
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731",
+              "mobile -[requires]-> expo-public-api-url: Mobile app requires EXPO_PUBLIC_API_URL environment variable set to http://childscribe.test for R…",
+              "mobile -[requires]-> scribe-engine-prod: Mobile app calls production engine directly via EXPO_PUBLIC_ENGINE_URL for realtime voice, must be…"
+            ]
+          },
+          {
+            "question": "What do we use to run unit tests in the mobile app?",
+            "rank": -1,
+            "top": [
+              "mobile -[uses]-> maestro-mobile-e2e: Maestro flows target mobile app; testID additions made to sign-in screen, home CTA, button primitive; …",
+              "adb -[uses]-> appsmobile: Jeff uses Android emulator to test mobile app via adb.",
+              "mobile -[uses]-> eas-build: Mobile app built via EAS cloud builders"
+            ]
+          },
+          {
+            "question": "What is holding up charging sales tax to customers?",
+            "rank": -1,
+            "top": [
+              "codex-reports-financial-sales -[decided]-> sales-reports-plan: Resume inside owned paths without touching execute.ts: three sales aggregate…",
+              "childscribe-laravel -[blocked_by]-> apple-org-enrollment: Long pole blocker for TestFlight and iOS store submission",
+              "financial-report-definitions -[blocked_by]-> f0e0c2073ce6: Six of seven definitions (sales by period, sales by customer, sales by service t…"
+            ]
+          },
+          {
+            "question": "What extra step does staging need after the server-rendered bundle changes?",
+            "rank": -1,
+            "top": [
+              "wren-home-cleaning -[owns]-> operator-pages: The operations app contains thirty server-rendered staff pages.",
+              "claude-code -[documents]-> codex-reviewer: cited codex-reviewer's seq 30 block on the sibling task as precedent for flagging a server-rende…",
+              "showvue -[uses]-> pageseo: SIS detail Vue component now uses server-rendered pageSeo instead of hardcoded title/meta"
+            ]
+          },
+          {
+            "question": "How is a review supposed to be requested in a fleet room?",
+            "rank": -1,
+            "top": [
+              "allow-room-task-metadata-listing -[implements]-> fleet-review: Rationale: listing the room's task metadata is a read-only, narrowly scoped …",
+              "room-task-board-read -[implements]-> fleet-task-review: The read-only room task board listing decision was made reasonably to support the e…",
+              "room-history-lookup -[implements]-> requested-review: The lookup was issued to support the review the user explicitly requested."
+            ]
+          },
+          {
+            "question": "Which git operations are workers not allowed to run?",
+            "rank": -1,
+            "top": [
+              "operations-north-star -[related_to]-> ratelimit: Rate-limit sleep has never fired; many paths (budget exhaustion, crash-resume, malformed e…",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "What was wrong with the dunning run endpoint when it got bad input?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> bug-f4-cascade-delete: F4's shape is right; only its two failure paths are wrong",
+              "text-matching -[blocked_by]-> smart quotes, truncation, wrong chapter attribution: micro-fixer text searches may fail due to smart quotes, …",
+              "chapter-plan-vnext -[decided]-> terminal-failure-artifacts: Terminal writer errors now carry all raw attempts and call metadata; the runner…"
+            ]
+          },
+          {
+            "question": "Is there any migration number range nobody has claimed yet?",
+            "rank": -1,
+            "top": [
+              "codex-migration-block-reservations -[uses]-> port-range-32156: This worktree owns the port range starting at 32156 (also in .setpoint-ports…",
+              "disposal-links-block -[assigned_to]-> claude-weight-ticket-task-and-stop-join: Added a README registry row claiming migration block 0200–02…",
+              "claude-weight-ticket-task-and-stop-join -[implements]-> weight-tickets: Deliberately deviated from its brief by shipping a second migration…"
+            ]
+          },
+          {
+            "question": "Is the messaging section of the office app actually built?",
+            "rank": -1,
+            "top": [
+              "officeapp -[contains]-> 310: There are 310 worktrees, using 911MB, though only ~9 should be live.",
+              "wave -[implements]-> officeapp: Wave 14 closed 12 epics, all 7 members converged with reviewers in-loop, repair backlog empty for first time",
+              "officeapp -[contains]-> ipv6-only: The dev server binds IPv6 only ([::1]:5173), causing IPv4 curl checks to fail."
+            ]
+          },
+          {
+            "question": "Why can nobody hit the customer portal endpoints?",
+            "rank": -1,
+            "top": [
+              "0360-portal-identities-sql -[replaced_by]-> kimi-customer-portal: Renamed the recovered migration 0360_customer_portal.sql to 0360_portal_i…",
+              "api -[implements]-> portal-customer-scoping: Scoped route matrix is green: all seven portal endpoints return 404 for an existing different …",
+              "codex-customer-portal -[decided]-> customer-portal-router-contract: codex-customer-portal proposed a createPortalRoutes() router boundary a…"
+            ]
+          },
+          {
+            "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+            "rank": -1,
+            "top": [
+              "sweep-agent -[depends_on]-> scry: The sweep uses the scry daemon binary which was rebuilt after the code changes.",
+              "scry-daemon-restart -[causes]-> scry: The restart targeted the scry daemon and interrupted in-flight socket clients during a sweep.",
+              "scry-daemon-takeover-race -[causes]-> scry-daemon-split-brain: Likely root cause (inferred from logs and source, not proven live): the non-…"
+            ]
+          },
+          {
+            "question": "What caused duplicate dev servers to be launched?",
+            "rank": -1,
+            "top": [
+              "cloudflare-vite-dev-server -[lacks]-> marketing-redirect-rule: The Cloudflare Vite dev server does not apply `_redirects`, so the lead form…",
+              "protocol-mismatch -[causes]-> econnreset: Potential HTTPS/TLS request to HTTP-only Laravel dev server causes connection reset",
+              "cad-mcp-server -[depends_on]-> cad-core-seam: The v2 MCP server is a second transport over the same core/, scheduled after the web site lau…"
+            ]
+          },
+          {
+            "question": "What is risky about the way the sync loop touches the Claude config file?",
+            "rank": -1,
+            "top": [
+              "ai-syncpy -[implements]-> claude-code: ai-sync.py currently syncs Claude Code skills/config as one of two hardcoded tools",
+              "ai-syncpy -[calls]-> mcp-servers-config: Propagates the registry so Claude, Codex and Kimi/OpenCode all pick up the server.",
+              "claude-registry-backlog-sync -[owns]-> dbmigrationsreadmemd: Named owner of db/migrations/README.md for this fleet wave; no other task may …"
+            ]
+          },
+          {
+            "question": "Why does the orientation output list things that aren't projects?",
+            "rank": -1,
+            "top": [
+              "pinned-cad-fixtures -[decided]-> 3d-conversion-site: Real CAD files arrive via a pinned dependency and are used for validation but not comm…",
+              "git-facade -[decided]-> setpoint-fleet: A deferred git façade would centralize setpoint's ~46 git invocations and classify git output into …",
+              "outputsentity-id -[decided]-> Sub-project 2: Engine output + graph fan-out: New outputs.entity_id column added for per-child output associa…"
+            ]
+          },
+          {
+            "question": "How do I know whether an agent actually got launched into its pane?",
+            "rank": -1,
+            "top": [
+              "remote-host-support -[blocked_by]-> jeff: Assistant asked Jeff whether remote-host support is actually wanted or whether the whole SSH bran…",
+              "hermes -[depends_on]-> agent-blank-pane-bug: Agent blank pane and nvim hang bugs were blocking for Hermes Phase 5+ where agents and TUI too…",
+              "agent-launch-service -[depends_on]-> session-manager: Public session launch delegates into AgentLaunchService, which takes the existing mut…"
+            ]
+          },
+          {
+            "question": "Which newsletter layout do customers get unless we change something?",
+            "rank": -1,
+            "top": [
+              "newsletter-layouttestts -[tests]-> newsletter-layout: new describe 'layoutNewsletterHtml — inset floats' adds 5 tests for float classes, al…",
+              "newsletter-layout -[blocked_by]-> single-column: The newsletter would stay unwrapped unless redesigned separately; the single-column no-col…",
+              "monthly-chapter-improvement -[blocked_by]-> monthly-chapter-improvement-lock: Monthly chapter improvement work must not change newsletter p…"
+            ]
+          },
+          {
+            "question": "Why does the voice interview traffic take a detour instead of going direct?",
+            "rank": -1,
+            "top": [
+              "jeff -[fixes]-> realtime-interview-client: Transport-driven phase boundaries implemented: processing starts on input_audio_buffer.speech_st…",
+              "realtime-interview-orchestrator -[fixes]-> childscribe-mobile: Phase boundaries now driven by transport events: user turn handoff on input_…",
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…"
+            ]
+          },
+          {
+            "question": "What fields is the sign-up form allowed to have?",
+            "rank": -1,
+            "top": [
+              "newsletter-forms -[uses]-> contact-honeypot: Both desktop and mobile newsletter signup forms now include honeypot field for bot detection.",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "How does the demo box get new code?",
+            "rank": -1,
+            "top": [
+              "local-auth-demo-any-mfa-code -[implements]-> program-health-demo-box: LOCAL_AUTH_DEMO_ANY_MFA_CODE=true, so any six-digit numeric MFA code …",
+              "demo-box-auth -[status]-> pending: A1: confirm demo box does not run dev-auth with default secret; remains outstanding.",
+              "hetzner-demo -[provides]-> box-migration: Demo box now serves main branch exclusively; deployed commit matches main head, invariant holds"
+            ]
+          },
+          {
+            "question": "What does the SEO data vendor charge per request?",
+            "rank": -1,
+            "top": [
+              "david-character -[related_to]-> dataforseo: Per scry memory orientation, David is responsible for resolving DataForSEO's -$0.00062 balance …",
+              "seo-audit -[uses]-> dataforseo: The audit used DataForSEO as a data source.",
+              "dataforseo -[related_to]-> dataforseo: Account balance is -$0.00062 and needs a top-up."
+            ]
+          },
+          {
+            "question": "Why was hunting for search terms with no existing player a dead end?",
+            "rank": -1,
+            "top": [
+              "conversionlinttest -[decided]-> no-dead-end-pages: Test asserts every page under pages/marketing/ links onward to a conversion path (via Mk…",
+              "web-app-shell -[blocked_by]-> sign-in-dead-end: Blocking finding 1: /sign-in is a dead end for an authenticated operator (no interactive el…",
+              "conversionlinttest -[decided]-> childscribe-marketing: Every public marketing page must have no dead onward links and no dead-end pages."
+            ]
+          },
+          {
+            "question": "How are the different kinds of events categorized in that WordPress site?",
+            "rank": -1,
+            "top": [
+              "wordpressadapter -[deployed_on]-> wordpress: WordPressAdapter targets WordPress REST API endpoint {site}/wp-json/wp/v2/posts with no plugin…",
+              "publishingconnection -[uses]-> wordpress: PublishingConnection stores application password credentials for WordPress Basic auth against sit…",
+              "wordpress -[blocked_by]-> yootheme: WordPress and YOOtheme auto-wrapped the wistia-player custom element in <p> tags, breaking the embed st…"
+            ]
+          },
+          {
+            "question": "Which model came out on top in the writing comparison?",
+            "rank": -1,
+            "top": [
+              "ch1-3-generation-then-editing-flow-comparison -[decided]-> next phase: Decision made to apply winning model to ch1-3 generation followed by…",
+              "cellsaviors -[related_to]-> cell-comparison-pages: Cell comparison pages (/cell-database/compare/X-vs-Y) proposed as top-priority follow-up…",
+              "jeff -[related_to]-> chainsh: Queued chain.sh: waits for run A exit, swaps models on Halo, runs run B until 11:00, writes AB-COMPARISON.md."
+            ]
+          },
+          {
+            "question": "What makes that page builder awkward for agents to edit?",
+            "rank": -1,
+            "top": [
+              "item6-audit -[implements]-> builder: Sent the builder the complete affected-file list (all 40 published guides / 215 editorial sections), h…",
+              "quick-wins-elementor-edits -[status]-> needs-work: H1 on /services/, homepage typo 'MFA'→'NFA', NAP in hero/footer, broken black block requ…",
+              "goal-1a-builder -[modifies]-> goal-1a-control-plane: The builder landed concurrent implementation changes in the shared jbuild-control-plan…"
+            ]
+          },
+          {
+            "question": "What data survives from one month's report to the next?",
+            "rank": -1,
+            "top": [
+              "monthly-clamp-short-month -[decided]-> task d2bc8e4dea22: Monthly clamps the 31st onto a short month's last day instead of skipping the mon…",
+              "chapter-departments -[uses]-> saidthismonth: saidThisMonth is model-selected from month's quote moments, enforced verbatim in postValidate …",
+              "journalentrydeletetest -[decided]-> chapter-stale-marking: Test verifies deleting entry marks that month's existing chapter stale if one ex…"
+            ]
+          },
+          {
+            "question": "How do we treat temporary errors coming back from Meta when publishing?",
+            "rank": -1,
+            "top": [
+              "metapublishexception -[documents]-> metapublisher: Any 401 or 403 is treated as revoked token and destination is immediately disabled; Meta…",
+              "metapublishexception -[fixes]-> Task 3: Meta Provider Abstraction and Publish: Meta error code 190 (expired token) now classified as auth f…",
+              "metapublishexception -[documents]-> deterministic-4xx-errors: Typed non-auth/non-unknown Meta 4xx errors are classified as failed (retryabl…"
+            ]
+          },
+          {
+            "question": "What is the minimum length the automated writing gate enforces?",
+            "rank": -1,
+            "top": [
+              "length-band-floor -[fixes]-> 100 (flat minimum with ceiling-buffer): Guard now enforces max(100, 1.5×source, ceiling−20) to prevent unsatis…",
+              "design-system-component-set -[decided]-> thumb-safe-hit-targets: product-spec.md §6 constraint enforced by tests: driver-facing hit targets…",
+              "d1-placeholder-id -[enforces]-> d1-id-length-check: disposal-trips.test.ts failed with D1_ERROR: CHECK constraint failed: length(id) = 26: …"
+            ]
+          },
+          {
+            "question": "What subject does Jeff say he cannot fake his way through?",
+            "rank": -1,
+            "top": [
+              "jeff -[documents]-> local-model-for-opencode: Jeff wants a model running on his MacBook Pro that he can use with opencode to work on longer…",
+              "jeff -[uses]-> cockpit: Jeff navigates sessions via Cockpit + Ghostty and prefers them over Helm for the way he works",
+              "jeff -[uses]-> iphone: Jeff will prompt a real session from his iPhone through the paired dogfood lane."
+            ]
+          },
+          {
+            "question": "Where do the Google OAuth tokens live for the assistant box?",
+            "rank": -1,
+            "top": [
+              "google-oauth-app-188849962955 -[status]-> Testing mode → Production: OAuth app was in Testing mode causing 7-day refresh token expiration. …",
+              "google-oauth -[related_to]-> google-oauth: google_accounts has zero rows on prod; needs one account authorized for Search Console, GA4, and…",
+              "heroic-assistant -[deployed_on]-> the-live-box: Deployed the platform to the LIVE box, which contacted the prod API."
+            ]
+          },
+          {
+            "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+            "rank": -1,
+            "top": [
+              "jeff -[reviews]-> multi-agent-fleet-design: The assistant asked Jeff to review the spec before writing the implementation plan.",
+              "setpoint-notification-template-rendering -[blocked_by]-> claude-reviewer: Task 05a5662f83ef awaits claude-reviewer's review before it can p…",
+              "codex-notification-template-rendering -[assigned_to]-> task-05a5662f83ef: codex-notification-template-rendering claimed task 05a5662f83ef i…"
+            ]
+          },
+          {
+            "question": "Which model is powering the visual design session and how fast is it going?",
+            "rank": -1,
+            "top": [
+              "design-visual-polish -[assigned_to]-> statelicenselookup-design: Redesign work is isolated on branch design/visual-polish; nothing merges t…",
+              "statelicenselookup-design -[related_to]-> design-visual-polish: All design work happens on branch design/visual-polish and is committed the…",
+              "slookup-design -[runs_on]-> statelicenselookup-design: Session launched from the isolated design/visual-polish worktree at /Users/jclaw/wor…"
+            ]
+          },
+          {
+            "question": "What URL do I open to see the battery pack layout tool locally?",
+            "rank": -1,
+            "top": [
+              "battery-pack-designer -[related_to]-> battery-pack-calculator: Tool ranks position 6.2 for 'battery pack calculator' (high-intent query); c…",
+              "battery-pack-calculator -[related_to]-> cell-saviors-battery-designer: /battery-pack-designer remains the classic tool while the upgraded i…",
+              "battery-pack-designer -[part_of]-> cellsaviors: The classic battery pack designer tool remains at the /battery-pack-designer route in cells…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.103448275862069
+      },
+      "after": {
+        "total": 66,
+        "hits": 29,
+        "top_n": 20,
+        "hit_rate": 0.4393939393939394,
+        "mean_payload_bytes": 10634,
+        "max_payload_bytes": 13356,
+        "over_cap": 0,
+        "mean_latency_ms": 77.1969696969697,
+        "misses": [
+          {
+            "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+            "rank": -1,
+            "top": [
+              "ollama -[deployed_on]-> mac-mini: Local Ollama serving the Qwen worker model runs on the Mac mini (the 'mini-qwen' lane).",
+              "shared-scry-memory -[decided]-> mac-mini: Decision: make the always-on Mac Mini the single authoritative Scry memory plane serving Hermes, …",
+              "document-extraction-job -[owns]-> mac-mini: Four durable named tmux workers on the Mini drive the extraction and survive disconnects; the r…"
+            ]
+          },
+          {
+            "question": "What happened to the DeepSeek worker container on the second box?",
+            "rank": -1,
+            "top": [
+              "fine-tuning -[blocked_by]-> DeepSeek v4: Clustered DeepSeek uses both boxes, so fine-tuning cannot run simultaneously",
+              "halo2 -[decided]-> DeepSeek v4: DeepSeek-V4-Flash was chosen by the user as the model for the two-box cluster.",
+              "scry -[blocked_by]-> hosted-deepseek: DeepSeek extraction returns 402 with the account out of balance; both providers are empty simultaneou…"
+            ]
+          },
+          {
+            "question": "Where do the deep research agent's model calls actually go?",
+            "rank": -1,
+            "top": [
+              "deepresearch -[uses]-> deepresearch-model-api: The agent's model calls go through the OpenAI-compatible endpoint http://100.77.13.39:13306/…",
+              "deepresearch -[blocked_by]-> deepresearch-model-api: Each model call takes 2-3 minutes, so the full research workflow (planning → sub-agent…",
+              "cloud-deep-research-service -[replaced_by]-> deepresearch: deepresearch is the replacement for the paid cloud deep-research service: free, …"
+            ]
+          },
+          {
+            "question": "How often are the queue backups taken and how long do we keep them?",
+            "rank": -1,
+            "top": [
+              "entity-retirement -[uses]-> maintenance-lock: An exclusive maintenance lock is taken before backup, sync, close, and apply; race testing co…",
+              "childscribe-laravel-alias-prune -[monitors]-> store-backup-20260904T170026Z: Pre-prune store backup taken before the prune landed.",
+              "advocates -[produces]-> jobs_backup_20260612_184343: Database backup table created before queue cleanup containing 16,570 rows from stale q…"
+            ]
+          },
+          {
+            "question": "What address does the interview engine bind to so a real phone can hit it?",
+            "rank": -1,
+            "top": [
+              "scriptschildscribe-mobile-device-devsh -[depends_on]-> expo-public-engine-url: Launcher sets EXPO_PUBLIC_ENGINE_URL to http://{LAN_IP}:3100…",
+              "scry -[uses]-> address-suffix-merge-rule: A name that is another same-type entity's name plus an address (an IP, a .local/.ts.net host, a b…",
+              "interview-engine -[documents]-> post-apienginefeedback: Engine summarizes beta Q&A and POSTs to new internal endpoint with engine-auth secr…"
+            ]
+          },
+          {
+            "question": "Why was the mobile app failing to reach the engine from its environment file?",
+            "rank": -1,
+            "top": [
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731",
+              "mobile -[requires]-> expo-public-api-url: Mobile app requires EXPO_PUBLIC_API_URL environment variable set to http://childscribe.test for R…",
+              "mobile -[requires]-> scribe-engine-prod: Mobile app calls production engine directly via EXPO_PUBLIC_ENGINE_URL for realtime voice, must be…"
+            ]
+          },
+          {
+            "question": "What do we use to run unit tests in the mobile app?",
+            "rank": -1,
+            "top": [
+              "mobile -[uses]-> maestro-mobile-e2e: Maestro flows target mobile app; testID additions made to sign-in screen, home CTA, button primitive; …",
+              "adb -[uses]-> appsmobile: Jeff uses Android emulator to test mobile app via adb.",
+              "mobile -[uses]-> eas-build: Mobile app built via EAS cloud builders"
+            ]
+          },
+          {
+            "question": "What is holding up charging sales tax to customers?",
+            "rank": -1,
+            "top": [
+              "codex-reports-financial-sales -[decided]-> sales-reports-plan: Resume inside owned paths without touching execute.ts: three sales aggregate…",
+              "childscribe-laravel -[blocked_by]-> apple-org-enrollment: Long pole blocker for TestFlight and iOS store submission",
+              "financial-report-definitions -[blocked_by]-> f0e0c2073ce6: Six of seven definitions (sales by period, sales by customer, sales by service t…"
+            ]
+          },
+          {
+            "question": "What extra step does staging need after the server-rendered bundle changes?",
+            "rank": -1,
+            "top": [
+              "wren-home-cleaning -[owns]-> operator-pages: The operations app contains thirty server-rendered staff pages.",
+              "claude-code -[documents]-> codex-reviewer: cited codex-reviewer's seq 30 block on the sibling task as precedent for flagging a server-rende…",
+              "showvue -[uses]-> pageseo: SIS detail Vue component now uses server-rendered pageSeo instead of hardcoded title/meta"
+            ]
+          },
+          {
+            "question": "How is a review supposed to be requested in a fleet room?",
+            "rank": -1,
+            "top": [
+              "allow-room-task-metadata-listing -[implements]-> fleet-review: Rationale: listing the room's task metadata is a read-only, narrowly scoped …",
+              "room-task-board-read -[implements]-> fleet-task-review: The read-only room task board listing decision was made reasonably to support the e…",
+              "room-history-lookup -[implements]-> requested-review: The lookup was issued to support the review the user explicitly requested."
+            ]
+          },
+          {
+            "question": "Which git operations are workers not allowed to run?",
+            "rank": -1,
+            "top": [
+              "operations-north-star -[related_to]-> ratelimit: Rate-limit sleep has never fired; many paths (budget exhaustion, crash-resume, malformed e…",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "What was wrong with the dunning run endpoint when it got bad input?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> bug-f4-cascade-delete: F4's shape is right; only its two failure paths are wrong",
+              "text-matching -[blocked_by]-> smart quotes, truncation, wrong chapter attribution: micro-fixer text searches may fail due to smart quotes, …",
+              "chapter-plan-vnext -[decided]-> terminal-failure-artifacts: Terminal writer errors now carry all raw attempts and call metadata; the runner…"
+            ]
+          },
+          {
+            "question": "Is there any migration number range nobody has claimed yet?",
+            "rank": -1,
+            "top": [
+              "codex-migration-block-reservations -[uses]-> port-range-32156: This worktree owns the port range starting at 32156 (also in .setpoint-ports…",
+              "disposal-links-block -[assigned_to]-> claude-weight-ticket-task-and-stop-join: Added a README registry row claiming migration block 0200–02…",
+              "claude-weight-ticket-task-and-stop-join -[implements]-> weight-tickets: Deliberately deviated from its brief by shipping a second migration…"
+            ]
+          },
+          {
+            "question": "Is the messaging section of the office app actually built?",
+            "rank": -1,
+            "top": [
+              "officeapp -[contains]-> 310: There are 310 worktrees, using 911MB, though only ~9 should be live.",
+              "wave -[implements]-> officeapp: Wave 14 closed 12 epics, all 7 members converged with reviewers in-loop, repair backlog empty for first time",
+              "officeapp -[contains]-> ipv6-only: The dev server binds IPv6 only ([::1]:5173), causing IPv4 curl checks to fail."
+            ]
+          },
+          {
+            "question": "Why can nobody hit the customer portal endpoints?",
+            "rank": -1,
+            "top": [
+              "0360-portal-identities-sql -[replaced_by]-> kimi-customer-portal: Renamed the recovered migration 0360_customer_portal.sql to 0360_portal_i…",
+              "api -[implements]-> portal-customer-scoping: Scoped route matrix is green: all seven portal endpoints return 404 for an existing different …",
+              "codex-customer-portal -[decided]-> customer-portal-router-contract: codex-customer-portal proposed a createPortalRoutes() router boundary a…"
+            ]
+          },
+          {
+            "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+            "rank": -1,
+            "top": [
+              "sweep-agent -[depends_on]-> scry: The sweep uses the scry daemon binary which was rebuilt after the code changes.",
+              "scry-daemon-restart -[causes]-> scry: The restart targeted the scry daemon and interrupted in-flight socket clients during a sweep.",
+              "scry-daemon-takeover-race -[causes]-> scry-daemon-split-brain: Likely root cause (inferred from logs and source, not proven live): the non-…"
+            ]
+          },
+          {
+            "question": "What caused duplicate dev servers to be launched?",
+            "rank": -1,
+            "top": [
+              "cloudflare-vite-dev-server -[lacks]-> marketing-redirect-rule: The Cloudflare Vite dev server does not apply `_redirects`, so the lead form…",
+              "protocol-mismatch -[causes]-> econnreset: Potential HTTPS/TLS request to HTTP-only Laravel dev server causes connection reset",
+              "cad-mcp-server -[depends_on]-> cad-core-seam: The v2 MCP server is a second transport over the same core/, scheduled after the web site lau…"
+            ]
+          },
+          {
+            "question": "What is risky about the way the sync loop touches the Claude config file?",
+            "rank": -1,
+            "top": [
+              "ai-syncpy -[implements]-> claude-code: ai-sync.py currently syncs Claude Code skills/config as one of two hardcoded tools",
+              "ai-syncpy -[calls]-> mcp-servers-config: Propagates the registry so Claude, Codex and Kimi/OpenCode all pick up the server.",
+              "claude-registry-backlog-sync -[owns]-> dbmigrationsreadmemd: Named owner of db/migrations/README.md for this fleet wave; no other task may …"
+            ]
+          },
+          {
+            "question": "Why does the orientation output list things that aren't projects?",
+            "rank": -1,
+            "top": [
+              "pinned-cad-fixtures -[decided]-> 3d-conversion-site: Real CAD files arrive via a pinned dependency and are used for validation but not comm…",
+              "git-facade -[decided]-> setpoint-fleet: A deferred git façade would centralize setpoint's ~46 git invocations and classify git output into …",
+              "outputsentity-id -[decided]-> Sub-project 2: Engine output + graph fan-out: New outputs.entity_id column added for per-child output associa…"
+            ]
+          },
+          {
+            "question": "How do I know whether an agent actually got launched into its pane?",
+            "rank": -1,
+            "top": [
+              "remote-host-support -[blocked_by]-> jeff: Assistant asked Jeff whether remote-host support is actually wanted or whether the whole SSH bran…",
+              "hermes -[depends_on]-> agent-blank-pane-bug: Agent blank pane and nvim hang bugs were blocking for Hermes Phase 5+ where agents and TUI too…",
+              "agent-launch-service -[depends_on]-> session-manager: Public session launch delegates into AgentLaunchService, which takes the existing mut…"
+            ]
+          },
+          {
+            "question": "Which newsletter layout do customers get unless we change something?",
+            "rank": -1,
+            "top": [
+              "newsletter-layouttestts -[tests]-> newsletter-layout: new describe 'layoutNewsletterHtml — inset floats' adds 5 tests for float classes, al…",
+              "newsletter-layout -[blocked_by]-> single-column: The newsletter would stay unwrapped unless redesigned separately; the single-column no-col…",
+              "monthly-chapter-improvement -[blocked_by]-> monthly-chapter-improvement-lock: Monthly chapter improvement work must not change newsletter p…"
+            ]
+          },
+          {
+            "question": "Why does the voice interview traffic take a detour instead of going direct?",
+            "rank": -1,
+            "top": [
+              "jeff -[fixes]-> realtime-interview-client: Transport-driven phase boundaries implemented: processing starts on input_audio_buffer.speech_st…",
+              "realtime-interview-orchestrator -[fixes]-> childscribe-mobile: Phase boundaries now driven by transport events: user turn handoff on input_…",
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…"
+            ]
+          },
+          {
+            "question": "What fields is the sign-up form allowed to have?",
+            "rank": -1,
+            "top": [
+              "newsletter-forms -[uses]-> contact-honeypot: Both desktop and mobile newsletter signup forms now include honeypot field for bot detection.",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "How does the demo box get new code?",
+            "rank": -1,
+            "top": [
+              "local-auth-demo-any-mfa-code -[implements]-> program-health-demo-box: LOCAL_AUTH_DEMO_ANY_MFA_CODE=true, so any six-digit numeric MFA code …",
+              "demo-box-auth -[status]-> pending: A1: confirm demo box does not run dev-auth with default secret; remains outstanding.",
+              "hetzner-demo -[provides]-> box-migration: Demo box now serves main branch exclusively; deployed commit matches main head, invariant holds"
+            ]
+          },
+          {
+            "question": "What does the SEO data vendor charge per request?",
+            "rank": -1,
+            "top": [
+              "david-character -[related_to]-> dataforseo: Per scry memory orientation, David is responsible for resolving DataForSEO's -$0.00062 balance …",
+              "seo-audit -[uses]-> dataforseo: The audit used DataForSEO as a data source.",
+              "dataforseo -[related_to]-> dataforseo: Account balance is -$0.00062 and needs a top-up."
+            ]
+          },
+          {
+            "question": "Why was hunting for search terms with no existing player a dead end?",
+            "rank": -1,
+            "top": [
+              "conversionlinttest -[decided]-> no-dead-end-pages: Test asserts every page under pages/marketing/ links onward to a conversion path (via Mk…",
+              "web-app-shell -[blocked_by]-> sign-in-dead-end: Blocking finding 1: /sign-in is a dead end for an authenticated operator (no interactive el…",
+              "conversionlinttest -[decided]-> childscribe-marketing: Every public marketing page must have no dead onward links and no dead-end pages."
+            ]
+          },
+          {
+            "question": "How are the different kinds of events categorized in that WordPress site?",
+            "rank": -1,
+            "top": [
+              "wordpressadapter -[deployed_on]-> wordpress: WordPressAdapter targets WordPress REST API endpoint {site}/wp-json/wp/v2/posts with no plugin…",
+              "publishingconnection -[uses]-> wordpress: PublishingConnection stores application password credentials for WordPress Basic auth against sit…",
+              "wordpress -[blocked_by]-> yootheme: WordPress and YOOtheme auto-wrapped the wistia-player custom element in <p> tags, breaking the embed st…"
+            ]
+          },
+          {
+            "question": "Which model came out on top in the writing comparison?",
+            "rank": -1,
+            "top": [
+              "ch1-3-generation-then-editing-flow-comparison -[decided]-> next phase: Decision made to apply winning model to ch1-3 generation followed by…",
+              "cellsaviors -[related_to]-> cell-comparison-pages: Cell comparison pages (/cell-database/compare/X-vs-Y) proposed as top-priority follow-up…",
+              "jeff -[related_to]-> chainsh: Queued chain.sh: waits for run A exit, swaps models on Halo, runs run B until 11:00, writes AB-COMPARISON.md."
+            ]
+          },
+          {
+            "question": "What makes that page builder awkward for agents to edit?",
+            "rank": -1,
+            "top": [
+              "item6-audit -[implements]-> builder: Sent the builder the complete affected-file list (all 40 published guides / 215 editorial sections), h…",
+              "quick-wins-elementor-edits -[status]-> needs-work: H1 on /services/, homepage typo 'MFA'→'NFA', NAP in hero/footer, broken black block requ…",
+              "goal-1a-builder -[modifies]-> goal-1a-control-plane: The builder landed concurrent implementation changes in the shared jbuild-control-plan…"
+            ]
+          },
+          {
+            "question": "What data survives from one month's report to the next?",
+            "rank": -1,
+            "top": [
+              "monthly-clamp-short-month -[decided]-> task d2bc8e4dea22: Monthly clamps the 31st onto a short month's last day instead of skipping the mon…",
+              "chapter-departments -[uses]-> saidthismonth: saidThisMonth is model-selected from month's quote moments, enforced verbatim in postValidate …",
+              "journalentrydeletetest -[decided]-> chapter-stale-marking: Test verifies deleting entry marks that month's existing chapter stale if one ex…"
+            ]
+          },
+          {
+            "question": "How do we treat temporary errors coming back from Meta when publishing?",
+            "rank": -1,
+            "top": [
+              "metapublishexception -[documents]-> metapublisher: Any 401 or 403 is treated as revoked token and destination is immediately disabled; Meta…",
+              "metapublishexception -[fixes]-> Task 3: Meta Provider Abstraction and Publish: Meta error code 190 (expired token) now classified as auth f…",
+              "metapublishexception -[documents]-> deterministic-4xx-errors: Typed non-auth/non-unknown Meta 4xx errors are classified as failed (retryabl…"
+            ]
+          },
+          {
+            "question": "What is the minimum length the automated writing gate enforces?",
+            "rank": -1,
+            "top": [
+              "length-band-floor -[fixes]-> 100 (flat minimum with ceiling-buffer): Guard now enforces max(100, 1.5×source, ceiling−20) to prevent unsatis…",
+              "design-system-component-set -[decided]-> thumb-safe-hit-targets: product-spec.md §6 constraint enforced by tests: driver-facing hit targets…",
+              "d1-placeholder-id -[enforces]-> d1-id-length-check: disposal-trips.test.ts failed with D1_ERROR: CHECK constraint failed: length(id) = 26: …"
+            ]
+          },
+          {
+            "question": "What subject does Jeff say he cannot fake his way through?",
+            "rank": -1,
+            "top": [
+              "jeff -[documents]-> local-model-for-opencode: Jeff wants a model running on his MacBook Pro that he can use with opencode to work on longer…",
+              "jeff -[uses]-> cockpit: Jeff navigates sessions via Cockpit + Ghostty and prefers them over Helm for the way he works",
+              "jeff -[uses]-> iphone: Jeff will prompt a real session from his iPhone through the paired dogfood lane."
+            ]
+          },
+          {
+            "question": "Where do the Google OAuth tokens live for the assistant box?",
+            "rank": -1,
+            "top": [
+              "google-oauth-app-188849962955 -[status]-> Testing mode → Production: OAuth app was in Testing mode causing 7-day refresh token expiration. …",
+              "google-oauth -[related_to]-> google-oauth: google_accounts has zero rows on prod; needs one account authorized for Search Console, GA4, and…",
+              "heroic-assistant -[deployed_on]-> the-live-box: Deployed the platform to the LIVE box, which contacted the prod API."
+            ]
+          },
+          {
+            "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+            "rank": -1,
+            "top": [
+              "jeff -[reviews]-> multi-agent-fleet-design: The assistant asked Jeff to review the spec before writing the implementation plan.",
+              "setpoint-notification-template-rendering -[blocked_by]-> claude-reviewer: Task 05a5662f83ef awaits claude-reviewer's review before it can p…",
+              "codex-notification-template-rendering -[assigned_to]-> task-05a5662f83ef: codex-notification-template-rendering claimed task 05a5662f83ef i…"
+            ]
+          },
+          {
+            "question": "Which model is powering the visual design session and how fast is it going?",
+            "rank": -1,
+            "top": [
+              "design-visual-polish -[assigned_to]-> statelicenselookup-design: Redesign work is isolated on branch design/visual-polish; nothing merges t…",
+              "statelicenselookup-design -[related_to]-> design-visual-polish: All design work happens on branch design/visual-polish and is committed the…",
+              "slookup-design -[runs_on]-> statelicenselookup-design: Session launched from the isolated design/visual-polish worktree at /Users/jclaw/wor…"
+            ]
+          },
+          {
+            "question": "What URL do I open to see the battery pack layout tool locally?",
+            "rank": -1,
+            "top": [
+              "battery-pack-designer -[related_to]-> battery-pack-calculator: Tool ranks position 6.2 for 'battery pack calculator' (high-intent query); c…",
+              "battery-pack-calculator -[related_to]-> cell-saviors-battery-designer: /battery-pack-designer remains the classic tool while the upgraded i…",
+              "battery-pack-designer -[part_of]-> cellsaviors: The classic battery pack designer tool remains at the /battery-pack-designer route in cells…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.103448275862069
+      },
+      "after_rerun": true
+    },
+    "probes": {
+      "before": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9736,
+        "max_payload_bytes": 10098,
+        "over_cap": 0,
+        "mean_latency_ms": 66.14285714285714,
+        "mean_answer_rank": 1
+      },
+      "after": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9736,
+        "max_payload_bytes": 10098,
+        "over_cap": 0,
+        "mean_latency_ms": 49.857142857142854,
+        "mean_answer_rank": 1
+      },
+      "after_rerun": false
+    },
+    "tuning-strict": {
+      "before": {
+        "total": 50,
+        "hits": 45,
+        "top_n": 20,
+        "hit_rate": 0.9,
+        "mean_payload_bytes": 10000,
+        "max_payload_bytes": 11534,
+        "over_cap": 0,
+        "mean_latency_ms": 98.66,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          },
+          {
+            "question": "Do we retain any recording of the child's voice from a live interview?",
+            "rank": -1,
+            "top": [
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…",
+              "chapter-plan-vnext -[enforces]-> child-speech-guard: Title/dek rendering enforces a deterministic guard that rejects any decorative reuse o…",
+              "recordedchildspeech -[part_of]-> chapter-plan-vnext: recordedChildSpeech carries the exact recorded child-speech span from a source entry; …"
+            ]
+          },
+          {
+            "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+            "rank": -1,
+            "top": [
+              "git-hooks -[lacks]-> commit-msg-hook: No commit-msg hook exists yet in the hooks wiring.",
+              "cockpit-remote-hosts -[blocked_by]-> hook-status-spec: Remote agent status needs the reverse tunnel from the sheet's §2.6, which is downstr…",
+              "codex -[requires]-> hook-driven-status-design: Codex hooks land untrusted and don't fire until trust is pinned to a config hash — writing t…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.533333333333333
+      },
+      "after": {
+        "total": 50,
+        "hits": 45,
+        "top_n": 20,
+        "hit_rate": 0.9,
+        "mean_payload_bytes": 10000,
+        "max_payload_bytes": 11534,
+        "over_cap": 0,
+        "mean_latency_ms": 112.28,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          },
+          {
+            "question": "Do we retain any recording of the child's voice from a live interview?",
+            "rank": -1,
+            "top": [
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…",
+              "chapter-plan-vnext -[enforces]-> child-speech-guard: Title/dek rendering enforces a deterministic guard that rejects any decorative reuse o…",
+              "recordedchildspeech -[part_of]-> chapter-plan-vnext: recordedChildSpeech carries the exact recorded child-speech span from a source entry; …"
+            ]
+          },
+          {
+            "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+            "rank": -1,
+            "top": [
+              "git-hooks -[lacks]-> commit-msg-hook: No commit-msg hook exists yet in the hooks wiring.",
+              "cockpit-remote-hosts -[blocked_by]-> hook-status-spec: Remote agent status needs the reverse tunnel from the sheet's §2.6, which is downstr…",
+              "codex -[requires]-> hook-driven-status-design: Codex hooks land untrusted and don't fire until trust is pinned to a config hash — writing t…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.533333333333333
+      },
+      "after_rerun": false
+    },
+    "tuning": {
+      "before": {
+        "total": 50,
+        "hits": 47,
+        "top_n": 20,
+        "hit_rate": 0.94,
+        "mean_payload_bytes": 10000,
+        "max_payload_bytes": 11534,
+        "over_cap": 0,
+        "mean_latency_ms": 100.9,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.0638297872340425
+      },
+      "after": {
+        "total": 50,
+        "hits": 47,
+        "top_n": 20,
+        "hit_rate": 0.94,
+        "mean_payload_bytes": 10000,
+        "max_payload_bytes": 11534,
+        "over_cap": 0,
+        "mean_latency_ms": 111.1,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.0638297872340425
+      },
+      "after_rerun": false
+    }
+  },
+  "benchmark_capture_note": "Initial heldout-b poll output was truncated by tool output budget; repeated read-only suite captured complete JSON. Both runs 29/66, maximum 13356 bytes, zero over cap.",
+  "independent_actual_review": "PASS: status-nine-live-review-2026-09-05.md; complete actual raw delta exactly predicted, all current/historical facts retained, existing DBA alias defect unchanged"
+}

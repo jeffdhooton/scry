@@ -636,3 +636,33 @@ needs its own evidence-backed disposition. Main runtime code remains
 393eeec on both machines, all earlier rollback binaries/backups retained.
 The full ten-clause goal and both consecutive complete grading rounds remain
 unfinished. Continue; this is not a terminal handoff.
+
+### Later checkpoint: nine status values verified, canonical guard regrade — 20:41 UTC
+
+Nine explicit retirements are now live on unchanged 393eeec, with independent
+actual-pre/post PASS. Manifest, full receipt and review are committed under
+`memory-repairs/status-nine-*2026-09-05.*`. All 80,242 facts including 7,793
+historical remain; entities 30,457→30,448, precise expected raw delta only.
+Actual backups: Mini `memory-20260905T202710Z.badger` / `202741Z.badger`.
+All five fixed suites unchanged at 52/62, 29/66, 7/7, 45/50, 47/50;
+maximum 13,356 bytes. First two required floors still fail.
+
+Existing DBA source routing is split: natural `dba-filing-guide` resolves to
+`dbafilingguide`, while `DBA filing guide project` retrieves the actual
+`dba-filing-guide` source and its intact converted value. This preexisting
+defect is separately documented, not silently repaired or called a new loss.
+
+New canonical-name admission code remains undeployed. Independent reviews
+rejected a965177 (retained homonyms/generic references) and 1dac187
+(determiner separator-normalization bypass). Corrected 62cf6e0 has full Go
+suite/vet/resolve+queue race PASS and is undergoing independent regrade.
+Never deploy the failed a965177 artifact. Build only the exact newly reviewed
+commit, then obtain fresh backup/rollback/deployment gates before installation.
+Five parked episodes remain intact, including the migration operation note;
+no retry has been authorized by a mere builder test.
+
+Latest immutable post-state inventory is
+`/tmp/scry-migration0160-fresh-sep05.teYtyC/status-postlive-inventory/`:
+1,002 old-candidate touching facts, 156 outgoing, 857 Hermes-trio facts.
+Further status/alias/collision/Hermes review and the full two-round final
+grade remain unfinished. The active goal continues.
