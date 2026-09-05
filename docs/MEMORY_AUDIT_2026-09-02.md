@@ -3358,3 +3358,43 @@ SHA `b669593b978041a646b8c6f3f3dc2cee5eb8cbad0e83d48063915a7a7aaeaea0`,
 independently checked locally after completed transfer and on Mini. Apply is
 held pending a complete fresh closure/replica extension, not merely matching
 manifest fingerprints. Separate four-record retirement gate remains preapply.
+
+### 2026-09-05 22:38 UTC — actual three-alias repair
+
+Applied the exact independently reviewed three-alias manifest after full fresh
+22:31 semantic/replica PASS and 22:35:50 complete raw freshness extension.
+Only two sweep metadata keys changed during that extension; all other 242,730
+raw pairs were identical. Immediate locked preview was ready with all expected
+fields unchanged. Backup-coupled atomic apply dropped exactly envoyer, office
+dashboard and driver-core worktree from Child (43 to 40), with no rehome.
+
+Actual preapply backup: `/Users/jclaw/.scry/backups/memory-20260905T223802Z.badger`,
+73,526,505 bytes, SHA 2ec037a08d773a6c83ca6c6d1688953c94908c63c73bf463b79430254b0f2f94.
+Immediate post: `memory-20260905T223803Z.badger`, 73,529,181 bytes,
+SHA aaadbdb7c65ca869385690476440d84895cb4d2afc1c93310291b2d28e012fd6.
+Both completed transfers match Mini hashes. Root restored both independently:
+80,586 facts, including 7,818 historical, and 9,353 episodes unchanged; full
+fact inventory hash 4b8bcd49d747991712e5a9e58a47650d6ba9df19d1c203febf85c40a066286a6
+on both. Canonical exact facts output is byte-identical (2,106 rows), and the
+three removed spellings return not found. Second dry run is not ready,
+dropped 0 / refused 3. Full receipts, immediate freshness and extended semantic
+review are archived under `memory-repairs/child-three-*`.
+
+Before/after five-suite hits are identical: 51/62, 29/66, 7/7, 45/50, 47/50.
+Maximum post payload 13,361 bytes, zero over cap. Production hygiene remains
+484 cross-type collisions; its broad proposal is never applied. Independent
+actual raw grading reports exact seven-key preservation PASS; its full
+snapshot benchmark/control report is still pending at this entry. Room 103
+records apply. No completion or original recall-floor pass is claimed.
+
+These are the first three live owner-specific rejection records. Old-binary-only
+downgrade is now unsafe. All prior rollback artifacts are retained; correction
+must remain marker-aware or use a separately reviewed restore that reconciles
+every intervening write. Earlier 49/33 drops have not been backfilled.
+
+Later external manual ingestion at 22:42:34 added one CADFormats episode and
+16 facts, with two existing CAD status invalidations. Backup 22:42:38 SHA
+7e8afae2273606e6213c7f6200369ccdcbd2c1e414c57825d20ae2f671fe678f has
+80,602 facts / 30,611 entities / 9,354 episodes, queue 0/0/10. This is not
+alias-apply drift or a new root remember. The four-record independent gate is
+being extended to this newer source before any separate retirement apply.

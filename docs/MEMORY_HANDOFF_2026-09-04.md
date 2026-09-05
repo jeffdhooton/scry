@@ -786,3 +786,24 @@ a regenerated d1 rejection-aware replica under separate independent review;
 if the Child batch goes first, refresh that gate to preserve the three new
 rejection records. Original 53/62 and 34/66 floors, remaining aliases and full
 Hermes/Mini review, global defects, real sweeps and final grading remain open.
+
+### 2026-09-05 22:38 UTC — three aliases now repaired
+
+Child's envoyer, office dashboard and driver-core worktree aliases were
+actually removed at 22:38:02 after fresh semantic, replica and raw-state gates.
+The exact committed manifest is `memory-repairs/child-three-alias-batch-2026-09-05.json`;
+full live receipt is `memory-repairs/child-three-actual-receipt-2026-09-05.json`.
+Canonical 2,106 facts are byte-identical; all 80,586 store facts survive.
+The five scores remain 51/29/7/45/47, max 13,361 bytes. Independent actual raw
+gate passes exact seven-key change; full actual review report is pending.
+Second dry run refuses all three, and broad hygiene remains 484 collisions.
+
+There are NOW three live `ar:` records. Do not run old marker-unaware writer
+binaries against this store. No earlier-drop backfill, positive rehome, other
+alias disposition or four-record retirement was applied with this operation.
+Fresh four-record review source is the later 22:42:38 backup (80,602 facts,
+one independently traced external CADFormats episode); preserve the new
+rejections. Its manifest remains `memory-repairs/hollow-four-batch-2026-09-05.json`.
+The next stops-table semantic gate passed separately, but its exact technical
+manifest and fresh full replica remain unreviewed. Third ten Hermes records
+have explicit unresolved proposals under independent review; no fact moves.
