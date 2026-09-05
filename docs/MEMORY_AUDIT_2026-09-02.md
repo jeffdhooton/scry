@@ -3010,3 +3010,46 @@ This excludes a direct binary regression on the measured sources, not the
 unmet retrieval floor. Keep 393eeec prevention; do not remove the competing
 fact, restore leaking aliases, change questions or lower acceptance bars.
 The fresh-source migration review can proceed; no stale manifest is approved.
+
+### Fresh semantic closure defeats unchanged hashes — 2026-09-05, 20:01 UTC
+
+Mini queue reached zero ready/backoff with four parked conflicts retained.
+Fresh backup `memory-20260905T195752Z.badger` is 77,827,733 bytes, SHA-256
+`7261cfff0a7957d825855c430dbbc0f333517e806b7c47d8fc03a66fe8fc1548`.
+Remote/local hashes match. New exact-393eeec replicas restore 80,203 facts,
+30,441 entities and 9,321 episodes. Baseline collisions are now 484; derive
+fresh metrics rather than borrowing prior global counts.
+
+The regenerated five-member migration manifest was byte-identical to the
+older candidate and passed exact live dry-run fingerprints, but FAILED
+independent fresh semantic closure (room 78). New `docket-migration-0160`
+explicitly describes the same SQL file and owns three additional current
+facts. It was ingested from the earlier review session at 19:45:28. The
+five-member replica leaves its lookup split from the canonical file. All
+old member objects/facts/episodes/claims remain unchanged: exact hashes do
+not replace a broad semantic closure review on the refreshed source.
+Report: `memory-repairs/migration0160-fresh-five-review-2026-09-05.md`.
+No live merge occurred.
+
+An explicit six-member replica candidate now preserves nine touching facts,
+all 80,203 global facts, eight normalized spelling keys and both the existing
+Scry review-session repo association and verified Docket artifact repo.
+The attempted metadata choice dropping the Scry ref was refused by preview;
+the corrected candidate preserves it without changing the merge contract.
+Separate repair-group and review-artifact identities remain distinct.
+Six-member review is pending; no live approval follows from builder results.
+
+A read-only inventory on this source finds 1,011 unique facts touching the
+502 old status candidates, including 156 outgoing facts. The checked-in
+Sep4 source-owner JSON had already audited all 502 (657 candidate-touching
+records, 83 outgoing), superseding the rubric's older 266-item source audit;
+neither inventory is an apply manifest. Nine explicit incoming-only results
+are being replica-reviewed separately. Two stored count assertions disagree
+with their episode summary; retain them verbatim, flag separate evidence
+correction, and never disguise representation repair as factual validation.
+
+The three Hermes identities have 856 unique touching facts on this source:
+331 touch hermes-ops, 306 hermes, 237 mac-mini (overlap counts are not summed).
+Full fact-by-fact ownership review is still required. Inventory/helper:
+`/tmp/scry-migration0160-fresh-sep05.teYtyC/review-inventory/` and its sibling
+`code/cmd/review-inventory/`. Full Go suite passed at cae5f1e.
