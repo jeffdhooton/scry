@@ -2535,3 +2535,68 @@ override an alias under the existing policy; that behavior is unchanged by
 this delta. This is one bounded passing review, not two consecutive whole-goal
 rounds, approval of a live repair manifest, deployment verification, or a claim
 that Scry memory is finished. No live repair or deployment occurred.
+
+## Continuation on 2026-09-05: prevention deployment gate
+
+The preceding goal turn made progress: three fixes, a repository-local goal
+contract, full/replica checks and a bounded fresh review were committed. On
+resumption HEAD was `6ab5601`, with only the user-provided workflow assessment
+untracked. Both installed binaries still reported `695b8e1`, SHA-256
+`ef5ce6c451ffabbf1e85f1c69c1efa700dbef3979e2b5ac2010e38ceb64bc8f1`.
+Live counts were 30,156 entities, 79,524 facts and 9,279 episodes. One queued
+episode had reached 140 attempts on an unchanged alias conflict.
+
+Before any deployment, fresh backups were taken of both actual stores:
+
+- Mini: `/Users/jclaw/.scry/backups/memory-20260905T180104Z.badger`,
+  76,764,441 bytes, SHA-256
+  `665f66c8a6a38b29a78ed1235be5c3a285391c318f7d293f8d25c3da71793752`.
+  The copied file at `/tmp/scry-prevention-sep05.5C6ZQ8/live.badger` matches.
+- Laptop: `/Users/jeff/.scry/backups/memory-20260905T180105Z.badger`,
+  19,445,000 bytes, SHA-256
+  `792d9ea624c81dbde5c743ed3186eefcdd1a42b170c8068bd3db6a475bfc6c43`.
+  This call explicitly selected `/Users/jeff/.scry/scryd.sock`, not the tunnel.
+
+Restoring the Mini backup into the new disposable
+`/tmp/scry-prevention-sep05.5C6ZQ8/replica` reproduced the live counts exactly.
+An archive build of `6ab5601` succeeded without CGO. It was not deployed.
+
+### Regression floors are already missed on the old binary
+
+Immediate pre-deployment measurements on live `695b8e1`:
+
+| Suite | Hits | Required original floor | Max bytes |
+|---|---|---|---|
+| heldout-2026-09-03 | 51/62 | 53/62 | 12,110 |
+| heldout-b | 30/66 | 34/66 | 13,360 |
+| probes | 7/7 | 7/7 | 10,663 |
+| tuning-strict | 44/50 | 44/50 | 11,528 |
+| tuning | 46/50 | 47/50 | 11,528 |
+
+No result exceeded the cap. These are not new acceptance thresholds: three
+original regression floors remain unmet. The old deployed code and ongoing
+ingestion produced this state before the proposed prevention deployment or
+any new repair; do not attribute it to an unapplied manifest.
+
+### Fresh deployment review blocks on transactional name-cache retention
+
+The fresh deployment grader disproved exact
+`6ab5601483023049f698e538fff9bfce6a1874b6` after its uncached full suite passed.
+On a restored 24,498-entity backup, twelve successful alias-bearing Apply calls
+grew `compactIdxBy` from zero to twelve entries, retaining 292,062 entity token
+maps. Heap after GC rose from 226,654,216 to 396,016,504 bytes, a 169,362,288-byte
+increase. Each new transactional Store facade escaped through that global map.
+
+Independent reproduction is retained in
+`/tmp/scry-prevention-gate.QyQ7C1/internal/memory/resolve/deployment_gate_independent_test.go`.
+The review found no additional proven normal-write violation in its bounded
+atomic rollback, retirement/rehome and queue checks (three race-test runs).
+Deployment was held, and no installed binary or live graph was changed.
+
+The correction defers transaction-cache deletion inside Apply's AtomicWrite
+callback, leaving the parent store cache separate. The committed regression
+first failed on both successful and rolled-back episodes, then passed after
+the fix; it also verifies no private name snapshot reaches the parent cache.
+Full `go test ./...`, `go vet ./...`, and resolver/queue races pass locally.
+An opt-in `SCRY_MEMORY_TEST_BACKUP` regression restores a supplied backup into
+a temporary store and tests twelve committed episodes without model calls.

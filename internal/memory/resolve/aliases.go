@@ -928,6 +928,15 @@ func compactIndex(st *store.Store) *compactIdx {
 	return ci
 }
 
+// forgetCompactIndex releases a short-lived transaction's private name
+// snapshot. Never share it with the parent store: that would expose pending
+// or rolled-back identity writes to another episode.
+func forgetCompactIndex(st *store.Store) {
+	compactIdxMu.Lock()
+	delete(compactIdxBy, st)
+	compactIdxMu.Unlock()
+}
+
 func (ci *compactIdx) stale() bool {
 	ci.mu.Lock()
 	defer ci.mu.Unlock()

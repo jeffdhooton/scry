@@ -85,6 +85,10 @@ type ApplyOptions struct {
 func ApplyWith(st *store.Store, ep store.Episode, cwd string, res extract.Result, exclusive map[string]bool, o ApplyOptions) (Stats, error) {
 	var stats Stats
 	err := st.AtomicWrite(func(transactional *store.Store) error {
+		// Alias lookups cache the names visible in this transaction. The
+		// facade must not escape its callback, including through that cache,
+		// whether the episode succeeds, rolls back, or panics.
+		defer forgetCompactIndex(transactional)
 		var err error
 		stats, err = applyWith(transactional, ep, cwd, res, exclusive, o)
 		return err

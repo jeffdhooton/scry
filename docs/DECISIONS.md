@@ -3276,3 +3276,18 @@ to `obsolete` after the original `obsolete` spelling was rehomed to another
 service. Exempting a spelling from value classification must not exempt the
 deleted entity key from retirement. This separates those meanings without
 guessing that every punctuation variant belongs to the rehome target.
+
+## Transactional resolver caches end with their transaction (2026-09-05)
+
+**Decision.** Apply releases the compact entity-name cache for its short-lived
+transactional store facade with a deferred cleanup inside the AtomicWrite
+callback. Success, failure and panic all release it. The long-lived parent
+store cache remains separate; uncommitted name snapshots must not be shared
+between episodes or published into that cache.
+
+**Why.** A deployment reviewer restored a real 24,498-entity backup and showed
+that twelve successful alias-bearing episodes retained twelve full indexes
+and approximately 169 MB of additional heap after GC. AtomicWrite introduced a
+fresh facade per episode, but the package-level map retained each facade
+indefinitely. Callback-scoped cleanup restores a bounded lifetime without
+weakening transaction isolation or changing alias admission decisions.
