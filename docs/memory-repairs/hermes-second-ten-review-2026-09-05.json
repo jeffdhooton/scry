@@ -1,0 +1,255 @@
+{
+  "scope": "Second ten explicit records (positions 10 through 19, zero-based) in immutable 859-fact Hermes-trio inventory; proposed evidence review only, no live apply manifest",
+  "source_backup": "memory-20260905T210535Z.badger",
+  "source_sha256": "ccd3dbd6fc4143458a6682481be5aba422d0ecc29f8f806c1db67c22dc9020b3",
+  "inventory_unique_facts": 859,
+  "reviewed_records": 10,
+  "evidence_read": "Complete ten fact payloads, all ten full source episode objects, all 141 same-episode companion fact objects, every selected endpoint entity record, and local audit renderer source.",
+  "rules": "Facts stay unchanged. Unsupported source/destination/relation or ambiguity is explicitly UNRESOLVED with no proposed owner. KEEP_ENDPOINTS is historical subject ownership, not a current deployment check or global alias endorsement. No store-scale inference or apply.",
+  "records": [
+    {
+      "expected_sha256": "458d2ab484f8d512bdcfe4080d6fdb510dcf8f836da07b6e9ecefaf40ff28561",
+      "fact": {
+        "src": "alias-admission-gate",
+        "relation": "uses",
+        "dst": "hermes-ops",
+        "raw_relation": "tested_with",
+        "fact": "The gate's test scenario exercises the hermes-ops/Mac mini alias case.",
+        "valid_from": "2026-09-02T00:00:00Z",
+        "confidence": 0.8,
+        "episodes": [
+          "3d3c9f56935a744eb8cf5e035af4213bafcbd74ffe687f0c63adc013bf8c3419"
+        ]
+      },
+      "old_key": "fa:alias-admission-gate:uses:hermes-ops:1788307200000000000",
+      "review": {
+        "disposition": "KEEP_ENDPOINTS",
+        "proposed_src": "alias-admission-gate",
+        "proposed_dst": "hermes-ops",
+        "reason": "The complete B3 source episode and companion scry implements alias-admission-gate concern the resolver test using the Hermes repository/Mini distinction. The gate metadata explicitly names this test case. Hermes-ops is a referenced test subject, not a runtime host.",
+        "caveat": "The broad canonical uses relation retains the more precise tested_with raw relation and explicit test-scenario text; no claim that the repository runs the gate.",
+        "independent_review": {"old_key":"fa:alias-admission-gate:uses:hermes-ops:1788307200000000000","expected_sha256":"458d2ab484f8d512bdcfe4080d6fdb510dcf8f836da07b6e9ecefaf40ff28561","verdict":"PASS_KEEP_ENDPOINTS","reason":"The gate uses this repository/Mini identity case as test input. The fact, B3 episode, gate metadata and scry implements companion identify an audit/test subject, not a repository hosting a gate. Raw tested_with and scenario text must remain; uses is only broad instrumental use here."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "c7dafec323f73b93ef5acd556450ec67ece632fddf111b82ceab788a1391267d",
+      "fact": {
+        "src": "audit-renderer",
+        "relation": "part_of",
+        "dst": "hermes-ops",
+        "fact": "The audit report renderer lives in the hermes-ops repository.",
+        "valid_from": "2026-07-14T15:38:49.903Z",
+        "confidence": 1,
+        "episodes": [
+          "708202677ef5772beb2ddbf909621ecfe9565e00a04ff7598e38de37a083a292"
+        ]
+      },
+      "old_key": "fa:audit-renderer:part_of:hermes-ops:1784043529903000000",
+      "review": {
+        "disposition": "KEEP_ENDPOINTS",
+        "proposed_src": "audit-renderer",
+        "proposed_dst": "hermes-ops",
+        "reason": "Episode 708202677 names a renderer change from cwd /Users/jclaw/workspace/hermes/hermes-ops; same-episode audit-renderer pagination and WeasyPrint companions and source metadata identify leadgen/outreach/audit.py. That local file contains the rendering functions and fixed-layout summary table.",
+        "caveat": "Local file is a later checkout (last file commit 6709519, August 6); it corroborates repository identity, not historical deployment or outreach authorization.",
+        "independent_review": {"old_key":"fa:audit-renderer:part_of:hermes-ops:1784043529903000000","expected_sha256":"c7dafec323f73b93ef5acd556450ec67ece632fddf111b82ceab788a1391267d","verdict":"PASS_KEEP_ENDPOINTS","reason":"The source tool is identified as leadgen/outreach/audit.py; the full source episode describes its pagination change, companions identify fixed-layout tables and WeasyPrint, and the later checked-in file independently corroborates repository contents. Cwd alone was not accepted. No historical runtime or outreach authorization follows."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "0ba4e779176a3e6e922b054b1e8acd9fb73b3085be1a050f3f403143896b2263",
+      "fact": {
+        "src": "avoid-ai-writing",
+        "relation": "deployed_on",
+        "dst": "mac-mini",
+        "fact": "avoid-ai-writing 3.26.0 installed at the audited pinned commit (full repo, not just SKILL.md) as a Hermes user skill; detector, category-contract, preservation, corpus, and style tests all passed; zero external dependencies.",
+        "valid_from": "2026-08-28T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "afc5af567eae32ffdcfcf631858afc8dcb20edf86cad7992c33b4159b1cb03c0"
+        ]
+      },
+      "old_key": "fa:avoid-ai-writing:deployed_on:mac-mini:1787875200000000000",
+      "review": {
+        "disposition": "KEEP_ENDPOINTS",
+        "proposed_src": "avoid-ai-writing",
+        "proposed_dst": "mac-mini",
+        "reason": "Full episode afc5af56 explicitly records pinned avoid-ai-writing installation on Jeff's Mac mini after rollback snapshot, Slack smoke tests and gateway restart. Gateway uses avoid-ai-writing and its canonical writing path companions distinguish runtime from host. The deployment endpoint is the machine.",
+        "caveat": "Historical install observation; no fresh install or version validation, no endorsement of version alias ownership.",
+        "independent_review": {"old_key":"fa:avoid-ai-writing:deployed_on:mac-mini:1787875200000000000","expected_sha256":"0ba4e779176a3e6e922b054b1e8acd9fb73b3085be1a050f3f403143896b2263","verdict":"PASS_KEEP_ENDPOINTS","reason":"The installation episode explicitly locates the pinned skill on Jeff's Mini. Gateway enables-skill and channel binding companions distinguish runtime use from host installation. The coarse midnight fact date is preserved, not treated as proof of precise installation time or current version."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "e8d3958dec24767c5c746b9ce60044c034e6204219824fb657059371a50a0719",
+      "fact": {
+        "src": "avoid-ai-writing",
+        "relation": "part_of",
+        "dst": "hermes",
+        "raw_relation": "candidate_for",
+        "fact": "avoid-ai-writing (conorbronsdon) is a Jeff-flagged candidate skill; its instructions, install surface, and compatibility with the Humanizer approach are under evaluation.",
+        "valid_from": "2026-08-28T14:58:17.848Z",
+        "confidence": 0.85,
+        "episodes": [
+          "97d4f402e01461613cf6af7bdc86a84360675b6fc5e3264c5ccf8aa0c455a01f"
+        ]
+      },
+      "old_key": "fa:avoid-ai-writing:part_of:hermes:1787929097848000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The original 97d4f402 episode and full fact state candidate evaluation before installation. Hermes is the intended runtime, but canonical part_of incorrectly states membership at that earlier time. Later installation in afc5af56 does not retroactively establish membership on the earlier record.",
+        "caveat": "Preserve all original text/time/raw candidate_for. No destination swap or guessed replacement relation.",
+        "independent_review": {"old_key":"fa:avoid-ai-writing:part_of:hermes:1787929097848000000","expected_sha256":"e8d3958dec24767c5c746b9ce60044c034e6204219824fb657059371a50a0719","verdict":"PASS_UNRESOLVED","reason":"Raw candidate_for and the 14:58 evaluation episode support an intended runtime, not established membership. The installation source episode occurs at 15:26 despite its coarse midnight fact date. Do not use that coarse date to backdate membership. A reviewed candidate-versus-membership representation is missing; no endpoint guess is authorized."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "670c60d02002c8c33a3d80a68a9cf3c095fa0e7c83d555638eda9795845d58b1",
+      "fact": {
+        "src": "backup-nonempty-guard",
+        "relation": "monitors",
+        "dst": "mac-mini",
+        "raw_relation": "protects",
+        "fact": "Three of the silently-empty 44-byte backups were produced on the mini; the guard is deployed on both machines",
+        "valid_from": "2026-09-03T00:00:00Z",
+        "confidence": 0.9,
+        "episodes": [
+          "d3022fa53d63bb03df8fbcd91057db38ae93833d22d88c2aa8ee522eda40aad9"
+        ]
+      },
+      "old_key": "fa:backup-nonempty-guard:monitors:mac-mini:1788393600000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "Episode d3022fa5 and scry decided backup-nonempty-guard companion describe the Store.Backup refusal guard deployed on both machines after empty backups. Mini is a supported affected host, but monitors is not established: the decision is a backup validation guard, not machine monitoring.",
+        "caveat": "Raw protects and full sentence survive unchanged. Review does not fabricate a monitoring service or retarget the assertion to the repository.",
+        "independent_review": {"old_key":"fa:backup-nonempty-guard:monitors:mac-mini:1788393600000000000","expected_sha256":"670c60d02002c8c33a3d80a68a9cf3c095fa0e7c83d555638eda9795845d58b1","verdict":"PASS_UNRESOLVED","reason":"The Mini is an affected host, but the source is a Store.Backup validation decision. Source episode and scry decided companion establish refusal of empty backups, not machine monitoring. Raw protects does not establish monitors. A reviewed decision/guard relation remains missing."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "ee3f38d0c0da476eb2948abc8e612cb2ca17d98c17d1a6823f46744108f09712",
+      "fact": {
+        "src": "blind-cloud-routine",
+        "relation": "runs_on",
+        "dst": "hermes-ops",
+        "fact": "Probe moved from cloud routine to launchd job on hermes-ops for real network access",
+        "valid_from": "2026-07-29T22:56:10Z",
+        "confidence": 1,
+        "episodes": [
+          "2f13117a31a0fa6fdde687e315d139a8a5da9e5c074ac94d0f6586508f01c0cb"
+        ]
+      },
+      "old_key": "fa:blind-cloud-routine:runs_on:hermes-ops:1785365770000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "Episode 2f13117a distinguishes the retired cloud routine from a replacement launchd probe on hermes; companion comjhootchildscribe-probe is the actual active job. Stored source metadata instead names an old Twilio cloud routine, and hermes-ops is not a host. Both source role and destination are unsupported for runs_on.",
+        "caveat": "No automatic move to mac-mini: that would leave the retired/wrong routine as the running source. Full episode plus historical source confusion requires an explicit future repair.",
+        "independent_review": {"old_key":"fa:blind-cloud-routine:runs_on:hermes-ops:1785365770000000000","expected_sha256":"ee3f38d0c0da476eb2948abc8e612cb2ca17d98c17d1a6823f46744108f09712","verdict":"PASS_UNRESOLVED","reason":"The full episode and active comjhootchildscribe-probe companion distinguish the replacement launchd job from the retired cloud routine. Stored source metadata separately names a Twilio routine. Repository-as-host is also unsupported. Moving only the destination would incorrectly assert the retired or conflated source runs there; precise historical source identity and destination require separate evidence."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "53f6efe746822b49823852dc17ad5d585bc82f68758ea81c533c05d67a6eb034",
+      "fact": {
+        "src": "book-system",
+        "relation": "deployed_on",
+        "dst": "mac-mini",
+        "fact": "book-system code rsynced to ~/workspace/AI-VENTURE/book-system on Mac mini; DB seeded with 7 projects from local Postgres dump",
+        "valid_from": "2026-06-09T00:00:00-04:00",
+        "confidence": 0.95,
+        "episodes": [
+          "ccb5294b789f1f9f5ffb46d1ba60c1011ca2f0c37ab958ee7048dc041c7393d9"
+        ]
+      },
+      "old_key": "fa:book-system:deployed_on:mac-mini:1780977600000000000",
+      "review": {
+        "disposition": "KEEP_ENDPOINTS",
+        "proposed_src": "book-system",
+        "proposed_dst": "mac-mini",
+        "reason": "Full ccb5294b seed episode explicitly locates the shared data plane and deployed book-system on Mac mini. Companions describe OrbStack services on that host and the Hermes integration, keeping project, runtime and hardware roles distinct.",
+        "caveat": "Keep original June 9 fact timestamp despite June 11 seed summary. Unrelated AuthorClaw direction error and contaminated book-system repo ref are not endorsed or silently changed.",
+        "independent_review": {"old_key":"fa:book-system:deployed_on:mac-mini:1780977600000000000","expected_sha256":"53f6efe746822b49823852dc17ad5d585bc82f68758ea81c533c05d67a6eb034","verdict":"PASS_KEEP_ENDPOINTS","reason":"Selected text explicitly locates rsynced code on Mini; the complete seed episode identifies the shared host data plane, supported by OrbStack and Hermes deployment companions. Preserve June 9 fact time and June 11 seed provenance without claiming the seed proves exact June 9 timing. Contaminated repo refs and reversed AuthorClaw companion are not endorsed."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "af158b19880d8fbef6fcbd34d86ba8985de31b09987c45e5444f083f01e81a0d",
+      "fact": {
+        "src": "build-with-codex-skill",
+        "relation": "excludes",
+        "dst": "hermes-ops",
+        "raw_relation": "untested_end_to_end_on",
+        "fact": "The wiring is verified piece by piece but the full skill has not been run end to end (that would spawn a real Codex run and create a repo); awaiting Jeff's go-ahead with a small throwaway task.",
+        "valid_from": "2026-09-02T17:38:39.99Z",
+        "confidence": 0.9,
+        "episodes": [
+          "38973fa9d9d4b808a72799edc7357fedf40f1d051ef525817c3887c5cd1c2bf3"
+        ]
+      },
+      "old_key": "fa:build-with-codex-skill:excludes:hermes-ops:1788370719990000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "Full 38973fa9 episode and installed-skill/MCP/gateway companions show a Hermes runtime skill on Mini. The selected text states an end-to-end test has not run without Jeff's go-ahead, not that the skill excludes the Hermes repository.",
+        "caveat": "Canonical excludes misrepresents the assertion and the repository endpoint is unsupported. Changing only the endpoint to runtime/host would not repair semantics or supply test authorization.",
+        "independent_review": {"old_key":"fa:build-with-codex-skill:excludes:hermes-ops:1788370719990000000","expected_sha256":"af158b19880d8fbef6fcbd34d86ba8985de31b09987c45e5444f083f01e81a0d","verdict":"PASS_UNRESOLVED","reason":"The text records an unperformed end-to-end test awaiting Jeff's go-ahead. Episode and installed-skill/MCP companions support Hermes runtime wiring on Mini, not excluding a repository. Raw untested_end_to_end_on does not justify canonical excludes. Neither retargeting nor running the test is authorized."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "d527d39754432c4ee118f64533965ba3a4751205ba7c3a547b7823dde83cecf8",
+      "fact": {
+        "src": "build",
+        "relation": "contains",
+        "dst": "hermes",
+        "fact": "Build repo contains Hermes connections implementation with profiles, loopback gateway over port 0, and remote adaptation via SFTP launcher with mode-0700.",
+        "valid_from": "2026-09-01T06:50:15.68Z",
+        "confidence": 0.8,
+        "episodes": [
+          "efb2010f1199d6f7ce7fa7cc5e59ad69738daeae2347c7f1c71c5afa3d70d3f2"
+        ]
+      },
+      "old_key": "fa:build:contains:hermes:1788245415680000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "Episode efb2010f describes documentation of Build's Hermes connection implementation, not containment of the actual Hermes gateway. Source build metadata is a backend service while the sentence names repository implementation; the service/repo distinction and destination connection-versus-runtime role are unresolved.",
+        "caveat": "Preserve the implementation assertion and provenance; do not infer a new Hermes-connections identity or merge Build/JBuild records.",
+        "independent_review": {"old_key":"fa:build:contains:hermes:1788245415680000000","expected_sha256":"d527d39754432c4ee118f64533965ba3a4751205ba7c3a547b7823dde83cecf8","verdict":"PASS_UNRESOLVED","reason":"The documentation episode concerns implementation of Hermes connections in the Build repo; it does not make the actual gateway a contained component. Backend-service source metadata is narrower than the repository subject. SSH/rooms implementation companions reinforce this distinction without settling a replacement identity. A reviewed source and connection-component representation is missing."},
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "a9854dbb74a269f492c18d0397bb05e88e0dba0feaa7da7d142545d8020e8ab5",
+      "fact": {
+        "src": "build",
+        "relation": "deployed_on",
+        "dst": "hermes-ops",
+        "fact": "README shows dogfood lane's Build when opened on desktop; mobile companion not fully functional",
+        "valid_from": "2026-08-30T16:55:44Z",
+        "confidence": 0.9,
+        "episodes": [
+          "ba957e42954d7835d110be60022dfc009025e4feafb5cca772282f505841f5a3"
+        ]
+      },
+      "old_key": "fa:build:deployed_on:hermes-ops:1788108944000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "Episode ba957e42 and complete companions distinguish desktop app installation, dogfood fake events, mobile redesign and a Mini control plane. This selected README/mobile-state sentence supplies no deployment-on-hermes-ops evidence; that repository is not a host.",
+        "caveat": "Existing jbuild runs_on Mini companion does not prove this distinct build service record should move there. No guessed platform, host or source merge.",
+        "independent_review": {"old_key":"fa:build:deployed_on:hermes-ops:1788108944000000000","expected_sha256":"a9854dbb74a269f492c18d0397bb05e88e0dba0feaa7da7d142545d8020e8ab5","verdict":"PASS_UNRESOLVED","reason":"README dogfood/mobile state does not establish deployment on the Hermes repository. The full episode distinguishes installed desktop Build, fake dogfood events and a Mini control plane; a different jbuild source's runs_on companion cannot settle this build service record. Exact deployed component and host remain unproved."},
+        "applied": false
+      }
+    }
+  ]
+}
