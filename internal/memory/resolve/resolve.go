@@ -225,14 +225,20 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 			found = false
 		}
 		owner := indexedOwner
-		if found && !TypesCompatible(owner.Type, ent.Type) {
+		// A reviewed survivor may retain its original slug while adopting a
+		// qualified canonical name. Exact-name resolution must not depend on
+		// that storage identifier: this is the existing identity, not an alias
+		// naming a different kind of thing. Keep the exact natural-slug veto
+		// above and all cross-type checks for noncanonical alias mentions.
+		canonicalName := store.Normalize(owner.Name) == store.Normalize(ent.Name)
+		if found && !canonicalName && !TypesCompatible(owner.Type, ent.Type) {
 			found = false
 		}
 		// Concept is an extraction fallback, not proof of compatibility. A
 		// typed mention reached only through a concept's alias cannot promote
 		// that concept, even when it is empty; the reviewed merge path must
 		// decide whether they are one identity. Exact-slug stubs still upgrade.
-		if found && concepts(owner.Type) && !concepts(ent.Type) {
+		if found && !canonicalName && concepts(owner.Type) && !concepts(ent.Type) {
 			found = false
 		}
 	}

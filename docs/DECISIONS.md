@@ -3374,3 +3374,29 @@ the storage format, retention, extraction providers or canonical vocabulary.
 It intentionally favors exact evidence preservation over merging paraphrases
 with no semantic proof. Any resulting preserved review-queue item remains
 unfinished ingestion, not a claimed successful drain.
+
+## Canonical identity is independent of its retained slug (2026-09-05)
+
+**Decision.** When a current alias-index owner actually lists a mention as
+its canonical normalized name, resolution treats that as an exact identity
+mention even if a reviewed merge retained a different storage slug. The
+existing exact natural-slug identity still takes precedence; generic names,
+stale index entries, and noncanonical aliases keep their admission checks.
+A differently typed extraction of a typed canonical identity must not change
+the reviewed type, recreate a retired record or transfer an alias claim.
+
+**Why.** The six-record SQL-file merge intentionally retained its original
+survivor slug while selecting the qualified filename as canonical name.
+The subsequent operation note was preserved in the queue because the
+resolver tried the retired natural slug and encountered the survivor's
+valid index claim. A restored actual-post backup reproduces that error for
+project/machine mentions of the exact canonical filename, while tool/concept
+mentions work. The provider's exact intermediate output is not retained, so
+these probes establish a matching failure mechanism, not a claimed replay
+of that output. This is identifier-independent exact-name handling, not
+permission to trust a cross-type alias or merge two existing identities.
+
+Regressions require typed canonical metadata and historical facts to survive,
+the fact endpoint to resolve to the retained slug, and ordinary cross-type
+aliases still to fail atomically. The patch remains subject to independent
+code/replica and deployment gates before live installation or exact retry.
