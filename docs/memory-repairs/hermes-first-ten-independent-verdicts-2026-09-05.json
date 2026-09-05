@@ -1,0 +1,333 @@
+{
+  "scope": "Independent ownership-only review of ten pinned records; no live apply approval; no complete 857-fact audit",
+  "source_backup": "memory-20260905T202741Z.badger",
+  "source_sha256": "b87def29a4334517299b55e9fc288de141f509b873c4afbdfd79bd101208ae06",
+  "aggregate": "FAIL submitted nine-keep disposition set: records 2, 7 and 10 require UNRESOLVED; six endpoint keeps and one proposal supported with stated limits",
+  "records": [
+    {
+      "position": 1,
+      "old_key": "fa:2026-09-04-scry-memory-identity-finishmd:requires:hermes-ops:1788480000000000000",
+      "expected_sha256": "7f06634abee0189269bbca6bba32ac26a874a417403db7ee6d2d7620b2695553",
+      "fact": {
+        "src": "2026-09-04-scry-memory-identity-finishmd",
+        "relation": "requires",
+        "dst": "hermes-ops",
+        "fact": "Review every fact touching hermes-ops, hermes and mac-mini under a written rubric: project/code/repository facts stay on hermes-ops, gateway behavior on hermes, hardware and host state on mac-mini, ambiguous facts explicitly recorded rather than guessed, with the three identities distinct under exact lookup and recall.",
+        "valid_from": "2026-09-04T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "416f17fb78b04142de81239b5271153efe1b11052a0e838b66e4e5fefe37c9da",
+          "83a58813235797a123e5662d50eebf69a85ee99ea1a8a581d2de727d76bb153b"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS",
+        "proposed_src": "2026-09-04-scry-memory-identity-finishmd",
+        "proposed_dst": "hermes-ops",
+        "reason": "Both source episodes describe the continuation goal artifact. The full local goal contract explicitly requires review of the named repository as well as gateway and host. This is an audit requirement about the repository, not a deployment assertion.",
+        "caveat": "Requires points at one of three named subjects; preserving that stored representation does not claim the other two are absent.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "PASS_KEEP_ENDPOINTS",
+        "src": "Supported: continuation goal artifact",
+        "dst": "Supported: repository is one explicitly named audit subject",
+        "reason": "Both source episodes identify the goal artifact, and the full goal explicitly requires this repository's ownership audit. This requirement is not runtime deployment. Preserving a single stored subject does not erase the other named subjects.",
+        "uncertainty": "No assertion of global Hermes metadata cleanliness."
+      }
+    },
+    {
+      "position": 2,
+      "old_key": "fa:address-suffix-merge-rule:merged_into:mac-mini:1788393600000000000",
+      "expected_sha256": "259a4390dffc42f55508fbaa148a3d027a5227329fdc8909d1ea09ebfb33a5e5",
+      "fact": {
+        "src": "address-suffix-merge-rule",
+        "relation": "merged_into",
+        "dst": "mac-mini",
+        "raw_relation": "merged",
+        "fact": "Round ten closed the long-standing duplicate: 'Mac mini at 100.96.45.73' — one fact, four rounds as a second machine — was merged into mac-mini; its fact moved over and the old name still resolves.",
+        "valid_from": "2026-09-03T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "8b968953342b09232856ac7946e11244b213bb41cc59b69aa545db0ebd8a1773"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS_WITH_SEMANTIC_CAVEAT",
+        "proposed_src": "address-suffix-merge-rule",
+        "proposed_dst": "mac-mini",
+        "reason": "Episode 8b968953 and companion scry uses address-suffix-merge-rule describe a historical repair targeting the Mac mini identity. The destination is the repaired machine, not the repository or gateway.",
+        "caveat": "The canonical merged_into relation can misleadingly imply the rule itself is a machine. Preserve raw_relation and text; this review confirms subject/reference identity only, not relation semantics or approval to rerun the rejected rule.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "UNRESOLVED",
+        "src": "Rule exists, but unsupported as the entity merged into the machine",
+        "dst": "Supported: mac-mini is the repair's target identity",
+        "reason": "The text and episode say a duplicate machine record was merged. The stored source is the decision/rule, not that duplicate machine. Both canonical merged_into and raw merged therefore misstate the source role. A caveat cannot make this an approved endpoint keep under the rubric's unsupported-relation rule.",
+        "uncertainty": "A later explicit repair could represent rule-as-actor with an appropriate reviewed relation, or preserve an assertion about the historical duplicate. This review chooses neither and authorizes no source recreation or relation edit."
+      }
+    },
+    {
+      "position": 3,
+      "old_key": "fa:advocates:deployed_on:hermes-ops:1781291442000000000",
+      "expected_sha256": "cdac5be2dc380db63402ad553287df5cf322b487053d76d2e6dcf741e889cb20",
+      "fact": {
+        "src": "advocates",
+        "relation": "deployed_on",
+        "dst": "hermes-ops",
+        "fact": "Advocates is deployed on Forge at /home/forge/www.theadvocates.org/current",
+        "valid_from": "2026-06-12T19:10:42Z",
+        "confidence": 0.95,
+        "episodes": [
+          "b389218ae50225701d239000402290c276e9ba4b84d85ffd733e5d9f9dfa51f1"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "PROPOSE_DESTINATION_REVIEW",
+        "proposed_src": "advocates",
+        "proposed_dst": "forge",
+        "reason": "The original fact explicitly names Forge and its Advocates deployment path. Episode b389218a and its two hotfix companions concern production Advocates. Independent seed episode b7c5c3cc and the later Forge deployment episode a3a381ab corroborate that same application/platform; existing forge entity is Laravel Forge service, not the Hermes repository.",
+        "caveat": "Destination proposal only. No reattach or apply manifest exists; fresh exact target-key conflict check and independent review remain required. Existing Advocates edges mispointing elsewhere are not implicitly included.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "PASS_PROPOSAL_ONLY",
+        "src": "Supported: Advocates project",
+        "dst": "Supported proposed forge service; hermes-ops is unsupported as host",
+        "reason": "Full original hotfix episode, its production companion facts, seed production-access episode and later independently sourced Forge release agree on this application/platform. Forge/Laravel Forge resolve to forge, whose metadata identifies the deployment service. Proposed exact key is empty in this snapshot.",
+        "uncertainty": "No live reattach approval. Fresh key-conflict/fingerprint/backup and preservation checks are still required. Other incorrectly attached Advocates edges are outside scope."
+      }
+    },
+    {
+      "position": 4,
+      "old_key": "fa:agent-template:deployed_on:mac-mini:1788382432337000000",
+      "expected_sha256": "f7e37705692afe933b71825cb4ac05fc1d3d06fbe69b02d844b855842b80ca6c",
+      "fact": {
+        "src": "agent-template",
+        "relation": "deployed_on",
+        "dst": "mac-mini",
+        "fact": "A deploy script wires each agent template into the mini.",
+        "valid_from": "2026-09-02T20:53:52.337Z",
+        "confidence": 0.75,
+        "episodes": [
+          "1041b44d0bfa6fc15b746a8fe4716162fcda4fbbe782bcf98bce01ab2acd033a"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS_WITH_SEMANTIC_CAVEAT",
+        "proposed_src": "agent-template",
+        "proposed_dst": "mac-mini",
+        "reason": "Episode 1041b44d recommends a deployable persona/template unit in the repository with deployment to the Mini. Agent-template metadata and its blocked_by Slack strategy companion agree that it is proposed. The host endpoint is the Mini, not the repository or running gateway.",
+        "caveat": "Stored sentence sounds implemented while source episode is a recommendation. Preserve the sentence, mark factual-status uncertainty; no assertion of actual deployment.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "PASS_OWNERSHIP_ONLY_WITH_PROPOSAL_CAVEAT",
+        "src": "Supported: proposed agent-template unit",
+        "dst": "Supported intended deployment host: mac-mini",
+        "reason": "The recommendation episode and complete local design identify a proposed deployable unit with Mini as target; source is not the standing Hermes gateway and destination is not the repository. The blocked-by strategy companion confirms proposal context.",
+        "uncertainty": "Stored deployed_on sentence sounds completed, but original source is a recommendation. Implementation/deployment at that time remains unverified. This verdict must not count as factual endorsement or a historical deployment check."
+      }
+    },
+    {
+      "position": 5,
+      "old_key": "fa:agent-template:located_at:hermes-ops:1788382432337000000",
+      "expected_sha256": "20091a05384b858e208c61b2f202afdfba96adb551bb337a20e0f078cfe8d186",
+      "fact": {
+        "src": "agent-template",
+        "relation": "located_at",
+        "dst": "hermes-ops",
+        "raw_relation": "lives_in",
+        "fact": "The agent template is a folder in hermes-ops declaring a persona, skill list, Slack channel, cron jobs, and approval queue.",
+        "valid_from": "2026-09-02T20:53:52.337Z",
+        "confidence": 0.75,
+        "episodes": [
+          "1041b44d0bfa6fc15b746a8fe4716162fcda4fbbe782bcf98bce01ab2acd033a"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS_WITH_SEMANTIC_CAVEAT",
+        "proposed_src": "agent-template",
+        "proposed_dst": "hermes-ops",
+        "reason": "The same episode explicitly recommends the template as a folder/unit in hermes-ops. Companion proposal facts distinguish the template from gateway capabilities. The later repository spec independently uses deploy/agents for the unit.",
+        "caveat": "Repository ownership is supported; historical implementation status remains unverified because the source is a proposal.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "PASS_OWNERSHIP_ONLY_WITH_PROPOSAL_CAVEAT",
+        "src": "Supported: proposed agent-template unit",
+        "dst": "Supported: hermes-ops repository",
+        "reason": "The recommendation explicitly places the unit in hermes-ops, and the full later local specification places agent manifests under deploy/agents. This is exactly the rubric's initial repository-location example.",
+        "uncertainty": "Later file existence does not establish historical implementation. Preserve proposal qualification separately."
+      }
+    },
+    {
+      "position": 6,
+      "old_key": "fa:agent-templates-spec:part_of:hermes-ops:1788307200000000000",
+      "expected_sha256": "c5ac999f0da2e4f6b95925111c5a04a6591a73ea09943d18a1191fd0f3b430f8",
+      "fact": {
+        "src": "agent-templates-spec",
+        "relation": "part_of",
+        "dst": "hermes-ops",
+        "fact": "Spec written to docs/superpowers/specs/2026-09-02-hermes-agent-templates-design.md on a new agent-templates branch in worktree ~/workspace/hermes/hermes-ops-agents, cut from origin/main so Jeff's main checkout is untouched.",
+        "valid_from": "2026-09-02T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "277fead1c7a904d139dc844662262e520dad68ff8519c4363da1578c8fbcd661"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS",
+        "proposed_src": "agent-templates-spec",
+        "proposed_dst": "hermes-ops",
+        "reason": "Episode 277fead1 says a design spec was committed on an agent-templates branch in a separate hermes-ops worktree. The exact named design document is present in the local hermes-ops repository and its complete contents describe that repository/host boundary.",
+        "caveat": "Current artifact has later clarified decisions; existence corroborates repository identity, not all historical claims or deployment.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "PASS_KEEP_ENDPOINTS",
+        "src": "Supported: exact named design artifact",
+        "dst": "Supported: hermes-ops repository",
+        "reason": "The complete source episode says the spec was committed in a separate hermes-ops worktree; the full named local document corroborates repository identity and design scope.",
+        "uncertainty": "Current spec includes later decisions. This is not a test of historical branch ancestry or runtime deployment."
+      }
+    },
+    {
+      "position": 7,
+      "old_key": "fa:ai-syncpy:lacks:mac-mini:1788374363617000000",
+      "expected_sha256": "f62734be670a892a6cbdcfae69e560dcf8c3bbcf2a9ba6d82d59b6b8f9b374c4",
+      "fact": {
+        "src": "ai-syncpy",
+        "relation": "lacks",
+        "dst": "mac-mini",
+        "raw_relation": "not_deployed_on",
+        "fact": "ai-sync's kimi MCP config was deliberately not copied to the mini because it points at MCP servers running on Jeff's Mac.",
+        "valid_from": "2026-09-02T18:39:23.617Z",
+        "confidence": 1,
+        "episodes": [
+          "de6e931aa9f3b4d9f23f659192e8f53305194d90bc98a1a611ab67bceeb3cfae"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS_WITH_SEMANTIC_CAVEAT",
+        "proposed_src": "ai-syncpy",
+        "proposed_dst": "mac-mini",
+        "reason": "Episode de6e931a covers Kimi installation on user jclaw's Mac mini while leaving dotfiles/ai-sync MCP changes unmade. Its companion mac-mini unmanaged_by dotfiles supports treating this as a machine-specific omission, not gateway behavior or repository contents.",
+        "caveat": "The source is the sync tool but the sentence concerns one config output, not absence of the whole program. Preserve its narrower raw_relation and full sentence; do not infer all ai-sync deployment state.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "UNRESOLVED",
+        "src": "Tool association is plausible, but the asserted subject is one generated Kimi MCP config",
+        "dst": "Supported machine reference: mac-mini",
+        "reason": "The episode says Kimi was installed/authenticated while no dotfiles/ai-sync MCP changes were made; companion machine-unmanaged-by-dotfiles fact supports a host-specific omission. Neither evidence supports the canonical assertion ai-sync.py lacks Mac mini. The source also broadens one configuration output into the whole sync tool.",
+        "uncertainty": "Need a reviewed representation of the configuration omission and relation direction. Do not conclude the entire tool is absent, swap endpoints automatically, or infer a new config entity."
+      }
+    },
+    {
+      "position": 8,
+      "old_key": "fa:aihaloopenwebui:deployed_on:mac-mini:1787702400000000000",
+      "expected_sha256": "47039a7d032cc0e9d91c9b12d9fe18a559f7c73fc6afefe6856d63cafcecbf4c",
+      "fact": {
+        "src": "aihaloopenwebui",
+        "relation": "deployed_on",
+        "dst": "mac-mini",
+        "fact": "Open WebUI is under launchd on mini with KeepAlive, on port 9999.",
+        "valid_from": "2026-08-26T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "7626c983eea29e2889920b4c2cd4f4f993d2d893c47f971e1693435e27bdf06b"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS",
+        "proposed_src": "aihaloopenwebui",
+        "proposed_dst": "mac-mini",
+        "reason": "Episode 7626c983 describes hardening previously hand-started infrastructure into launchd/systemd services. The service entity explicitly names ai.halo.openwebui on Mini port 9999; same-episode proxy and cluster companions separate Mini launchd services from Halo systemd workers.",
+        "caveat": "Snapshot ownership review, not a new current live health test.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "PASS_KEEP_ENDPOINTS",
+        "src": "Supported: ai.halo.openwebui service",
+        "dst": "Supported deployment host: mac-mini",
+        "reason": "Hardening episode and paired service/cluster companions distinguish Mini launchd services from Linux systemd workers. The service identity and port agree.",
+        "uncertainty": "Historical snapshot ownership only; no current live health test. Contaminated sibling Halo endpoint assignments are not endorsed."
+      }
+    },
+    {
+      "position": 9,
+      "old_key": "fa:aihaloproxy:deployed_on:mac-mini:1787702400000000000",
+      "expected_sha256": "0475c48b31677b60219d574ee1cb7de0a18ed734ffee63842b9eff242f06cf18",
+      "fact": {
+        "src": "aihaloproxy",
+        "relation": "deployed_on",
+        "dst": "mac-mini",
+        "fact": "The labeling proxy is under launchd on mini with KeepAlive, on port 9998.",
+        "valid_from": "2026-08-26T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "7626c983eea29e2889920b4c2cd4f4f993d2d893c47f971e1693435e27bdf06b"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS",
+        "proposed_src": "aihaloproxy",
+        "proposed_dst": "mac-mini",
+        "reason": "The same hardening episode and paired Open WebUI companion distinguish the Mini labeling proxy launchd service on port 9998 from the Linux cluster workers. Service identity is ai.halo.proxy; deployment host remains mac-mini.",
+        "caveat": "Snapshot ownership review, not a new current live health test.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "PASS_KEEP_ENDPOINTS",
+        "src": "Supported: ai.halo.proxy service",
+        "dst": "Supported deployment host: mac-mini",
+        "reason": "Same hardening episode and paired Open WebUI fact identify the Mini launchd labeling proxy on port 9998, distinct from the Linux worker/coordinator.",
+        "uncertainty": "Historical snapshot ownership only; no current live health test."
+      }
+    },
+    {
+      "position": 10,
+      "old_key": "fa:alert:replaced_by:hermes:1787967781264019000",
+      "expected_sha256": "6891005959c95f3d1c5076619fc49f29f350dfa0f3730c43e84259f548d8853e",
+      "fact": {
+        "src": "alert",
+        "relation": "replaced_by",
+        "dst": "hermes",
+        "raw_relation": "deduplicates",
+        "fact": "Hermes de-duplicates alerts so a standing problem is reported once, then again only after 24 hours, then once when it resolves",
+        "valid_from": "2026-08-28T21:43:01.264019-04:00",
+        "confidence": 1,
+        "episodes": [
+          "cb82aa1b3eedccf0f52bc59097abf4011ee1949d031f1d827b8cc4fa943592ba"
+        ]
+      },
+      "submitted_review": {
+        "disposition": "KEEP_ENDPOINTS_WITH_SEMANTIC_CAVEAT",
+        "proposed_src": "alert",
+        "proposed_dst": "hermes",
+        "reason": "Manual episode cb82aa1b explicitly describes Hermes monitoring cron behavior and the 24-hour alert deduplication policy. Companion Hermes calls monitoring-job facts support gateway behavior rather than repository or machine ownership; alert remains the notification object.",
+        "caveat": "Canonical replaced_by reverses the natural behavior meaning of raw deduplicates. Endpoint relocation alone cannot correct that semantic problem; preserve original relation/text and flag a separate relation-direction review.",
+        "independent_review": "pending",
+        "applied": false
+      },
+      "independent_review": {
+        "verdict": "UNRESOLVED",
+        "src": "Alert is the notification object, not the acting deduplicator",
+        "dst": "Hermes is the gateway actor in this behavior, not a replacement for an alert",
+        "reason": "The complete manual episode and Hermes monitoring companions unambiguously describe Hermes deduplicating alerts. Stored alert replaced_by Hermes contradicts that behavior; raw deduplicates also has the wrong endpoint direction. Endpoint identity recognition cannot settle this directional edge.",
+        "uncertainty": "Requires separate explicit relation/direction review under the closed vocabulary. Do not swap endpoints while retaining replaced_by or treat note-only caveat as a settled keep."
+      }
+    }
+  ]
+}
