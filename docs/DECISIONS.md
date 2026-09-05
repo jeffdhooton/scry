@@ -3400,3 +3400,14 @@ Regressions require typed canonical metadata and historical facts to survive,
 the fact endpoint to resolve to the retained slug, and ordinary cross-type
 aliases still to fail atomically. The patch remains subject to independent
 code/replica and deployment gates before live installation or exact retry.
+
+**Reviewer correction.** The first exception (`a965177`, never deployed)
+failed with two pre-existing `Atlas` identities that both retained nonnatural
+slugs: the index owner was a project, yet a new machine assertion routed to
+it. It also admitted mismatched metadata from the generic phrase “the
+machine,” which the prior type refusal had blocked. The corrected exception
+uses existing reference/determiner guards and scans all established canonical
+names inside the same episode transaction before bypassing a type conflict.
+Any second canonical homonym refuses the episode; type or index order cannot
+choose an owner. The scan runs only on this exceptional nonnatural-slug,
+canonical-name, type-conflict path. Ordinary alias handling is unchanged.

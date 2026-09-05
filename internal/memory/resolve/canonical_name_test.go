@@ -80,3 +80,78 @@ func TestCanonicalNameExceptionDoesNotTrustCrossTypeAlias(t *testing.T) {
 		t.Fatalf("rejected episode committed: %v, %v", exists, err)
 	}
 }
+
+func TestCanonicalNameRefusesRetainedHomonyms(t *testing.T) {
+	st := openTemp(t)
+	project := store.Entity{Slug: "atlas-project-id", Name: "Atlas", Type: "project"}
+	machine := store.Entity{Slug: "atlas-machine-id", Name: "Atlas", Type: "machine"}
+	if err := st.PutEntity(project); err != nil {
+		t.Fatal(err)
+	}
+	// Explicitly construct legacy conflicting ownership, not an ordinary write.
+	if err := st.ClaimAlias("Atlas", machine.Slug); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutEntity(machine); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ClaimAlias("Atlas", project.Slug); err != nil {
+		t.Fatal(err)
+	}
+	beforeEntities, err := st.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeClaims, err := st.AliasClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ep := store.Episode{ID: "ambiguous-retained-homonyms", OccurredAt: time.Now()}
+	_, err = Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{Name: "Atlas", Type: "machine"}}, Facts: []extract.Fct{{Src: "Atlas", Relation: RelRunsOn, Dst: "linux", Fact: "The Atlas machine runs Linux.", Confidence: 1}}}, DefaultExclusive)
+	if !errors.Is(err, store.ErrAliasClaimed) {
+		t.Fatalf("ambiguous routing succeeded: %v", err)
+	}
+	afterEntities, err := st.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterClaims, err := st.AliasClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(beforeEntities, afterEntities) || !reflect.DeepEqual(beforeClaims, afterClaims) {
+		t.Fatal("ambiguous episode changed identity or routing")
+	}
+	if facts, err := st.AllFacts(); err != nil || len(facts) != 0 {
+		t.Fatalf("ambiguous episode wrote facts: %+v, %v", facts, err)
+	}
+	if exists, err := st.HasEpisode(ep.ID); err != nil || exists {
+		t.Fatalf("ambiguous episode committed: %v, %v", exists, err)
+	}
+}
+
+func TestCanonicalNameDoesNotPromoteGenericReference(t *testing.T) {
+	for _, name := range []string{"the machine", "the_machine", "the-machine", "this box"} {
+		t.Run(name, func(t *testing.T) {
+			st := openTemp(t)
+			owner := store.Entity{Slug: "cedar-retained", Name: name, Type: "project"}
+			if err := st.PutEntity(owner); err != nil {
+				t.Fatal(err)
+			}
+			ep := store.Episode{ID: "generic-canonical", OccurredAt: time.Now()}
+			stats, err := Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{Name: name, Type: "machine", Description: "Must not fill generic owner metadata"}}}, DefaultExclusive)
+			// "this box" is already rejected by the earlier generic-entity
+			// gate. The other legacy spellings must retain conflict refusal.
+			if name != "this box" && !errors.Is(err, store.ErrAliasClaimed) {
+				t.Fatalf("generic canonical accepted: %v", err)
+			}
+			if stats.EntitiesUpdated != 0 || stats.EntitiesCreated != 0 {
+				t.Fatalf("generic reference mutated identities: %+v", stats)
+			}
+			got, err := st.GetEntity(owner.Slug)
+			if err != nil || !reflect.DeepEqual(got, owner) {
+				t.Fatalf("generic owner mutated: %+v, %v", got, err)
+			}
+		})
+	}
+}

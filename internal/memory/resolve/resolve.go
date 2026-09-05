@@ -231,6 +231,13 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 		// naming a different kind of thing. Keep the exact natural-slug veto
 		// above and all cross-type checks for noncanonical alias mentions.
 		canonicalName := store.Normalize(owner.Name) == store.Normalize(ent.Name)
+		needsTypeBypass := !TypesCompatible(owner.Type, ent.Type) || (concepts(owner.Type) && !concepts(ent.Type))
+		if found && canonicalName && needsTypeBypass {
+			canonicalName, err = uniqueCanonicalMention(st, owner, ent.Name)
+			if err != nil {
+				return "", err
+			}
+		}
 		if found && !canonicalName && !TypesCompatible(owner.Type, ent.Type) {
 			found = false
 		}
@@ -322,6 +329,34 @@ func resolveEntity(st *store.Store, ep store.Episode, cwd string, ent extract.En
 	}
 	stats.EntitiesUpdated++
 	return slug, nil
+}
+
+// uniqueCanonicalMention is only the exceptional cross-type canonical-name
+// path for a retained, nonnatural slug. An index has one routing owner but
+// legacy state may contain several established canonical homonyms. Refuse
+// ambiguity rather than choosing by index order or the extractor's new type.
+// The complete scan uses the same episode transaction, including its staged
+// writes, and does not change any existing identity or index claim.
+func uniqueCanonicalMention(st *store.Store, owner store.Entity, name string) (bool, error) {
+	normalized := store.Normalize(name)
+	for reference := range referenceWords {
+		if store.Normalize(reference) == normalized {
+			return false, nil
+		}
+	}
+	if isDeterminerPhrase(name) {
+		return false, nil
+	}
+	entities, err := st.Entities()
+	if err != nil {
+		return false, err
+	}
+	for _, entity := range entities {
+		if entity.Slug != owner.Slug && store.Normalize(entity.Name) == normalized {
+			return false, fmt.Errorf("%w: canonical name %q belongs to multiple existing identities %s and %s; explicit identity review required", store.ErrAliasClaimed, name, owner.Slug, entity.Slug)
+		}
+	}
+	return true, nil
 }
 
 // preservesArtifactIdentity keeps files, tickets, and real paths even when
