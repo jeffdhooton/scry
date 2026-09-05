@@ -1,0 +1,224 @@
+[
+  {
+    "id": "status-six-app-tests-32-passing",
+    "entity": "app-tests-32-passing",
+    "replacements": [
+      {
+        "old_key": "fa:statelicenselookup:related_to:app-tests-32-passing:1788480000000000000",
+        "expected_sha256": "4baa1c9b337894a98cbfa6ceb885ab0d5a6f5881412ee9ad8bd9a89fee37dd39",
+        "replacement": {
+          "src": "statelicenselookup",
+          "relation": "related_to",
+          "dst": "",
+          "value": "app-tests-32-passing",
+          "raw_relation": "status",
+          "fact": "At the two-release production update, all 32 application tests and 18 ingestion tests passed.",
+          "valid_from": "2026-09-04T00:00:00Z",
+          "confidence": 0.9,
+          "episodes": [
+            "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+          ]
+        },
+        "why": "Episode 3220878d distinguishes the earlier 32-test release result from the later 34-test discovery result. This is a time-specific count/result, not a test-suite identity. Preserve both assertions and the existing project source."
+      }
+    ],
+    "expected": {
+      "entities": {
+        "app-tests-32-passing": "21cd77d0912e974903922ddf2a6dac3230b05c7c43235dc4d07d567888f228b5",
+        "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+      },
+      "facts": "7906dd0f2d31b1045f866fafb9e68c0cea69dd7cd1219dba75e890e93ce8559b",
+      "alias_claims": "1ce46c1d40bead619eaaf01c31238ff4efe5217461a5aa6e29c6cbe2c836a7cb",
+      "adjacencies": "027d418f12bf817eb1ff98c70f0e720a1e9e4207c6d582a4bf5ba6a12625f9d2"
+    },
+    "why": "Episode 3220878d distinguishes the earlier 32-test release result from the later 34-test discovery result. This is a time-specific count/result, not a test-suite identity. Preserve both assertions and the existing project source."
+  },
+  {
+    "id": "status-six-app-tests-34-passing",
+    "entity": "app-tests-34-passing",
+    "replacements": [
+      {
+        "old_key": "fa:statelicenselookup:related_to:app-tests-34-passing:1788480000000000000",
+        "expected_sha256": "1f63f926b8a495c54415801f490f1eb49ba1607cd9f93a521c26d292cad65ba8",
+        "replacement": {
+          "src": "statelicenselookup",
+          "relation": "related_to",
+          "dst": "",
+          "value": "app-tests-34-passing",
+          "raw_relation": "status",
+          "fact": "After the discovery machinery landed, all 34 app tests and 18 ingestion tests pass.",
+          "valid_from": "2026-09-04T00:00:00Z",
+          "confidence": 0.95,
+          "episodes": [
+            "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+          ]
+        },
+        "why": "Episode 3220878d and its all-gates companion describe the later 34-test result after discovery tooling landed. Preserve its distinct text/time/confidence rather than superseding the earlier 32-test assertion."
+      }
+    ],
+    "expected": {
+      "entities": {
+        "app-tests-34-passing": "48db19d56237523afa6a5c2538450212736fac51ebb9cdbf67989ec466eebafa",
+        "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+      },
+      "facts": "ce90b116016815ff67b682ac6074ee8487086744c5adf517b7760f59e7204824",
+      "alias_claims": "c4081de654d54b0417585ada257fd7424f3f353fa86179a744fc70d4f27c26c0",
+      "adjacencies": "2747b5c49259d6b23616b2430d263188baeec7f68e0349740e8cb305531b4bfd"
+    },
+    "why": "Episode 3220878d and its all-gates companion describe the later 34-test result after discovery tooling landed. Preserve its distinct text/time/confidence rather than superseding the earlier 32-test assertion."
+  },
+  {
+    "id": "status-six-canonical-route-sitemap-passing",
+    "entity": "canonical-route-sitemap-passing",
+    "replacements": [
+      {
+        "old_key": "fa:statelicenselookup:related_to:canonical-route-sitemap-passing:1788393600000000000",
+        "expected_sha256": "53c5e54f3814e2e0d3d0ae632c693216616483217cbaccd9b6e20e51178d49d3",
+        "replacement": {
+          "src": "statelicenselookup",
+          "relation": "related_to",
+          "dst": "",
+          "value": "canonical-route-sitemap-passing",
+          "raw_relation": "status",
+          "fact": "The canonical route and sitemap passed on both production domains.",
+          "valid_from": "2026-09-03T00:00:00Z",
+          "confidence": 0.95,
+          "episodes": [
+            "7ce24fe4b4f012db56d5df6e738a6beb8bdfe606b05751ca45107ad3e1cb7e04"
+          ]
+        },
+        "why": "Manual episode 7ce24fe4 explicitly records a successful route/sitemap verification after deployment 52489a6. Retain the project and actual sitemap/guide/migration artifacts; only the verification result becomes a literal."
+      }
+    ],
+    "expected": {
+      "entities": {
+        "canonical-route-sitemap-passing": "95f1bd6fde77079803ec4d8889b8beb02565346a6ccff3c94241fdfdccd855e0",
+        "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+      },
+      "facts": "29730edb100470c17ee1dde4a9bd8ef21b7793f36d85ec742e2937141768e3d5",
+      "alias_claims": "98477fb6ec6838550a4030a50875fb6e46025b556d7e5869d9210f5f8b73de53",
+      "adjacencies": "702f71612a8f47f6ffd9bf18a32e719c53b7a83832603c785c9ceca3adcc2436"
+    },
+    "why": "Manual episode 7ce24fe4 explicitly records a successful route/sitemap verification after deployment 52489a6. Retain the project and actual sitemap/guide/migration artifacts; only the verification result becomes a literal."
+  },
+  {
+    "id": "status-six-indexing-audit-clean",
+    "entity": "indexing-audit-clean",
+    "replacements": [
+      {
+        "old_key": "fa:sitemap:related_to:indexing-audit-clean:1788480000000000000",
+        "expected_sha256": "dec9d539b37ea8b31ace309178c43ef7c3abc653648549dffcb793bbecdc817e",
+        "replacement": {
+          "src": "sitemap",
+          "relation": "related_to",
+          "dst": "",
+          "value": "indexing audit clean",
+          "raw_relation": "status",
+          "fact": "All 42 sitemap URLs returned 200 with unique titles and descriptions, exactly one H1, matching canonicals, valid JSON-LD, and no noindex.",
+          "valid_from": "2026-09-04T00:00:00Z",
+          "confidence": 1,
+          "episodes": [
+            "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+          ]
+        },
+        "why": "Manual episode e9a22440 reports no indexing defects and all 42 sitemap URLs passing. Both the site-level and sitemap-level facts describe that outcome, not a named audit artifact. Preserve both existing sources, including the broadly shared sitemap whose project-specific identity is a separate review."
+      },
+      {
+        "old_key": "fa:statelicenselookup:related_to:indexing-audit-clean:1788480000000000000",
+        "expected_sha256": "cca82055463b5bd07f49271dff98b10331f46b928c65658957789e57c95094af",
+        "replacement": {
+          "src": "statelicenselookup",
+          "relation": "related_to",
+          "dst": "",
+          "value": "indexing audit clean",
+          "raw_relation": "status",
+          "fact": "The exhaustive 2026-09-04 production indexing audit found no indexing leak or malformed sitemap page.",
+          "valid_from": "2026-09-04T00:00:00Z",
+          "confidence": 1,
+          "episodes": [
+            "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+          ]
+        },
+        "why": "Manual episode e9a22440 reports no indexing defects and all 42 sitemap URLs passing. Both the site-level and sitemap-level facts describe that outcome, not a named audit artifact. Preserve both existing sources, including the broadly shared sitemap whose project-specific identity is a separate review."
+      }
+    ],
+    "expected": {
+      "entities": {
+        "indexing-audit-clean": "1c3c24e94b9b98a78a8d8a622171cd5e4ce4b50297f0f6c878a1bc0678bf2e26",
+        "sitemap": "07a1e412c23449fbb3bf2a6d1a37df80125ad95f1585c4c563cd7c7c5ea0d740",
+        "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+      },
+      "facts": "8f776d54852e44b160ee146f21a999865cc9f1b5d1355ded02eb913d941f09c9",
+      "alias_claims": "f0d727bcb7d61d266bb813f0819b67e2ced2359bab25360534e2a188bda11b47",
+      "adjacencies": "12a6575ff3150c0a2ea3b00bb326dd286760af8eb7bd8b7e19bf26a8b8343a7f"
+    },
+    "why": "Manual episode e9a22440 reports no indexing defects and all 42 sitemap URLs passing. Both the site-level and sitemap-level facts describe that outcome, not a named audit artifact. Preserve both existing sources, including the broadly shared sitemap whose project-specific identity is a separate review."
+  },
+  {
+    "id": "status-six-live-checks-passing",
+    "entity": "live-checks-passing",
+    "replacements": [
+      {
+        "old_key": "fa:statelicenselookup:related_to:live-checks-passing:1788488184278331000",
+        "expected_sha256": "a7160ae02fb3973e7fd2ded3b66f548285e29c930249ad42fef8c2163c60c731",
+        "replacement": {
+          "src": "statelicenselookup",
+          "relation": "related_to",
+          "dst": "",
+          "value": "live-checks-passing",
+          "raw_relation": "status",
+          "fact": "Live routes and sitemap passed on both production domains.",
+          "valid_from": "2026-09-03T22:16:24.278331-04:00",
+          "confidence": 1,
+          "episodes": [
+            "d0c2c19d530b6957e4d2d380ed0d803a96af5577a5b3819b14b0c5bfcd1dbd6a"
+          ]
+        },
+        "why": "Manual episode d0c2c19d explicitly states routes and sitemap passed after deployment adb2c25. It is a time-specific verification result, not the retained route, sitemap, migration or deployment artifact."
+      }
+    ],
+    "expected": {
+      "entities": {
+        "live-checks-passing": "fef40c92136263d796c2ea758253016311378b96056f0a6200085f84208b52b5",
+        "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+      },
+      "facts": "a55d0ee07a8b69cfed1da195185c265105b00baa8643a6ca3818b35872cd323a",
+      "alias_claims": "c316f84a2f9b7646eaabc7462f84a9f04ea31d5f1c027be1db63fe7ef73ef42f",
+      "adjacencies": "e7f4831ffc32d4a339ba049e057a19bce23387aa76503b49a619acb5593f9562"
+    },
+    "why": "Manual episode d0c2c19d explicitly states routes and sitemap passed after deployment adb2c25. It is a time-specific verification result, not the retained route, sitemap, migration or deployment artifact."
+  },
+  {
+    "id": "status-six-network-authorization-pending",
+    "entity": "network-authorization-pending",
+    "replacements": [
+      {
+        "old_key": "fa:statelicenselookup:blocked_by:network-authorization-pending:1788493234510000000",
+        "expected_sha256": "719b835b3fb0bb291f84845ebbaf9678098144e8a50c21fb0c1d57240eab7309",
+        "replacement": {
+          "src": "statelicenselookup",
+          "relation": "blocked_by",
+          "dst": "",
+          "value": "network-authorization-pending",
+          "fact": "354 authority/scope gaps remain; closing them requires running the prepared crawl batch, which needs explicit network authorization.",
+          "valid_from": "2026-09-04T03:40:34.51Z",
+          "confidence": 1,
+          "episodes": [
+            "d096302243f3060cfbff13890e46db6a7b3640a18eb7fe8c25da85d5b6f5b269"
+          ]
+        },
+        "why": "Episode d0963022 and hash-locked plan companions describe withheld authorization for a prepared crawl, not a service or policy document. Preserve blocked_by and the full assertion as a literal; this conversion grants no network approval and does not retire the actual plan or runner."
+      }
+    ],
+    "expected": {
+      "entities": {
+        "network-authorization-pending": "63d93cf28971dfa6094b3836a1ec3e3d91394430bb03f3e765e4f61c2a253c4d",
+        "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+      },
+      "facts": "4063d13a7c9075fb4620ff1b2ed7573a4dbf99d01cf72418e8b83ca0e2dd1e6d",
+      "alias_claims": "65d7071c6cb9c518708023e9ffc93118812a5090d55a9ff0a29d0f1899e3b2e1",
+      "adjacencies": "56df277b77ed9f8fb6f97a70238619ff3843fb56fe0e721156e5592bdc5b6bdc"
+    },
+    "why": "Episode d0963022 and hash-locked plan companions describe withheld authorization for a prepared crawl, not a service or policy document. Preserve blocked_by and the full assertion as a literal; this conversion grants no network approval and does not retire the actual plan or runner."
+  }
+]
