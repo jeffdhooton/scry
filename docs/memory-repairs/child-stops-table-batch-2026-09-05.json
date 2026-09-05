@@ -1,0 +1,28 @@
+{
+  "drops": [
+    {
+      "entity": "childscribe-laravel",
+      "alias": "stops table",
+      "why": "Complete Docket sources 7a57052a, 4d8170c9 and 15057dba identify the weight-ticket FK parent table, not the ChildScribe service. Expanded twelve-source review preserves contradictory migration assertions without endorsing them. No outside entity lists the exact normalized spelling. Remove only the unsupported Child alias/index with owner-specific rejection; no rehome to the stops/ directory, migration file or inferred table identity. Preserve all facts and prior rejection decisions."
+    }
+  ],
+  "expected": {
+    "plan": "ef7a0970016251e74b41e2db69c5d5c0d7b4b03c49e7a24a0b640df66906d35e",
+    "entities": {
+      "childscribe-laravel": "c7293a75b15d988dfd82a421349e8d80399352142e8264a94bcbc859398c115b"
+    },
+    "facts": "e476cf64dd83d44ee352f0f95bbd4600612ae68f74c0f8473a4fb019584aef4b",
+    "alias_claims": {
+      "stops-table": "childscribe-laravel"
+    },
+    "claim_present": {
+      "stops-table": true
+    },
+    "listings": {
+      "stops-table": [
+        "childscribe-laravel"
+      ]
+    },
+    "rejections": "1a40bf4d7af133a80d2109949d4f21a45194ec5871a74630aeffac238dfe392a"
+  }
+}
