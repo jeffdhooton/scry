@@ -1,0 +1,54 @@
+[
+  {
+    "id": "qwen-q5-sep05",
+    "survivor": "qwen38-27b-uncensored-q5",
+    "retire": [
+      "qwen3-8-27b-uncensored-q5"
+    ],
+    "drop_aliases": [
+      {
+        "alias": "Q5",
+        "drop_from": [
+          "qwen38-27b-uncensored-q8"
+        ],
+        "why": "Bare quantization label does not identify a specific model."
+      },
+      {
+        "alias": "Qwen3",
+        "why": "Family name is broader than this 27B uncensored Q5 model."
+      },
+      {
+        "alias": "Qwen3.8",
+        "why": "Family/version name is shared with the distinct Q8 model and does not identify this quantization."
+      }
+    ],
+    "metadata": {
+      "slug": "qwen38-27b-uncensored-q5",
+      "name": "qwen38-27b-uncensored-q5",
+      "type": "tool",
+      "description": "Qwen3.8-27B-Uncensored Q5_K_M GGUF (19.5 GB) downloaded and verified on the Halo, now registered in Lemonade.",
+      "aliases": [
+        "Qwen38-27B-Uncensored-Q5.gguf",
+        "qwen3-8-27b-uncensored-q5",
+        "3.8-27B-Q5"
+      ],
+      "repo_refs": [
+        "/Users/jclaw/workspace/deepresearch-codernext",
+        "/Users/jeff/dotfiles",
+        "/Users/jeff/workspace/context-stack/scry"
+      ],
+      "created_at": "2026-08-24T21:08:20.616Z",
+      "last_seen": "2026-09-04T17:22:55.192Z"
+    },
+    "expected": {
+      "entities": {
+        "qwen3-8-27b-uncensored-q5": "512a4f3d687b6beba910a6a33e03fe52d02d15d734b6eeb12b6559c611732a71",
+        "qwen38-27b-uncensored-q5": "f9223e6a0a74b0c3a4df0fc7ee861f25ece314fc139d1af5fc2ebc8604c7fdb4",
+        "qwen38-27b-uncensored-q8": "08003b57fdb8e7f55f2d6e1f9aef34f109f2758f218622e403601ca770ca84eb"
+      },
+      "facts": "a0e6e4e2dfdda946952b74dead3a6957b44aa1bb0ddd7f7a5db53fd92153838d",
+      "alias_claims": "7fd7d39c42e7968dec23495ab3bc9dc4962c0ecb6bfcddc29a4d1fcd8038a549"
+    },
+    "why": "Same explicit Qwen3.8 27B uncensored Q5 model identity, distinct from Q8. Preserve all current and historical facts; exclude ambiguous family and quantization-only aliases."
+  }
+]

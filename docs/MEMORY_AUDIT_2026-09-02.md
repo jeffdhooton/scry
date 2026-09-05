@@ -2643,3 +2643,31 @@ floors remain outstanding, and the new 50-question holdout is not yet due
 because graph cleanup is unfinished. No live entity repair accompanied the
 deploy. The remaining alias-conflict queue item was still in backoff at the
 first check; parking/drain must be observed, not assumed from the code tests.
+
+### Stable post-deployment Qwen repair gate — 2026-09-05
+
+The remaining deterministic alias conflict parked at 18:16:26 UTC after
+attempt 144. Episode `1e74c3ea7582f63d9daaa6d3cfb0ec41466615629a054df5fd4208cd3315c668`
+is preserved for reviewed repair and exact retry; it was not dropped or
+broadly replayed. The deployment remember extracted at 18:15:05. A new MCP
+subprocess successfully recalled two results in 86 ms with a 3,039-byte
+payload; the local call log recorded metrics, not recall content.
+
+At zero ready/backoff and one parked item, a fresh Mini backup was taken at
+18:17:07: `/Users/jclaw/.scry/backups/memory-20260905T181707Z.badger`,
+76,857,630 bytes, SHA-256
+`853d134fd52d4379d959c35181c5969d20ffa962c7df706a96cca8d4f9d26021`.
+It contains 30,169 entities, 79,547 facts and 9,281 episodes. Separate baseline
+and repair replicas are under `/tmp/scry-qwen-stable-sep05.3oLvJ7/`.
+
+Q8-to-Q5 exact alias rehome followed by the complete Q5 merge preserved all
+facts on the replica and reduced collisions 492 to 491 to 489. All five
+benchmark hit counts were unchanged between this baseline and repaired
+replica: 51/62, 30/66, 7/7, 44/50, 46/50; largest payload 13,367 bytes before,
+13,358 after. These remain below three original floors.
+
+Fresh independent review passed the exact repository manifests and source
+snapshot; see `memory-repairs/qwen-review-2026-09-05.md` for hashes, complete
+scope and live preconditions. Room sequence 60 records the verdict. This
+gate is not a live apply receipt. New unrelated queued work at 18:24 means
+the lead must observe stability again before applying.

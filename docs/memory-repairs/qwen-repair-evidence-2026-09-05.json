@@ -1,0 +1,656 @@
+{
+  "status": "replica_proven_pending_independent_review",
+  "code": "af77a6a5841ec58970887408480bf1b8452d84ce",
+  "snapshot": "/Users/jclaw/.scry/backups/memory-20260905T181707Z.badger",
+  "snapshot_bytes": 76857630,
+  "snapshot_sha256": "853d134fd52d4379d959c35181c5969d20ffa962c7df706a96cca8d4f9d26021",
+  "queue_at_snapshot": {
+    "ready": 0,
+    "backoff": 0,
+    "parked": 1
+  },
+  "pre_rehome": {
+    "backup_bytes": 76857646,
+    "facts_unchanged": 79547,
+    "owner_after": "qwen38-27b-uncensored-q5",
+    "source_before": {
+      "slug": "qwen38-27b-uncensored-q8",
+      "name": "Qwen38-27B-Uncensored-Q8",
+      "type": "tool",
+      "description": "Large language model kept resident on Lemonade.",
+      "aliases": [
+        "Qwen38-27B",
+        "qwen",
+        "Qwen",
+        "uncensored qwen",
+        "uncensored 27B",
+        "Q8",
+        "Q5",
+        "qwen38-27b",
+        "qwen38-27b-unc",
+        "uncensored Qwen",
+        "uncensored Qwen3.8-27B",
+        "qwen38",
+        "qwen4exp",
+        "official Qwen3.8-27B Q5",
+        "Qwen38-27B GGUF Q5",
+        "Q4_K_M",
+        "Qwen3.8-27B",
+        "Qwen3.8-27B-UD-Q5_K_XL.gguf",
+        "Qwen worker model",
+        "worker model",
+        "qwen model",
+        "Qwen38-27B-Uncensored",
+        "qwen worker",
+        "Q4_K_XL model",
+        "Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0",
+        "Qwen3.8-27B-Uncensored-OrcaRouter-GGUF-Q8_0",
+        "halo-qwen",
+        "local qwen worker",
+        "qwen3.8-uncensored",
+        "setpoint-qwen38",
+        "Halo Qwen Q8",
+        "Qwen3.8-27B-Uncensored-Q8",
+        "uncensored qwen3.8",
+        "orcarouter/Qwen3.8-27B-Uncensored:latest",
+        "setpoint-qwen38:latest",
+        "qwen3.8:27b",
+        "qwen38-27b-uncensored-q5"
+      ],
+      "repo_refs": [
+        "/Users/jeff/dotfiles",
+        "/Users/jeff/workspace/qwen3-coder-next-benchmark",
+        "/Users/jeff/workspace/scribe",
+        "/Users/jeff/workspace/build",
+        "/Users/jeff/workspace/context-stack/scry",
+        "/Users/jeff/Herd/hoopless_crm"
+      ],
+      "created_at": "2026-08-21T19:01:51.275066-04:00",
+      "last_seen": "2026-09-04T18:35:09.924Z"
+    },
+    "source_sha256": "e9d57b888152c02611a3fd781fcb25dca921a94572ce6886d32dd3fa8ec401fc",
+    "target_before": {
+      "slug": "qwen38-27b-uncensored-q5",
+      "name": "qwen38-27b-uncensored-q5",
+      "type": "tool",
+      "description": "Qwen3.8-27B-Uncensored Q5_K_M GGUF (19.5 GB) downloaded and verified on the Halo, now registered in Lemonade.",
+      "aliases": [
+        "Q5",
+        "Qwen38-27B-Uncensored-Q5.gguf"
+      ],
+      "repo_refs": [
+        "/Users/jclaw/workspace/deepresearch-codernext",
+        "/Users/jeff/dotfiles",
+        "/Users/jeff/workspace/context-stack/scry"
+      ],
+      "created_at": "2026-08-24T21:08:20.616Z",
+      "last_seen": "2026-09-04T17:22:55.192Z"
+    },
+    "target_sha256": "f9223e6a0a74b0c3a4df0fc7ee861f25ece314fc139d1af5fc2ebc8604c7fdb4"
+  },
+  "merge_preview": {
+    "dry_run": true,
+    "applied": 0,
+    "refused": 0,
+    "groups": [
+      {
+        "id": "qwen-q5-sep05",
+        "survivor": "qwen38-27b-uncensored-q5",
+        "retire": [
+          "qwen3-8-27b-uncensored-q5"
+        ],
+        "entities": {
+          "qwen3-8-27b-uncensored-q5": {
+            "slug": "qwen3-8-27b-uncensored-q5",
+            "name": "qwen3-8-27b-uncensored-q5",
+            "type": "machine",
+            "description": "The current model driving the deepresearch build on the mini; dense 27B, ~19.5 GB, slow decode.",
+            "aliases": [
+              "3.8-27B-Q5",
+              "Qwen3.8",
+              "Qwen3"
+            ],
+            "repo_refs": [
+              "/Users/jeff/dotfiles",
+              "/Users/jeff/workspace/context-stack/scry"
+            ],
+            "created_at": "2026-08-25T01:18:53.276Z",
+            "last_seen": "2026-09-04T17:12:57.295Z"
+          },
+          "qwen38-27b-uncensored-q5": {
+            "slug": "qwen38-27b-uncensored-q5",
+            "name": "qwen38-27b-uncensored-q5",
+            "type": "tool",
+            "description": "Qwen3.8-27B-Uncensored Q5_K_M GGUF (19.5 GB) downloaded and verified on the Halo, now registered in Lemonade.",
+            "aliases": [
+              "Q5",
+              "Qwen38-27B-Uncensored-Q5.gguf"
+            ],
+            "repo_refs": [
+              "/Users/jclaw/workspace/deepresearch-codernext",
+              "/Users/jeff/dotfiles",
+              "/Users/jeff/workspace/context-stack/scry"
+            ],
+            "created_at": "2026-08-24T21:08:20.616Z",
+            "last_seen": "2026-09-04T17:22:55.192Z"
+          }
+        },
+        "alias_disposition_entities": {
+          "qwen38-27b-uncensored-q8": {
+            "slug": "qwen38-27b-uncensored-q8",
+            "name": "Qwen38-27B-Uncensored-Q8",
+            "type": "tool",
+            "description": "Large language model kept resident on Lemonade.",
+            "aliases": [
+              "Qwen38-27B",
+              "qwen",
+              "Qwen",
+              "uncensored qwen",
+              "uncensored 27B",
+              "Q8",
+              "Q5",
+              "qwen38-27b",
+              "qwen38-27b-unc",
+              "uncensored Qwen",
+              "uncensored Qwen3.8-27B",
+              "qwen38",
+              "qwen4exp",
+              "official Qwen3.8-27B Q5",
+              "Qwen38-27B GGUF Q5",
+              "Q4_K_M",
+              "Qwen3.8-27B",
+              "Qwen3.8-27B-UD-Q5_K_XL.gguf",
+              "Qwen worker model",
+              "worker model",
+              "qwen model",
+              "Qwen38-27B-Uncensored",
+              "qwen worker",
+              "Q4_K_XL model",
+              "Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0",
+              "Qwen3.8-27B-Uncensored-OrcaRouter-GGUF-Q8_0",
+              "halo-qwen",
+              "local qwen worker",
+              "qwen3.8-uncensored",
+              "setpoint-qwen38",
+              "Halo Qwen Q8",
+              "Qwen3.8-27B-Uncensored-Q8",
+              "uncensored qwen3.8",
+              "orcarouter/Qwen3.8-27B-Uncensored:latest",
+              "setpoint-qwen38:latest",
+              "qwen3.8:27b"
+            ],
+            "repo_refs": [
+              "/Users/jeff/dotfiles",
+              "/Users/jeff/workspace/qwen3-coder-next-benchmark",
+              "/Users/jeff/workspace/scribe",
+              "/Users/jeff/workspace/build",
+              "/Users/jeff/workspace/context-stack/scry",
+              "/Users/jeff/Herd/hoopless_crm"
+            ],
+            "created_at": "2026-08-21T19:01:51.275066-04:00",
+            "last_seen": "2026-09-04T18:35:09.924Z"
+          }
+        },
+        "proposed_alias_disposition_entities": {
+          "qwen38-27b-uncensored-q8": {
+            "slug": "qwen38-27b-uncensored-q8",
+            "name": "Qwen38-27B-Uncensored-Q8",
+            "type": "tool",
+            "description": "Large language model kept resident on Lemonade.",
+            "aliases": [
+              "Qwen38-27B",
+              "qwen",
+              "Qwen",
+              "uncensored qwen",
+              "uncensored 27B",
+              "Q8",
+              "qwen38-27b",
+              "qwen38-27b-unc",
+              "uncensored Qwen",
+              "uncensored Qwen3.8-27B",
+              "qwen38",
+              "qwen4exp",
+              "official Qwen3.8-27B Q5",
+              "Qwen38-27B GGUF Q5",
+              "Q4_K_M",
+              "Qwen3.8-27B",
+              "Qwen3.8-27B-UD-Q5_K_XL.gguf",
+              "Qwen worker model",
+              "worker model",
+              "qwen model",
+              "Qwen38-27B-Uncensored",
+              "qwen worker",
+              "Q4_K_XL model",
+              "Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0",
+              "Qwen3.8-27B-Uncensored-OrcaRouter-GGUF-Q8_0",
+              "halo-qwen",
+              "local qwen worker",
+              "qwen3.8-uncensored",
+              "setpoint-qwen38",
+              "Halo Qwen Q8",
+              "Qwen3.8-27B-Uncensored-Q8",
+              "uncensored qwen3.8",
+              "orcarouter/Qwen3.8-27B-Uncensored:latest",
+              "setpoint-qwen38:latest",
+              "qwen3.8:27b"
+            ],
+            "repo_refs": [
+              "/Users/jeff/dotfiles",
+              "/Users/jeff/workspace/qwen3-coder-next-benchmark",
+              "/Users/jeff/workspace/scribe",
+              "/Users/jeff/workspace/build",
+              "/Users/jeff/workspace/context-stack/scry",
+              "/Users/jeff/Herd/hoopless_crm"
+            ],
+            "created_at": "2026-08-21T19:01:51.275066-04:00",
+            "last_seen": "2026-09-04T18:35:09.924Z"
+          }
+        },
+        "proposed_metadata": {
+          "slug": "qwen38-27b-uncensored-q5",
+          "name": "qwen38-27b-uncensored-q5",
+          "type": "tool",
+          "description": "Qwen3.8-27B-Uncensored Q5_K_M GGUF (19.5 GB) downloaded and verified on the Halo, now registered in Lemonade.",
+          "aliases": [
+            "Qwen38-27B-Uncensored-Q5.gguf",
+            "qwen3-8-27b-uncensored-q5",
+            "3.8-27B-Q5"
+          ],
+          "repo_refs": [
+            "/Users/jclaw/workspace/deepresearch-codernext",
+            "/Users/jeff/dotfiles",
+            "/Users/jeff/workspace/context-stack/scry"
+          ],
+          "created_at": "2026-08-24T21:08:20.616Z",
+          "last_seen": "2026-09-04T17:22:55.192Z"
+        },
+        "expected": {
+          "entities": {
+            "qwen3-8-27b-uncensored-q5": "512a4f3d687b6beba910a6a33e03fe52d02d15d734b6eeb12b6559c611732a71",
+            "qwen38-27b-uncensored-q5": "f9223e6a0a74b0c3a4df0fc7ee861f25ece314fc139d1af5fc2ebc8604c7fdb4",
+            "qwen38-27b-uncensored-q8": "08003b57fdb8e7f55f2d6e1f9aef34f109f2758f218622e403601ca770ca84eb"
+          },
+          "facts": "a0e6e4e2dfdda946952b74dead3a6957b44aa1bb0ddd7f7a5db53fd92153838d",
+          "alias_claims": "7fd7d39c42e7968dec23495ab3bc9dc4962c0ecb6bfcddc29a4d1fcd8038a549"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:amd-strix-halo-llm-finetuning:implements:qwen38-27b-uncensored-q5:1787756733042000000",
+            "sha256": "0c7b0e90125a564d82e8b1ec88204a2dd30b452d5dbbf0e371561ba4d1df85b3",
+            "invalidated": false,
+            "fact": "Toolbox supports multi-node training via DDP/FSDP and QLoRA is the only option for a 27B on one box.",
+            "snapshot": {
+              "src": "amd-strix-halo-llm-finetuning",
+              "relation": "implements",
+              "dst": "qwen38-27b-uncensored-q5",
+              "raw_relation": "supports",
+              "fact": "Toolbox supports multi-node training via DDP/FSDP and QLoRA is the only option for a 27B on one box.",
+              "valid_from": "2026-08-26T15:05:33.042Z",
+              "confidence": 0.95,
+              "episodes": [
+                "d167534309a45957f6d4161dcefcf556920a3c2bba888a9cd52ea0e643b99ae7"
+              ]
+            }
+          },
+          {
+            "key": "fa:halo-fast:replaced_by:qwen38-27b-uncensored-q5:1787595300000000000",
+            "sha256": "24b0d8b5d96ab3c99b61ef51772de85054edcfd2c503ae719fd63a50f493b9b5",
+            "invalidated": false,
+            "fact": "Q5 replaces HaloFast as the fast model option on the Halo",
+            "snapshot": {
+              "src": "halo-fast",
+              "relation": "replaced_by",
+              "dst": "qwen38-27b-uncensored-q5",
+              "fact": "Q5 replaces HaloFast as the fast model option on the Halo",
+              "valid_from": "2026-08-24T18:15:00Z",
+              "confidence": 1,
+              "episodes": [
+                "3bcfe89677e433fd24588e404e3a13f81390ea6be750eb90c6e7147da687d81c"
+              ]
+            }
+          },
+          {
+            "key": "fa:hermes-config:replaced_by:qwen38-27b-uncensored-q5:1787594400000000000",
+            "sha256": "60677b77a05b1312bcaac993115da0f8c917e092d7c194b6382e7155bd7b3ca6",
+            "invalidated": false,
+            "fact": "Hermes config main model changed from Q8 to gpt-oss-120b temporarily; Q5 will be main after benchmark",
+            "snapshot": {
+              "src": "hermes-config",
+              "relation": "replaced_by",
+              "dst": "qwen38-27b-uncensored-q5",
+              "fact": "Hermes config main model changed from Q8 to gpt-oss-120b temporarily; Q5 will be main after benchmark",
+              "valid_from": "2026-08-24T18:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "3bcfe89677e433fd24588e404e3a13f81390ea6be750eb90c6e7147da687d81c"
+              ]
+            }
+          },
+          {
+            "key": "fa:inference-endpoint-13306:provides:qwen38-27b-uncensored-q5:1787640138440000000",
+            "sha256": "d2a1f6bc891cece7c4ffe1372c2084f6b77e68471eac3927ea80c60b2ae0482d",
+            "invalidated": false,
+            "fact": "Qwen38-27B-Uncensored-Q5 is the default model on the inference endpoint.",
+            "snapshot": {
+              "src": "inference-endpoint-13306",
+              "relation": "provides",
+              "dst": "qwen38-27b-uncensored-q5",
+              "raw_relation": "serves",
+              "fact": "Qwen38-27B-Uncensored-Q5 is the default model on the inference endpoint.",
+              "valid_from": "2026-08-25T02:42:18.44-04:00",
+              "confidence": 1,
+              "episodes": [
+                "57212bb4a0ee764998dab9c1952fec29a89b57bc9627be6fed9e06225f3577ed"
+              ]
+            }
+          },
+          {
+            "key": "fa:lemonade:provides:qwen38-27b-uncensored-q5:1787756733042000000",
+            "sha256": "f36ef06690c4595decda692f1482fdda32a019c50afc0d431e2dea52125aa6cb",
+            "invalidated": false,
+            "fact": "Serving continues on halo during training, with zero downtime.",
+            "snapshot": {
+              "src": "lemonade",
+              "relation": "provides",
+              "dst": "qwen38-27b-uncensored-q5",
+              "raw_relation": "serves",
+              "fact": "Serving continues on halo during training, with zero downtime.",
+              "valid_from": "2026-08-26T15:05:33.042Z",
+              "confidence": 0.98,
+              "episodes": [
+                "d167534309a45957f6d4161dcefcf556920a3c2bba888a9cd52ea0e643b99ae7"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen-merge-manifest:merged_into:qwen38-27b-uncensored-q5:1788542575192000000",
+            "sha256": "c5672dc3c1ec8b987c5238d1477001916aa5f3023c0e36796c38f1616f8ddb90",
+            "invalidated": false,
+            "fact": "Reviewed manifest consolidates the duplicate Qwen Q5 model entity into the Q8 survivor: 15 facts (14 current, 1 invalidated), no key collisions or self-loops, predicted collision reduction 343→341, and the generic Q5 alias deliberately excluded from transfer.",
+            "snapshot": {
+              "src": "qwen-merge-manifest",
+              "relation": "merged_into",
+              "dst": "qwen38-27b-uncensored-q5",
+              "raw_relation": "merges",
+              "fact": "Reviewed manifest consolidates the duplicate Qwen Q5 model entity into the Q8 survivor: 15 facts (14 current, 1 invalidated), no key collisions or self-loops, predicted collision reduction 343→341, and the generic Q5 alias deliberately excluded from transfer.",
+              "valid_from": "2026-09-04T17:22:55.192Z",
+              "confidence": 1,
+              "episodes": [
+                "6174fcad0d3b097cdac5adbd9f73a245bc9bbeaa566b7d9fe1526fb7da3363f9"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen3-8-27b-uncensored-q5:related_to:half-consolidated-husk:1788480000000000000",
+            "sha256": "158c4d1109dfb20b959074433795d1cabdf0e4e43cd8c2e5f35857a860a8a379",
+            "invalidated": false,
+            "fact": "The Qwen 'consolidation' was half a repair: reattach moved its fact edges to the survivor but not its name, aliases or type; it still answers to 'Qwen3.8', returns [] for exact memory-facts lookups, and recall's fuzziness still ranks the survivor first. The reviewer also caught homepageredesign (fuses two products' homepages) and pr80 (its one moved fact is about PR #75); nothing was applied.",
+            "snapshot": {
+              "src": "qwen3-8-27b-uncensored-q5",
+              "relation": "related_to",
+              "dst": "half-consolidated-husk",
+              "raw_relation": "status",
+              "fact": "The Qwen 'consolidation' was half a repair: reattach moved its fact edges to the survivor but not its name, aliases or type; it still answers to 'Qwen3.8', returns [] for exact memory-facts lookups, and recall's fuzziness still ranks the survivor first. The reviewer also caught homepageredesign (fuses two products' homepages) and pr80 (its one moved fact is about PR #75); nothing was applied.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "416bd0b4f61472a56edb29de8b728a48c0d3e50b6e48c28e197d213c6d67dfae"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen3-coder-next-benchmark:related_to:qwen38-27b-uncensored-q5:1787632942688000000",
+            "sha256": "63b2b44689faf57d9ec51575075bc2aac27a6bbe6b9778983e8cae7da0c7fb2e",
+            "invalidated": false,
+            "fact": "Coder-Next trades code cleanliness for momentum; left 5 tests failing while A kept 53 green.",
+            "snapshot": {
+              "src": "qwen3-coder-next-benchmark",
+              "relation": "related_to",
+              "dst": "qwen38-27b-uncensored-q5",
+              "raw_relation": "is_tradeoff",
+              "fact": "Coder-Next trades code cleanliness for momentum; left 5 tests failing while A kept 53 green.",
+              "valid_from": "2026-08-25T04:42:22.688Z",
+              "confidence": 0.9,
+              "episodes": [
+                "8348186a913e3510339577ab3def73f8ef7ca9ce0bdf48aa7a09a32cb53cfa14"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen3-coder-next-benchmark:replaced_by:qwen3-8-27b-uncensored-q5:1787622960000000000",
+            "sha256": "5c12aae8f03ac1211cf1680b8c99a0e2dfa3c3474710509bc27cde17b70eb8ce",
+            "invalidated": true,
+            "fact": "Coder-Next outperformed the 27B in agentic research work, producing 3 reports vs 0.",
+            "snapshot": {
+              "src": "qwen3-coder-next-benchmark",
+              "relation": "replaced_by",
+              "dst": "qwen3-8-27b-uncensored-q5",
+              "fact": "Coder-Next outperformed the 27B in agentic research work, producing 3 reports vs 0.",
+              "valid_from": "2026-08-25T01:56:00Z",
+              "invalid_at": "2026-08-31T14:34:33.643Z",
+              "confidence": 0.85,
+              "episodes": [
+                "8348186a913e3510339577ab3def73f8ef7ca9ce0bdf48aa7a09a32cb53cfa14"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q5:deployed_on:lemonade:1787595300000000000",
+            "sha256": "fdf6f386df1215c6bdfaaaf11d08eefa2f02f0434037187ac018a1a583504ada",
+            "invalidated": false,
+            "fact": "Qwen3.8-27B Q5 registered in Lemonade after sudo install script ran",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q5",
+              "relation": "deployed_on",
+              "dst": "lemonade",
+              "fact": "Qwen3.8-27B Q5 registered in Lemonade after sudo install script ran",
+              "valid_from": "2026-08-24T18:15:00Z",
+              "confidence": 1,
+              "episodes": [
+                "3bcfe89677e433fd24588e404e3a13f81390ea6be750eb90c6e7147da687d81c"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q5:fixes:bench:1787632942688000000",
+            "sha256": "88d6f81b280dd8ed6443e2cd585a6799304aa9ccced815d5ec1c152610df5935",
+            "invalidated": false,
+            "fact": "Previously scored 4/4 on the 4-instance SWE-bench slice.",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q5",
+              "relation": "fixes",
+              "dst": "bench",
+              "raw_relation": "solves",
+              "fact": "Previously scored 4/4 on the 4-instance SWE-bench slice.",
+              "valid_from": "2026-08-25T04:42:22.688Z",
+              "confidence": 0.9,
+              "episodes": [
+                "8348186a913e3510339577ab3def73f8ef7ca9ce0bdf48aa7a09a32cb53cfa14"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q5:lacks:scry-replica:1788542575192000000",
+            "sha256": "157ee191d0d9eaddc09ad93f075c1b42c10e16af1cffbea335a52943b33f14d9",
+            "invalidated": false,
+            "fact": "After the merge applied, independent postconditions show the loser entity absent from the replica while the survivor remains non-hollow.",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q5",
+              "relation": "lacks",
+              "dst": "scry-replica",
+              "raw_relation": "absent_from",
+              "fact": "After the merge applied, independent postconditions show the loser entity absent from the replica while the survivor remains non-hollow.",
+              "valid_from": "2026-09-04T17:22:55.192Z",
+              "confidence": 1,
+              "episodes": [
+                "6174fcad0d3b097cdac5adbd9f73a245bc9bbeaa566b7d9fe1526fb7da3363f9"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q5:lacks:ttl-cache:1787284800000000000",
+            "sha256": "3c88e7abe2b139e1f67de60609177b7391a28daffb3f39627aa23a187f56c9ac",
+            "invalidated": false,
+            "fact": "Qwen3.8 hidden misses were duration leading decimals such as .5h and feature flag rollout hashing/bucketing",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q5",
+              "relation": "lacks",
+              "dst": "ttl-cache",
+              "raw_relation": "missed_on",
+              "fact": "Qwen3.8 hidden misses were duration leading decimals such as .5h and feature flag rollout hashing/bucketing",
+              "valid_from": "2026-08-21T00:00:00-04:00",
+              "confidence": 1,
+              "episodes": [
+                "f53ab787fecd770fffb6c8b6be9da7a49c60f24d71c61a6c3995d9b7919146f7"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q5:related_to:hermes:1787605700616000000",
+            "sha256": "4f2e5ab427415ee897932bf352e8c8402b8a7aba51bcb3186189415e4388b64c",
+            "invalidated": false,
+            "fact": "Dense 27B prefill is slow (30–90s for large system prompt), causing Hermes latency",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q5",
+              "relation": "related_to",
+              "dst": "hermes",
+              "raw_relation": "performance",
+              "fact": "Dense 27B prefill is slow (30–90s for large system prompt), causing Hermes latency",
+              "valid_from": "2026-08-24T21:08:20.616Z",
+              "confidence": 0.9,
+              "episodes": [
+                "3bcfe89677e433fd24588e404e3a13f81390ea6be750eb90c6e7147da687d81c"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q5:requires:safetensors:1787756733042000000",
+            "sha256": "48020db3cd9d34e12f8b900e14a45e8c8a2ea088f1dc5501c22e0efe463282d4",
+            "invalidated": false,
+            "fact": "The GGUF currently served can't be trained; QLoRA needs the bf16 safetensors (~54 GB download).",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q5",
+              "relation": "requires",
+              "dst": "safetensors",
+              "fact": "The GGUF currently served can't be trained; QLoRA needs the bf16 safetensors (~54 GB download).",
+              "valid_from": "2026-08-26T15:05:33.042Z",
+              "confidence": 0.98,
+              "episodes": [
+                "d167534309a45957f6d4161dcefcf556920a3c2bba888a9cd52ea0e643b99ae7"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q5:runs_on:lemonade:1787756733042000000",
+            "sha256": "87806f396528d6b97d1d1e3cc4e06364164960819efd8c59155249ed2f4cfb6a",
+            "invalidated": false,
+            "fact": "Qwen 27B Q5 via Lemonade runs on halo using 19.5 GB, leaving ~105 GB free.",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q5",
+              "relation": "runs_on",
+              "dst": "lemonade",
+              "fact": "Qwen 27B Q5 via Lemonade runs on halo using 19.5 GB, leaving ~105 GB free.",
+              "valid_from": "2026-08-26T15:05:33.042Z",
+              "confidence": 0.95,
+              "episodes": [
+                "d167534309a45957f6d4161dcefcf556920a3c2bba888a9cd52ea0e643b99ae7"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q5:tests:lemonade:1787592060000000000",
+            "sha256": "bc8c89ec0f00d31539f18b3234197a52139605c198dab041c58bfa41776c93ee",
+            "invalidated": false,
+            "fact": "Q5 sha256 verified against HF before install",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q5",
+              "relation": "tests",
+              "dst": "lemonade",
+              "raw_relation": "verified",
+              "fact": "Q5 sha256 verified against HF before install",
+              "valid_from": "2026-08-24T17:21:00Z",
+              "confidence": 1,
+              "episodes": [
+                "3bcfe89677e433fd24588e404e3a13f81390ea6be750eb90c6e7147da687d81c"
+              ]
+            }
+          },
+          {
+            "key": "fa:qwen38-27b-uncensored-q8:related_to:qwen3-8-27b-uncensored-q5:1788541953866000000",
+            "sha256": "eb48af4420ac8d45022450bcd76512e3e43f8e62331f4a8e6ae7ce7782676973",
+            "invalidated": false,
+            "fact": "The earlier qwen consolidation reattached its facts to this winner, which now holds 14 facts while the loser holds 0 (was 8) — verified live via scry memory facts on 2026-09-04.",
+            "snapshot": {
+              "src": "qwen38-27b-uncensored-q8",
+              "relation": "related_to",
+              "dst": "qwen3-8-27b-uncensored-q5",
+              "raw_relation": "absorbed_facts_from",
+              "fact": "The earlier qwen consolidation reattached its facts to this winner, which now holds 14 facts while the loser holds 0 (was 8) — verified live via scry memory facts on 2026-09-04.",
+              "valid_from": "2026-09-04T17:12:33.866Z",
+              "confidence": 0.95,
+              "episodes": [
+                "47d9d0ae32ec06f69324e429852e846726efaae66684b5588a3861b27b4b1862"
+              ]
+            }
+          },
+          {
+            "key": "fa:setpoint-qwen:documents:qwen38-27b-uncensored-q5:1787270400000000000",
+            "sha256": "c34321154bb623af2ad292810ddba70bc028f8edb8b0a27e5952a081afe38a0d",
+            "invalidated": false,
+            "fact": "setpoint-qwen:latest is Qwen3.8 27B Uncensored",
+            "snapshot": {
+              "src": "setpoint-qwen",
+              "relation": "documents",
+              "dst": "qwen38-27b-uncensored-q5",
+              "raw_relation": "refers_to",
+              "fact": "setpoint-qwen:latest is Qwen3.8 27B Uncensored",
+              "valid_from": "2026-08-21T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "58fb3f35de7a5cb7bbd8a25a4e42a4a0eb3edd050867a351b921619a9dd0083e"
+              ]
+            }
+          }
+        ],
+        "facts_touched": 19,
+        "current_facts": 18,
+        "invalidated_facts": 1,
+        "required_aliases": [
+          "3.8-27B-Q5",
+          "Qwen38-27B-Uncensored-Q5.gguf",
+          "qwen3-8-27b-uncensored-q5",
+          "qwen38-27b-uncensored-q5"
+        ],
+        "dropped_aliases": [
+          {
+            "alias": "Q5",
+            "drop_from": [
+              "qwen38-27b-uncensored-q8"
+            ],
+            "why": "Bare quantization label does not identify a specific model."
+          },
+          {
+            "alias": "Qwen3",
+            "why": "Family name is broader than this 27B uncensored Q5 model."
+          },
+          {
+            "alias": "Qwen3.8",
+            "why": "Family/version name is shared with the distinct Q8 model and does not identify this quantization."
+          }
+        ],
+        "repo_refs": [
+          "/Users/jclaw/workspace/deepresearch-codernext",
+          "/Users/jeff/dotfiles",
+          "/Users/jeff/workspace/context-stack/scry"
+        ],
+        "ready": true,
+        "applied": false,
+        "collisions_before": 491,
+        "collisions_after": 489,
+        "collision_delta": -2,
+        "collision_verified": false
+      }
+    ]
+  },
+  "scope": "Only the explicit Q5 duplicate pair plus reviewed Q8 alias dispositions. No Q8 fact reassignment. Recheck exact source/target snapshots before rehome; recheck complete merge expected fingerprints afterward. No authority to repair other Q8 aliases/facts or broad collisions."
+}

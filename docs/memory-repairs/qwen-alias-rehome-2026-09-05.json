@@ -1,0 +1,8 @@
+[
+  {
+    "entity": "qwen38-27b-uncensored-q8",
+    "alias": "qwen38-27b-uncensored-q5",
+    "rehome_to": "qwen38-27b-uncensored-q5",
+    "why": "The Q8 model lists and indexes the exact name of the existing distinct Q5 entity. Return the spelling to its explicit owner without changing facts."
+  }
+]
