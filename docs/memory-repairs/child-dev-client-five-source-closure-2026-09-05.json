@@ -1,0 +1,42 @@
+[
+  {
+    "id": "2adf8ae81d0af6092fcb9b04e4112e14e3b709052f3efd8e63628324d70c7c90",
+    "raw_bytes": 180129,
+    "raw_sha256": "7267d1cce4c53d21322fb4a245ac631c220617943283196703d4e6dd8021c8ab",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/05/14/rollout-2026-05-14T07-54-29-019e2656-952a-7062-a69e-0ac9f8f1fb40.jsonl#6435430-6615559",
+    "text_bytes": 14001,
+    "text_sha256": "6e4b5ee227678a3c04377feae20f54bd6e177eaf7218e8574738f18bc4d37762"
+  },
+  {
+    "id": "4c6a685e7304a4f27c68dbc979a2615aa00d759dbacbd91baaac0b11e58e003c",
+    "raw_bytes": 97869,
+    "raw_sha256": "685cb85475ff8568da11e2e59a626b69e4685cb70c2dda9b0b22d6f2d95bedbe",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/05/20/rollout-2026-05-20T13-49-37-019e4681-e255-7a52-a8df-a2587d12fe31.jsonl#7609794-7707663",
+    "text_bytes": 6525,
+    "text_sha256": "10d51c1f713d98c20f09a853519bc8a89094dfa11bdebff27c7513156419e944"
+  },
+  {
+    "id": "8d9bb56756ffc3fbab85130e088ae3ec07a12dd26eaf4f1b8af84348b6587244",
+    "raw_bytes": 94437,
+    "raw_sha256": "7f11b57a44464e4a5010f7d9f32c56932e0ff124c0efa6a8f88543c19e4f6b75",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/05/14/rollout-2026-05-14T07-54-29-019e2656-952a-7062-a69e-0ac9f8f1fb40.jsonl#6753687-6848124",
+    "text_bytes": 14121,
+    "text_sha256": "94ef3d59ece5dc85905dd85a67852157519fac9a3f7ebe45e22cac904b467fbc"
+  },
+  {
+    "id": "85dcc7435c8713b591970850647e47c591aed41d167bf3966b3dafb3e51eb200",
+    "raw_bytes": 842394,
+    "raw_sha256": "94a067de5b70300e255142870ac192cabf6d126690b1acb282ddbc4fb0740550",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/06/23/rollout-2026-06-23T10-27-45-019ef4e1-4a01-73e0-b46e-63737f201d27.jsonl#8723720-9566114",
+    "text_bytes": 15182,
+    "text_sha256": "72bb9cdbd46db23d600a0a965d317537c78201a9c4b12154c0f9584e33726806"
+  },
+  {
+    "id": "e7b3048efefae8815a129c1e9a50036af6f6790fc4e4a0bcd36bf07b4e905a01",
+    "raw_bytes": 3299074,
+    "raw_sha256": "2cc224fe199669f611703948abb0a1e10ce33dba5b09244a9b9de1a45bf97a28",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/06/23/rollout-2026-06-23T10-27-45-019ef4e1-4a01-73e0-b46e-63737f201d27.jsonl#5424957-8724031",
+    "text_bytes": 15862,
+    "text_sha256": "2c0b890ddc2ae7859d9fd4115ad671d005c8e7f4598c29448d49773f8596bcbc"
+  }
+]
