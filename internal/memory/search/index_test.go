@@ -9,6 +9,25 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
+func TestFactKeyUsesUTCAndPreservesNanoseconds(t *testing.T) {
+	f := store.Fact{
+		Src: "project", Relation: "uses", Dst: "tool",
+		ValidFrom: time.Date(2026, 9, 5, 19, 0, 0, 123456789, time.FixedZone("offset", -4*60*60)),
+	}
+	const want = "fa:project:uses:tool:2026-09-05T23:00:00.123456789Z"
+	if got := FactKey(f); got != want {
+		t.Fatalf("FactKey = %q, want search key %q", got, want)
+	}
+	f.ValidFrom = f.ValidFrom.UTC()
+	if got := FactKey(f); got != want {
+		t.Fatalf("same instant in UTC changed search key: %q", got)
+	}
+	f.ValidFrom = f.ValidFrom.Add(time.Nanosecond)
+	if got := FactKey(f); got != "fa:project:uses:tool:2026-09-05T23:00:00.12345679Z" {
+		t.Fatalf("adjacent nanosecond has wrong search key: %q", got)
+	}
+}
+
 func TestTokenize(t *testing.T) {
 	cases := map[string][]string{
 		"Why did we switch off DeepSeek?":    {"switch", "^swit", "deepseek", "deep", "seek"},

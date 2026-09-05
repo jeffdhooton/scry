@@ -272,7 +272,9 @@ func EntityDoc(e store.Entity) Doc {
 	return Doc{Kind: KindEntity, Key: "en:" + e.Slug, Text: text, Slugs: []string{e.Slug}, ValidFrom: e.CreatedAt}
 }
 
-// FactKey is the index key for a fact: the store's own key layout.
+// FactKey identifies a fact in the search index using UTC RFC3339Nano time.
+// It is not a raw Badger key: storage uses a UnixNano suffix instead. Do not
+// use this key to address or fingerprint raw records in a repair manifest.
 func FactKey(f store.Fact) string {
 	return "fa:" + f.Src + ":" + f.Relation + ":" + f.KeyDst() + ":" + f.ValidFrom.UTC().Format(time.RFC3339Nano)
 }
