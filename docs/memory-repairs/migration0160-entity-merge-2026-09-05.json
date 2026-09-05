@@ -1,0 +1,46 @@
+[
+  {
+    "id": "docket-migration0160-six-sep05",
+    "survivor": "0160-task-evidence-rulessql",
+    "retire": [
+      "task-evidence-rules-migration",
+      "migration-0160",
+      "dbmigrations0160-task-evidence-rulessql",
+      "migration-0160-task-evidence-rules",
+      "docket-migration-0160"
+    ],
+    "metadata": {
+      "slug": "0160-task-evidence-rulessql",
+      "name": "db/migrations/0160_task_evidence_rules.sql",
+      "type": "tool",
+      "description": "Docket db/migrations/0160_task_evidence_rules.sql, introduced in a7253c0: per-organization, per-task-type completion/failure evidence rules and the task-event evidence ledger. The migration file is distinct from the table, API enforcement code and migration-block reservation task.",
+      "aliases": [
+        "0160_task_evidence_rules.sql",
+        "task-evidence-rules-migration",
+        "migration 0160",
+        "dbmigrations0160-task-evidence-rulessql",
+        "migration-0160-task-evidence-rules",
+        "Docket migration 0160"
+      ],
+      "repo_refs": [
+        "/Users/jeff/workspace/context-stack/scry",
+        "/Users/jeff/workspace/docket"
+      ],
+      "created_at": "2026-08-19T02:49:16.995Z",
+      "last_seen": "2026-09-05T19:20:55.401Z"
+    },
+    "expected": {
+      "entities": {
+        "0160-task-evidence-rulessql": "1289ff5c1398a0a03550e046c92ac95dd3a3986ef07984b827e53167cf22e036",
+        "dbmigrations0160-task-evidence-rulessql": "54fd4869818b14df1b2d1b60105e07665dba1ec1baf46bb1f18c5729b2e2be47",
+        "docket-migration-0160": "027889d68b2dc3e39ba1ccb2240e8688ff5cda4e938809938008360f1fd10471",
+        "migration-0160": "bd3631a377d8f82bc285542624f65c13322fe7d9e6268978d1b49663d63e1cd1",
+        "migration-0160-task-evidence-rules": "1be759842f511df3e2e92f382278b10fa7397d42dc24ccc1d1f10dfe084f5ec9",
+        "task-evidence-rules-migration": "6dd76d18bedcae0bc0bf0aa7523c6ffe4b9d713e314fd6b5d22d6ac00eb32b12"
+      },
+      "facts": "192cc9f229eec326501aa840f148de5293815e8941fd40ac5cd39a9fcaafbd3c",
+      "alias_claims": "1bb6b0606355b24b18e9ac0efcf40f8e9deb56181c02c778a2a3732a23bce625"
+    },
+    "why": "All six records explicitly identify Docket db/migrations/0160_task_evidence_rules.sql, independently corroborated by the actual file and its sole commit a7253c0. Include the hollow exact-path record, both additional file facts, and the newly ingested Docket migration 0160 record with its three facts. Preserve the existing Scry review-session repo association and add the independently verified Docket artifact repository; retain all original episode provenance and fact content. Preserve complete identity and every fact; do not merge the table, API enforcement module, encompassing implementation task or reservation task."
+  }
+]
