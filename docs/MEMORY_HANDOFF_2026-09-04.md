@@ -451,3 +451,41 @@ prune checkpoint. That read-only audit is not permission to apply drops.
 The deterministic conflict episode remains parked and preserved for explicit
 repair/retry. Do not count queue parking, scoped Qwen success, or unchanged
 benchmark scores as completion of the ten-clause goal.
+
+### Later checkpoint: guarded alias batches, 18:55 UTC
+
+Qwen's actual-live-backup independent postcheck passed; its complete report is
+`memory-repairs/qwen-live-review-2026-09-05.md`. The full remaining graph audit
+and every ChildScribe alias disposition are now committed at `2651048`.
+All 2,441 missing endpoint occurrences are historical; current missing
+endpoints are zero. Preserve those historical facts while repairing their
+994 absent endpoint identities. There remain 489 cross-type collision pairs
+across 427 folded groups, 2,854 all-history hollows and 89 current self-loops.
+
+Local alias-batch code `1b913a1` fixed unsafe raw RPC default and partial-row
+commit behavior. A fresh reviewer then disproved its old-daemon handshake:
+a downgrade between connections still wrote through the old handler. The
+corrected exact commit `53fafa9` uses `memory.unalias.apply-reviewed.v1` and
+passed independent fault/race tests. It requires `{drops,expected}` manifests;
+older arrays remain preview-only. Full tests/vet and focused races passed.
+
+The first ChildScribe replica-only batch is 47 reviewed drops plus the two
+Forge rehomes. It preserves every fact and foreign API index key, reduces
+aliases 92 to 43 and collisions 489 to 486. Replica fixed-suite hits changed
+51/30/7/44/46 to 51/30/7/45/47, max payload 13,380 bytes. Twenty-four ambiguous
+aliases and five target-metadata rehomes remain excluded. The replica manifest
+at `/tmp/scry-unalias-replica-sep05.rp5vdY/measurement/` is not live-approved.
+
+Deployment candidate `/tmp/scry-unalias-deploy-sep05.Od8oCm/scry` has SHA-256
+`31f185d70e1439a315a8ea12eaadf4f12d75e77d558edfa0852c890531705aff`.
+Actual stores were backed up at 18:53:17. Both installed af77a6a binaries are
+retained beside their paths as `scry.pre-53fafa9-20260905T1856Z`. A separate
+fresh deployment-discipline gate is running. Neither installation has yet
+changed to 53fafa9; no ChildScribe live repair has been applied. Deployment
+must precede another fresh snapshot, manifest review and any live batch.
+
+Queue now has two preserved deterministic conflicts, not one: the old
+`guard-barrel-and-deep-import-rules` episode and new manual episode
+`bec7e834a4912aad973fcf71f1c770d00fc39f9ab781a45e5ef3d134a1c340cb`
+(`cadformats-workbench-20260904` alias owned by `workbench`). Both need explicit
+identity review and exact retry; do not drop them or replay everything.

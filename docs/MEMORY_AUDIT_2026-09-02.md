@@ -2777,3 +2777,32 @@ race tests passed. CLI additionally performs a guarded dry-run handshake so
 an old daemon cannot ignore the new fingerprint fields and accept a write.
 Replica measurement and a fresh disproof review are still required before
 deployment or any ChildScribe apply.
+
+The real post-Qwen replica at
+`/tmp/scry-unalias-replica-sep05.rp5vdY/measurement/` then applied the 49-row
+ChildScribe candidate (47 explicit drops plus two existing-listing Forge
+rehomes). All 79,560 facts are unchanged; 30,175 entities remain; aliases
+92 to 43; collision pairs 489 to 486. Its verified backup contains 76,886,364
+bytes. Preview took 1,696 ms and backup/apply 1,814 ms. Full fingerprints,
+proposed metadata, apply receipt and second-pass immutable refusal are saved
+there. This is replica evidence, not a live apply manifest.
+
+Against a separate restore of exactly the same source, the five fixed-suite
+hit counts changed 51/62, 30/66, 7/7, 44/50, 46/50 to 51/62, 30/66, 7/7,
+45/50, 47/50. No cap violation; largest payload before 13,370 bytes, after
+13,380 bytes. Alias cleanup recovers the tuning floor on this replica, not
+the original heldout floors or live final bar.
+
+Fresh code review FAILED `1b913a1` on a daemon-downgrade reproduction: separate
+preview/apply connections could reach an old handler that ignored expected
+fields and wrote. Corrected `53fafa91d621190c87245f0b0844270b4fdf44c9` uses a
+versioned guarded-write method and clears the response object between calls.
+The independent reproduction now observes zero old-handler writes; successful
+new-method dispatch was separately proven. Independent race probes also
+injected transaction-too-large after earlier writes and an actual Badger
+commit failure, proving full rollback/no events, plus backup and writer-barrier
+faults. Corrected bounded code verdict: PASS. Report:
+`/tmp/scry-unalias-regate.gRhAmY/INDEPENDENT_REVIEW.md`; rooms 65/66 record the
+failed and corrected gates. No failed build was deployed. Observer panic still
+propagates after commit and can prevent later notifications; the review does
+not claim power-loss testing or certify a live manifest.
