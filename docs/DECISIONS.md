@@ -3291,3 +3291,30 @@ and approximately 169 MB of additional heap after GC. AtomicWrite introduced a
 fresh facade per episode, but the package-level map retained each facade
 indefinitely. Callback-scoped cleanup restores a bounded lifetime without
 weakening transaction isolation or changing alias admission decisions.
+
+## Standalone alias repair is a reviewed atomic batch (2026-09-05)
+
+**Decision.** `memory unalias` defaults to dry-run at raw RPC as well as CLI.
+An array remains sufficient for preview, but apply requires an explicit
+`{drops,expected}` manifest. Expected inputs bind the plan, every participating
+entity, all touching facts including history, alias-index presence/owner, and
+all outside listings. Even a claim-only change invalidates the review.
+
+The complete batch is checked and committed in one transaction. Its exclusive
+maintenance window starts before backup and ends after commit; the backup must
+write, sync and close successfully first. Postconditions compare the complete
+fact, entity and alias-index states. Multiple drops from one entity share the
+original reviewed snapshot; no earlier row may commit if a later row fails.
+Explicit global drops may remove every reviewed listing atomically; a rehome
+still requires an existing target listing and never infers or creates an owner.
+Normalized spelling variants appear together in the proposed metadata.
+
+**Why.** Two regression tests proved that omitted RPC dry-run wrote and a
+later invalid row left an earlier drop committed. Operational prechecks were
+adequate for the independently verified one-row Qwen repair, but are not a
+safe batch contract. The CLI also performs a guarded preview handshake before
+apply: an old daemon must not silently ignore new expected fields and write.
+Older array-only apply manifests now need explicit regeneration and review;
+their historical receipts remain valid. Observer callbacks run after commit
+and lock release. No fact content, alias owner, or metadata recipient is
+selected by a store-scale lexical rule.

@@ -1432,17 +1432,18 @@ func memoryUnaliasCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unalias",
 		Short: "Take named spellings off named entities, from a reviewed list",
-		Long: `Reads a JSON array of {"entity","alias","why"} and removes each spelling.
+		Long: `Previews a JSON array of {"entity","alias","rehome_to","why"}.
 
 Moving a fact off an entity does not stop the next episode putting it back.
 A project that answers to "Hermes Slack gateway" collects every sentence
 about the gateway, however many facts are moved away from it.
 
-Each entry is checked before anything is dropped: the entity must exist, it
-must actually list that spelling, and the spelling must not be its own name.
-The alias index entry goes only when it points at this entity, so dropping a
-leak can never strip a name from its rightful owner. The daemon takes a
-backup before the first write, and a dry run is the default.`,
+To apply, use an object {"drops":[...],"expected":<preview.expected>} with the
+reviewed entity, fact, alias-owner and listing fingerprints. The whole batch
+is atomic; any drift or invalid row refuses every row. An explicit rehome
+target must already list the spelling. Names are never inferred or created.
+Normalized variants are removed together and appear in proposed_entities.
+The backup is synced and closed before writing. Dry-run is the default.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			file, _ := cmd.Flags().GetString("file")
@@ -1453,16 +1454,39 @@ backup before the first write, and a dry run is the default.`,
 			if err != nil {
 				return err
 			}
-			var drops []daemon.MemoryUnaliasDrop
-			if err := json.Unmarshal(b, &drops); err != nil {
-				return fmt.Errorf("%s: %w", file, err)
+			var request memstore.AliasRepairRequest
+			var decodeErr error
+			if strings.HasPrefix(strings.TrimSpace(string(b)), "[") {
+				decodeErr = json.Unmarshal(b, &request.Drops)
+			} else {
+				decodeErr = json.Unmarshal(b, &request)
+			}
+			if decodeErr != nil {
+				return fmt.Errorf("%s: %w", file, decodeErr)
 			}
 			apply, _ := cmd.Flags().GetBool("apply")
+			dryRun := !apply
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
 			var res daemon.MemoryUnaliasResult
+			if apply {
+				if request.Expected == nil {
+					return fmt.Errorf("unalias --apply requires a reviewed {drops,expected} manifest")
+				}
+				// An older daemon ignores unknown expected fields. Verify the
+				// guarded preview capability before ever sending it a write.
+				previewOnly := true
+				if err := callMemoryDaemon(ctx, "memory.unalias", &daemon.MemoryUnaliasParams{
+					Drops: request.Drops, Expected: request.Expected, DryRun: &previewOnly,
+				}, &res); err != nil {
+					return err
+				}
+				if !res.DryRun || !res.Preview.Ready || !reflect.DeepEqual(res.Preview.Expected, *request.Expected) {
+					return fmt.Errorf("unalias apply refused: daemon lacks guarded preview or reviewed inputs changed")
+				}
+			}
 			if err := callMemoryDaemon(ctx, "memory.unalias", &daemon.MemoryUnaliasParams{
-				Drops: drops, DryRun: !apply,
+				Drops: request.Drops, Expected: request.Expected, DryRun: &dryRun,
 			}, &res); err != nil {
 				return err
 			}
@@ -1470,7 +1494,7 @@ backup before the first write, and a dry run is the default.`,
 			return printJSON(res, pretty)
 		},
 	}
-	cmd.Flags().String("file", "", "JSON array of {entity, alias, why} (required)")
+	cmd.Flags().String("file", "", "JSON drop array for preview; {drops,expected} object for apply (required)")
 	cmd.Flags().Bool("apply", false, "write the drops; without it, report what would drop")
 	return cmd
 }

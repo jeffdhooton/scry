@@ -251,6 +251,7 @@ func TestMemoryReattachMovesTheFarEnd(t *testing.T) {
 // Reattaching facts without pruning the aliases that attracted them is, in
 // a reviewer's phrase, bailing a boat with the hole still in it.
 func TestMemoryUnalias(t *testing.T) {
+	dryRun := true
 	d := newTestMemoryDaemon(t)
 	ctx := context.Background()
 	st, _ := d.memoryStore()
@@ -280,7 +281,7 @@ func TestMemoryUnalias(t *testing.T) {
 	}
 
 	t.Run("refuses what the entity does not list", func(t *testing.T) {
-		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: true,
+		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: &dryRun,
 			Drops: []MemoryUnaliasDrop{{Entity: "ops", Alias: "not held"}}}))
 		if res := out.(*MemoryUnaliasResult); res.Refused != 1 || res.Dropped != 0 {
 			t.Errorf("%+v", res)
@@ -288,7 +289,7 @@ func TestMemoryUnalias(t *testing.T) {
 	})
 
 	t.Run("refuses the entity's own name", func(t *testing.T) {
-		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: true,
+		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: &dryRun,
 			Drops: []MemoryUnaliasDrop{{Entity: "ops", Alias: "hermes-ops"}}}))
 		if res := out.(*MemoryUnaliasResult); res.Refused != 1 {
 			t.Errorf("%+v", res)
@@ -296,7 +297,7 @@ func TestMemoryUnalias(t *testing.T) {
 	})
 
 	t.Run("requires rehome when another entity lists an owned alias", func(t *testing.T) {
-		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: true,
+		out, _ := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{DryRun: &dryRun,
 			Drops: []MemoryUnaliasDrop{{Entity: "ops", Alias: "Hermes Slack gateway"}}}))
 		if res := out.(*MemoryUnaliasResult); res.Refused != 1 || res.Dropped != 0 {
 			t.Errorf("%+v", res)
@@ -304,11 +305,18 @@ func TestMemoryUnalias(t *testing.T) {
 	})
 
 	t.Run("drops the leak and leaves the index another entity owns", func(t *testing.T) {
-		out, err := d.handleMemoryUnalias(ctx, mustJSON(t, MemoryUnaliasParams{
+		params := MemoryUnaliasParams{
 			Drops: []MemoryUnaliasDrop{
 				{Entity: "ops", Alias: "Hermes Slack gateway", RehomeTo: "agent", Why: "the agent lists and owns this service name"},
-				{Entity: "ops", Alias: "Jeff's own Hermes"},
-			}}))
+				{Entity: "ops", Alias: "Jeff's own Hermes", Why: "preserve the index already owned by agent"},
+			}}
+		preview, err := st.PreviewAliasRepair(memstore.AliasRepairRequest{Drops: params.Drops})
+		if err != nil || !preview.Ready {
+			t.Fatalf("preview: %+v, %v", preview, err)
+		}
+		apply := false
+		params.DryRun, params.Expected = &apply, &preview.Expected
+		out, err := d.handleMemoryUnalias(ctx, mustJSON(t, params))
 		if err != nil {
 			t.Fatal(err)
 		}
