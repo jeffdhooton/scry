@@ -425,3 +425,29 @@ name is currently stolen by the distinct Q8 entity: a reviewed alias rehome
 must precede the Q5 merge. Current Qwen preview preserves 19 touching facts,
 including one invalidated fact, and drops ambiguous Q5/Qwen3/Qwen3.8 aliases.
 The preview is not authorization or an apply-ready live manifest.
+
+### Later checkpoint: Qwen repair applied, 18:28 UTC
+
+The preceding no-live-repair paragraph is superseded by this receipt. Fresh
+independent replica review passed the exact September 5 manifests, committed
+at `1af0d3b`. After queue stability and immediate fingerprint/alias-owner
+checks, the lead rehomed Q5's exact name from Q8, then merged the two Q5
+identities. Q8 remains distinct. All four approved exact spellings return 19
+facts including one invalidated fact; the former Q5 entity is absent; generic
+Q5/Qwen3/Qwen3.8 spellings no longer resolve. Collisions fell 492 to 491 to 489.
+
+The two automatic pre-apply backups are Mini
+`memory-20260905T182725Z.badger` and `memory-20260905T182753Z.badger`.
+Post-state backup is `memory-20260905T182812Z.badger`; local copies are in
+`/tmp/scry-qwen-live-sep05.Koj9v3/`. The audit records absolute paths, sizes,
+hashes and full receipts. An independent comparison of these actual live
+backups is in progress. The five fixed suites remain 51/62, 30/66, 7/7,
+44/50, 46/50: three required floors are still missed.
+
+Next: review the complete remaining collision inventory and every ChildScribe
+alias, then Hermes/Mini fact ownership and status retirement. A fresh reviewer
+found 92 current ChildScribe aliases, three more than the verified 89-alias
+prune checkpoint. That read-only audit is not permission to apply drops.
+The deterministic conflict episode remains parked and preserved for explicit
+repair/retry. Do not count queue parking, scoped Qwen success, or unchanged
+benchmark scores as completion of the ten-clause goal.

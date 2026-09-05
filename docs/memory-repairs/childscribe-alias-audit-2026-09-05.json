@@ -1,0 +1,2278 @@
+[
+  {
+    "alias": "Laravel backend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-backend",
+    "number": 1,
+    "outside_listings": [],
+    "matching_fact_count": 31,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Unqualified backend role also denotes Cell Saviors in the battery-designer fact; no global ChildScribe identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "childscribe-backend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-backend",
+    "number": 2,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Specific ChildScribe backend spelling. Laravel actions, Filament, and mobile integration facts identify the backend; no exact-text attestation for this hyphenation.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "Laravel repo",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-repo",
+    "number": 3,
+    "outside_listings": [],
+    "matching_fact_count": 24,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Repository role, not a unique project name. ChildScribe demo facts explain local usage but cannot make every Laravel repository this entity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Laravel app",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-app",
+    "number": 4,
+    "outside_listings": [],
+    "matching_fact_count": 78,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Generic application role. Facts explicitly call Advocates a Laravel application too.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Lararel Forge",
+    "index_owner": "childscribe-laravel",
+    "normalized": "lararel-forge",
+    "number": 5,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [
+      "forge"
+    ],
+    "rationale": "Unattested misspelling of Forge, a distinct deployment platform. No exact fact attests this spelling; do not invent a new Forge alias from the typo.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "forge",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "/Users/jeff/Herd/childscribe",
+    "index_owner": "childscribe-laravel",
+    "normalized": "/users/jeff/herd/childscribe",
+    "number": 6,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Exact Laravel checkout path explicitly locates FamilyNewsletterIssueMail and agrees with the recorded apps/ symlink.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "childscribe.com (staging)",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe.com-(staging)",
+    "number": 7,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-production",
+      "child-scribecom"
+    ],
+    "rationale": "Incorrect environment label: release-path facts separate childscribe.com production from child-scribe.com staging. Preserve correct domain names elsewhere.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-production",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "child-scribecom",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Forge dashboard",
+    "index_owner": "childscribe-laravel",
+    "normalized": "forge-dashboard",
+    "number": 8,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "rehome",
+    "candidates": [
+      "forge"
+    ],
+    "rationale": "Facts about Forge dashboard logs and queue-daemon configuration are platform administration facts on forge. Target currently does not list this spelling; proposal needs reviewed metadata/index introduction.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "forge",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "proposed target forge; requires reviewed atomic listing and index change"
+  },
+  {
+    "alias": "childscribe-laravel.on-forge.com",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-laravel.on-forge.com",
+    "number": 9,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "rehome",
+    "candidates": [
+      "childscribe-staging"
+    ],
+    "rationale": "Forge fact explicitly equates this hostname with the staging droplet serving child-scribe.com; childscribe-staging facts identify the staging web box and npm-cache deploy race. Host identity should not alias the Laravel service. Target does not yet list spelling.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-staging",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "proposed target childscribe-staging; requires reviewed atomic listing and index change"
+  },
+  {
+    "alias": "https://child-scribe.com",
+    "index_owner": "childscribe-laravel",
+    "normalized": "https://child-scribe.com",
+    "number": 10,
+    "outside_listings": [],
+    "matching_fact_count": 6,
+    "decision": "ambiguous",
+    "candidates": [
+      "child-scribecom",
+      "childscribe-staging"
+    ],
+    "rationale": "URL names staging domain; child-scribecom is the direct domain candidate, but that entity also lists production childscribe.com and carries production facts. Resolve domain/host distinction and candidate contamination before transfer.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "child-scribecom",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-staging",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "laravel backend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-backend",
+    "number": 11,
+    "outside_listings": [],
+    "matching_fact_count": 31,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Same normalized spelling and same cross-project evidence as Laravel backend (#1).",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Laravel Forge",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-forge",
+    "number": 12,
+    "outside_listings": [
+      {
+        "slug": "forge",
+        "name": "Forge",
+        "type": "service",
+        "description": "Laravel Forge staging/production deployment platform; hosts child-scribe.com",
+        "aliases": [
+          "forge-ssh-access",
+          "Laravel Forge",
+          "Forge prod deploy"
+        ],
+        "repo_refs": [
+          "/Users/jeff/Herd/dstone",
+          "/Users/jeff/Herd/ChildScribe",
+          "/Users/jeff/workspace/Herd/advocates",
+          "/Users/jeff/Herd/hoopless_crm",
+          "/Users/jeff/workspace/cellsaviors/server",
+          "/Users/jeff/workspace/docket"
+        ],
+        "created_at": "2026-07-28T14:22:46.061676057-04:00",
+        "last_seen": "2026-09-04T20:06:12.67Z"
+      }
+    ],
+    "matching_fact_count": 10,
+    "decision": "rehome",
+    "candidates": [
+      "forge"
+    ],
+    "rationale": "Existing Forge identity lists Laravel Forge; independent Advocates and Cell Saviors deployment facts establish it is the deployment platform. Move exact index from ChildScribe to forge while removing ChildScribe listing.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "forge",
+        "already_lists_exact_normalized_spelling": true
+      }
+    ],
+    "index_disposition": "proposed target forge; requires reviewed atomic listing and index change"
+  },
+  {
+    "alias": "forge-ssh-access",
+    "index_owner": "childscribe-laravel",
+    "normalized": "forge-ssh-access",
+    "number": 13,
+    "outside_listings": [
+      {
+        "slug": "forge",
+        "name": "Forge",
+        "type": "service",
+        "description": "Laravel Forge staging/production deployment platform; hosts child-scribe.com",
+        "aliases": [
+          "forge-ssh-access",
+          "Laravel Forge",
+          "Forge prod deploy"
+        ],
+        "repo_refs": [
+          "/Users/jeff/Herd/dstone",
+          "/Users/jeff/Herd/ChildScribe",
+          "/Users/jeff/workspace/Herd/advocates",
+          "/Users/jeff/Herd/hoopless_crm",
+          "/Users/jeff/workspace/cellsaviors/server",
+          "/Users/jeff/workspace/docket"
+        ],
+        "created_at": "2026-07-28T14:22:46.061676057-04:00",
+        "last_seen": "2026-09-04T20:06:12.67Z"
+      }
+    ],
+    "matching_fact_count": 0,
+    "decision": "rehome",
+    "candidates": [
+      "forge"
+    ],
+    "rationale": "Forge already lists this exact alias alongside Laravel Forge. Platform/server-access meaning and Forge deployment facts support retaining it there; rehome index to forge, never clear it under a surviving Forge listing.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "forge",
+        "already_lists_exact_normalized_spelling": true
+      }
+    ],
+    "index_disposition": "proposed target forge; requires reviewed atomic listing and index change"
+  },
+  {
+    "alias": "prod web",
+    "index_owner": "childscribe-laravel",
+    "normalized": "prod-web",
+    "number": 14,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Unqualified production web role, not globally unique. ChildScribe health fact supplies context only.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "childscribe.on-forge.com",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe.on-forge.com",
+    "number": 15,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "rehome",
+    "candidates": [
+      "childscribe-production"
+    ],
+    "rationale": "Forge fact identifies production childscribe.com droplet with /home/forge/childscribe.on-forge.com; separate ChildScribe production entity has Stripe cutover/verification facts. Environment hostname belongs with production identity, not all Laravel code. Target does not yet list spelling.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-production",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "proposed target childscribe-production; requires reviewed atomic listing and index change"
+  },
+  {
+    "alias": "childscribe-prod",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-prod",
+    "number": 16,
+    "outside_listings": [],
+    "matching_fact_count": 8,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribe-production",
+      "childscribe-prodenv",
+      "childscribe-engine-core"
+    ],
+    "rationale": "Matches are mostly childscribe-prod.env and engine configuration; possible production environment shorthand, but bare spelling is not attested as the Laravel app. Do not choose from lexical similarity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-production",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-prodenv",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-engine-core",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "childscribe-app",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-app",
+    "number": 17,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribe",
+      "childscribe-mobile",
+      "childscribe-laravel"
+    ],
+    "rationale": "Unqualified ChildScribe app can mean the product, native mobile client, or browser app. Sole substring hit is an App Store document; no unique backend referent established.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-mobile",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "childscribe web frontend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-web-frontend",
+    "number": 18,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Product-qualified web frontend corresponds to Laravel/Vue browser app; admin-dashboard containment and ChildScribe Laravel web-app fact support the distinction from native mobile. No literal exact-phrase attestation.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "ChildScribe domain",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-domain",
+    "number": 19,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribe",
+      "child-scribecom",
+      "childscribe-production"
+    ],
+    "rationale": "Product domain is not the Laravel application; staging and production domain identities are separate and the direct domain candidate is itself polluted.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "child-scribecom",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-production",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "staging Laravel",
+    "index_owner": "childscribe-laravel",
+    "normalized": "staging-laravel",
+    "number": 20,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-staging"
+    ],
+    "rationale": "Unqualified environment/framework role. Staging Laravel facts describe ChildScribe deployment in context, not a unique global identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-staging",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Laravel staging",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-staging",
+    "number": 21,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-staging"
+    ],
+    "rationale": "Unqualified environment/framework role; deployment fact alone does not make all Laravel staging the ChildScribe app.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-staging",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "prod Laravel",
+    "index_owner": "childscribe-laravel",
+    "normalized": "prod-laravel",
+    "number": 22,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-production"
+    ],
+    "rationale": "No exact-text attestation; unqualified production/framework role is not a unique global identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-production",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "childscribe Laravel app",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-laravel-app",
+    "number": 23,
+    "outside_listings": [],
+    "matching_fact_count": 13,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Explicit product and component identity; admin-dashboard and Filament containment plus Herd symlink facts directly attest it.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "laravel-backend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-backend",
+    "number": 24,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Unqualified framework/backend role with no literal text attestation; equivalent ambiguity to Laravel backend.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "ChildScribe backend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-backend",
+    "number": 25,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "CreateSocialPostDraft is a Laravel action in ChildScribe backend and task-1-brand is explicitly a Laravel backend task. Bare ChildScribe project remains separate.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "Laravel API",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-api",
+    "number": 26,
+    "outside_listings": [],
+    "matching_fact_count": 9,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Generic API role. Facts describe both Cell Saviors Laravel API proxy and ChildScribe local API.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Laravel 13",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-13",
+    "number": 27,
+    "outside_listings": [],
+    "matching_fact_count": 10,
+    "decision": "rehome",
+    "candidates": [
+      "laravel"
+    ],
+    "rationale": "Facts explicitly say ChildScribe web app is built with Laravel 13 and point to framework entity laravel. This names a framework version, not the app. Target does not yet list spelling; version-specific identity policy must be reviewed before execution.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "proposed target laravel; requires reviewed atomic listing and index change"
+  },
+  {
+    "alias": "web client",
+    "index_owner": "childscribe-laravel",
+    "normalized": "web-client",
+    "number": 28,
+    "outside_listings": [],
+    "matching_fact_count": 34,
+    "decision": "drop",
+    "candidates": [
+      "docket-web",
+      "web"
+    ],
+    "rationale": "Docket mount-table, driver-core extraction, and dispatch-client facts demonstrate cross-product generic client role. No global app identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "docket-web",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "web",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "staging domain",
+    "index_owner": "childscribe-laravel",
+    "normalized": "staging-domain",
+    "number": 29,
+    "outside_listings": [],
+    "matching_fact_count": 5,
+    "decision": "drop",
+    "candidates": [
+      "child-scribecom"
+    ],
+    "rationale": "Unqualified domain role. Facts supply child-scribe.com as scoped staging value, not an alias for Laravel code.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "child-scribecom",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "/Users/jeff/Herd/ChildScribe",
+    "index_owner": "childscribe-laravel",
+    "normalized": "/users/jeff/herd/childscribe",
+    "number": 30,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Case variant of exact Herd checkout in #6; documented macOS case-insensitive path and symlink resolution identify same checkout.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "Repo: /Users/jeff/Herd/childscribe",
+    "index_owner": "childscribe-laravel",
+    "normalized": "repo:-/users/jeff/herd/childscribe",
+    "number": 31,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Annotated form of attested exact Herd checkout (#6). Prefix adds no different identity; no literal fact for annotated spelling.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "https://childscribe.test",
+    "index_owner": "childscribe-laravel",
+    "normalized": "https://childscribe.test",
+    "number": 32,
+    "outside_listings": [],
+    "matching_fact_count": 10,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribetest",
+      "childscribe-test"
+    ],
+    "rationale": "URL is local test deployment. Existing childscribetest and childscribe-test both carry test-instance facts; select/consolidate rightful identity before transfer rather than using application as host alias.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribetest",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-test",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "local ChildScribe app",
+    "index_owner": "childscribe-laravel",
+    "normalized": "local-childscribe-app",
+    "number": 33,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Specific local ChildScribe application; Herd-serving and local app symlink facts identify this checkout. No literal phrase attestation.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "/Users/jeff/workspace/childscribe-laravel",
+    "index_owner": "childscribe-laravel",
+    "normalized": "/users/jeff/workspace/childscribe-laravel",
+    "number": 34,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "No fact attests this workspace checkout path. Verified path is ~/Herd/childscribe; a historical checkout might be legitimate, but similarity does not prove it.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "childscribe backend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-backend",
+    "number": 35,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Case variant of product-qualified backend (#25), directly supported by Laravel task/action facts.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "ChildScribe Laravel app",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-laravel-app",
+    "number": 36,
+    "outside_listings": [],
+    "matching_fact_count": 13,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Case variant of explicitly attested ChildScribe Laravel app (#23).",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "laravel app",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-app",
+    "number": 37,
+    "outside_listings": [],
+    "matching_fact_count": 78,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Same normalized generic Laravel app spelling as #4; Advocates provides direct counterexample.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "ChildScribe Laravel backend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-laravel-backend",
+    "number": 38,
+    "outside_listings": [],
+    "matching_fact_count": 6,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Direct facts describe deployment on Forge and implemented memory-sharing feature in ChildScribe Laravel backend.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "Laravel marketing",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-marketing",
+    "number": 39,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-marketing",
+      "childscribe-public-site"
+    ],
+    "rationale": "Marketing subsystem role, not entire app identity; candidate ChildScribe marketing entities exist but this unqualified framework phrase is not globally unique.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-marketing",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-public-site",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "deploy-on-push",
+    "index_owner": "childscribe-laravel",
+    "normalized": "deploy-on-push",
+    "number": 40,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Deployment behavior, not application identity; no literal fact attestation.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "production posture",
+    "index_owner": "childscribe-laravel",
+    "normalized": "production-posture",
+    "number": 41,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Operational state/posture; actual matching facts are login/badge rehearsal posture on pnpm-bar-prod.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "mobile/web side",
+    "index_owner": "childscribe-laravel",
+    "normalized": "mobile/web-side",
+    "number": 42,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "drop",
+    "candidates": [
+      "web",
+      "childscribe-mobile"
+    ],
+    "rationale": "Cross-component area explicitly mapped by explorers, not a unique Laravel application. The existing web entity is itself mixed.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "web",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-mobile",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "web voice",
+    "index_owner": "childscribe-laravel",
+    "normalized": "web-voice",
+    "number": 43,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Voice feature/surface: runtime-verification and photo attachment facts do not name the whole Laravel app.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "childscribe domain",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-domain",
+    "number": 44,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribe",
+      "child-scribecom",
+      "childscribe-production"
+    ],
+    "rationale": "Same normalized domain alias as #19; cannot select production versus staging or product versus domain safely.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "child-scribecom",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-production",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "refs/heads/main",
+    "index_owner": "childscribe-laravel",
+    "normalized": "refs/heads/main",
+    "number": 45,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Git branch ref. Exact matching fact locates it on Docket shared main worktree; not application identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "public marketing site",
+    "index_owner": "childscribe-laravel",
+    "normalized": "public-marketing-site",
+    "number": 46,
+    "outside_listings": [
+      {
+        "slug": "cleaning-company-marketing-site",
+        "name": "cleaning-company-marketing-site",
+        "type": "service",
+        "description": "Public marketing site with 19 routes and a quote flow, part of the cleaning-company repo.",
+        "aliases": [
+          "public marketing site"
+        ],
+        "created_at": "2026-08-15T17:12:55.694Z",
+        "last_seen": "2026-08-15T17:12:55.694Z"
+      }
+    ],
+    "matching_fact_count": 5,
+    "decision": "ambiguous",
+    "candidates": [
+      "cleaning-company-marketing-site",
+      "docket-marketing-site",
+      "childscribe-public-site"
+    ],
+    "rationale": "Outside cleaning-company-marketing-site lists exact alias but has no touching facts. Actual phrase facts identify Docket marketing too. Do not clear current index while outside listing remains: either explicitly rehome after provenance review, or review global removal from BOTH ChildScribe and cleaning-company-marketing-site.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "cleaning-company-marketing-site",
+        "already_lists_exact_normalized_spelling": true
+      },
+      {
+        "slug": "docket-marketing-site",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-public-site",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "marketing-site epic",
+    "index_owner": "childscribe-laravel",
+    "normalized": "marketing-site-epic",
+    "number": 47,
+    "outside_listings": [],
+    "matching_fact_count": 18,
+    "decision": "drop",
+    "candidates": [
+      "docket-marketing-site",
+      "marketing-site-task"
+    ],
+    "rationale": "Facts explicitly place epic in Docket main/waves; task/epic is not Laravel identity and several Docket marketing-task candidates exist. Preserve their names, remove generic epic alias only.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "docket-marketing-site",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "marketing-site-task",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "forge user",
+    "index_owner": "childscribe-laravel",
+    "normalized": "forge-user",
+    "number": 48,
+    "outside_listings": [],
+    "matching_fact_count": 8,
+    "decision": "drop",
+    "candidates": [
+      "forge"
+    ],
+    "rationale": "Unix account role on multiple servers; Cell Saviors trawl-install facts directly contradict Laravel app ownership. Platform is not identical to its account either.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "forge",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Laravel web",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-web",
+    "number": 49,
+    "outside_listings": [],
+    "matching_fact_count": 7,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Generic framework/web surface. ChildScribe audit scope explains phrase locally but supplies no global unique identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "envoyer",
+    "index_owner": "childscribe-laravel",
+    "normalized": "envoyer",
+    "number": 50,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "ambiguous",
+    "candidates": [
+      "cellsaviors",
+      "forge"
+    ],
+    "rationale": "Only fact concerns Cell Saviors Envoyer-style release deployment, not an attested actual Envoyer service identity. No envoyer entity exists; do not rehome a deployment tool name to the app or Forge.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "cellsaviors",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "forge",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "office dashboard",
+    "index_owner": "childscribe-laravel",
+    "normalized": "office-dashboard",
+    "number": 51,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "ambiguous",
+    "candidates": [
+      "office-client",
+      "web-office-app",
+      "office",
+      "web"
+    ],
+    "rationale": "Clearly Docket office UI from dashboard Playwright evidence, but overlapping existing office identities need adjudication. Not a ChildScribe alias.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "office-client",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "web-office-app",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "office",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "web",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "fleet worktree",
+    "index_owner": "childscribe-laravel",
+    "normalized": "fleet-worktree",
+    "number": 52,
+    "outside_listings": [],
+    "matching_fact_count": 23,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Many temporary fleet worktrees across tasks; exact ChildScribe-attached fact is a Docket worktree path. Generic worktree role cannot be a service alias.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Client Dashboard",
+    "index_owner": "childscribe-laravel",
+    "normalized": "client-dashboard",
+    "number": 53,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-dashboard",
+      "office-client"
+    ],
+    "rationale": "Unqualified dashboard role, no exact text evidence identifying one product. Existing dashboards retain their own names.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-dashboard",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "office-client",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "client dashboard",
+    "index_owner": "childscribe-laravel",
+    "normalized": "client-dashboard",
+    "number": 54,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-dashboard",
+      "office-client"
+    ],
+    "rationale": "Same normalized generic dashboard as #53.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-dashboard",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "office-client",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "api project",
+    "index_owner": "api",
+    "normalized": "api-project",
+    "number": 55,
+    "outside_listings": [
+      {
+        "slug": "api",
+        "name": "api",
+        "type": "service",
+        "description": "API app that will consume integration providers via env-derived config from @program-health/integrations",
+        "aliases": [
+          "api project",
+          "api costing module",
+          "api app",
+          "api/src/search",
+          "api/",
+          "api/src/operations",
+          "api/src/repos/operations/order.ts",
+          "api test project",
+          "api/src/paperwork",
+          "docket api",
+          "@docket/api",
+          "api/test/routes/driver.test.ts",
+          "api vitest project",
+          "api/test/billing/gateway",
+          "api/src/scheduled/crons.ts",
+          "api/test/portal",
+          "api/src/integration/index.ts",
+          "api/test/billing/credits",
+          "api/test/billing/refunds",
+          "api/src/repos/collections/context.ts",
+          "api/tsconfig.json",
+          "api/src/routes/reviews.ts",
+          "createApp",
+          "api/src/reporting/index.ts",
+          "api workspace",
+          "api/src/onboarding/steps.ts",
+          "api/src/scheduled",
+          "api/test/search",
+          "api/test/scheduled",
+          "api/test/billing/payments",
+          "api route index",
+          "api/src/scheduled/recurring-pass.ts",
+          "api/src/routes/driver.ts",
+          "api/src/routes/operations.ts",
+          "api worker"
+        ],
+        "repo_refs": [
+          "/Users/jeff/workspace/scribe",
+          "/Users/jeff/workspace/program-health",
+          "/Users/jeff/dotfiles",
+          "/Users/jeff/workspace/docket/.claude/worktrees/driver-core",
+          "/Users/jeff/workspace/docket",
+          "/Users/jeff/workspace/context-stack/scry"
+        ],
+        "created_at": "2026-07-25T22:00:44.587929179-04:00",
+        "last_seen": "2026-09-04T20:50:52.979Z"
+      }
+    ],
+    "matching_fact_count": 133,
+    "decision": "drop",
+    "candidates": [
+      "api"
+    ],
+    "rationale": "Remove only ChildScribe listing; exact key already belongs to api and api still lists it. Preserve existing index. API facts contain Docket and Program Health contexts; this is not certification of api as a clean global identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "api",
+        "already_lists_exact_normalized_spelling": true
+      }
+    ],
+    "index_disposition": "preserve existing api claim and listing"
+  },
+  {
+    "alias": "loop orchestra",
+    "index_owner": "childscribe-laravel",
+    "normalized": "loop-orchestra",
+    "number": 56,
+    "outside_listings": [],
+    "matching_fact_count": 5,
+    "decision": "ambiguous",
+    "candidates": [
+      "setpoint",
+      "loom",
+      "setpoint-fleet"
+    ],
+    "rationale": "Substring matches are loop orchestrator, not exact loop orchestra. Setpoint orchestration is evidenced, but odd spelling and older Loom identity prevent attested alias transfer.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "setpoint",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "loom",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "setpoint-fleet",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "roll-off software",
+    "index_owner": "childscribe-laravel",
+    "normalized": "roll-off-software",
+    "number": 57,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Industry/software category; no exact text evidence. Does not name ChildScribe, nor does it justify selecting a roll-off vendor by word overlap.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "driver-core worktree",
+    "index_owner": "childscribe-laravel",
+    "normalized": "driver-core-worktree",
+    "number": 58,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "ambiguous",
+    "candidates": [
+      "driver-core"
+    ],
+    "rationale": "Fact explicitly names driver-core worktree/branch on route-optimization. Package entity driver-core is related, not necessarily the checkout/branch identity. Do not attach worktree alias to package without review.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "driver-core",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "driver tree",
+    "index_owner": "childscribe-laravel",
+    "normalized": "driver-tree",
+    "number": 59,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "drop",
+    "candidates": [
+      "driver-app"
+    ],
+    "rationale": "Fact names docket web/src/driver tree, a source area distinct from Laravel app. Generic tree phrase is not app identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "driver-app",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "areaScreens",
+    "index_owner": "childscribe-laravel",
+    "normalized": "areascreens",
+    "number": 60,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "ambiguous",
+    "candidates": [],
+    "rationale": "Looks like source identifier, but zero exact fact matches and no exact existing entity. ChildScribe ownership unsupported; inspect source episode before selecting code identity or global drop.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "office application",
+    "index_owner": "childscribe-laravel",
+    "normalized": "office-application",
+    "number": 61,
+    "outside_listings": [],
+    "matching_fact_count": 18,
+    "decision": "ambiguous",
+    "candidates": [
+      "web-office-app",
+      "office-client",
+      "web",
+      "office-app-shell-task"
+    ],
+    "rationale": "Office shell task and Docket web-entry facts establish non-ChildScribe surface; several overlapping candidate identities remain.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "web-office-app",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "office-client",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "web",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "office-app-shell-task",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "office service",
+    "index_owner": "childscribe-laravel",
+    "normalized": "office-service",
+    "number": 62,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "ambiguous",
+    "candidates": [
+      "office-client",
+      "web-office-app",
+      "office-api"
+    ],
+    "rationale": "No literal phrase evidence; could denote UI or office API service. Remove-from-ChildScribe intent is clear, exact rehome is not.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "office-client",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "web-office-app",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "office-api",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "createApp",
+    "index_owner": "api",
+    "normalized": "createapp",
+    "number": 63,
+    "outside_listings": [
+      {
+        "slug": "api",
+        "name": "api",
+        "type": "service",
+        "description": "API app that will consume integration providers via env-derived config from @program-health/integrations",
+        "aliases": [
+          "api project",
+          "api costing module",
+          "api app",
+          "api/src/search",
+          "api/",
+          "api/src/operations",
+          "api/src/repos/operations/order.ts",
+          "api test project",
+          "api/src/paperwork",
+          "docket api",
+          "@docket/api",
+          "api/test/routes/driver.test.ts",
+          "api vitest project",
+          "api/test/billing/gateway",
+          "api/src/scheduled/crons.ts",
+          "api/test/portal",
+          "api/src/integration/index.ts",
+          "api/test/billing/credits",
+          "api/test/billing/refunds",
+          "api/src/repos/collections/context.ts",
+          "api/tsconfig.json",
+          "api/src/routes/reviews.ts",
+          "createApp",
+          "api/src/reporting/index.ts",
+          "api workspace",
+          "api/src/onboarding/steps.ts",
+          "api/src/scheduled",
+          "api/test/search",
+          "api/test/scheduled",
+          "api/test/billing/payments",
+          "api route index",
+          "api/src/scheduled/recurring-pass.ts",
+          "api/src/routes/driver.ts",
+          "api/src/routes/operations.ts",
+          "api worker"
+        ],
+        "repo_refs": [
+          "/Users/jeff/workspace/scribe",
+          "/Users/jeff/workspace/program-health",
+          "/Users/jeff/dotfiles",
+          "/Users/jeff/workspace/docket/.claude/worktrees/driver-core",
+          "/Users/jeff/workspace/docket",
+          "/Users/jeff/workspace/context-stack/scry"
+        ],
+        "created_at": "2026-07-25T22:00:44.587929179-04:00",
+        "last_seen": "2026-09-04T20:50:52.979Z"
+      }
+    ],
+    "matching_fact_count": 41,
+    "decision": "drop",
+    "candidates": [
+      "api"
+    ],
+    "rationale": "Remove ChildScribe listing while preserving existing api index/listing. createApp facts concern an app-constructor function, so api retention is only current-state preservation pending separate function/API ownership review.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "api",
+        "already_lists_exact_normalized_spelling": true
+      }
+    ],
+    "index_disposition": "preserve existing api claim and listing"
+  },
+  {
+    "alias": "fleet wave",
+    "index_owner": "childscribe-laravel",
+    "normalized": "fleet-wave",
+    "number": 64,
+    "outside_listings": [],
+    "matching_fact_count": 32,
+    "decision": "drop",
+    "candidates": [
+      "setpoint-fleet"
+    ],
+    "rationale": "A wave is an execution grouping, not Laravel application identity. Numerous independent fleet-wave facts corroborate.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "setpoint-fleet",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "createApp()",
+    "index_owner": "childscribe-laravel",
+    "normalized": "createapp()",
+    "number": 65,
+    "outside_listings": [],
+    "matching_fact_count": 17,
+    "decision": "ambiguous",
+    "candidates": [
+      "api",
+      "appts"
+    ],
+    "rationale": "Punctuated function spelling currently indexes ChildScribe, unlike createApp without parentheses (api). Facts explicitly name constructor in api/src/app.ts; a function identity is not API service. No attested exact existing function entity; do not infer ownership from punctuation fold.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "api",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "appts",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "api app",
+    "index_owner": "api",
+    "normalized": "api-app",
+    "number": 66,
+    "outside_listings": [
+      {
+        "slug": "api",
+        "name": "api",
+        "type": "service",
+        "description": "API app that will consume integration providers via env-derived config from @program-health/integrations",
+        "aliases": [
+          "api project",
+          "api costing module",
+          "api app",
+          "api/src/search",
+          "api/",
+          "api/src/operations",
+          "api/src/repos/operations/order.ts",
+          "api test project",
+          "api/src/paperwork",
+          "docket api",
+          "@docket/api",
+          "api/test/routes/driver.test.ts",
+          "api vitest project",
+          "api/test/billing/gateway",
+          "api/src/scheduled/crons.ts",
+          "api/test/portal",
+          "api/src/integration/index.ts",
+          "api/test/billing/credits",
+          "api/test/billing/refunds",
+          "api/src/repos/collections/context.ts",
+          "api/tsconfig.json",
+          "api/src/routes/reviews.ts",
+          "createApp",
+          "api/src/reporting/index.ts",
+          "api workspace",
+          "api/src/onboarding/steps.ts",
+          "api/src/scheduled",
+          "api/test/search",
+          "api/test/scheduled",
+          "api/test/billing/payments",
+          "api route index",
+          "api/src/scheduled/recurring-pass.ts",
+          "api/src/routes/driver.ts",
+          "api/src/routes/operations.ts",
+          "api worker"
+        ],
+        "repo_refs": [
+          "/Users/jeff/workspace/scribe",
+          "/Users/jeff/workspace/program-health",
+          "/Users/jeff/dotfiles",
+          "/Users/jeff/workspace/docket/.claude/worktrees/driver-core",
+          "/Users/jeff/workspace/docket",
+          "/Users/jeff/workspace/context-stack/scry"
+        ],
+        "created_at": "2026-07-25T22:00:44.587929179-04:00",
+        "last_seen": "2026-09-04T20:50:52.979Z"
+      }
+    ],
+    "matching_fact_count": 11,
+    "decision": "drop",
+    "candidates": [
+      "api"
+    ],
+    "rationale": "Remove ChildScribe listing only, preserving existing api index/listing. Facts explicitly include Program Health API app as well as Hono/Docket contexts, so api needs separate identity audit.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "api",
+        "already_lists_exact_normalized_spelling": true
+      }
+    ],
+    "index_disposition": "preserve existing api claim and listing"
+  },
+  {
+    "alias": "campaign engine",
+    "index_owner": "childscribe-laravel",
+    "normalized": "campaign-engine",
+    "number": 67,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "drop",
+    "candidates": [
+      "claude-code",
+      "codex",
+      "setpoint"
+    ],
+    "rationale": "Actual matching facts name Claude and Codex as two campaign engines. Generic execution role cannot name one Laravel app or one unique rehome target.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "claude-code",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "codex",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "setpoint",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "stops table",
+    "index_owner": "childscribe-laravel",
+    "normalized": "stops-table",
+    "number": 68,
+    "outside_listings": [],
+    "matching_fact_count": 5,
+    "decision": "ambiguous",
+    "candidates": [
+      "0112-operations-routes-stopssql",
+      "stops"
+    ],
+    "rationale": "Evidence identifies database table created in migration 0112. Existing stops entity is a driver-core source directory, not table. Migration file contains definition but is not table identity; no proved rightful table entity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "0112-operations-routes-stopssql",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "stops",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "fleet architecture",
+    "index_owner": "childscribe-laravel",
+    "normalized": "fleet-architecture",
+    "number": 69,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "drop",
+    "candidates": [
+      "setpoint-fleet",
+      "setpoint"
+    ],
+    "rationale": "Architecture facts explicitly concern setpoint/scry/fleet. Architecture topic is not identical to service or repository.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "setpoint-fleet",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "setpoint",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "fleet skill",
+    "index_owner": "childscribe-laravel",
+    "normalized": "fleet-skill",
+    "number": 70,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "drop",
+    "candidates": [
+      "room-worker",
+      "setpoint-fleet"
+    ],
+    "rationale": "Exact phrase fact invokes room-worker fleet protocol. Generic skill role can mean fleet or room-worker, and is not an app alias.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "room-worker",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "setpoint-fleet",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Expo dev client",
+    "index_owner": "childscribe-laravel",
+    "normalized": "expo-dev-client",
+    "number": 71,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribe-mobile",
+      "expo"
+    ],
+    "rationale": "Facts explicitly require custom Expo dev client for ChildScribe mobile; tool/build is not Laravel, mobile app, or whole Expo toolchain identity. No exact existing dev-client entity found.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-mobile",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "expo",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "dev-client",
+    "index_owner": "childscribe-laravel",
+    "normalized": "dev-client",
+    "number": 72,
+    "outside_listings": [],
+    "matching_fact_count": 5,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribe-mobile",
+      "expo"
+    ],
+    "rationale": "Native WebRTC dev-client binary and simulator facts establish mobile build, but no unique rightful dev-client entity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-mobile",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "expo",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "development build",
+    "index_owner": "childscribe-laravel",
+    "normalized": "development-build",
+    "number": 73,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [],
+    "rationale": "Generic build flavor with no exact fact evidence; not app identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "--dev-client",
+    "index_owner": "childscribe-laravel",
+    "normalized": "--dev-client",
+    "number": 74,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "drop",
+    "candidates": [
+      "expo"
+    ],
+    "rationale": "Exact fact uses it as CLI flag in npx expo start command. Flag value is not Laravel, Expo, or mobile app identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "expo",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "dev client",
+    "index_owner": "childscribe-laravel",
+    "normalized": "dev-client",
+    "number": 75,
+    "outside_listings": [],
+    "matching_fact_count": 22,
+    "decision": "ambiguous",
+    "candidates": [
+      "childscribe-mobile",
+      "expo"
+    ],
+    "rationale": "Same mobile native-build meaning as #71/#72. Metro/rebuild facts misattached to Laravel must not be used as alias identity authority.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-mobile",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "expo",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "iOS client",
+    "index_owner": "childscribe-laravel",
+    "normalized": "ios-client",
+    "number": 76,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-mobile"
+    ],
+    "rationale": "Platform/client role. Native WebRTC evidence locates a ChildScribe mobile client in context; unqualified iOS client is not globally unique.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-mobile",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "voice pipeline",
+    "index_owner": "childscribe-laravel",
+    "normalized": "voice-pipeline",
+    "number": 77,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-mobile",
+      "realtime-tool-call-loop"
+    ],
+    "rationale": "Feature/pipeline spans mobile and OpenAI Realtime, and later mobile/web exploration; not whole Laravel application.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-mobile",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "realtime-tool-call-loop",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "child-scribe.com (staging)",
+    "index_owner": "childscribe-laravel",
+    "normalized": "child-scribe.com-(staging)",
+    "number": 78,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "ambiguous",
+    "candidates": [
+      "child-scribecom",
+      "childscribe-staging"
+    ],
+    "rationale": "Explicit staging domain name; domain entity is contaminated with production alias/facts and staging machine is not same abstraction. Same unresolved domain/host decision as #10.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "child-scribecom",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-staging",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "production profile",
+    "index_owner": "childscribe-laravel",
+    "normalized": "production-profile",
+    "number": 79,
+    "outside_listings": [],
+    "matching_fact_count": 7,
+    "decision": "drop",
+    "candidates": [
+      "easjson"
+    ],
+    "rationale": "EAS build configuration profile, not app. eas.json fact and mobile production-profile facts directly establish configuration context.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "easjson",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "prod environment",
+    "index_owner": "childscribe-laravel",
+    "normalized": "prod-environment",
+    "number": 80,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [
+      "childscribe-production"
+    ],
+    "rationale": "Unqualified environment role with no literal attestation. Retain specific production identity elsewhere.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-production",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "marketing source",
+    "index_owner": "childscribe-laravel",
+    "normalized": "marketing-source",
+    "number": 81,
+    "outside_listings": [],
+    "matching_fact_count": 1,
+    "decision": "drop",
+    "candidates": [
+      "web-marketing"
+    ],
+    "rationale": "Actual fact describes source-code boundary in Docket marketing, not ChildScribe code identity. Generic source-area phrase.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "web-marketing",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "loop engine (former)",
+    "index_owner": "childscribe-laravel",
+    "normalized": "loop-engine-(former)",
+    "number": 82,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "ambiguous",
+    "candidates": [
+      "loom",
+      "setpoint",
+      "setpoint-fleet"
+    ],
+    "rationale": "No literal attestation. Could mean renamed Loom/Setpoint, but former label alone cannot adjudicate overlapping existing loop identities.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "loom",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "setpoint",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "setpoint-fleet",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "migration 0520",
+    "index_owner": "childscribe-laravel",
+    "normalized": "migration-0520",
+    "number": 83,
+    "outside_listings": [],
+    "matching_fact_count": 7,
+    "decision": "rehome",
+    "candidates": [
+      "dbmigrations0520-solve-runssql"
+    ],
+    "rationale": "Direct route-solver-domain fact names migration 0520_solve_runs.sql and existing exact file identity; other route-solver facts require same migration. Target currently lacks short alias; scope short number to Docket provenance before execution.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "dbmigrations0520-solve-runssql",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "proposed target dbmigrations0520-solve-runssql; requires reviewed atomic listing and index change"
+  },
+  {
+    "alias": "scrible",
+    "index_owner": "childscribe-laravel",
+    "normalized": "scrible",
+    "number": 84,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "ambiguous",
+    "candidates": [
+      "scribe",
+      "childscribe-monorepo",
+      "scribe-repo"
+    ],
+    "rationale": "Unattested typo-like spelling, no scrible entity. Scribe monorepo is separately evidenced; do not assign typo by lexical similarity or keep it on backend.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "scribe",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-monorepo",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "scribe-repo",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "scrible-monorepo",
+    "index_owner": "childscribe-laravel",
+    "normalized": "scrible-monorepo",
+    "number": 85,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "ambiguous",
+    "candidates": [
+      "scribe",
+      "childscribe-monorepo",
+      "scribe-repo"
+    ],
+    "rationale": "No exact-text attestation for misspelled monorepo name. Existing Scribe monorepo candidates are distinct from contained Laravel app; need source provenance.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "scribe",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "childscribe-monorepo",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "scribe-repo",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "UNRESOLVED: no change proposed until owner/global-drop decision reviewed"
+  },
+  {
+    "alias": "web frontend",
+    "index_owner": "childscribe-laravel",
+    "normalized": "web-frontend",
+    "number": 86,
+    "outside_listings": [],
+    "matching_fact_count": 6,
+    "decision": "drop",
+    "candidates": [
+      "docket-web",
+      "web"
+    ],
+    "rationale": "Facts explicitly say frontend is part of Docket repo, including misattached self-loops. Generic frontend role is not Laravel identity.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "docket-web",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "web",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Envoyer release deployment",
+    "index_owner": "childscribe-laravel",
+    "normalized": "envoyer-release-deployment",
+    "number": 87,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "drop",
+    "candidates": [
+      "cellsaviors"
+    ],
+    "rationale": "Deployment pattern from Cell Saviors fact, not app identity; no actual Envoyer identity or exact spelling attested. Preserve fact for later endpoint review.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "cellsaviors",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Laravel app symlink",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-app-symlink",
+    "number": 88,
+    "outside_listings": [],
+    "matching_fact_count": 15,
+    "decision": "drop",
+    "candidates": [
+      "appschildscribe-laravel",
+      "appschildscribe-laravel-symlink"
+    ],
+    "rationale": "Facts describe the apps/ symlink relation and target. Unqualified symlink role is not service identity; preserve exact existing path identities rather than adding generic path label.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "appschildscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      },
+      {
+        "slug": "appschildscribe-laravel-symlink",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "Laravel Herd project",
+    "index_owner": "childscribe-laravel",
+    "normalized": "laravel-herd-project",
+    "number": 89,
+    "outside_listings": [],
+    "matching_fact_count": 22,
+    "decision": "drop",
+    "candidates": [
+      "laravel-herd"
+    ],
+    "rationale": "Generic Herd-managed project class; facts explicitly state projects plural live under ~/Herd. Neither ChildScribe nor Herd tool owns every project.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "laravel-herd",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "clear ChildScribe-owned claim only after verifying all normalized-equivalent removed spellings and outside listings"
+  },
+  {
+    "alias": "jeffdhooton/childscribe-laravel",
+    "index_owner": "childscribe-laravel",
+    "normalized": "jeffdhooton/childscribe-laravel",
+    "number": 90,
+    "outside_listings": [],
+    "matching_fact_count": 3,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Exact owner/repository identifier attested by GitHub push and PR URL facts.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "childscribe-laravel repo",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-laravel-repo",
+    "number": 91,
+    "outside_listings": [],
+    "matching_fact_count": 2,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Exact repository-qualified name directly attested by Filament placement and marketing fleet targeting ~/Herd/childscribe.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  },
+  {
+    "alias": "childscribe-laravel memory entity",
+    "index_owner": "childscribe-laravel",
+    "normalized": "childscribe-laravel-memory-entity",
+    "number": 92,
+    "outside_listings": [],
+    "matching_fact_count": 0,
+    "decision": "keep",
+    "candidates": [
+      "childscribe-laravel"
+    ],
+    "rationale": "Explicit self-reference to this exact memory entity, not a different product. No literal fact attestation; harmless precise lookup spelling but optional to retain in a later reviewed metadata policy.",
+    "evidence_file": "alias-fact-evidence.json",
+    "candidate_alias_status": [
+      {
+        "slug": "childscribe-laravel",
+        "already_lists_exact_normalized_spelling": false
+      }
+    ],
+    "index_disposition": "retain current ChildScribe claim"
+  }
+]

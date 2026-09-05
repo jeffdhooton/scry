@@ -1,0 +1,209 @@
+{
+  "status": "audit_proposal_only_not_apply_ready",
+  "selection": {
+    "ordering": "lexical folded hygiene group key",
+    "maximum_complete_touching_facts_per_group": 40,
+    "excluded_completed": "Qwen",
+    "skipped_before_tenth": [
+      {
+        "folded": "6",
+        "reason": "ChildScribe-specific childless interview identity paired with Docket section 6"
+      },
+      {
+        "folded": "action",
+        "reason": "generic action entity includes ChildScribe CreateSocialPostDraft action evidence; overlaps separately reviewed product contamination"
+      },
+      {
+        "folded": "adjustment",
+        "reason": "231 complete touching facts and 143 episodes exceed this bounded first-pass limit; complete graph inventory includes it"
+      },
+      {
+        "folded": "adversarialgrader",
+        "reason": "grading-loop is explicitly the ChildScribe Memory Book grading process, paired with generic cross-project grader identity"
+      }
+    ],
+    "outside_endpoint_scope": "Groups 67 and 69 remain included because their primary identities are Program Health/Cell Saviors/Docket; suspicious ChildScribe outside-endpoint/fact evidence is preserved and referred to the separate reviewer."
+  },
+  "reviews": [
+    {
+      "folded": "0160taskevidencerulesql",
+      "classification": "same_identity_supported_with_third_owner",
+      "rationale": "Both entities identify the same Docket 0160 task-evidence-rules migration. The first describes the table creation and registry reservation; the second identifies task-event.ts enforcement against that exact table. A foreign claim for migration 0160 resolves to migration-0160, whose description gives the full db/migrations/0160_task_evidence_rules.sql path and whose fact identifies commit a7253c0. This is a three-entity identity closure, not a safe two-entity merge.",
+      "supporting_episode_ids": [
+        "b642274107d68dd484704f5551340d532674ad70242dc902ed02cc4dd8ada724",
+        "427776e74f4136dea6e3d5558b1864d2c49e2bcff154659e17cbb188a3acc381",
+        "461b02bfd953048552496da7d87b35063de81f4d238d4ffca921dcead78c04a4"
+      ],
+      "unresolved_choices": [
+        "Choose explicit survivor, artifact-appropriate type, description, and full-path canonical name; current labels tool/concept/project are inconsistent.",
+        "Review the complete three-entity spelling/index/fact closure and any other folded groups before preparing one manifest; migration-0160 cannot remain an unexplained foreign owner."
+      ],
+      "proposal": "Prepare a three-entity same-identity review. Preserve all four touching facts and their original provenance. No survivor inferred from count or lexical order.",
+      "evidence_file": "evidence-0160taskevidencerulesql.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "64",
+      "classification": "distinct_identities_bad_numeric_fold",
+      "rationale": "Program Health backlog issue #64 is production launch assurance, with pen-test/signoff/drill evidence and shared release-evidence code. Docket section §6.4 is the driver requirement to prove a failed item. Their episode repositories, subjects and factual predicates are different; punctuation removal creates the collision. Their exact normalized aliases #64 and §6.4 are already different index keys.",
+      "supporting_episode_ids": [
+        "fafcea45db77f545d15037c4818a16af8b17f824386d2fbfdb2c9eb4c2c73bde",
+        "db08d30da50ecb237028c116df3041f3e6229b809506f8497e6ed56d54faee8c",
+        "1ff489a6c7303eb88bd4d6b3854af6a13692f6223968362639705ddc72679522"
+      ],
+      "unresolved_choices": [
+        "Review whether to replace unqualified numeric aliases with project-qualified issue/section spellings, or explicitly revise the collision definition. This audit does not weaken the existing metric.",
+        "Choose full section metadata for of-64; do not retire its fact as a bare number."
+      ],
+      "proposal": "Keep identities separate and preserve all nine facts; no merge.",
+      "evidence_file": "evidence-64.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "67",
+      "classification": "distinct_identities_bad_numeric_fold_with_outside_endpoint_contamination",
+      "rationale": "Program Health issue #67 covers ratifying versioned product-scoring definitions and their content digests; Docket §6.7 concerns 14h/18h shifts and a 4h token TTL. The shared numeric fold does not represent shared identity. One Program Health engineering-completion fact has childscribe-laravel as src even though its provenance is the Program Health backlog audit; that outside endpoint is a separate contamination candidate.",
+      "supporting_episode_ids": [
+        "fafcea45db77f545d15037c4818a16af8b17f824386d2fbfdb2c9eb4c2c73bde",
+        "75e3a81428faa4a30ecd835a543b5c365660608a1013f8c39d1ddee92dfd92da",
+        "1ff489a6c7303eb88bd4d6b3854af6a13692f6223968362639705ddc72679522"
+      ],
+      "unresolved_choices": [
+        "Use project-qualified issue/section spellings or an independently approved metric change.",
+        "Refer the childscribe-laravel source endpoint to the separate ChildScribe fact review; do not relocate it from this proposal."
+      ],
+      "proposal": "Keep identities separate. Preserve all six facts, including the suspicious outside-endpoint fact.",
+      "evidence_file": "evidence-67.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "69",
+      "classification": "distinct_identities_bad_numeric_fold_and_preexisting_bad_fold",
+      "rationale": "Cell Saviors email-capture deployment uses PRs #68/#69 and Mailchimp on battery tools; Docket §6.9 is the low-confidence geocode/navigation handoff constraint. They are distinct. The Cell Saviors entity also holds a Web PR #68 age-validation/name-sanitation deployment fact whose episode explicitly describes the ChildScribe feedback release. This is a separate proven cross-project fold driven by an unqualified PR number.",
+      "supporting_episode_ids": [
+        "ee06d2e758374d8ddcfc870cf7343bb802d4497c23982b7cf806680f2671ea19",
+        "7d974c45b748d6ab2f4a1de8a3fd673dfb5f4a1a5b1ff4dd8341336a8c5e784d",
+        "1ff489a6c7303eb88bd4d6b3854af6a13692f6223968362639705ddc72679522"
+      ],
+      "unresolved_choices": [
+        "Review project-qualified PR aliases; preserve both legitimate Cell Saviors #68/#69 history and the distinct ChildScribe PR #68 fact.",
+        "A rightful destination for the ChildScribe release fact needs the separate source/entity review; do not guess a recipient."
+      ],
+      "proposal": "No merge with Docket. Prepare separate explicit alias and fact-disposition proposals only after recipient review.",
+      "evidence_file": "evidence-69.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "adapterts",
+      "classification": "identity_unresolved_artifact_path_missing",
+      "rationale": "The adapters.ts node describes the generic ImportAdapter interface in api/src/imports/{plan,apply,rollback,adapter}.ts. The spreadsheet-import-adapter node describes the per-row adapter.ts contract used by the pricing-authoring implementation at api/src/pricing-authoring/spreadsheet-import.ts. Both are in Docket, but the second contract lacks an exact file path in the stored evidence. It may be the same shared interface used by a specialized implementation, or a distinct interface; singularizing adapters.ts to adapter.ts does not settle that question.",
+      "supporting_episode_ids": [
+        "c20d0c28541af62d6a114c74193084ed42be4ac21ca273dff83e7751f7b2fc1d",
+        "5abb753b5d2d9f6b4c8a181eb31373dc06c181168fdc7f4f8d4efae2e8c3dcd0"
+      ],
+      "unresolved_choices": [
+        "Establish the full adapter.ts contract path from retained source provenance or the repository before deciding same identity versus separate interface/implementation.",
+        "Determine whether adapters.ts is a misrecorded plural filename; preserve its original fact text either way."
+      ],
+      "proposal": "Hold identity repair. Do not choose ownership from basename, type, or one-fact counts.",
+      "evidence_file": "evidence-adapterts.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "agenttemplate",
+      "classification": "distinct_related_artifact_and_campaign",
+      "rationale": "agent-template describes a deployable folder/unit carrying persona, skills, channel, schedules and approval queue. hermes-agent-templates describes the dated ten-task SDD campaign building that capability, with task/commit/test/review history. The planning and campaign episodes are contiguous spans of one session but distinguish the produced unit from the implementation effort. Their relationship supports related identities, not an automatic merge.",
+      "supporting_episode_ids": [
+        "1041b44d0bfa6fc15b746a8fe4716162fcda4fbbe782bcf98bce01ab2acd033a",
+        "48a6cf71b45e93aa658d8a9d79c6880ab46bdd55a745d7d2ac80cb1c54e6255c",
+        "14e2e6f391fe2cc7ee9d365fb022cb7e791e295a24b13e2fbd6f093967720849",
+        "ae9226c2c3215a7dcf79509458828d589294ec1c70b948bd60e76aaecb993b2a"
+      ],
+      "unresolved_choices": [
+        "Decide explicit artifact-versus-campaign naming, and whether the unqualified campaign alias agent-templates should be dropped or replaced by a qualified campaign spelling.",
+        "Do not reinterpret historic review failures as current status or erase them."
+      ],
+      "proposal": "Keep distinct pending explicit naming review. Preserve all 34 touching facts, including three invalidated facts and the existing invalidated empty-text record.",
+      "evidence_file": "evidence-agenttemplate.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "aggregaterunner",
+      "classification": "mixed_group_same_module_plus_distinct_contained_seam",
+      "rationale": "api-reporting-execute and reporting-execute-module both explicitly describe api/src/reporting/execute.ts, and independent Docket episodes place the operational runner wiring and financial report dependency in that exact file. report-aggregate-runners describes the ReportAggregateRunners/aggregate runner seam contained in that module; a stored related_to edge explicitly encodes the containment relationship. Merging all three would destroy that distinction and turn this fact into a self-loop.",
+      "supporting_episode_ids": [
+        "c465253cdd238bc278417f5870e04c090dda633f4ffc435d068da434082c7b58",
+        "1dcf9911e97b77a18c2ad24147f83926b77ec86aa6ebcd58a9ff6af869eaf7ae"
+      ],
+      "unresolved_choices": [
+        "Review a same-file merge for the two module records with explicit survivor/type/metadata.",
+        "Resolve whether ReportAggregateRunners (interface), aggregateRunners() (function), and computed entities deserve distinct identities before redistributing spellings.",
+        "Preserve the seam-to-module fact and all five original facts; no whole-group merge."
+      ],
+      "proposal": "Two module entities are a same-identity candidate; retain the contained seam pending a reviewed artifact model.",
+      "evidence_file": "evidence-aggregaterunner.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "aicalibration",
+      "classification": "distinct_decision_and_page_with_section_alias_contamination",
+      "rationale": "The July Program Health Q10 decision defers an AI feedback/calibration loop. The September settings-page entity is the host UI for aiCalibration and adjacent budget settings; its fact says budget configuration sits beside that section. A contained section label is not evidence that the entire Settings page is the Q10 decision, and there is no stored proof that the July deferred feature is identical to the September section.",
+      "supporting_episode_ids": [
+        "eae41f10a30d83c4a3e083385ec7afceb6a2b2a06c604211f78f395024c38c38",
+        "9106f6fe8d6df96db31224f2d71a3b8650357078718114ac053ff88d746103a2"
+      ],
+      "unresolved_choices": [
+        "Review removing aiCalibration from the page versus rehoming it to an explicit section identity.",
+        "Do not rehome aiCalibration to Q10 solely because its folded name matches; establish feature continuity first."
+      ],
+      "proposal": "No merge. Preserve the July deferral and September placement fact as separate dated evidence.",
+      "evidence_file": "evidence-aicalibration.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "apiappts",
+      "classification": "same_identity_supported",
+      "rationale": "Both entities identify Docket api/src/app.ts. The apiappts facts record its 404/error-handler migration to notFound/internalError plus request IDs in commit cf2f56b. An api-app-ts fact independently cites the same commit and exact file, and other facts consistently identify that file as the route mount table. This is explicit file and change identity, not a basename or fact-count inference.",
+      "supporting_episode_ids": [
+        "433e91ec3c868a2507a7865ce0bb9b561cb2b40e24545f1ec3910f4fef94214e",
+        "e06dce5dad474a63979785ea33a414a2b464443e8fcdd4f49229d0cda7b78e2b",
+        "2170293ada033940ec13d3d957ace8bd49468e7419235f4b1316472e21f8a49a"
+      ],
+      "unresolved_choices": [
+        "Choose a file-appropriate type, survivor, canonical full-path name, and explicit old spellings. Current project/concept labels do not settle type.",
+        "Recheck all external normalized/folded claims for the full path before adding it; this two-entity packet is not a complete merge manifest."
+      ],
+      "proposal": "Prepare explicit same-file merge review preserving all ten facts, including before-migration statements that remain historically meaningful.",
+      "evidence_file": "evidence-apiappts.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    },
+    {
+      "folded": "apigate",
+      "classification": "distinct_verification_contracts_bad_plural_fold",
+      "rationale": "api-gate records API/database test command behavior and historical results across Docket tasks. api-gates is the global-search task verification contract requiring two exact command exit statuses: npm run test:api and npm run check. Its episode and facts insist those strings be satisfied verbatim. Singularization conflates the narrower gate with a task-specific pair of gates; generic shared terminology is insufficient to merge.",
+      "supporting_episode_ids": [
+        "ba1a03f0a2a96c66f6270e1165bd7c818daec4a511c14a2ea9f29a7dbc2bbae4",
+        "97c37e93b31c6da7ef76a36bed1317dde815a2729ca730a0c8993ba3ec6c3280",
+        "3caaa24372c3bd90b077ef9c029af7b3bf10b93cf3194f1356c7fdf0d7ec20b0",
+        "bc4b8447f6d520a2fdd235551372be20c7f2557fc743369b70b1eaa115bf13f7"
+      ],
+      "unresolved_choices": [
+        "Review whether these should be qualified runbook identities or task-scoped verification attributes while preserving each command, result and timestamp.",
+        "Do not combine test totals or interpret different task results as contradictory current facts."
+      ],
+      "proposal": "No automatic merge. Explicitly disambiguate identities or convert through a reviewed fact-preserving manifest.",
+      "evidence_file": "evidence-apigate.json",
+      "complete_evidence": true,
+      "apply_authorized": false
+    }
+  ]
+}

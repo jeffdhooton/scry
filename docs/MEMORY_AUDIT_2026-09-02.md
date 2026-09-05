@@ -2671,3 +2671,109 @@ snapshot; see `memory-repairs/qwen-review-2026-09-05.md` for hashes, complete
 scope and live preconditions. Room sequence 60 records the verdict. This
 gate is not a live apply receipt. New unrelated queued work at 18:24 means
 the lead must observe stability again before applying.
+
+### First live complete identity repair: Qwen — 2026-09-05
+
+After the unrelated manual item resolved at 18:26:38 UTC, both immediately
+pre-apply checks showed zero ready/backoff and one parked item. Qwen's three
+entity snapshots and 19 touching-fact fingerprints were unchanged from the
+reviewed replica. Before rehome, the lead also checked the exact alias-index
+owner (Q8), not merely the entity metadata. Manifests were committed at
+`1af0d3b` before execution.
+
+At 18:27:25, the one-row reviewed unalias returned the exact Q5 name from Q8
+to the existing Q5 entity. At 18:27:53, the complete reviewed Q5 merge passed
+all post-rehome entity/fact/alias fingerprints and applied one group with zero
+refusals. Observed collisions were 492 to 491 to 489, matching prediction.
+The duplicate machine-typed Q5 record was removed only after transferring its
+complete identity and historical facts. Q8 remains distinct. Room sequences
+61 and 62 record the two live operations.
+
+Each operation created its own verified nonempty Mini backup. Local copies
+under `/tmp/scry-qwen-live-sep05.Koj9v3/` match these SHA-256 values:
+
+| State | Mini file under `/Users/jclaw/.scry/backups/` | Bytes | SHA-256 |
+|---|---|---:|---|
+| Before rehome | `memory-20260905T182725Z.badger` | 76,875,355 | `a207f13b7b9abf2be0955d96b77ac5c6528eae1342c12254cd9eccd2f2200ea2` |
+| Before merge | `memory-20260905T182753Z.badger` | 76,876,630 | `e4b0ea88788dcc7d47fb5a162d27273b85b87841a4e6f6a48e1f8a64f6a57dfd` |
+| After merge | `memory-20260905T182812Z.badger` | 76,886,388 | `24621f12ab33ad0d7b32f96238f1b7854430abf41da9c3ff8b362dd8c33ae851` |
+
+Post-apply live status: 30,175 entities, 79,560 facts, 9,282 episodes. The
+unrelated item added 13 facts and seven entities before these repairs, not
+during the merge. Every approved exact lookup (`qwen38-27b-uncensored-q5`,
+`qwen3-8-27b-uncensored-q5`, `3.8-27B-Q5`,
+`Qwen38-27B-Uncensored-Q5.gguf`) returns the same 19 total facts, one
+invalidated. Exact Q8 returns its separate 130 facts. Q5, Qwen3 and Qwen3.8
+return not found. A second merge dry run changes nothing and refuses the now
+absent loser; this is safe refusal, not overall hygiene no-op certification.
+
+Post-live fixed-suite hits remain 51/62, 30/66, 7/7, 44/50, 46/50. Maximum
+payloads respectively 12,112, 13,358, 10,655, 11,528 and 11,528 bytes; none
+over cap. Full raw operation receipts are in
+`memory-repairs/qwen-live-receipt-2026-09-05.json`. Independent actual-backup
+preservation verification is pending; the pre-apply replica verdict passed.
+No other graph cleanup was applied and no original floor was relaxed.
+
+Independent verification of the three actual live backups subsequently passed:
+all 79,560 facts and 9,282 episodes preserved; only reviewed Qwen metadata,
+aliases/index keys and loser endpoints changed. The intermediate backup is
+exactly the pre-state plus the single rehome. See
+`memory-repairs/qwen-live-review-2026-09-05.md`; room sequence 63 records PASS.
+
+### Complete post-Qwen graph and ChildScribe inventories
+
+A separate fresh audit independently restored the post-Qwen backup twice and
+produced 17 byte-identical inventories. It counted 489 collision pairs across
+427 folded-spelling groups, 2,854 all-history hollow entities, and 89 current
+self-loops. Important qualification: **zero current missing endpoints**;
+all 2,441 missing endpoint occurrences are historical, spanning 1,995 facts
+and 994 absent slugs. The all-history goal still fails. Listed foreign-owner
+observations comprise 464 aliases and 64 names, plus 45 slugs. No listed name
+or alias is unindexed. The 3,848 slug-only index absences are not themselves
+lookup blackouts: storage keys do not require separate alias-index claims.
+There are 28 raw claims not listed in their owner's metadata and zero raw
+claims naming absent owners. None of these observations infers rightful ownership.
+
+See `memory-repairs/post-qwen-graph-audit-2026-09-05.md` for the exact snapshot,
+definitions, artifact hashes, unchanged raw-store digest and full inventories
+under `/tmp/scry-independent-graph-sep05.JBewl4/results/`. A bounded ten-group
+semantic review is preserved separately; no proposal is an apply manifest.
+
+The complete ChildScribe review enumerates 92 aliases: 14 keep, 47 drop,
+seven semantic rehome proposals and 24 ambiguous. Its exact source fingerprint
+is `b5506902514ebf55037b57c9f67de04fe7f90af86a60471be60b517d6730ed5d`.
+It preserves 2,091 touching facts as evidence, including 522 invalidated.
+The two Forge spellings require explicit rehome to an existing listing;
+three API spellings already index another entity and those keys must survive.
+Five other proposed rehomes require separately reviewed target metadata;
+they are not executable standalone drops. The full per-alias rationale and
+index obligations are in `memory-repairs/childscribe-alias-audit-2026-09-05.*`.
+Description, repository refs and fact contamination remain separately unresolved.
+
+### Guarded standalone alias batches: local implementation, not deployed
+
+New regression tests failed the deployed-era implementation in two ways: raw
+RPC omitted `dry_run` wrote immediately, and a later invalid row left an
+earlier valid row committed. The earlier Qwen operation remains independently
+verified: it was a single explicit row with immediate manual fingerprint and
+index-owner checks. Larger batches must not inherit those operational gaps.
+
+The local replacement previews one complete snapshot and requires a reviewed
+`{drops,expected}` object for apply. Fingerprints cover the exact plan,
+participant entities, all touching historical/current facts, exact claim
+presence/owner and every outside listing. The exclusive maintenance lock
+covers backup, sync, close and the full-batch transaction. Postconditions
+compare all facts, all entities and the entire alias index before commit.
+Observer notifications follow commit and lock release. Multiple reviewed
+global drops can remove every listing atomically; explicit rehomes still
+require a target that already lists the spelling.
+
+Tests cover raw default safety, partial-batch refusal, entity/fact/claim-only/
+outside-listing drift, missing review, backup write/sync/close failures,
+historical preservation, exact restored rollback state, normalized variants,
+index retention/rehome, complete global drops and concurrent-writer exclusion.
+Full `go test ./...` and `go vet ./...` passed; focused store/daemon alias
+race tests passed. CLI additionally performs a guarded dry-run handshake so
+an old daemon cannot ignore the new fingerprint fields and accept a write.
+Replica measurement and a fresh disproof review are still required before
+deployment or any ChildScribe apply.
