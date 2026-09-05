@@ -2941,3 +2941,55 @@ The expanded five-member migration-0160 replica also passed its separate
 gate on the older source; it restores all seven lookup keys to six facts
 and removes exactly one hollow. It is not a fresh/live manifest. Report:
 `memory-repairs/migration0160-five-review-2026-09-05.md`.
+
+### Identity/fallback prevention deployed — 2026-09-05, 19:43 UTC
+
+Independent deployment gate PASS (room 75), exact commit
+`393eeec79f80d3b4becff276c4fcffd71fa68ac5`; report
+`memory-repairs/identity-relation-deployment-review-2026-09-05.md`.
+Independent rebuild matched all 337 tracked source entries and artifact
+SHA-256 `acfb78186402aec9eef87e71e0b81f6edeac1b9ea46641efd417aaf4368f0bd0`.
+No CGO, trimpath, darwin/arm64, signature verified, full suite passed.
+
+Both actual predeployment backups independently restored:
+
+- Mini `/Users/jclaw/.scry/backups/memory-20260905T193835Z.badger`,
+  77,468,362 bytes, SHA-256
+  `88fd5b78303115050d13819701957a871a1fa7a4ab761418c3c42084b43e0abe`;
+  30,355 entities / 79,953 facts / 9,305 episodes.
+- Laptop `/Users/jeff/.scry/backups/memory-20260905T193836Z.badger`,
+  19,445,000 bytes, SHA-256
+  `67a2cb2852fc24ed2a10bc9c837183aeeee7f463c747a75c80552987f86380dd`;
+  14,200 entities / 21,004 facts / 2,689 episodes.
+
+Both prior 53fafa9 binaries remain beside their installed paths as
+`scry.pre-393eeec-20260905T1939Z`, SHA-256
+`31f185d70e1439a315a8ea12eaadf4f12d75e77d558edfa0852c890531705aff`.
+Atomic replacements installed the same reviewed artifact on both hosts.
+Only `gui/501/com.jhoot.scryd` and `gui/501/ai.jermes.scryd` were restarted.
+Laptop PID 40300 and Mini PID 99227 run with launchd exit zero; lsof confirms
+their executable paths, and both installed hashes/versions match 393eeec.
+No historical rewrite or migration merge accompanied deployment (room 76).
+
+Mini rebuilt its search index at 19:43:35 and started its worker. Boot graph
+was 79,980 facts / 30,364 entities / 9,308 episodes. Normal sweep work added
+12 ready items with the three existing parked conflicts preserved. The real
+laptop local store remains dormant with 21,004 facts, as before; shared
+authority remains the Mini and no provider/secret/configuration was changed.
+
+Postdeploy fixed suites: 52/62, **29/66**, 7/7, 45/50, 47/50, max 13,369
+bytes and zero over-cap responses. The heldout-b drop from 30 is an OPEN
+regression-attribution check, not a pass: ingestion added facts between the
+19:35 ChildScribe measurements and deployment. An independent grader is
+comparing exact old/new binaries on the same restored snapshots and tracing
+the changed questions. Read-path production diff is empty; do not infer
+causality from timing or lower the original 34/66 floor.
+
+The new worker completed multiple real episodes, reaching 80,034 facts at
+19:46:36. At 19:46:09 it preserved/parked the first exact fallback-key
+conflict: episode
+`287c409ed5605855f43f693db9983a45ba74820269b23f17f9296e35901041e8`,
+`cockpit-attention related_to cockpit-signals` at 2026-09-05T00:00:00Z.
+This is the deliberate no-overwrite boundary, not successful ingestion.
+The pending source needs explicit fact review; no broad retry or timestamp
+nudge is authorized. Existing queue work continues normally.

@@ -564,3 +564,27 @@ replica-only, not live-approved. After prevention deploy, regenerate on a
 fresh stable post-ChildScribe source and regrade before any live merge.
 The full ten-clause goal, remaining collisions/statuses/Hermes ownership,
 fresh recall holdout and two consecutive complete grading rounds remain.
+
+### Later checkpoint: prevention deployed, recall check open, 19:47 UTC
+
+393eeec is now installed on both hosts, with the matching hash, rollback
+binaries and independently restored actual-store backups documented above.
+Independent deployment gate passed. Only the two existing daemon labels
+were restarted; laptop PID40300 and Mini PID99227 run the intended paths.
+Mini rebuilt its index and is processing real episodes. The actual laptop
+store remains dormant as before; no provider/configuration changes occurred.
+
+Postdeploy fixed suites are 52/62, **29/66**, 7/7, 45/50, 47/50. The one-hit
+heldout-b decline is under independent attribution review using both old
+and new binaries on identical restored snapshots. Live ingestion changed
+the graph between measurements, and there are no production read-path
+changes; neither observation alone closes the regression. Do not lower
+floors, declare recall fixed, or apply the next migration manifest yet.
+
+The new normal write path caught a real same-time fallback assertion
+collision and preserved episode
+`287c409ed5605855f43f693db9983a45ba74820269b23f17f9296e35901041e8`
+for explicit review (`cockpit-attention` to `cockpit-signals`, September 5
+midnight). Four parked items now exist, with more normal work processing.
+Parking prevents overwrite but is not a completed ingestion result. The
+full goal remains active and unfinished.
