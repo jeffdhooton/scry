@@ -603,3 +603,36 @@ preparing/reviewing the next bounded repair. Refresh the five-member
 migration-0160 manifest from a stable postdeployment/post-ChildScribe source
 and independently regrade complete inputs before live apply. The older
 five-member replica manifest remains stale and must not be applied.
+
+### Later checkpoint: six-record migration repair live, 20:12 UTC
+
+The fresh five-record gate failed before live use: review-session ingestion
+had created a sixth explicit SQL-file identity (`docket-migration-0160`)
+with three facts. Old fingerprints were unchanged but semantic closure was
+not. Expanded SIX-record manifest passed fresh review and was applied at
+20:07:09 on 393eeec. Full audit/receipt/reports are under
+`memory-repairs/migration0160-*2026-09-05.*` and appended above in the audit.
+Do not apply either older three- or five-record manifest.
+
+Independent actual automatic-pre/post backup comparison PASS: all 80,203
+facts (7,792 historical) and 9,321 episodes retained, entities 30,441→30,436,
+collisions 484→482, one hollow removed, precisely 35 expected raw keys
+changed. Eight normalized old spellings now return nine facts. Backups:
+Mini `memory-20260905T200709Z.badger` and `memory-20260905T200715Z.badger`.
+Fixed suites unchanged: 52/62, 29/66, 7/7, 45/50, 47/50, maximum 13,370
+bytes. First two original floors remain failed. Room milestones 78–81.
+
+Nine explicit incoming-only status/measurement candidates passed an
+independent replica gate; post-migration source regrading is running.
+Candidate lives at `/tmp/scry-migration0160-fresh-sep05.teYtyC/status-nine-postmigration/`.
+No status live apply yet. Preserve contradictory counts verbatim and record
+separate factual-review gaps; do not conflate structural cleanup with truth
+verification. The four parked episodes still require exact conflict review.
+
+Fresh inventory includes 1,011 unique facts on the old 502 status candidates
+(156 outgoing) and 856 unique facts touching the Hermes trio. Written rubric
+is `memory-repairs/hermes-ownership-rubric-2026-09-05.md`; every fact still
+needs its own evidence-backed disposition. Main runtime code remains
+393eeec on both machines, all earlier rollback binaries/backups retained.
+The full ten-clause goal and both consecutive complete grading rounds remain
+unfinished. Continue; this is not a terminal handoff.

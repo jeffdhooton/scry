@@ -3053,3 +3053,53 @@ The three Hermes identities have 856 unique touching facts on this source:
 Full fact-by-fact ownership review is still required. Inventory/helper:
 `/tmp/scry-migration0160-fresh-sep05.teYtyC/review-inventory/` and its sibling
 `code/cmd/review-inventory/`. Full Go suite passed at cae5f1e.
+
+### Six-record migration merge applied and verified — 2026-09-05, 20:07 UTC
+
+Exact reviewed manifest is committed at a94bf9f:
+`memory-repairs/migration0160-entity-merge-2026-09-05.json`, SHA-256
+`547b324b4a0c83bcec6a345b46a8e2f3e80be5b2178b002d125d2aaf8f29e2c3`.
+Fresh six-record gate PASS, room 79; live apply room 80; independent actual
+automatic-backup audit PASS, room 81. Reports:
+`memory-repairs/migration0160-six-review-2026-09-05.md` and
+`memory-repairs/migration0160-live-review-2026-09-05.md`.
+
+Immediate pre-live source at 20:05:57 restored with every entity, fact,
+episode and alias claim identical to the reviewed source. Actual automatic
+pre at 20:07:09 likewise differs from reviewed source only in two sweep
+metadata keys. The reviewer independently checked complete raw keysets,
+not just group fingerprints or equal counts.
+
+- Automatic pre: Mini `memory-20260905T200709Z.badger`, 77,827,994 bytes,
+  SHA-256 `acccdd658024d440eb98e0373cfb303af561bb370ae6a49998d3d28fe2a09744`.
+- Immediate post: Mini `memory-20260905T200715Z.badger`, 77,829,763 bytes,
+  SHA-256 `5323fef7b594c748fd61462909cc808f78c1bd0a104da070abdc54cb21e102aa`.
+- All 80,203 facts preserved, including 7,792 invalidated; 9,321 episodes
+  unchanged. Nine group facts remain, seven with relocated endpoints.
+- Entities 30,441→30,436; collisions 484→482; hollows 2,855→2,854,
+  exactly the old qualified-path machine husk removed. Complete existing
+  dangling-endpoint and self-loop inventories remain unchanged.
+- Actual post raw state equals the independent prediction exactly: 35 keys
+  differ, no unexpected mutation; 241,340→241,337 total keys.
+- All eight normalized spelling keys return the same nine facts. Lead tested
+  ten distinct literal/name/slug strings; reviewer tested twelve variants.
+  Second exact preview refuses all five absent retirees and writes nothing.
+- Fixed suites unchanged before/after: 52/62, 29/66, 7/7, 45/50, 47/50.
+  Maximum payload 13,370 bytes, zero over cap. Original first two floors fail.
+
+Full CLI outputs, lookups and benchmark JSON:
+`memory-repairs/migration0160-live-receipt-2026-09-05.json`.
+Durable operation episode `ed50810befba04287fe6676b18db368af6808d32508980ae6e49373009230727`
+was queued only after immediate post-state and benchmark capture. No binary
+or configuration change accompanied this repair. Both remain on 393eeec.
+
+The nine explicit status/measurement conversions independently passed on
+the earlier source, including complete raw-state prediction, all-nine
+rollback and backup restore. Report:
+`memory-repairs/status-nine-replica-review-2026-09-05.md`.
+They are not yet live; post-migration fresh-source review is running. In
+addition to the two contradicted field counts, the reviewer identified an
+unresolved seeded-versus-published scope in `50-jurisdictions-published`.
+Preservation is not factual endorsement. The Hermes rubric is now explicit
+at `memory-repairs/hermes-ownership-rubric-2026-09-05.md`; its examples are
+not a completed 856-fact review or apply authorization.

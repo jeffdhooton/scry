@@ -1,0 +1,1966 @@
+{
+  "scope": "Actual live six-record migration merge; broad goal remains unfinished",
+  "implementation": "393eeec79f80d3b4becff276c4fcffd71fa68ac5",
+  "manifest_sha256": "547b324b4a0c83bcec6a345b46a8e2f3e80be5b2178b002d125d2aaf8f29e2c3",
+  "reviewed_source": {
+    "mini_path": "/Users/jclaw/.scry/backups/memory-20260905T195752Z.badger",
+    "bytes": 77827733,
+    "sha256": "7261cfff0a7957d825855c430dbbc0f333517e806b7c47d8fc03a66fe8fc1548"
+  },
+  "actual_pre": {
+    "mini_path": "/Users/jclaw/.scry/backups/memory-20260905T200709Z.badger",
+    "bytes": 77827994,
+    "sha256": "acccdd658024d440eb98e0373cfb303af561bb370ae6a49998d3d28fe2a09744"
+  },
+  "actual_post": {
+    "mini_path": "/Users/jclaw/.scry/backups/memory-20260905T200715Z.badger",
+    "bytes": 77829763,
+    "sha256": "5323fef7b594c748fd61462909cc808f78c1bd0a104da070abdc54cb21e102aa"
+  },
+  "immediate_preview": {
+    "dry_run": true,
+    "applied": 0,
+    "refused": 0,
+    "groups": [
+      {
+        "id": "docket-migration0160-six-sep05",
+        "survivor": "0160-task-evidence-rulessql",
+        "retire": [
+          "task-evidence-rules-migration",
+          "migration-0160",
+          "dbmigrations0160-task-evidence-rulessql",
+          "migration-0160-task-evidence-rules",
+          "docket-migration-0160"
+        ],
+        "entities": {
+          "0160-task-evidence-rulessql": {
+            "slug": "0160-task-evidence-rulessql",
+            "name": "0160_task_evidence_rules.sql",
+            "type": "tool",
+            "description": "New migration in the reserved 0160-0169 block creating a settings table holding, per org and per task type, what evidence a completion and a failure require.",
+            "created_at": "2026-08-19T02:49:16.995Z",
+            "last_seen": "2026-08-19T02:49:16.995Z"
+          },
+          "dbmigrations0160-task-evidence-rulessql": {
+            "slug": "dbmigrations0160-task-evidence-rulessql",
+            "name": "db/migrations/0160_task_evidence_rules.sql",
+            "type": "machine",
+            "description": "Migration on main with evidence rules for photo/scan/signature/scale_ticket.",
+            "created_at": "2026-08-23T21:45:43.316Z",
+            "last_seen": "2026-08-23T21:45:43.316Z"
+          },
+          "docket-migration-0160": {
+            "slug": "docket-migration-0160",
+            "name": "Docket migration 0160",
+            "type": "concept",
+            "description": "Docket migration file 0160, referenced by five distinct scry memory records under different names and types, including a hollow record typed as a machine and a tool record holding two of its facts.",
+            "repo_refs": [
+              "/Users/jeff/workspace/context-stack/scry"
+            ],
+            "created_at": "2026-09-05T19:20:55.401Z",
+            "last_seen": "2026-09-05T19:20:55.401Z"
+          },
+          "migration-0160": {
+            "slug": "migration-0160",
+            "name": "migration-0160",
+            "type": "project",
+            "description": "db/migrations/0160_task_evidence_rules.sql — migration adding per-task-type/per-failure evidence rule rows enforced in taskEventRepository.prepare.",
+            "created_at": "2026-08-19T03:03:29.713Z",
+            "last_seen": "2026-08-19T03:03:29.713Z"
+          },
+          "migration-0160-task-evidence-rules": {
+            "slug": "migration-0160-task-evidence-rules",
+            "name": "migration-0160-task-evidence-rules",
+            "type": "tool",
+            "description": "New docket migration db/migrations/0160_task_evidence_rules.sql creating the task_evidence_rules table that stores per-task-type evidence requirements by event kind (completed or failure reason).",
+            "created_at": "2026-08-19T03:02:37.206Z",
+            "last_seen": "2026-08-19T03:02:37.206Z"
+          },
+          "task-evidence-rules-migration": {
+            "slug": "task-evidence-rules-migration",
+            "name": "task-evidence-rules-migration",
+            "type": "concept",
+            "description": "Migration 0160_task_evidence_rules.sql, enforced against by api/src/repos/operations/task-event.ts but not populatable outside a test fixture before the authoring routes landed.",
+            "aliases": [
+              "0160_task_evidence_rules.sql",
+              "migration 0160"
+            ],
+            "created_at": "2026-08-19T05:02:21.522Z",
+            "last_seen": "2026-08-19T05:02:21.522Z"
+          }
+        },
+        "proposed_metadata": {
+          "slug": "0160-task-evidence-rulessql",
+          "name": "db/migrations/0160_task_evidence_rules.sql",
+          "type": "tool",
+          "description": "Docket db/migrations/0160_task_evidence_rules.sql, introduced in a7253c0: per-organization, per-task-type completion/failure evidence rules and the task-event evidence ledger. The migration file is distinct from the table, API enforcement code and migration-block reservation task.",
+          "aliases": [
+            "0160_task_evidence_rules.sql",
+            "task-evidence-rules-migration",
+            "migration 0160",
+            "dbmigrations0160-task-evidence-rulessql",
+            "migration-0160-task-evidence-rules",
+            "Docket migration 0160"
+          ],
+          "repo_refs": [
+            "/Users/jeff/workspace/context-stack/scry",
+            "/Users/jeff/workspace/docket"
+          ],
+          "created_at": "2026-08-19T02:49:16.995Z",
+          "last_seen": "2026-09-05T19:20:55.401Z"
+        },
+        "expected": {
+          "entities": {
+            "0160-task-evidence-rulessql": "1289ff5c1398a0a03550e046c92ac95dd3a3986ef07984b827e53167cf22e036",
+            "dbmigrations0160-task-evidence-rulessql": "54fd4869818b14df1b2d1b60105e07665dba1ec1baf46bb1f18c5729b2e2be47",
+            "docket-migration-0160": "027889d68b2dc3e39ba1ccb2240e8688ff5cda4e938809938008360f1fd10471",
+            "migration-0160": "bd3631a377d8f82bc285542624f65c13322fe7d9e6268978d1b49663d63e1cd1",
+            "migration-0160-task-evidence-rules": "1be759842f511df3e2e92f382278b10fa7397d42dc24ccc1d1f10dfe084f5ec9",
+            "task-evidence-rules-migration": "6dd76d18bedcae0bc0bf0aa7523c6ffe4b9d713e314fd6b5d22d6ac00eb32b12"
+          },
+          "facts": "192cc9f229eec326501aa840f148de5293815e8941fd40ac5cd39a9fcaafbd3c",
+          "alias_claims": "1bb6b0606355b24b18e9ac0efcf40f8e9deb56181c02c778a2a3732a23bce625"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:0160-task-evidence-rulessql:depends_on:db:1787097600000000000",
+            "sha256": "62f2f4af539480e9d48e07377628725526c6c22e6b65599aab09dcd94a697dcb",
+            "invalidated": false,
+            "fact": "Migration in the reserved 0160-0169 block creates the settings table holding, per org and per task type, what evidence a completion and a failure require.",
+            "snapshot": {
+              "src": "0160-task-evidence-rulessql",
+              "relation": "depends_on",
+              "dst": "db",
+              "raw_relation": "extends",
+              "fact": "Migration in the reserved 0160-0169 block creates the settings table holding, per org and per task type, what evidence a completion and a failure require.",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "b642274107d68dd484704f5551340d532674ad70242dc902ed02cc4dd8ada724"
+              ]
+            }
+          },
+          {
+            "key": "fa:0160-task-evidence-rulessql:depends_on:migration-block-registry:1787097600000000000",
+            "sha256": "d91a7b25b066e0562abeafb08af5d3a6005c2d3dbe586e151c8d5d622424602f",
+            "invalidated": false,
+            "fact": "The 0160 block reservation was carried in via the registry's committed dependency before this migration was added.",
+            "snapshot": {
+              "src": "0160-task-evidence-rulessql",
+              "relation": "depends_on",
+              "dst": "migration-block-registry",
+              "fact": "The 0160 block reservation was carried in via the registry's committed dependency before this migration was added.",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "b642274107d68dd484704f5551340d532674ad70242dc902ed02cc4dd8ada724"
+              ]
+            }
+          },
+          {
+            "key": "fa:docket-migration-0160:merged_into:~five-record-merge-manifest:1788636055401000000",
+            "sha256": "839dc8d3c05d45049378a5ab5913a9794260e1ada514be5c54d1156012eaa64d",
+            "invalidated": false,
+            "fact": "Merges all five memory records for the migration file — including the hollow machine record and the tool record — into one identity; the qualified path and every old spelling resolve to the same six facts.",
+            "snapshot": {
+              "src": "docket-migration-0160",
+              "relation": "merged_into",
+              "dst": "",
+              "value": "five-record merge manifest",
+              "raw_relation": "merges",
+              "fact": "Merges all five memory records for the migration file — including the hollow machine record and the tool record — into one identity; the qualified path and every old spelling resolve to the same six facts.",
+              "valid_from": "2026-09-05T19:20:55.401Z",
+              "confidence": 1,
+              "episodes": [
+                "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+              ]
+            }
+          },
+          {
+            "key": "fa:docket-migration-0160:merged_into:~three-record-merge-manifest:1788636055401000000",
+            "sha256": "a0e154d7f75a7035571466cd6b3b68ed563b0a5b72fe06aa25107ce418dcdf78",
+            "invalidated": false,
+            "fact": "Proposed merging the three memory records that all reference the same Docket migration 0160 file, including the record previously treated as the separate owner of migration 0160.",
+            "snapshot": {
+              "src": "docket-migration-0160",
+              "relation": "merged_into",
+              "dst": "",
+              "value": "three-record merge manifest",
+              "raw_relation": "merges",
+              "fact": "Proposed merging the three memory records that all reference the same Docket migration 0160 file, including the record previously treated as the separate owner of migration 0160.",
+              "valid_from": "2026-09-05T19:20:55.401Z",
+              "confidence": 1,
+              "episodes": [
+                "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+              ]
+            }
+          },
+          {
+            "key": "fa:docket-migration-0160:part_of:docket:1788636055401000000",
+            "sha256": "0a514f5985d22b1536be5afc7a51b21a0a28793e77ae6f56c7290acba82b2804",
+            "invalidated": false,
+            "fact": "Migration file 0160 belongs to the Docket project; five distinct scry memory records reference the same file, including a hollow record typed as a machine and a tool record holding two of its facts.",
+            "snapshot": {
+              "src": "docket-migration-0160",
+              "relation": "part_of",
+              "dst": "docket",
+              "fact": "Migration file 0160 belongs to the Docket project; five distinct scry memory records reference the same file, including a hollow record typed as a machine and a tool record holding two of its facts.",
+              "valid_from": "2026-09-05T19:20:55.401Z",
+              "confidence": 1,
+              "episodes": [
+                "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+              ]
+            }
+          },
+          {
+            "key": "fa:evidence-rule-repository:depends_on:migration-0160-task-evidence-rules:1787097600000000000",
+            "sha256": "5f248b142e80a6869b543d5f062bdac106619616beedefe1b42433fee75dd87d",
+            "invalidated": false,
+            "fact": "evidenceRuleRepository.getForTaskType reads the task_evidence_rules table and returns completion and per-failure-reason evidence kinds sorted by published TASK_EVIDENCE_KINDS order; no rows is an explicit empty rule meaning the task type may complete or fail without evidence.",
+            "snapshot": {
+              "src": "evidence-rule-repository",
+              "relation": "depends_on",
+              "dst": "migration-0160-task-evidence-rules",
+              "fact": "evidenceRuleRepository.getForTaskType reads the task_evidence_rules table and returns completion and per-failure-reason evidence kinds sorted by published TASK_EVIDENCE_KINDS order; no rows is an explicit empty rule meaning the task type may complete or fail without evidence.",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "06139be92a42dd0be947719894a8baa9cabb5d39da82f227797b90555158cc62"
+              ]
+            }
+          },
+          {
+            "key": "fa:migration-0160:implements:~commit-a7253c0:1787108609713000000",
+            "sha256": "959a3d308c598bda530142ea15f5caad8908949270c7be1ba19937afb290d038",
+            "invalidated": false,
+            "fact": "a7253c0 adds db/migrations/0160_task_evidence_rules.sql with per-task-type/per-failure evidence rule rows enforced in taskEventRepository.prepare, plus evidence and readiness tests.",
+            "snapshot": {
+              "src": "migration-0160",
+              "relation": "implements",
+              "dst": "",
+              "value": "commit-a7253c0",
+              "raw_relation": "adds",
+              "fact": "a7253c0 adds db/migrations/0160_task_evidence_rules.sql with per-task-type/per-failure evidence rule rows enforced in taskEventRepository.prepare, plus evidence and readiness tests.",
+              "valid_from": "2026-08-19T03:03:29.713Z",
+              "confidence": 1,
+              "episodes": [
+                "461b02bfd953048552496da7d87b35063de81f4d238d4ffca921dcead78c04a4"
+              ]
+            }
+          },
+          {
+            "key": "fa:task-event:enforces:task-evidence-rules-migration:1787097600000000000",
+            "sha256": "e3b07224b105341958f7c03da900c3bfbefe489e25caff11bb0b70b58b087834",
+            "invalidated": false,
+            "fact": "api/src/repos/operations/task-event.ts validates evidence payloads against the 0160_task_evidence_rules.sql table (lines ~506-521 per the interfaces post).",
+            "snapshot": {
+              "src": "task-event",
+              "relation": "enforces",
+              "dst": "task-evidence-rules-migration",
+              "raw_relation": "enforced_by",
+              "fact": "api/src/repos/operations/task-event.ts validates evidence payloads against the 0160_task_evidence_rules.sql table (lines ~506-521 per the interfaces post).",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 0.7,
+              "episodes": [
+                "427776e74f4136dea6e3d5558b1864d2c49e2bcff154659e17cbb188a3acc381"
+              ]
+            }
+          },
+          {
+            "key": "fa:task-evidence-and-readiness:uses:migration-0160-task-evidence-rules:1787097600000000000",
+            "sha256": "2333a87877b03b4dab7c9dd4d76c59f49b9c497be94eef0cf3c8e975b1474101",
+            "invalidated": false,
+            "fact": "Per-task-type evidence requirements are persisted in the task_evidence_rules table created by migration 0160_task_evidence_rules.sql.",
+            "snapshot": {
+              "src": "task-evidence-and-readiness",
+              "relation": "uses",
+              "dst": "migration-0160-task-evidence-rules",
+              "fact": "Per-task-type evidence requirements are persisted in the task_evidence_rules table created by migration 0160_task_evidence_rules.sql.",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "06139be92a42dd0be947719894a8baa9cabb5d39da82f227797b90555158cc62"
+              ]
+            }
+          }
+        ],
+        "facts_touched": 9,
+        "current_facts": 9,
+        "invalidated_facts": 0,
+        "required_aliases": [
+          "0160-task-evidence-rulessql",
+          "0160_task_evidence_rules.sql",
+          "Docket migration 0160",
+          "db/migrations/0160_task_evidence_rules.sql",
+          "dbmigrations0160-task-evidence-rulessql",
+          "migration 0160",
+          "migration-0160-task-evidence-rules",
+          "task-evidence-rules-migration"
+        ],
+        "repo_refs": [
+          "/Users/jeff/workspace/context-stack/scry",
+          "/Users/jeff/workspace/docket"
+        ],
+        "ready": true,
+        "applied": false,
+        "collisions_before": 484,
+        "collisions_after": 482,
+        "collision_delta": -2,
+        "collision_verified": false
+      }
+    ]
+  },
+  "apply": {
+    "dry_run": false,
+    "backup_path": "/Users/jclaw/.scry/backups/memory-20260905T200709Z.badger",
+    "applied": 1,
+    "refused": 0,
+    "groups": [
+      {
+        "id": "docket-migration0160-six-sep05",
+        "survivor": "0160-task-evidence-rulessql",
+        "retire": [
+          "task-evidence-rules-migration",
+          "migration-0160",
+          "dbmigrations0160-task-evidence-rulessql",
+          "migration-0160-task-evidence-rules",
+          "docket-migration-0160"
+        ],
+        "entities": {
+          "0160-task-evidence-rulessql": {
+            "slug": "0160-task-evidence-rulessql",
+            "name": "0160_task_evidence_rules.sql",
+            "type": "tool",
+            "description": "New migration in the reserved 0160-0169 block creating a settings table holding, per org and per task type, what evidence a completion and a failure require.",
+            "created_at": "2026-08-19T02:49:16.995Z",
+            "last_seen": "2026-08-19T02:49:16.995Z"
+          },
+          "dbmigrations0160-task-evidence-rulessql": {
+            "slug": "dbmigrations0160-task-evidence-rulessql",
+            "name": "db/migrations/0160_task_evidence_rules.sql",
+            "type": "machine",
+            "description": "Migration on main with evidence rules for photo/scan/signature/scale_ticket.",
+            "created_at": "2026-08-23T21:45:43.316Z",
+            "last_seen": "2026-08-23T21:45:43.316Z"
+          },
+          "docket-migration-0160": {
+            "slug": "docket-migration-0160",
+            "name": "Docket migration 0160",
+            "type": "concept",
+            "description": "Docket migration file 0160, referenced by five distinct scry memory records under different names and types, including a hollow record typed as a machine and a tool record holding two of its facts.",
+            "repo_refs": [
+              "/Users/jeff/workspace/context-stack/scry"
+            ],
+            "created_at": "2026-09-05T19:20:55.401Z",
+            "last_seen": "2026-09-05T19:20:55.401Z"
+          },
+          "migration-0160": {
+            "slug": "migration-0160",
+            "name": "migration-0160",
+            "type": "project",
+            "description": "db/migrations/0160_task_evidence_rules.sql — migration adding per-task-type/per-failure evidence rule rows enforced in taskEventRepository.prepare.",
+            "created_at": "2026-08-19T03:03:29.713Z",
+            "last_seen": "2026-08-19T03:03:29.713Z"
+          },
+          "migration-0160-task-evidence-rules": {
+            "slug": "migration-0160-task-evidence-rules",
+            "name": "migration-0160-task-evidence-rules",
+            "type": "tool",
+            "description": "New docket migration db/migrations/0160_task_evidence_rules.sql creating the task_evidence_rules table that stores per-task-type evidence requirements by event kind (completed or failure reason).",
+            "created_at": "2026-08-19T03:02:37.206Z",
+            "last_seen": "2026-08-19T03:02:37.206Z"
+          },
+          "task-evidence-rules-migration": {
+            "slug": "task-evidence-rules-migration",
+            "name": "task-evidence-rules-migration",
+            "type": "concept",
+            "description": "Migration 0160_task_evidence_rules.sql, enforced against by api/src/repos/operations/task-event.ts but not populatable outside a test fixture before the authoring routes landed.",
+            "aliases": [
+              "0160_task_evidence_rules.sql",
+              "migration 0160"
+            ],
+            "created_at": "2026-08-19T05:02:21.522Z",
+            "last_seen": "2026-08-19T05:02:21.522Z"
+          }
+        },
+        "proposed_metadata": {
+          "slug": "0160-task-evidence-rulessql",
+          "name": "db/migrations/0160_task_evidence_rules.sql",
+          "type": "tool",
+          "description": "Docket db/migrations/0160_task_evidence_rules.sql, introduced in a7253c0: per-organization, per-task-type completion/failure evidence rules and the task-event evidence ledger. The migration file is distinct from the table, API enforcement code and migration-block reservation task.",
+          "aliases": [
+            "0160_task_evidence_rules.sql",
+            "task-evidence-rules-migration",
+            "migration 0160",
+            "dbmigrations0160-task-evidence-rulessql",
+            "migration-0160-task-evidence-rules",
+            "Docket migration 0160"
+          ],
+          "repo_refs": [
+            "/Users/jeff/workspace/context-stack/scry",
+            "/Users/jeff/workspace/docket"
+          ],
+          "created_at": "2026-08-19T02:49:16.995Z",
+          "last_seen": "2026-09-05T19:20:55.401Z"
+        },
+        "expected": {
+          "entities": {
+            "0160-task-evidence-rulessql": "1289ff5c1398a0a03550e046c92ac95dd3a3986ef07984b827e53167cf22e036",
+            "dbmigrations0160-task-evidence-rulessql": "54fd4869818b14df1b2d1b60105e07665dba1ec1baf46bb1f18c5729b2e2be47",
+            "docket-migration-0160": "027889d68b2dc3e39ba1ccb2240e8688ff5cda4e938809938008360f1fd10471",
+            "migration-0160": "bd3631a377d8f82bc285542624f65c13322fe7d9e6268978d1b49663d63e1cd1",
+            "migration-0160-task-evidence-rules": "1be759842f511df3e2e92f382278b10fa7397d42dc24ccc1d1f10dfe084f5ec9",
+            "task-evidence-rules-migration": "6dd76d18bedcae0bc0bf0aa7523c6ffe4b9d713e314fd6b5d22d6ac00eb32b12"
+          },
+          "facts": "192cc9f229eec326501aa840f148de5293815e8941fd40ac5cd39a9fcaafbd3c",
+          "alias_claims": "1bb6b0606355b24b18e9ac0efcf40f8e9deb56181c02c778a2a3732a23bce625"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:0160-task-evidence-rulessql:depends_on:db:1787097600000000000",
+            "sha256": "62f2f4af539480e9d48e07377628725526c6c22e6b65599aab09dcd94a697dcb",
+            "invalidated": false,
+            "fact": "Migration in the reserved 0160-0169 block creates the settings table holding, per org and per task type, what evidence a completion and a failure require.",
+            "snapshot": {
+              "src": "0160-task-evidence-rulessql",
+              "relation": "depends_on",
+              "dst": "db",
+              "raw_relation": "extends",
+              "fact": "Migration in the reserved 0160-0169 block creates the settings table holding, per org and per task type, what evidence a completion and a failure require.",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "b642274107d68dd484704f5551340d532674ad70242dc902ed02cc4dd8ada724"
+              ]
+            }
+          },
+          {
+            "key": "fa:0160-task-evidence-rulessql:depends_on:migration-block-registry:1787097600000000000",
+            "sha256": "d91a7b25b066e0562abeafb08af5d3a6005c2d3dbe586e151c8d5d622424602f",
+            "invalidated": false,
+            "fact": "The 0160 block reservation was carried in via the registry's committed dependency before this migration was added.",
+            "snapshot": {
+              "src": "0160-task-evidence-rulessql",
+              "relation": "depends_on",
+              "dst": "migration-block-registry",
+              "fact": "The 0160 block reservation was carried in via the registry's committed dependency before this migration was added.",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "b642274107d68dd484704f5551340d532674ad70242dc902ed02cc4dd8ada724"
+              ]
+            }
+          },
+          {
+            "key": "fa:docket-migration-0160:merged_into:~five-record-merge-manifest:1788636055401000000",
+            "sha256": "839dc8d3c05d45049378a5ab5913a9794260e1ada514be5c54d1156012eaa64d",
+            "invalidated": false,
+            "fact": "Merges all five memory records for the migration file — including the hollow machine record and the tool record — into one identity; the qualified path and every old spelling resolve to the same six facts.",
+            "snapshot": {
+              "src": "docket-migration-0160",
+              "relation": "merged_into",
+              "dst": "",
+              "value": "five-record merge manifest",
+              "raw_relation": "merges",
+              "fact": "Merges all five memory records for the migration file — including the hollow machine record and the tool record — into one identity; the qualified path and every old spelling resolve to the same six facts.",
+              "valid_from": "2026-09-05T19:20:55.401Z",
+              "confidence": 1,
+              "episodes": [
+                "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+              ]
+            }
+          },
+          {
+            "key": "fa:docket-migration-0160:merged_into:~three-record-merge-manifest:1788636055401000000",
+            "sha256": "a0e154d7f75a7035571466cd6b3b68ed563b0a5b72fe06aa25107ce418dcdf78",
+            "invalidated": false,
+            "fact": "Proposed merging the three memory records that all reference the same Docket migration 0160 file, including the record previously treated as the separate owner of migration 0160.",
+            "snapshot": {
+              "src": "docket-migration-0160",
+              "relation": "merged_into",
+              "dst": "",
+              "value": "three-record merge manifest",
+              "raw_relation": "merges",
+              "fact": "Proposed merging the three memory records that all reference the same Docket migration 0160 file, including the record previously treated as the separate owner of migration 0160.",
+              "valid_from": "2026-09-05T19:20:55.401Z",
+              "confidence": 1,
+              "episodes": [
+                "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+              ]
+            }
+          },
+          {
+            "key": "fa:docket-migration-0160:part_of:docket:1788636055401000000",
+            "sha256": "0a514f5985d22b1536be5afc7a51b21a0a28793e77ae6f56c7290acba82b2804",
+            "invalidated": false,
+            "fact": "Migration file 0160 belongs to the Docket project; five distinct scry memory records reference the same file, including a hollow record typed as a machine and a tool record holding two of its facts.",
+            "snapshot": {
+              "src": "docket-migration-0160",
+              "relation": "part_of",
+              "dst": "docket",
+              "fact": "Migration file 0160 belongs to the Docket project; five distinct scry memory records reference the same file, including a hollow record typed as a machine and a tool record holding two of its facts.",
+              "valid_from": "2026-09-05T19:20:55.401Z",
+              "confidence": 1,
+              "episodes": [
+                "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+              ]
+            }
+          },
+          {
+            "key": "fa:evidence-rule-repository:depends_on:migration-0160-task-evidence-rules:1787097600000000000",
+            "sha256": "5f248b142e80a6869b543d5f062bdac106619616beedefe1b42433fee75dd87d",
+            "invalidated": false,
+            "fact": "evidenceRuleRepository.getForTaskType reads the task_evidence_rules table and returns completion and per-failure-reason evidence kinds sorted by published TASK_EVIDENCE_KINDS order; no rows is an explicit empty rule meaning the task type may complete or fail without evidence.",
+            "snapshot": {
+              "src": "evidence-rule-repository",
+              "relation": "depends_on",
+              "dst": "migration-0160-task-evidence-rules",
+              "fact": "evidenceRuleRepository.getForTaskType reads the task_evidence_rules table and returns completion and per-failure-reason evidence kinds sorted by published TASK_EVIDENCE_KINDS order; no rows is an explicit empty rule meaning the task type may complete or fail without evidence.",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "06139be92a42dd0be947719894a8baa9cabb5d39da82f227797b90555158cc62"
+              ]
+            }
+          },
+          {
+            "key": "fa:migration-0160:implements:~commit-a7253c0:1787108609713000000",
+            "sha256": "959a3d308c598bda530142ea15f5caad8908949270c7be1ba19937afb290d038",
+            "invalidated": false,
+            "fact": "a7253c0 adds db/migrations/0160_task_evidence_rules.sql with per-task-type/per-failure evidence rule rows enforced in taskEventRepository.prepare, plus evidence and readiness tests.",
+            "snapshot": {
+              "src": "migration-0160",
+              "relation": "implements",
+              "dst": "",
+              "value": "commit-a7253c0",
+              "raw_relation": "adds",
+              "fact": "a7253c0 adds db/migrations/0160_task_evidence_rules.sql with per-task-type/per-failure evidence rule rows enforced in taskEventRepository.prepare, plus evidence and readiness tests.",
+              "valid_from": "2026-08-19T03:03:29.713Z",
+              "confidence": 1,
+              "episodes": [
+                "461b02bfd953048552496da7d87b35063de81f4d238d4ffca921dcead78c04a4"
+              ]
+            }
+          },
+          {
+            "key": "fa:task-event:enforces:task-evidence-rules-migration:1787097600000000000",
+            "sha256": "e3b07224b105341958f7c03da900c3bfbefe489e25caff11bb0b70b58b087834",
+            "invalidated": false,
+            "fact": "api/src/repos/operations/task-event.ts validates evidence payloads against the 0160_task_evidence_rules.sql table (lines ~506-521 per the interfaces post).",
+            "snapshot": {
+              "src": "task-event",
+              "relation": "enforces",
+              "dst": "task-evidence-rules-migration",
+              "raw_relation": "enforced_by",
+              "fact": "api/src/repos/operations/task-event.ts validates evidence payloads against the 0160_task_evidence_rules.sql table (lines ~506-521 per the interfaces post).",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 0.7,
+              "episodes": [
+                "427776e74f4136dea6e3d5558b1864d2c49e2bcff154659e17cbb188a3acc381"
+              ]
+            }
+          },
+          {
+            "key": "fa:task-evidence-and-readiness:uses:migration-0160-task-evidence-rules:1787097600000000000",
+            "sha256": "2333a87877b03b4dab7c9dd4d76c59f49b9c497be94eef0cf3c8e975b1474101",
+            "invalidated": false,
+            "fact": "Per-task-type evidence requirements are persisted in the task_evidence_rules table created by migration 0160_task_evidence_rules.sql.",
+            "snapshot": {
+              "src": "task-evidence-and-readiness",
+              "relation": "uses",
+              "dst": "migration-0160-task-evidence-rules",
+              "fact": "Per-task-type evidence requirements are persisted in the task_evidence_rules table created by migration 0160_task_evidence_rules.sql.",
+              "valid_from": "2026-08-19T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "06139be92a42dd0be947719894a8baa9cabb5d39da82f227797b90555158cc62"
+              ]
+            }
+          }
+        ],
+        "facts_touched": 9,
+        "current_facts": 9,
+        "invalidated_facts": 0,
+        "required_aliases": [
+          "0160-task-evidence-rulessql",
+          "0160_task_evidence_rules.sql",
+          "Docket migration 0160",
+          "db/migrations/0160_task_evidence_rules.sql",
+          "dbmigrations0160-task-evidence-rulessql",
+          "migration 0160",
+          "migration-0160-task-evidence-rules",
+          "task-evidence-rules-migration"
+        ],
+        "repo_refs": [
+          "/Users/jeff/workspace/context-stack/scry",
+          "/Users/jeff/workspace/docket"
+        ],
+        "ready": true,
+        "applied": true,
+        "collisions_before": 484,
+        "collisions_after": 482,
+        "collision_delta": -2,
+        "observed_collisions_after": 482,
+        "collision_verified": true
+      }
+    ]
+  },
+  "second_preview": {
+    "dry_run": true,
+    "applied": 0,
+    "refused": 1,
+    "groups": [
+      {
+        "id": "docket-migration0160-six-sep05",
+        "survivor": "0160-task-evidence-rulessql",
+        "retire": [
+          "task-evidence-rules-migration",
+          "migration-0160",
+          "dbmigrations0160-task-evidence-rulessql",
+          "migration-0160-task-evidence-rules",
+          "docket-migration-0160"
+        ],
+        "entities": {
+          "0160-task-evidence-rulessql": {
+            "slug": "0160-task-evidence-rulessql",
+            "name": "db/migrations/0160_task_evidence_rules.sql",
+            "type": "tool",
+            "description": "Docket db/migrations/0160_task_evidence_rules.sql, introduced in a7253c0: per-organization, per-task-type completion/failure evidence rules and the task-event evidence ledger. The migration file is distinct from the table, API enforcement code and migration-block reservation task.",
+            "aliases": [
+              "0160_task_evidence_rules.sql",
+              "task-evidence-rules-migration",
+              "migration 0160",
+              "dbmigrations0160-task-evidence-rulessql",
+              "migration-0160-task-evidence-rules",
+              "Docket migration 0160"
+            ],
+            "repo_refs": [
+              "/Users/jeff/workspace/context-stack/scry",
+              "/Users/jeff/workspace/docket"
+            ],
+            "created_at": "2026-08-19T02:49:16.995Z",
+            "last_seen": "2026-09-05T19:20:55.401Z"
+          }
+        },
+        "proposed_metadata": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "facts_touched": 0,
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "required_aliases": null,
+        "repo_refs": null,
+        "problems": [
+          "entity does not exist: task-evidence-rules-migration",
+          "entity does not exist: migration-0160",
+          "entity does not exist: dbmigrations0160-task-evidence-rulessql",
+          "entity does not exist: migration-0160-task-evidence-rules",
+          "entity does not exist: docket-migration-0160"
+        ],
+        "ready": false,
+        "applied": false,
+        "collisions_before": 482,
+        "collisions_after": 482,
+        "collision_delta": 0,
+        "collision_verified": false
+      }
+    ]
+  },
+  "live_lookups": [
+    {
+      "spelling": "db/migrations/0160_task_evidence_rules.sql",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "0160-task-evidence-rulessql",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "task-evidence-rules-migration",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "migration-0160",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "dbmigrations0160-task-evidence-rulessql",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "migration-0160-task-evidence-rules",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "docket-migration-0160",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "0160_task_evidence_rules.sql",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "migration 0160",
+      "count": 9,
+      "invalidated": 0
+    },
+    {
+      "spelling": "Docket migration 0160",
+      "count": 9,
+      "invalidated": 0
+    }
+  ],
+  "lookup_facts_identical": true,
+  "lookup_facts": [
+    {
+      "confidence": 1,
+      "dst": "db",
+      "episodes": [
+        "b642274107d68dd484704f5551340d532674ad70242dc902ed02cc4dd8ada724"
+      ],
+      "fact": "Migration in the reserved 0160-0169 block creates the settings table holding, per org and per task type, what evidence a completion and a failure require.",
+      "raw_relation": "extends",
+      "relation": "depends_on",
+      "src": "0160-task-evidence-rulessql",
+      "valid_from": "2026-08-19T00:00:00Z"
+    },
+    {
+      "confidence": 1,
+      "dst": "migration-block-registry",
+      "episodes": [
+        "b642274107d68dd484704f5551340d532674ad70242dc902ed02cc4dd8ada724"
+      ],
+      "fact": "The 0160 block reservation was carried in via the registry's committed dependency before this migration was added.",
+      "relation": "depends_on",
+      "src": "0160-task-evidence-rulessql",
+      "valid_from": "2026-08-19T00:00:00Z"
+    },
+    {
+      "confidence": 1,
+      "dst": "",
+      "episodes": [
+        "461b02bfd953048552496da7d87b35063de81f4d238d4ffca921dcead78c04a4"
+      ],
+      "fact": "a7253c0 adds db/migrations/0160_task_evidence_rules.sql with per-task-type/per-failure evidence rule rows enforced in taskEventRepository.prepare, plus evidence and readiness tests.",
+      "raw_relation": "adds",
+      "relation": "implements",
+      "src": "0160-task-evidence-rulessql",
+      "valid_from": "2026-08-19T03:03:29.713Z",
+      "value": "commit-a7253c0"
+    },
+    {
+      "confidence": 1,
+      "dst": "",
+      "episodes": [
+        "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+      ],
+      "fact": "Merges all five memory records for the migration file — including the hollow machine record and the tool record — into one identity; the qualified path and every old spelling resolve to the same six facts.",
+      "raw_relation": "merges",
+      "relation": "merged_into",
+      "src": "0160-task-evidence-rulessql",
+      "valid_from": "2026-09-05T19:20:55.401Z",
+      "value": "five-record merge manifest"
+    },
+    {
+      "confidence": 1,
+      "dst": "",
+      "episodes": [
+        "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+      ],
+      "fact": "Proposed merging the three memory records that all reference the same Docket migration 0160 file, including the record previously treated as the separate owner of migration 0160.",
+      "raw_relation": "merges",
+      "relation": "merged_into",
+      "src": "0160-task-evidence-rulessql",
+      "valid_from": "2026-09-05T19:20:55.401Z",
+      "value": "three-record merge manifest"
+    },
+    {
+      "confidence": 1,
+      "dst": "docket",
+      "episodes": [
+        "2d0820415d9d174268f59e2923269f891fa370c5da841065022ec90dc100c11f"
+      ],
+      "fact": "Migration file 0160 belongs to the Docket project; five distinct scry memory records reference the same file, including a hollow record typed as a machine and a tool record holding two of its facts.",
+      "relation": "part_of",
+      "src": "0160-task-evidence-rulessql",
+      "valid_from": "2026-09-05T19:20:55.401Z"
+    },
+    {
+      "confidence": 0.95,
+      "dst": "0160-task-evidence-rulessql",
+      "episodes": [
+        "06139be92a42dd0be947719894a8baa9cabb5d39da82f227797b90555158cc62"
+      ],
+      "fact": "evidenceRuleRepository.getForTaskType reads the task_evidence_rules table and returns completion and per-failure-reason evidence kinds sorted by published TASK_EVIDENCE_KINDS order; no rows is an explicit empty rule meaning the task type may complete or fail without evidence.",
+      "relation": "depends_on",
+      "src": "evidence-rule-repository",
+      "valid_from": "2026-08-19T00:00:00Z"
+    },
+    {
+      "confidence": 0.7,
+      "dst": "0160-task-evidence-rulessql",
+      "episodes": [
+        "427776e74f4136dea6e3d5558b1864d2c49e2bcff154659e17cbb188a3acc381"
+      ],
+      "fact": "api/src/repos/operations/task-event.ts validates evidence payloads against the 0160_task_evidence_rules.sql table (lines ~506-521 per the interfaces post).",
+      "raw_relation": "enforced_by",
+      "relation": "enforces",
+      "src": "task-event",
+      "valid_from": "2026-08-19T00:00:00Z"
+    },
+    {
+      "confidence": 0.95,
+      "dst": "0160-task-evidence-rulessql",
+      "episodes": [
+        "06139be92a42dd0be947719894a8baa9cabb5d39da82f227797b90555158cc62"
+      ],
+      "fact": "Per-task-type evidence requirements are persisted in the task_evidence_rules table created by migration 0160_task_evidence_rules.sql.",
+      "relation": "uses",
+      "src": "task-evidence-and-readiness",
+      "valid_from": "2026-08-19T00:00:00Z"
+    }
+  ],
+  "benchmarks": {
+    "heldout-2026-09-03": {
+      "before": {
+        "total": 62,
+        "hits": 52,
+        "top_n": 20,
+        "hit_rate": 0.8387096774193549,
+        "mean_payload_bytes": 10550,
+        "max_payload_bytes": 12111,
+        "over_cap": 0,
+        "mean_latency_ms": 113.38709677419355,
+        "misses": [
+          {
+            "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+            "rank": -1,
+            "top": [
+              "halo-ssh-tunnel -[located_at]-> halo2: Second localhost SSH tunnel exposes halo2's Lemonade endpoint to Jeff's local Mac at 127.0.0.1:13306…",
+              "cron-mode -[decided]-> jeff: Jeff decided not to change cron_mode to 'approve' because the block couldn't be reproduced - flagging was from…",
+              "chatbox -[causes]-> lemonade: Chatbox couldn't fetch models because the API host omitted http://; verified working API Host http://halo:133…"
+            ]
+          },
+          {
+            "question": "What are we paying per million output tokens for the top Anthropic model?",
+            "rank": -1,
+            "top": [
+              "glm5next -[status]-> Z.AI: Z.ai pricing: $0.075 per million input tokens and $0.25 per million output tokens.",
+              "claude-opus-4-6 -[status]-> 25.00 USD: Claude Opus 4.6 output price is $25.00 per million tokens as of the 2026-06-24 cache",
+              "claude-opus-5 -[status]-> 25.00 USD: Claude Opus 5 output price is $25.00 per million tokens as of the 2026-06-24 cache"
+            ]
+          },
+          {
+            "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+            "rank": -1,
+            "top": [
+              "battery-designer -[provides]-> cloud-folder-navigation: Committed and pushed as 429b798: discoverable cloud folders with breadcrumbs and fo…",
+              "scry -[lacks]-> vue-sfc: Vue SFC is a coverage hole in existing scry TypeScript support, not a new language; ~4,500 files across 19 of 44 r…",
+              "jeff -[decided]-> nestjs: Jeff decided to build a NestJS + TypeORM + react-query practice repo to drill before the interview."
+            ]
+          },
+          {
+            "question": "What does Hermes use for inference when the primary model is down?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> halo-inference-backend: Best use of the box is a headless dedicated inference backend: add gpt-oss-120b and uncensored qw…",
+              "hermes -[uses]-> DeepSeek v4: Primary model is deepseek-v4-pro (provider deepseek, hosted)",
+              "hermes -[provides]-> halo2: The Hermes default profile runs inference on halo2 via lemonade with gpt-oss-120b-Q4_K_M."
+            ]
+          },
+          {
+            "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "flash-next -[uses]-> amd-halo: Flash-Next model runs on a single AMD Halo box (gfx1151) with full GPU offload, 32 cores, 125 GB memory.",
+              "hermes -[depends_on]-> lemonade: Hermes sends prompts and receives tokens over the LAN/Tailscale hop to the Halo — negligible versus infere…"
+            ]
+          },
+          {
+            "question": "Is the DBA filing site actually online yet?",
+            "rank": -1,
+            "top": [
+              "mississippi-dba -[produces]-> mississippi-online-portal: Earlier harvested fact: online portal for Mississippi DBA filing; provenance limit…",
+              "dbafiling-deploy -[part_of]-> hermes: dbafiling-deploy is a Hermes tmux session.",
+              "dbafilingguide -[deployed_on]-> dbafiling-deploy: Production inspections and deploys go through the scoped dbafiling-deploy session because…"
+            ]
+          },
+          {
+            "question": "What did Jeff want done about two-factor auth on the demo site?",
+            "rank": -1,
+            "top": [
+              "fortify-2fa -[status]-> Scribe: Two-factor authentication IS enabled",
+              "jeff -[related_to]-> gog: Jeff wants to add two more accounts to gog CLI",
+              "prior-owner-password-and-totp-factor -[related_to]-> owner@demo.programhealth.dev: The prior Owner password and TOTP factor are invalid aft…"
+            ]
+          },
+          {
+            "question": "What interface is Ollama bound to these days?",
+            "rank": -1,
+            "top": [
+              "ollama -[configures]-> ollama-memory-limits: Set via launchctl setenv: OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_KEEP_ALIVE…",
+              "jeff -[decided]-> ollama: Laptop Ollama must be bound to loopback only and published privately via Tailscale Serve for Jeff's own remote ac…",
+              "ollama -[excludes]-> ollama-env-plist: Ollama.app kept the old environment (5-minute keep-alive) until BOTH it and a lingering `ollama serv…"
+            ]
+          },
+          {
+            "question": "A memory write disappeared without an error - what happened?",
+            "rank": -1,
+            "top": [
+              "data-loss -[blocked_by]-> file-memories: File memories have everything, so nothing is lost despite the scry write failure.",
+              "opencode -[requires]-> enabled-providers: enabled_providers is an explicit allowlist: renaming the provider key ollama→mbp without updating…",
+              "validate -[status]-> healthy: Validation errors propagate to the job and pg-boss; invalid-PDF, missing fields, and oversized assets are nev…"
+            ]
+          },
+          {
+            "question": "What network did Jeff join so the hotspot's admin page would come up?",
+            "rank": -1,
+            "top": [
+              "jeff -[owns]-> toyota-hotspot: Jeff set up the vehicle hotspot through AT&T and supplied its SSID/password (read from the car's hotspot scr…",
+              "oui-spy -[depends_on]-> toyota-hotspot: In-car uplink: NetworkManager profile for 'TOYOTA 4Runner-2.4g_658eaa' (WPA2) provisioned offline w…",
+              "car-hotspot -[part_of]-> 4runner: SSID 'TOYOTA 4Runner-2.4g_658eaa' corresponds to the 4Runner's radio, not Jeff's phone — corrected prior …"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.076923076923077
+      },
+      "after": {
+        "total": 62,
+        "hits": 52,
+        "top_n": 20,
+        "hit_rate": 0.8387096774193549,
+        "mean_payload_bytes": 10550,
+        "max_payload_bytes": 12111,
+        "over_cap": 0,
+        "mean_latency_ms": 160.06451612903226,
+        "misses": [
+          {
+            "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+            "rank": -1,
+            "top": [
+              "halo-ssh-tunnel -[located_at]-> halo2: Second localhost SSH tunnel exposes halo2's Lemonade endpoint to Jeff's local Mac at 127.0.0.1:13306…",
+              "cron-mode -[decided]-> jeff: Jeff decided not to change cron_mode to 'approve' because the block couldn't be reproduced - flagging was from…",
+              "chatbox -[causes]-> lemonade: Chatbox couldn't fetch models because the API host omitted http://; verified working API Host http://halo:133…"
+            ]
+          },
+          {
+            "question": "What are we paying per million output tokens for the top Anthropic model?",
+            "rank": -1,
+            "top": [
+              "glm5next -[status]-> Z.AI: Z.ai pricing: $0.075 per million input tokens and $0.25 per million output tokens.",
+              "claude-opus-4-6 -[status]-> 25.00 USD: Claude Opus 4.6 output price is $25.00 per million tokens as of the 2026-06-24 cache",
+              "claude-opus-5 -[status]-> 25.00 USD: Claude Opus 5 output price is $25.00 per million tokens as of the 2026-06-24 cache"
+            ]
+          },
+          {
+            "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+            "rank": -1,
+            "top": [
+              "battery-designer -[provides]-> cloud-folder-navigation: Committed and pushed as 429b798: discoverable cloud folders with breadcrumbs and fo…",
+              "scry -[lacks]-> vue-sfc: Vue SFC is a coverage hole in existing scry TypeScript support, not a new language; ~4,500 files across 19 of 44 r…",
+              "jeff -[decided]-> nestjs: Jeff decided to build a NestJS + TypeORM + react-query practice repo to drill before the interview."
+            ]
+          },
+          {
+            "question": "What does Hermes use for inference when the primary model is down?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> halo-inference-backend: Best use of the box is a headless dedicated inference backend: add gpt-oss-120b and uncensored qw…",
+              "hermes -[uses]-> DeepSeek v4: Primary model is deepseek-v4-pro (provider deepseek, hosted)",
+              "hermes -[provides]-> halo2: The Hermes default profile runs inference on halo2 via lemonade with gpt-oss-120b-Q4_K_M."
+            ]
+          },
+          {
+            "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "flash-next -[uses]-> amd-halo: Flash-Next model runs on a single AMD Halo box (gfx1151) with full GPU offload, 32 cores, 125 GB memory.",
+              "hermes -[depends_on]-> lemonade: Hermes sends prompts and receives tokens over the LAN/Tailscale hop to the Halo — negligible versus infere…"
+            ]
+          },
+          {
+            "question": "Is the DBA filing site actually online yet?",
+            "rank": -1,
+            "top": [
+              "mississippi-dba -[produces]-> mississippi-online-portal: Earlier harvested fact: online portal for Mississippi DBA filing; provenance limit…",
+              "dbafiling-deploy -[part_of]-> hermes: dbafiling-deploy is a Hermes tmux session.",
+              "dbafilingguide -[deployed_on]-> dbafiling-deploy: Production inspections and deploys go through the scoped dbafiling-deploy session because…"
+            ]
+          },
+          {
+            "question": "What did Jeff want done about two-factor auth on the demo site?",
+            "rank": -1,
+            "top": [
+              "fortify-2fa -[status]-> Scribe: Two-factor authentication IS enabled",
+              "jeff -[related_to]-> gog: Jeff wants to add two more accounts to gog CLI",
+              "prior-owner-password-and-totp-factor -[related_to]-> owner@demo.programhealth.dev: The prior Owner password and TOTP factor are invalid aft…"
+            ]
+          },
+          {
+            "question": "What interface is Ollama bound to these days?",
+            "rank": -1,
+            "top": [
+              "ollama -[configures]-> ollama-memory-limits: Set via launchctl setenv: OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_KEEP_ALIVE…",
+              "jeff -[decided]-> ollama: Laptop Ollama must be bound to loopback only and published privately via Tailscale Serve for Jeff's own remote ac…",
+              "ollama -[excludes]-> ollama-env-plist: Ollama.app kept the old environment (5-minute keep-alive) until BOTH it and a lingering `ollama serv…"
+            ]
+          },
+          {
+            "question": "A memory write disappeared without an error - what happened?",
+            "rank": -1,
+            "top": [
+              "data-loss -[blocked_by]-> file-memories: File memories have everything, so nothing is lost despite the scry write failure.",
+              "opencode -[requires]-> enabled-providers: enabled_providers is an explicit allowlist: renaming the provider key ollama→mbp without updating…",
+              "validate -[status]-> healthy: Validation errors propagate to the job and pg-boss; invalid-PDF, missing fields, and oversized assets are nev…"
+            ]
+          },
+          {
+            "question": "What network did Jeff join so the hotspot's admin page would come up?",
+            "rank": -1,
+            "top": [
+              "jeff -[owns]-> toyota-hotspot: Jeff set up the vehicle hotspot through AT&T and supplied its SSID/password (read from the car's hotspot scr…",
+              "oui-spy -[depends_on]-> toyota-hotspot: In-car uplink: NetworkManager profile for 'TOYOTA 4Runner-2.4g_658eaa' (WPA2) provisioned offline w…",
+              "car-hotspot -[part_of]-> 4runner: SSID 'TOYOTA 4Runner-2.4g_658eaa' corresponds to the 4Runner's radio, not Jeff's phone — corrected prior …"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.076923076923077
+      }
+    },
+    "heldout-b": {
+      "before": {
+        "total": 66,
+        "hits": 29,
+        "top_n": 20,
+        "hit_rate": 0.4393939393939394,
+        "mean_payload_bytes": 10628,
+        "max_payload_bytes": 13370,
+        "over_cap": 0,
+        "mean_latency_ms": 107.06060606060606,
+        "misses": [
+          {
+            "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+            "rank": -1,
+            "top": [
+              "ollama -[deployed_on]-> mac-mini: Local Ollama serving the Qwen worker model runs on the Mac mini (the 'mini-qwen' lane).",
+              "shared-scry-memory -[decided]-> mac-mini: Decision: make the always-on Mac Mini the single authoritative Scry memory plane serving Hermes, …",
+              "document-extraction-job -[owns]-> mac-mini: Four durable named tmux workers on the Mini drive the extraction and survive disconnects; the r…"
+            ]
+          },
+          {
+            "question": "What happened to the DeepSeek worker container on the second box?",
+            "rank": -1,
+            "top": [
+              "fine-tuning -[blocked_by]-> DeepSeek v4: Clustered DeepSeek uses both boxes, so fine-tuning cannot run simultaneously",
+              "halo2 -[decided]-> DeepSeek v4: DeepSeek-V4-Flash was chosen by the user as the model for the two-box cluster.",
+              "scry -[blocked_by]-> hosted-deepseek: DeepSeek extraction returns 402 with the account out of balance; both providers are empty simultaneou…"
+            ]
+          },
+          {
+            "question": "Where do the deep research agent's model calls actually go?",
+            "rank": -1,
+            "top": [
+              "deepresearch -[uses]-> deepresearch-model-api: The agent's model calls go through the OpenAI-compatible endpoint http://100.77.13.39:13306/…",
+              "deepresearch -[blocked_by]-> deepresearch-model-api: Each model call takes 2-3 minutes, so the full research workflow (planning → sub-agent…",
+              "cloud-deep-research-service -[replaced_by]-> deepresearch: deepresearch is the replacement for the paid cloud deep-research service: free, …"
+            ]
+          },
+          {
+            "question": "How often are the queue backups taken and how long do we keep them?",
+            "rank": -1,
+            "top": [
+              "entity-retirement -[uses]-> maintenance-lock: An exclusive maintenance lock is taken before backup, sync, close, and apply; race testing co…",
+              "childscribe-laravel-alias-prune -[monitors]-> store-backup-20260904T170026Z: Pre-prune store backup taken before the prune landed.",
+              "advocates -[produces]-> jobs_backup_20260612_184343: Database backup table created before queue cleanup containing 16,570 rows from stale q…"
+            ]
+          },
+          {
+            "question": "What address does the interview engine bind to so a real phone can hit it?",
+            "rank": -1,
+            "top": [
+              "scriptschildscribe-mobile-device-devsh -[depends_on]-> expo-public-engine-url: Launcher sets EXPO_PUBLIC_ENGINE_URL to http://{LAN_IP}:3100…",
+              "scry -[uses]-> address-suffix-merge-rule: A name that is another same-type entity's name plus an address (an IP, a .local/.ts.net host, a b…",
+              "interview-engine -[documents]-> post-apienginefeedback: Engine summarizes beta Q&A and POSTs to new internal endpoint with engine-auth secr…"
+            ]
+          },
+          {
+            "question": "Why was the mobile app failing to reach the engine from its environment file?",
+            "rank": -1,
+            "top": [
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731",
+              "mobile -[requires]-> expo-public-api-url: Mobile app requires EXPO_PUBLIC_API_URL environment variable set to http://childscribe.test for R…",
+              "mobile -[requires]-> scribe-engine-prod: Mobile app calls production engine directly via EXPO_PUBLIC_ENGINE_URL for realtime voice, must be…"
+            ]
+          },
+          {
+            "question": "What do we use to run unit tests in the mobile app?",
+            "rank": -1,
+            "top": [
+              "mobile -[uses]-> maestro-mobile-e2e: Maestro flows target mobile app; testID additions made to sign-in screen, home CTA, button primitive; …",
+              "adb -[uses]-> appsmobile: Jeff uses Android emulator to test mobile app via adb.",
+              "mobile -[uses]-> eas-build: Mobile app built via EAS cloud builders"
+            ]
+          },
+          {
+            "question": "What is holding up charging sales tax to customers?",
+            "rank": -1,
+            "top": [
+              "codex-reports-financial-sales -[decided]-> sales-reports-plan: Resume inside owned paths without touching execute.ts: three sales aggregate…",
+              "childscribe-laravel -[blocked_by]-> apple-org-enrollment: Long pole blocker for TestFlight and iOS store submission",
+              "financial-report-definitions -[blocked_by]-> f0e0c2073ce6: Six of seven definitions (sales by period, sales by customer, sales by service t…"
+            ]
+          },
+          {
+            "question": "What extra step does staging need after the server-rendered bundle changes?",
+            "rank": -1,
+            "top": [
+              "wren-home-cleaning -[owns]-> operator-pages: The operations app contains thirty server-rendered staff pages.",
+              "claude-code -[documents]-> codex-reviewer: cited codex-reviewer's seq 30 block on the sibling task as precedent for flagging a server-rende…",
+              "showvue -[uses]-> pageseo: SIS detail Vue component now uses server-rendered pageSeo instead of hardcoded title/meta"
+            ]
+          },
+          {
+            "question": "How is a review supposed to be requested in a fleet room?",
+            "rank": -1,
+            "top": [
+              "allow-room-task-metadata-listing -[implements]-> fleet-review: Rationale: listing the room's task metadata is a read-only, narrowly scoped …",
+              "room-task-board-read -[implements]-> fleet-task-review: The read-only room task board listing decision was made reasonably to support the e…",
+              "room-history-lookup -[implements]-> requested-review: The lookup was issued to support the review the user explicitly requested."
+            ]
+          },
+          {
+            "question": "Which git operations are workers not allowed to run?",
+            "rank": -1,
+            "top": [
+              "operations-north-star -[related_to]-> ratelimit: Rate-limit sleep has never fired; many paths (budget exhaustion, crash-resume, malformed e…",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "What was wrong with the dunning run endpoint when it got bad input?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> bug-f4-cascade-delete: F4's shape is right; only its two failure paths are wrong",
+              "text-matching -[blocked_by]-> smart quotes, truncation, wrong chapter attribution: micro-fixer text searches may fail due to smart quotes, …",
+              "chapter-plan-vnext -[decided]-> terminal-failure-artifacts: Terminal writer errors now carry all raw attempts and call metadata; the runner…"
+            ]
+          },
+          {
+            "question": "Is there any migration number range nobody has claimed yet?",
+            "rank": -1,
+            "top": [
+              "codex-migration-block-reservations -[uses]-> port-range-32156: This worktree owns the port range starting at 32156 (also in .setpoint-ports…",
+              "disposal-links-block -[assigned_to]-> claude-weight-ticket-task-and-stop-join: Added a README registry row claiming migration block 0200–02…",
+              "claude-weight-ticket-task-and-stop-join -[implements]-> weight-tickets: Deliberately deviated from its brief by shipping a second migration…"
+            ]
+          },
+          {
+            "question": "Is the messaging section of the office app actually built?",
+            "rank": -1,
+            "top": [
+              "officeapp -[contains]-> 310: There are 310 worktrees, using 911MB, though only ~9 should be live.",
+              "wave -[implements]-> officeapp: Wave 14 closed 12 epics, all 7 members converged with reviewers in-loop, repair backlog empty for first time",
+              "officeapp -[contains]-> ipv6-only: The dev server binds IPv6 only ([::1]:5173), causing IPv4 curl checks to fail."
+            ]
+          },
+          {
+            "question": "Why can nobody hit the customer portal endpoints?",
+            "rank": -1,
+            "top": [
+              "0360-portal-identities-sql -[replaced_by]-> kimi-customer-portal: Renamed the recovered migration 0360_customer_portal.sql to 0360_portal_i…",
+              "api -[implements]-> portal-customer-scoping: Scoped route matrix is green: all seven portal endpoints return 404 for an existing different …",
+              "codex-customer-portal -[decided]-> customer-portal-router-contract: codex-customer-portal proposed a createPortalRoutes() router boundary a…"
+            ]
+          },
+          {
+            "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+            "rank": -1,
+            "top": [
+              "sweep-agent -[depends_on]-> scry: The sweep uses the scry daemon binary which was rebuilt after the code changes.",
+              "scry-daemon-restart -[causes]-> scry: The restart targeted the scry daemon and interrupted in-flight socket clients during a sweep.",
+              "scry-daemon-takeover-race -[causes]-> scry-daemon-split-brain: Likely root cause (inferred from logs and source, not proven live): the non-…"
+            ]
+          },
+          {
+            "question": "What caused duplicate dev servers to be launched?",
+            "rank": -1,
+            "top": [
+              "cloudflare-vite-dev-server -[lacks]-> marketing-redirect-rule: The Cloudflare Vite dev server does not apply `_redirects`, so the lead form…",
+              "protocol-mismatch -[causes]-> econnreset: Potential HTTPS/TLS request to HTTP-only Laravel dev server causes connection reset",
+              "cad-mcp-server -[depends_on]-> cad-core-seam: The v2 MCP server is a second transport over the same core/, scheduled after the web site lau…"
+            ]
+          },
+          {
+            "question": "What is risky about the way the sync loop touches the Claude config file?",
+            "rank": -1,
+            "top": [
+              "ai-syncpy -[implements]-> claude-code: ai-sync.py currently syncs Claude Code skills/config as one of two hardcoded tools",
+              "ai-syncpy -[calls]-> mcp-servers-config: Propagates the registry so Claude, Codex and Kimi/OpenCode all pick up the server.",
+              "claude-registry-backlog-sync -[owns]-> dbmigrationsreadmemd: Named owner of db/migrations/README.md for this fleet wave; no other task may …"
+            ]
+          },
+          {
+            "question": "Why does the orientation output list things that aren't projects?",
+            "rank": -1,
+            "top": [
+              "pinned-cad-fixtures -[decided]-> 3d-conversion-site: Real CAD files arrive via a pinned dependency and are used for validation but not comm…",
+              "git-facade -[decided]-> setpoint-fleet: A deferred git façade would centralize setpoint's ~46 git invocations and classify git output into …",
+              "outputsentity-id -[decided]-> Sub-project 2: Engine output + graph fan-out: New outputs.entity_id column added for per-child output associa…"
+            ]
+          },
+          {
+            "question": "How do I know whether an agent actually got launched into its pane?",
+            "rank": -1,
+            "top": [
+              "remote-host-support -[blocked_by]-> jeff: Assistant asked Jeff whether remote-host support is actually wanted or whether the whole SSH bran…",
+              "hermes -[depends_on]-> agent-blank-pane-bug: Agent blank pane and nvim hang bugs were blocking for Hermes Phase 5+ where agents and TUI too…",
+              "agent-launch-service -[depends_on]-> session-manager: Public session launch delegates into AgentLaunchService, which takes the existing mut…"
+            ]
+          },
+          {
+            "question": "Which newsletter layout do customers get unless we change something?",
+            "rank": -1,
+            "top": [
+              "newsletter-layouttestts -[tests]-> newsletter-layout: new describe 'layoutNewsletterHtml — inset floats' adds 5 tests for float classes, al…",
+              "newsletter-layout -[blocked_by]-> single-column: The newsletter would stay unwrapped unless redesigned separately; the single-column no-col…",
+              "monthly-chapter-improvement -[blocked_by]-> monthly-chapter-improvement-lock: Monthly chapter improvement work must not change newsletter p…"
+            ]
+          },
+          {
+            "question": "Why does the voice interview traffic take a detour instead of going direct?",
+            "rank": -1,
+            "top": [
+              "jeff -[fixes]-> realtime-interview-client: Transport-driven phase boundaries implemented: processing starts on input_audio_buffer.speech_st…",
+              "realtime-interview-orchestrator -[fixes]-> childscribe-mobile: Phase boundaries now driven by transport events: user turn handoff on input_…",
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…"
+            ]
+          },
+          {
+            "question": "What fields is the sign-up form allowed to have?",
+            "rank": -1,
+            "top": [
+              "newsletter-forms -[uses]-> contact-honeypot: Both desktop and mobile newsletter signup forms now include honeypot field for bot detection.",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "How does the demo box get new code?",
+            "rank": -1,
+            "top": [
+              "local-auth-demo-any-mfa-code -[implements]-> program-health-demo-box: LOCAL_AUTH_DEMO_ANY_MFA_CODE=true, so any six-digit numeric MFA code …",
+              "demo-box-auth -[status]-> pending: A1: confirm demo box does not run dev-auth with default secret; remains outstanding.",
+              "hetzner-demo -[provides]-> box-migration: Demo box now serves main branch exclusively; deployed commit matches main head, invariant holds"
+            ]
+          },
+          {
+            "question": "What does the SEO data vendor charge per request?",
+            "rank": -1,
+            "top": [
+              "david-character -[related_to]-> dataforseo: Per scry memory orientation, David is responsible for resolving DataForSEO's -$0.00062 balance …",
+              "seo-audit -[uses]-> dataforseo: The audit used DataForSEO as a data source.",
+              "dataforseo -[related_to]-> dataforseo: Account balance is -$0.00062 and needs a top-up."
+            ]
+          },
+          {
+            "question": "Why was hunting for search terms with no existing player a dead end?",
+            "rank": -1,
+            "top": [
+              "conversionlinttest -[decided]-> no-dead-end-pages: Test asserts every page under pages/marketing/ links onward to a conversion path (via Mk…",
+              "web-app-shell -[blocked_by]-> sign-in-dead-end: Blocking finding 1: /sign-in is a dead end for an authenticated operator (no interactive el…",
+              "conversionlinttest -[decided]-> childscribe-marketing: Every public marketing page must have no dead onward links and no dead-end pages."
+            ]
+          },
+          {
+            "question": "How are the different kinds of events categorized in that WordPress site?",
+            "rank": -1,
+            "top": [
+              "wordpressadapter -[deployed_on]-> wordpress: WordPressAdapter targets WordPress REST API endpoint {site}/wp-json/wp/v2/posts with no plugin…",
+              "publishingconnection -[uses]-> wordpress: PublishingConnection stores application password credentials for WordPress Basic auth against sit…",
+              "wordpress -[blocked_by]-> yootheme: WordPress and YOOtheme auto-wrapped the wistia-player custom element in <p> tags, breaking the embed st…"
+            ]
+          },
+          {
+            "question": "Which model came out on top in the writing comparison?",
+            "rank": -1,
+            "top": [
+              "ch1-3-generation-then-editing-flow-comparison -[decided]-> next phase: Decision made to apply winning model to ch1-3 generation followed by…",
+              "cellsaviors -[related_to]-> cell-comparison-pages: Cell comparison pages (/cell-database/compare/X-vs-Y) proposed as top-priority follow-up…",
+              "jeff -[related_to]-> chainsh: Queued chain.sh: waits for run A exit, swaps models on Halo, runs run B until 11:00, writes AB-COMPARISON.md."
+            ]
+          },
+          {
+            "question": "What makes that page builder awkward for agents to edit?",
+            "rank": -1,
+            "top": [
+              "item6-audit -[implements]-> builder: Sent the builder the complete affected-file list (all 40 published guides / 215 editorial sections), h…",
+              "goal-1a-builder -[modifies]-> goal-1a-control-plane: The builder landed concurrent implementation changes in the shared jbuild-control-plan…",
+              "quick-wins-elementor-edits -[status]-> needs-work: H1 on /services/, homepage typo 'MFA'→'NFA', NAP in hero/footer, broken black block requ…"
+            ]
+          },
+          {
+            "question": "What data survives from one month's report to the next?",
+            "rank": -1,
+            "top": [
+              "monthly-clamp-short-month -[decided]-> task d2bc8e4dea22: Monthly clamps the 31st onto a short month's last day instead of skipping the mon…",
+              "chapter-departments -[uses]-> saidthismonth: saidThisMonth is model-selected from month's quote moments, enforced verbatim in postValidate …",
+              "journalentrydeletetest -[decided]-> chapter-stale-marking: Test verifies deleting entry marks that month's existing chapter stale if one ex…"
+            ]
+          },
+          {
+            "question": "How do we treat temporary errors coming back from Meta when publishing?",
+            "rank": -1,
+            "top": [
+              "metapublishexception -[documents]-> metapublisher: Any 401 or 403 is treated as revoked token and destination is immediately disabled; Meta…",
+              "metapublishexception -[fixes]-> Task 3: Meta Provider Abstraction and Publish: Meta error code 190 (expired token) now classified as auth f…",
+              "metapublishexception -[documents]-> deterministic-4xx-errors: Typed non-auth/non-unknown Meta 4xx errors are classified as failed (retryabl…"
+            ]
+          },
+          {
+            "question": "What is the minimum length the automated writing gate enforces?",
+            "rank": -1,
+            "top": [
+              "length-band-floor -[fixes]-> 100 (flat minimum with ceiling-buffer): Guard now enforces max(100, 1.5×source, ceiling−20) to prevent unsatis…",
+              "design-system-component-set -[decided]-> thumb-safe-hit-targets: product-spec.md §6 constraint enforced by tests: driver-facing hit targets…",
+              "d1-placeholder-id -[enforces]-> d1-id-length-check: disposal-trips.test.ts failed with D1_ERROR: CHECK constraint failed: length(id) = 26: …"
+            ]
+          },
+          {
+            "question": "What subject does Jeff say he cannot fake his way through?",
+            "rank": -1,
+            "top": [
+              "jeff -[documents]-> local-model-for-opencode: Jeff wants a model running on his MacBook Pro that he can use with opencode to work on longer…",
+              "jeff -[uses]-> iphone: Jeff will prompt a real session from his iPhone through the paired dogfood lane.",
+              "jeff -[uses]-> cockpit: Jeff navigates sessions via Cockpit + Ghostty and prefers them over Helm for the way he works"
+            ]
+          },
+          {
+            "question": "Where do the Google OAuth tokens live for the assistant box?",
+            "rank": -1,
+            "top": [
+              "google-oauth-app-188849962955 -[status]-> Testing mode → Production: OAuth app was in Testing mode causing 7-day refresh token expiration. …",
+              "google-oauth -[related_to]-> google-oauth: google_accounts has zero rows on prod; needs one account authorized for Search Console, GA4, and…",
+              "heroic-assistant -[deployed_on]-> the-live-box: Deployed the platform to the LIVE box, which contacted the prod API."
+            ]
+          },
+          {
+            "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+            "rank": -1,
+            "top": [
+              "jeff -[reviews]-> multi-agent-fleet-design: The assistant asked Jeff to review the spec before writing the implementation plan.",
+              "setpoint-notification-template-rendering -[blocked_by]-> claude-reviewer: Task 05a5662f83ef awaits claude-reviewer's review before it can p…",
+              "codex-notification-template-rendering -[assigned_to]-> task-05a5662f83ef: codex-notification-template-rendering claimed task 05a5662f83ef i…"
+            ]
+          },
+          {
+            "question": "Which model is powering the visual design session and how fast is it going?",
+            "rank": -1,
+            "top": [
+              "design-visual-polish -[assigned_to]-> statelicenselookup-design: Redesign work is isolated on branch design/visual-polish; nothing merges t…",
+              "statelicenselookup-design -[related_to]-> design-visual-polish: All design work happens on branch design/visual-polish and is committed the…",
+              "slookup-design -[runs_on]-> statelicenselookup-design: Session launched from the isolated design/visual-polish worktree at /Users/jclaw/wor…"
+            ]
+          },
+          {
+            "question": "What URL do I open to see the battery pack layout tool locally?",
+            "rank": -1,
+            "top": [
+              "battery-pack-designer -[related_to]-> battery-pack-calculator: Tool ranks position 6.2 for 'battery pack calculator' (high-intent query); c…",
+              "battery-pack-calculator -[related_to]-> cell-saviors-battery-designer: /battery-pack-designer remains the classic tool while the upgraded i…",
+              "battery-pack-designer -[part_of]-> cellsaviors: The classic battery pack designer tool remains at the /battery-pack-designer route in cells…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.0344827586206895
+      },
+      "after": {
+        "total": 66,
+        "hits": 29,
+        "top_n": 20,
+        "hit_rate": 0.4393939393939394,
+        "mean_payload_bytes": 10628,
+        "max_payload_bytes": 13370,
+        "over_cap": 0,
+        "mean_latency_ms": 151.46969696969697,
+        "misses": [
+          {
+            "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+            "rank": -1,
+            "top": [
+              "ollama -[deployed_on]-> mac-mini: Local Ollama serving the Qwen worker model runs on the Mac mini (the 'mini-qwen' lane).",
+              "shared-scry-memory -[decided]-> mac-mini: Decision: make the always-on Mac Mini the single authoritative Scry memory plane serving Hermes, …",
+              "document-extraction-job -[owns]-> mac-mini: Four durable named tmux workers on the Mini drive the extraction and survive disconnects; the r…"
+            ]
+          },
+          {
+            "question": "What happened to the DeepSeek worker container on the second box?",
+            "rank": -1,
+            "top": [
+              "fine-tuning -[blocked_by]-> DeepSeek v4: Clustered DeepSeek uses both boxes, so fine-tuning cannot run simultaneously",
+              "halo2 -[decided]-> DeepSeek v4: DeepSeek-V4-Flash was chosen by the user as the model for the two-box cluster.",
+              "scry -[blocked_by]-> hosted-deepseek: DeepSeek extraction returns 402 with the account out of balance; both providers are empty simultaneou…"
+            ]
+          },
+          {
+            "question": "Where do the deep research agent's model calls actually go?",
+            "rank": -1,
+            "top": [
+              "deepresearch -[uses]-> deepresearch-model-api: The agent's model calls go through the OpenAI-compatible endpoint http://100.77.13.39:13306/…",
+              "deepresearch -[blocked_by]-> deepresearch-model-api: Each model call takes 2-3 minutes, so the full research workflow (planning → sub-agent…",
+              "cloud-deep-research-service -[replaced_by]-> deepresearch: deepresearch is the replacement for the paid cloud deep-research service: free, …"
+            ]
+          },
+          {
+            "question": "How often are the queue backups taken and how long do we keep them?",
+            "rank": -1,
+            "top": [
+              "entity-retirement -[uses]-> maintenance-lock: An exclusive maintenance lock is taken before backup, sync, close, and apply; race testing co…",
+              "childscribe-laravel-alias-prune -[monitors]-> store-backup-20260904T170026Z: Pre-prune store backup taken before the prune landed.",
+              "advocates -[produces]-> jobs_backup_20260612_184343: Database backup table created before queue cleanup containing 16,570 rows from stale q…"
+            ]
+          },
+          {
+            "question": "What address does the interview engine bind to so a real phone can hit it?",
+            "rank": -1,
+            "top": [
+              "scriptschildscribe-mobile-device-devsh -[depends_on]-> expo-public-engine-url: Launcher sets EXPO_PUBLIC_ENGINE_URL to http://{LAN_IP}:3100…",
+              "scry -[uses]-> address-suffix-merge-rule: A name that is another same-type entity's name plus an address (an IP, a .local/.ts.net host, a b…",
+              "interview-engine -[documents]-> post-apienginefeedback: Engine summarizes beta Q&A and POSTs to new internal endpoint with engine-auth secr…"
+            ]
+          },
+          {
+            "question": "Why was the mobile app failing to reach the engine from its environment file?",
+            "rank": -1,
+            "top": [
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731",
+              "mobile -[requires]-> expo-public-api-url: Mobile app requires EXPO_PUBLIC_API_URL environment variable set to http://childscribe.test for R…",
+              "mobile -[requires]-> scribe-engine-prod: Mobile app calls production engine directly via EXPO_PUBLIC_ENGINE_URL for realtime voice, must be…"
+            ]
+          },
+          {
+            "question": "What do we use to run unit tests in the mobile app?",
+            "rank": -1,
+            "top": [
+              "mobile -[uses]-> maestro-mobile-e2e: Maestro flows target mobile app; testID additions made to sign-in screen, home CTA, button primitive; …",
+              "adb -[uses]-> appsmobile: Jeff uses Android emulator to test mobile app via adb.",
+              "mobile -[uses]-> eas-build: Mobile app built via EAS cloud builders"
+            ]
+          },
+          {
+            "question": "What is holding up charging sales tax to customers?",
+            "rank": -1,
+            "top": [
+              "codex-reports-financial-sales -[decided]-> sales-reports-plan: Resume inside owned paths without touching execute.ts: three sales aggregate…",
+              "childscribe-laravel -[blocked_by]-> apple-org-enrollment: Long pole blocker for TestFlight and iOS store submission",
+              "financial-report-definitions -[blocked_by]-> f0e0c2073ce6: Six of seven definitions (sales by period, sales by customer, sales by service t…"
+            ]
+          },
+          {
+            "question": "What extra step does staging need after the server-rendered bundle changes?",
+            "rank": -1,
+            "top": [
+              "wren-home-cleaning -[owns]-> operator-pages: The operations app contains thirty server-rendered staff pages.",
+              "claude-code -[documents]-> codex-reviewer: cited codex-reviewer's seq 30 block on the sibling task as precedent for flagging a server-rende…",
+              "showvue -[uses]-> pageseo: SIS detail Vue component now uses server-rendered pageSeo instead of hardcoded title/meta"
+            ]
+          },
+          {
+            "question": "How is a review supposed to be requested in a fleet room?",
+            "rank": -1,
+            "top": [
+              "allow-room-task-metadata-listing -[implements]-> fleet-review: Rationale: listing the room's task metadata is a read-only, narrowly scoped …",
+              "room-task-board-read -[implements]-> fleet-task-review: The read-only room task board listing decision was made reasonably to support the e…",
+              "room-history-lookup -[implements]-> requested-review: The lookup was issued to support the review the user explicitly requested."
+            ]
+          },
+          {
+            "question": "Which git operations are workers not allowed to run?",
+            "rank": -1,
+            "top": [
+              "operations-north-star -[related_to]-> ratelimit: Rate-limit sleep has never fired; many paths (budget exhaustion, crash-resume, malformed e…",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "What was wrong with the dunning run endpoint when it got bad input?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> bug-f4-cascade-delete: F4's shape is right; only its two failure paths are wrong",
+              "text-matching -[blocked_by]-> smart quotes, truncation, wrong chapter attribution: micro-fixer text searches may fail due to smart quotes, …",
+              "chapter-plan-vnext -[decided]-> terminal-failure-artifacts: Terminal writer errors now carry all raw attempts and call metadata; the runner…"
+            ]
+          },
+          {
+            "question": "Is there any migration number range nobody has claimed yet?",
+            "rank": -1,
+            "top": [
+              "codex-migration-block-reservations -[uses]-> port-range-32156: This worktree owns the port range starting at 32156 (also in .setpoint-ports…",
+              "disposal-links-block -[assigned_to]-> claude-weight-ticket-task-and-stop-join: Added a README registry row claiming migration block 0200–02…",
+              "claude-weight-ticket-task-and-stop-join -[implements]-> weight-tickets: Deliberately deviated from its brief by shipping a second migration…"
+            ]
+          },
+          {
+            "question": "Is the messaging section of the office app actually built?",
+            "rank": -1,
+            "top": [
+              "officeapp -[contains]-> 310: There are 310 worktrees, using 911MB, though only ~9 should be live.",
+              "wave -[implements]-> officeapp: Wave 14 closed 12 epics, all 7 members converged with reviewers in-loop, repair backlog empty for first time",
+              "officeapp -[contains]-> ipv6-only: The dev server binds IPv6 only ([::1]:5173), causing IPv4 curl checks to fail."
+            ]
+          },
+          {
+            "question": "Why can nobody hit the customer portal endpoints?",
+            "rank": -1,
+            "top": [
+              "0360-portal-identities-sql -[replaced_by]-> kimi-customer-portal: Renamed the recovered migration 0360_customer_portal.sql to 0360_portal_i…",
+              "api -[implements]-> portal-customer-scoping: Scoped route matrix is green: all seven portal endpoints return 404 for an existing different …",
+              "codex-customer-portal -[decided]-> customer-portal-router-contract: codex-customer-portal proposed a createPortalRoutes() router boundary a…"
+            ]
+          },
+          {
+            "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+            "rank": -1,
+            "top": [
+              "sweep-agent -[depends_on]-> scry: The sweep uses the scry daemon binary which was rebuilt after the code changes.",
+              "scry-daemon-restart -[causes]-> scry: The restart targeted the scry daemon and interrupted in-flight socket clients during a sweep.",
+              "scry-daemon-takeover-race -[causes]-> scry-daemon-split-brain: Likely root cause (inferred from logs and source, not proven live): the non-…"
+            ]
+          },
+          {
+            "question": "What caused duplicate dev servers to be launched?",
+            "rank": -1,
+            "top": [
+              "cloudflare-vite-dev-server -[lacks]-> marketing-redirect-rule: The Cloudflare Vite dev server does not apply `_redirects`, so the lead form…",
+              "protocol-mismatch -[causes]-> econnreset: Potential HTTPS/TLS request to HTTP-only Laravel dev server causes connection reset",
+              "cad-mcp-server -[depends_on]-> cad-core-seam: The v2 MCP server is a second transport over the same core/, scheduled after the web site lau…"
+            ]
+          },
+          {
+            "question": "What is risky about the way the sync loop touches the Claude config file?",
+            "rank": -1,
+            "top": [
+              "ai-syncpy -[implements]-> claude-code: ai-sync.py currently syncs Claude Code skills/config as one of two hardcoded tools",
+              "ai-syncpy -[calls]-> mcp-servers-config: Propagates the registry so Claude, Codex and Kimi/OpenCode all pick up the server.",
+              "claude-registry-backlog-sync -[owns]-> dbmigrationsreadmemd: Named owner of db/migrations/README.md for this fleet wave; no other task may …"
+            ]
+          },
+          {
+            "question": "Why does the orientation output list things that aren't projects?",
+            "rank": -1,
+            "top": [
+              "pinned-cad-fixtures -[decided]-> 3d-conversion-site: Real CAD files arrive via a pinned dependency and are used for validation but not comm…",
+              "git-facade -[decided]-> setpoint-fleet: A deferred git façade would centralize setpoint's ~46 git invocations and classify git output into …",
+              "outputsentity-id -[decided]-> Sub-project 2: Engine output + graph fan-out: New outputs.entity_id column added for per-child output associa…"
+            ]
+          },
+          {
+            "question": "How do I know whether an agent actually got launched into its pane?",
+            "rank": -1,
+            "top": [
+              "remote-host-support -[blocked_by]-> jeff: Assistant asked Jeff whether remote-host support is actually wanted or whether the whole SSH bran…",
+              "hermes -[depends_on]-> agent-blank-pane-bug: Agent blank pane and nvim hang bugs were blocking for Hermes Phase 5+ where agents and TUI too…",
+              "agent-launch-service -[depends_on]-> session-manager: Public session launch delegates into AgentLaunchService, which takes the existing mut…"
+            ]
+          },
+          {
+            "question": "Which newsletter layout do customers get unless we change something?",
+            "rank": -1,
+            "top": [
+              "newsletter-layouttestts -[tests]-> newsletter-layout: new describe 'layoutNewsletterHtml — inset floats' adds 5 tests for float classes, al…",
+              "newsletter-layout -[blocked_by]-> single-column: The newsletter would stay unwrapped unless redesigned separately; the single-column no-col…",
+              "monthly-chapter-improvement -[blocked_by]-> monthly-chapter-improvement-lock: Monthly chapter improvement work must not change newsletter p…"
+            ]
+          },
+          {
+            "question": "Why does the voice interview traffic take a detour instead of going direct?",
+            "rank": -1,
+            "top": [
+              "jeff -[fixes]-> realtime-interview-client: Transport-driven phase boundaries implemented: processing starts on input_audio_buffer.speech_st…",
+              "realtime-interview-orchestrator -[fixes]-> childscribe-mobile: Phase boundaries now driven by transport events: user turn handoff on input_…",
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…"
+            ]
+          },
+          {
+            "question": "What fields is the sign-up form allowed to have?",
+            "rank": -1,
+            "top": [
+              "newsletter-forms -[uses]-> contact-honeypot: Both desktop and mobile newsletter signup forms now include honeypot field for bot detection.",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "How does the demo box get new code?",
+            "rank": -1,
+            "top": [
+              "local-auth-demo-any-mfa-code -[implements]-> program-health-demo-box: LOCAL_AUTH_DEMO_ANY_MFA_CODE=true, so any six-digit numeric MFA code …",
+              "demo-box-auth -[status]-> pending: A1: confirm demo box does not run dev-auth with default secret; remains outstanding.",
+              "hetzner-demo -[provides]-> box-migration: Demo box now serves main branch exclusively; deployed commit matches main head, invariant holds"
+            ]
+          },
+          {
+            "question": "What does the SEO data vendor charge per request?",
+            "rank": -1,
+            "top": [
+              "david-character -[related_to]-> dataforseo: Per scry memory orientation, David is responsible for resolving DataForSEO's -$0.00062 balance …",
+              "seo-audit -[uses]-> dataforseo: The audit used DataForSEO as a data source.",
+              "dataforseo -[related_to]-> dataforseo: Account balance is -$0.00062 and needs a top-up."
+            ]
+          },
+          {
+            "question": "Why was hunting for search terms with no existing player a dead end?",
+            "rank": -1,
+            "top": [
+              "conversionlinttest -[decided]-> no-dead-end-pages: Test asserts every page under pages/marketing/ links onward to a conversion path (via Mk…",
+              "web-app-shell -[blocked_by]-> sign-in-dead-end: Blocking finding 1: /sign-in is a dead end for an authenticated operator (no interactive el…",
+              "conversionlinttest -[decided]-> childscribe-marketing: Every public marketing page must have no dead onward links and no dead-end pages."
+            ]
+          },
+          {
+            "question": "How are the different kinds of events categorized in that WordPress site?",
+            "rank": -1,
+            "top": [
+              "wordpressadapter -[deployed_on]-> wordpress: WordPressAdapter targets WordPress REST API endpoint {site}/wp-json/wp/v2/posts with no plugin…",
+              "publishingconnection -[uses]-> wordpress: PublishingConnection stores application password credentials for WordPress Basic auth against sit…",
+              "wordpress -[blocked_by]-> yootheme: WordPress and YOOtheme auto-wrapped the wistia-player custom element in <p> tags, breaking the embed st…"
+            ]
+          },
+          {
+            "question": "Which model came out on top in the writing comparison?",
+            "rank": -1,
+            "top": [
+              "ch1-3-generation-then-editing-flow-comparison -[decided]-> next phase: Decision made to apply winning model to ch1-3 generation followed by…",
+              "cellsaviors -[related_to]-> cell-comparison-pages: Cell comparison pages (/cell-database/compare/X-vs-Y) proposed as top-priority follow-up…",
+              "jeff -[related_to]-> chainsh: Queued chain.sh: waits for run A exit, swaps models on Halo, runs run B until 11:00, writes AB-COMPARISON.md."
+            ]
+          },
+          {
+            "question": "What makes that page builder awkward for agents to edit?",
+            "rank": -1,
+            "top": [
+              "item6-audit -[implements]-> builder: Sent the builder the complete affected-file list (all 40 published guides / 215 editorial sections), h…",
+              "goal-1a-builder -[modifies]-> goal-1a-control-plane: The builder landed concurrent implementation changes in the shared jbuild-control-plan…",
+              "quick-wins-elementor-edits -[status]-> needs-work: H1 on /services/, homepage typo 'MFA'→'NFA', NAP in hero/footer, broken black block requ…"
+            ]
+          },
+          {
+            "question": "What data survives from one month's report to the next?",
+            "rank": -1,
+            "top": [
+              "monthly-clamp-short-month -[decided]-> task d2bc8e4dea22: Monthly clamps the 31st onto a short month's last day instead of skipping the mon…",
+              "chapter-departments -[uses]-> saidthismonth: saidThisMonth is model-selected from month's quote moments, enforced verbatim in postValidate …",
+              "journalentrydeletetest -[decided]-> chapter-stale-marking: Test verifies deleting entry marks that month's existing chapter stale if one ex…"
+            ]
+          },
+          {
+            "question": "How do we treat temporary errors coming back from Meta when publishing?",
+            "rank": -1,
+            "top": [
+              "metapublishexception -[documents]-> metapublisher: Any 401 or 403 is treated as revoked token and destination is immediately disabled; Meta…",
+              "metapublishexception -[fixes]-> Task 3: Meta Provider Abstraction and Publish: Meta error code 190 (expired token) now classified as auth f…",
+              "metapublishexception -[documents]-> deterministic-4xx-errors: Typed non-auth/non-unknown Meta 4xx errors are classified as failed (retryabl…"
+            ]
+          },
+          {
+            "question": "What is the minimum length the automated writing gate enforces?",
+            "rank": -1,
+            "top": [
+              "length-band-floor -[fixes]-> 100 (flat minimum with ceiling-buffer): Guard now enforces max(100, 1.5×source, ceiling−20) to prevent unsatis…",
+              "design-system-component-set -[decided]-> thumb-safe-hit-targets: product-spec.md §6 constraint enforced by tests: driver-facing hit targets…",
+              "d1-placeholder-id -[enforces]-> d1-id-length-check: disposal-trips.test.ts failed with D1_ERROR: CHECK constraint failed: length(id) = 26: …"
+            ]
+          },
+          {
+            "question": "What subject does Jeff say he cannot fake his way through?",
+            "rank": -1,
+            "top": [
+              "jeff -[documents]-> local-model-for-opencode: Jeff wants a model running on his MacBook Pro that he can use with opencode to work on longer…",
+              "jeff -[uses]-> iphone: Jeff will prompt a real session from his iPhone through the paired dogfood lane.",
+              "jeff -[uses]-> cockpit: Jeff navigates sessions via Cockpit + Ghostty and prefers them over Helm for the way he works"
+            ]
+          },
+          {
+            "question": "Where do the Google OAuth tokens live for the assistant box?",
+            "rank": -1,
+            "top": [
+              "google-oauth-app-188849962955 -[status]-> Testing mode → Production: OAuth app was in Testing mode causing 7-day refresh token expiration. …",
+              "google-oauth -[related_to]-> google-oauth: google_accounts has zero rows on prod; needs one account authorized for Search Console, GA4, and…",
+              "heroic-assistant -[deployed_on]-> the-live-box: Deployed the platform to the LIVE box, which contacted the prod API."
+            ]
+          },
+          {
+            "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+            "rank": -1,
+            "top": [
+              "jeff -[reviews]-> multi-agent-fleet-design: The assistant asked Jeff to review the spec before writing the implementation plan.",
+              "setpoint-notification-template-rendering -[blocked_by]-> claude-reviewer: Task 05a5662f83ef awaits claude-reviewer's review before it can p…",
+              "codex-notification-template-rendering -[assigned_to]-> task-05a5662f83ef: codex-notification-template-rendering claimed task 05a5662f83ef i…"
+            ]
+          },
+          {
+            "question": "Which model is powering the visual design session and how fast is it going?",
+            "rank": -1,
+            "top": [
+              "design-visual-polish -[assigned_to]-> statelicenselookup-design: Redesign work is isolated on branch design/visual-polish; nothing merges t…",
+              "statelicenselookup-design -[related_to]-> design-visual-polish: All design work happens on branch design/visual-polish and is committed the…",
+              "slookup-design -[runs_on]-> statelicenselookup-design: Session launched from the isolated design/visual-polish worktree at /Users/jclaw/wor…"
+            ]
+          },
+          {
+            "question": "What URL do I open to see the battery pack layout tool locally?",
+            "rank": -1,
+            "top": [
+              "battery-pack-designer -[related_to]-> battery-pack-calculator: Tool ranks position 6.2 for 'battery pack calculator' (high-intent query); c…",
+              "battery-pack-calculator -[related_to]-> cell-saviors-battery-designer: /battery-pack-designer remains the classic tool while the upgraded i…",
+              "battery-pack-designer -[part_of]-> cellsaviors: The classic battery pack designer tool remains at the /battery-pack-designer route in cells…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.0344827586206895
+      }
+    },
+    "probes": {
+      "before": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9774,
+        "max_payload_bytes": 10108,
+        "over_cap": 0,
+        "mean_latency_ms": 58.857142857142854,
+        "mean_answer_rank": 1
+      },
+      "after": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9776,
+        "max_payload_bytes": 10110,
+        "over_cap": 0,
+        "mean_latency_ms": 164.42857142857142,
+        "mean_answer_rank": 1
+      }
+    },
+    "tuning-strict": {
+      "before": {
+        "total": 50,
+        "hits": 45,
+        "top_n": 20,
+        "hit_rate": 0.9,
+        "mean_payload_bytes": 9999,
+        "max_payload_bytes": 11533,
+        "over_cap": 0,
+        "mean_latency_ms": 114.84,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          },
+          {
+            "question": "Do we retain any recording of the child's voice from a live interview?",
+            "rank": -1,
+            "top": [
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…",
+              "chapter-plan-vnext -[enforces]-> child-speech-guard: Title/dek rendering enforces a deterministic guard that rejects any decorative reuse o…",
+              "recordedchildspeech -[part_of]-> chapter-plan-vnext: recordedChildSpeech carries the exact recorded child-speech span from a source entry; …"
+            ]
+          },
+          {
+            "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+            "rank": -1,
+            "top": [
+              "git-hooks -[lacks]-> commit-msg-hook: No commit-msg hook exists yet in the hooks wiring.",
+              "cockpit-remote-hosts -[blocked_by]-> hook-status-spec: Remote agent status needs the reverse tunnel from the sheet's §2.6, which is downstr…",
+              "codex -[requires]-> hook-driven-status-design: Codex hooks land untrusted and don't fire until trust is pinned to a config hash — writing t…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.533333333333333
+      },
+      "after": {
+        "total": 50,
+        "hits": 45,
+        "top_n": 20,
+        "hit_rate": 0.9,
+        "mean_payload_bytes": 9999,
+        "max_payload_bytes": 11531,
+        "over_cap": 0,
+        "mean_latency_ms": 175.42,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          },
+          {
+            "question": "Do we retain any recording of the child's voice from a live interview?",
+            "rank": -1,
+            "top": [
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…",
+              "chapter-plan-vnext -[enforces]-> child-speech-guard: Title/dek rendering enforces a deterministic guard that rejects any decorative reuse o…",
+              "recordedchildspeech -[part_of]-> chapter-plan-vnext: recordedChildSpeech carries the exact recorded child-speech span from a source entry; …"
+            ]
+          },
+          {
+            "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+            "rank": -1,
+            "top": [
+              "git-hooks -[lacks]-> commit-msg-hook: No commit-msg hook exists yet in the hooks wiring.",
+              "cockpit-remote-hosts -[blocked_by]-> hook-status-spec: Remote agent status needs the reverse tunnel from the sheet's §2.6, which is downstr…",
+              "codex -[requires]-> hook-driven-status-design: Codex hooks land untrusted and don't fire until trust is pinned to a config hash — writing t…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.533333333333333
+      }
+    },
+    "tuning": {
+      "before": {
+        "total": 50,
+        "hits": 47,
+        "top_n": 20,
+        "hit_rate": 0.94,
+        "mean_payload_bytes": 9999,
+        "max_payload_bytes": 11533,
+        "over_cap": 0,
+        "mean_latency_ms": 114.38,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.0638297872340425
+      },
+      "after": {
+        "total": 50,
+        "hits": 47,
+        "top_n": 20,
+        "hit_rate": 0.94,
+        "mean_payload_bytes": 9999,
+        "max_payload_bytes": 11531,
+        "over_cap": 0,
+        "mean_latency_ms": 174.88,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.0638297872340425
+      }
+    }
+  }
+}
