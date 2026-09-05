@@ -3447,3 +3447,13 @@ backfill or schema-version bump is allowed. Older binaries ignore the additive
 records, so binary-only downgrade becomes unsafe after the first marker; a backup
 rollback must also preserve/reconcile all intervening ingestion. See
 `memory-repairs/alias-rejection-implementation-2026-09-05.md` for the required gates.
+
+**Deployment evidence, 2026-09-05 21:58 UTC.** The reviewed first version is now
+deployed as d1f0a958 on laptop and Mini. Complete independent immediate raw-state
+comparisons were identical and contained no rejection records. This does not
+backfill earlier removals. After the first explicit live rejection, the old-writer
+compatibility restriction above becomes operationally binding. Separate controlled
+old/new recall tests traced the new miss to predeployment corpus drift; the unmet
+recall floors remain separate work, not a reason to discard source-supported facts
+or downgrade to marker-unaware writers. Full reports are archived under
+`docs/memory-repairs/alias-rejection-{actual-deploy-review,recall-attribution}-2026-09-05.md`.

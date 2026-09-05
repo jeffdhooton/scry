@@ -738,3 +738,37 @@ state to 80,338 facts / 30,480 entities / 9,332 episodes, queue 0/0/6. Second-te
 review is committed 1cb5e2f (20/859 total reviewed); collision drift review 8d4c0c8
 keeps mixed migration0160 ownership unresolved. All broad goal requirements stay
 active; do not stop at this checkpoint or treat a candidate test pass as completion.
+
+### Later checkpoint: alias rejection deployed, 22:11 UTC
+
+Both machines now run d1f0a958, SHA
+`290a14c04ef0cfa9618db3f1a848bc6f3a343ec28d9c197ea49720eedb30b553`,
+restarted at 21:58:20 UTC (laptop PID 40814, Mini PID 15220). Prior 62cf6e0
+binaries are retained as `scry.pre-d1f0a95-20260905T2156Z`. No hooks/configuration
+changed. Independent actual deployment review proves all 242,104 Mini keys and
+83,378 laptop keys identical across immediate pre/post backups. Schema remains 1;
+there were zero rejection records. See `memory-repairs/alias-rejection-deploy-receipt-2026-09-05.json`
+and the actual deployment and recall-attribution reports beside it.
+
+Post suites: 51/62, 29/66, 7/7, 45/50, 47/50, maximum 13,381 bytes, no over-cap
+responses. Independent exact old/new binaries both score 52/62 on the earlier
+21:44 source and 51/62 on actual pre/post. The Cell Saviors address evidence is
+unchanged; fresh-index answer rank moves 18 to 23 with earlier corpus additions.
+This disproves deployment causation, not the recall-floor failure. Historical
+daemon incremental-index behavior is not established. Both original floors stay OPEN.
+
+Three proposed ChildScribe alias drops remain UNAPPLIED. The original semantic
+review blocked inaccurate rejection-reason wording; corrected wording passed on
+the 21:44 source. A fresh complete semantic/replica gate is now underway against
+22:10:12 source SHA `4a33e4d8b7e2786d3c9a936cf8bf71f7ca61603ecb8f3454b6f26a8dcb946382`
+(80,473 facts / 30,551 entities / 9,342 episodes, queue 0/0/8). No prior-alias
+rejection backfill exists. After any first live rejection, never let old
+marker-unaware binaries write to the marker-bearing store; retain/reconcile later facts.
+
+The four-hollow candidate needs regenerated rejection-aware expectations and a
+fresh gate. The migration-note retry remains held: normal old-binary ingestion
+added another alias to mixed migration0160, invalidating its earlier closure.
+Eight parked payloads remain untouched. Durable deployment note queued once as
+`64e172818729c23519f61824b5c2cd068efe77fe876e73af970a8d96738d6136`; never retry
+that successful remember. The full goal, remaining ownership audit and both final
+grading rounds remain active and unfinished.

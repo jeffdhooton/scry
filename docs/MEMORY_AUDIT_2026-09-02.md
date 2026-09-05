@@ -3300,3 +3300,40 @@ the complete Mini copy and remote hash match. Both active binaries remain 62cf6e
 with SHA 82135849…, laptop PID 77189 / Mini PID 9886. Fresh independent backup
 restore/deployment gate remains mandatory. Five live baseline suites remain
 52/62, 29/66, 7/7, 45/50, 47/50; maximum 13,352 bytes, zero over cap.
+
+### 2026-09-05 22:11 UTC — alias-rejection deployment and recall attribution
+
+Deployed exact d1f0a958 on both machines at 21:58:20 UTC after separate independent
+code, replica and predeployment gates. Actual independent raw-state audit PASS:
+all 242,104 Mini and 83,378 laptop keys/values identical across immediate pre/post.
+Both installed artifacts match independently rebuilt SHA
+`290a14c04ef0cfa9618db3f1a848bc6f3a343ec28d9c197ea49720eedb30b553`; previous
+62cf6e0 executables retained. No semantic repair, rejection marker or backfill
+was created by deployment. Full backup paths/hashes, raw process/status output
+and all ten before/after suite outputs are preserved in
+`memory-repairs/alias-rejection-deploy-receipt-2026-09-05.json`.
+
+Actual review: `memory-repairs/alias-rejection-actual-deploy-review-2026-09-05.md`.
+The physical Mini backup shrank but complete restored logical maps are identical;
+no unsupported compaction explanation is claimed. Queue 2/1/8 to 3/0/8 is solely
+an unchanged timeout record becoming eligible. All eight parked payloads are
+identical. Earlier 21:53-to-pre source drift is fully enumerated, including one
+fact rekey preserving its assertion and provenance, and unapproved identity aliases.
+
+Five post suites: 51/62, 29/66, 7/7, 45/50, 47/50; maximum 13,381 bytes, no over-cap.
+The new heldout miss was investigated before any semantic cleanup. Independent
+exact old/new binaries both score 52/62 on 21:44 source and 51/62 on actual pre/post.
+The address fact and provenance are unchanged. Fresh-index rank falls 18 to 23;
+one source-supported new branding fact and four existing facts overtake it as
+corpus scores change. Full controlled comparison and limitations:
+`memory-repairs/alias-rejection-recall-attribution-2026-09-05.md`. Deployment code
+causation is disproved; historical live incremental-index state is not established.
+Original 53/62 and 34/66 floors remain failed. No expected answer was altered.
+
+Later normal ingestion reached 80,473 facts / 30,551 entities / 9,342 episodes,
+queue 0/0/8, last successful extraction 22:07:18.585586 UTC. A new immutable
+22:10:12 snapshot (SHA 4a33e4d8b7e2786d3c9a936cf8bf71f7ca61603ecb8f3454b6f26a8dcb946382)
+is the source for a fresh three-alias semantic gate, not permission to reuse a
+stale manifest. Room 101 records deployment/attribution verdicts. The one durable
+deployment note was successfully queued as 64e172818729c23519f61824b5c2cd068efe77fe876e73af970a8d96738d6136;
+do not retry. No new live aliases have been dropped and no pending episode retried.
