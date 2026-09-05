@@ -3,6 +3,7 @@ package resolve
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -153,5 +154,43 @@ func TestCanonicalNameDoesNotPromoteGenericReference(t *testing.T) {
 				t.Fatalf("generic owner mutated: %+v, %v", got, err)
 			}
 		})
+	}
+}
+
+func TestCanonicalNameDeterminerNormalization(t *testing.T) {
+	for _, canonical := range []string{"our own machine", "this physical host"} {
+		for _, separator := range []string{" ", "_", "-"} {
+			mention := strings.ReplaceAll(canonical, " ", separator)
+			t.Run(mention, func(t *testing.T) {
+				st := openTemp(t)
+				owner := store.Entity{Slug: "retained-generic-owner", Name: canonical, Type: "project"}
+				if err := st.PutEntity(owner); err != nil {
+					t.Fatal(err)
+				}
+				claims, err := st.AliasClaims()
+				if err != nil {
+					t.Fatal(err)
+				}
+				ep := store.Episode{ID: "determiner-normalization", OccurredAt: time.Now()}
+				_, err = Apply(st, ep, "", extract.Result{Entities: []extract.Ent{{Name: mention, Type: "machine", Description: "Must not fill project metadata"}}}, DefaultExclusive)
+				// A spaced phrase may be skipped by the earlier generic-name
+				// gate; normalized variants must not bypass the type refusal.
+				if (separator != " " || err != nil) && !errors.Is(err, store.ErrAliasClaimed) {
+					t.Fatalf("generic canonical mention accepted: %v", err)
+				}
+				refused := err != nil
+				got, err := st.GetEntity(owner.Slug)
+				if err != nil || !reflect.DeepEqual(got, owner) {
+					t.Fatalf("owner changed: %+v, %v", got, err)
+				}
+				afterClaims, err := st.AliasClaims()
+				if err != nil || !reflect.DeepEqual(claims, afterClaims) {
+					t.Fatalf("claims changed: %+v, %v", afterClaims, err)
+				}
+				if exists, err := st.HasEpisode(ep.ID); err != nil || (refused && exists) {
+					t.Fatalf("refused episode committed: %v, %v", exists, err)
+				}
+			})
+		}
 	}
 }

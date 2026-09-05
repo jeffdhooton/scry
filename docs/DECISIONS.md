@@ -3411,3 +3411,14 @@ names inside the same episode transaction before bypassing a type conflict.
 Any second canonical homonym refuses the episode; type or index order cannot
 choose an owner. The scan runs only on this exceptional nonnatural-slug,
 canonical-name, type-conflict path. Ordinary alias handling is unchanged.
+
+**Second reviewer correction.** Candidate `1dac187`, also never deployed,
+still checked determiner phrases before applying canonical-name separator
+normalization. A spaced legacy canonical owner "our own machine" refused
+that mention but accepted "our_own_machine" and "our-own-machine", filling
+project metadata from a machine declaration. The exception now applies the
+existing determiner rule to the same space/underscore/hyphen equivalence
+class as canonical equality. No vocabulary or general alias admission rule
+was expanded. Separator regressions preserve metadata and alias claims;
+the earlier generic-name skip is allowed without identity mutation.
+Independent regrade is required before any deployment.

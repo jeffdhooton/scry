@@ -344,7 +344,9 @@ func uniqueCanonicalMention(st *store.Store, owner store.Entity, name string) (b
 			return false, nil
 		}
 	}
-	if isDeterminerPhrase(name) {
+	// Canonical matching treats spaces, underscores and hyphens alike;
+	// apply the existing reference guard to that same equivalence class.
+	if isDeterminerPhrase(strings.ReplaceAll(normalized, "-", " ")) {
 		return false, nil
 	}
 	entities, err := st.Entities()
