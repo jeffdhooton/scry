@@ -29,6 +29,7 @@ type AliasRepairExpected struct {
 	AliasClaims  map[string]string   `json:"alias_claims"`
 	ClaimPresent map[string]bool     `json:"claim_present"`
 	Listings     map[string][]string `json:"listings"`
+	Rejections   string              `json:"rejections"`
 }
 
 type AliasRepairRequest struct {
@@ -37,22 +38,25 @@ type AliasRepairRequest struct {
 }
 
 type AliasRepairPreview struct {
-	Expected         AliasRepairExpected `json:"expected"`
-	Entities         map[string]Entity   `json:"entities"`
-	ProposedEntities map[string]Entity   `json:"proposed_entities"`
-	FactsTouched     int                 `json:"facts_touched"`
-	Problems         []string            `json:"problems,omitempty"`
-	Ready            bool                `json:"ready"`
-	Applied          bool                `json:"applied"`
+	Expected           AliasRepairExpected         `json:"expected"`
+	Entities           map[string]Entity           `json:"entities"`
+	ProposedEntities   map[string]Entity           `json:"proposed_entities"`
+	ProposedRejections map[string][]AliasRejection `json:"proposed_rejections"`
+	FactsTouched       int                         `json:"facts_touched"`
+	Problems           []string                    `json:"problems,omitempty"`
+	Ready              bool                        `json:"ready"`
+	Applied            bool                        `json:"applied"`
 }
 
 type aliasRepairAnalysis struct {
-	preview       AliasRepairPreview
-	entities      []Entity
-	facts         []Fact
-	claims        map[string]string
-	updated       map[string]Entity
-	updatedClaims map[string]string
+	preview           AliasRepairPreview
+	entities          []Entity
+	facts             []Fact
+	claims            map[string]string
+	updated           map[string]Entity
+	updatedClaims     map[string]string
+	rejections        map[string][]AliasRejection
+	updatedRejections map[string][]AliasRejection
 }
 
 func entityListsAlias(e Entity, norm string) bool {
@@ -71,6 +75,10 @@ func analyzeAliasRepair(txn *badger.Txn, req AliasRepairRequest) (aliasRepairAna
 	if a.claims, err = aliasClaimsTxn(txn); err != nil {
 		return a, err
 	}
+	if a.rejections, err = aliasRejectionsTxn(txn); err != nil {
+		return a, err
+	}
+	a.updatedRejections = cloneAliasRejections(a.rejections)
 	p := &a.preview
 	p.Expected = AliasRepairExpected{Plan: hashJSON(req.Drops), Entities: map[string]string{}, AliasClaims: map[string]string{}, ClaimPresent: map[string]bool{}, Listings: map[string][]string{}}
 	p.Entities = map[string]Entity{}
@@ -115,6 +123,7 @@ func analyzeAliasRepair(txn *badger.Txn, req AliasRepairRequest) (aliasRepairAna
 			removals[drop.Entity] = map[string]bool{}
 		}
 		removals[drop.Entity][norm] = true
+		addAliasRejection(a.updatedRejections, AliasRejection{Entity: drop.Entity, Alias: drop.Alias, Why: drop.Why, Plan: p.Expected.Plan})
 		if drop.RehomeTo != "" {
 			participants[drop.RehomeTo] = true
 			target, found := bySlug[drop.RehomeTo]
@@ -169,6 +178,9 @@ func analyzeAliasRepair(txn *badger.Txn, req AliasRepairRequest) (aliasRepairAna
 		}
 		sort.Strings(p.Expected.Listings[norm])
 		if target := rehomes[norm]; target != "" {
+			if len(a.updatedRejections[aliasRejectionKey(target, norm)]) > 0 {
+				problem("rehome target has a reviewed rejection for " + norm + ": " + target)
+			}
 			e := bySlug[target]
 			if changed, ok := a.updated[target]; ok {
 				e = changed
@@ -200,6 +212,15 @@ func analyzeAliasRepair(txn *badger.Txn, req AliasRepairRequest) (aliasRepairAna
 	}
 	p.FactsTouched = len(touching)
 	p.Expected.Facts = hashJSON(touching)
+	p.Expected.Rejections = hashJSON(rejectionSubset(a.rejections, participants))
+	p.ProposedRejections = rejectionSubset(a.updatedRejections, participants)
+	for slug, e := range a.updated {
+		for _, spelling := range append([]string{e.Slug, e.Name}, e.Aliases...) {
+			if len(a.updatedRejections[aliasRejectionKey(slug, Normalize(spelling))]) > 0 {
+				problem("updated entity still lists reviewed rejected spelling: " + slug + ": " + spelling)
+			}
+		}
+	}
 	if req.Expected != nil && !reflect.DeepEqual(*req.Expected, p.Expected) {
 		problem("reviewed alias repair fingerprints changed")
 	}
@@ -284,6 +305,9 @@ func (s *Store) backupAndRepairAliasesUnlocked(w durableBackupWriter, req AliasR
 			if err != nil {
 				return err
 			}
+		}
+		if err := writeAliasRejectionsTxn(txn, a.rejections, a.updatedRejections); err != nil {
+			return err
 		}
 		// Exact postconditions cover the entire entity/fact/alias state, not
 		// only the edited keys. Metadata outside reviewed aliases is immutable.

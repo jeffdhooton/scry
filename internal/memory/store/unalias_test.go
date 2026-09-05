@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/dgraph-io/badger/v4"
 )
 
 type aliasBackup struct {
@@ -101,7 +103,11 @@ func aliasState(t *testing.T, s *Store) string {
 	if e != nil {
 		t.Fatal(e)
 	}
-	return hashJSON([]any{es, fs, cs})
+	var rs map[string][]AliasRejection
+	if err := s.view(func(txn *badger.Txn) error { var err error; rs, err = aliasRejectionsTxn(txn); return err }); err != nil {
+		t.Fatal(err)
+	}
+	return hashJSON([]any{es, fs, cs, rs})
 }
 
 func TestAliasRepairAtomicPreservationAndBackup(t *testing.T) {

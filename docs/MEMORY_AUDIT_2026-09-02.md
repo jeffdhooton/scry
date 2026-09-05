@@ -3253,3 +3253,50 @@ The narrow migration operation-note retry gate is recorded separately, but
 remains held: a new `migration0160` project was ordinarily ingested after its
 review snapshot. Its distinct key folds with a SQL-file alias in hygiene;
 the new semantic context must be reviewed despite unchanged file hashes.
+
+### Alias reintroduction prevention gap and candidate — 2026-09-05, 21:44 UTC
+
+Independent restored-source disproof on deployed 62cf6e0 found that reviewed alias
+removal lacks durable negative ownership. Stale direct/AtomicWrite restores all
+three proposed ChildScribe drops; two actual synthetic normal Apply calls restore
+Envoyer. Prior 49-row exposure is 40/45 normalized keys through direct writes and 14/45
+through repeated admission. This does not prove live regrowth. Room 97 records FAIL.
+Full review: `memory-repairs/alias-reintroduction-gap-review-2026-09-05.md`.
+
+Candidate additive owner-specific rejection implementation is not deployed.
+Initial regression tests failed before implementation for direct stale writes,
+atomic stale writes and ClaimAlias. After implementation, affected store, resolve,
+queue and daemon tests pass; full `go test ./...` and `go vet ./...` pass. Added
+opt-in source-backup test independently restores source SHA 3f09b0d6, applies only
+the disposable three-alias fixture, preserves all 80,308 facts and 9,330 episodes,
+restores the complete raw original backup, and proves stale direct/atomic refusal
+plus second no-write. Fresh independent code/replica disproof and race checks are
+still pending; no self-certified deployment or live semantic alias cleanup.
+
+Fresh four-hollow candidate report and renewed migration-note retry report are
+archived separately under memory-repairs. Both remain unapplied/unexecuted.
+Live ingestion continued: latest status 80,338 facts / 30,480 entities / 9,332 episodes,
+queue 0 ready / 0 backoff / 6 parked, last extraction 21:40:44.856446 UTC. This is not the
+old snapshot and needs new drift review before any semantic apply. The original
+first-two benchmark floors and the complete goal remain failed/unfinished.
+
+Subsequent bounded independent code and complete-replica reviews PASS; full reports
+are `memory-repairs/alias-rejection-code-review-2026-09-05.md` and
+`alias-rejection-replica-review-2026-09-05.md`. Replica independently predicts the
+exact seven-key delta, restores actual pre/post backups, verifies all other raw
+keys unchanged, and defeats stale writes, normalized variants, old/new attestations,
+two actual Apply calls, claim/rehome and reviewed merge bypass. Separate Envoyer
+tool remains representable. Code reviewer confirms an inheritance weakness in
+dormant legacy mergeStub, but proves CLI/RPC apply disabled and no normal sweep or
+startup call reaches it. No inheritance correctness is claimed for that function.
+All four affected race suites pass. No deployment or live alias cleanup yet.
+
+Fresh predeployment backups at 21:44:36: Mini 78,067,790 bytes, SHA
+`c063d83125a81f096e319c94286958da8f29a388e1e29b73460180a37be4d397`;
+laptop 19,445,008 bytes, SHA
+`194adb090f810c141abdf4f4f06e8106b2bed7afa4d65d0dc04d7e7a21f0ac0d`.
+Both are `memory-20260905T214436Z.badger` in their own hosts' backup directories;
+the complete Mini copy and remote hash match. Both active binaries remain 62cf6e0
+with SHA 82135849…, laptop PID 77189 / Mini PID 9886. Fresh independent backup
+restore/deployment gate remains mandatory. Five live baseline suites remain
+52/62, 29/66, 7/7, 45/50, 47/50; maximum 13,352 bytes, zero over cap.

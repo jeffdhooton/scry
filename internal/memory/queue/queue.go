@@ -511,7 +511,7 @@ func (w *Worker) fail(p store.PendingEpisode, cause error) {
 // permanent: they can be caused by a concurrent retirement or transaction
 // conflict and must retain the queue's retry guarantee.
 func permanentResolverFailure(err error) bool {
-	return errors.Is(err, store.ErrAliasClaimed) || errors.Is(err, store.ErrInvalidSlug) || errors.Is(err, store.ErrEntityRetired) || errors.Is(err, store.ErrFactConflict)
+	return errors.Is(err, store.ErrAliasClaimed) || errors.Is(err, store.ErrAliasRejected) || errors.Is(err, store.ErrInvalidSlug) || errors.Is(err, store.ErrEntityRetired) || errors.Is(err, store.ErrFactConflict)
 }
 
 // splitPending halves p's text at a turn boundary and queues both halves

@@ -416,6 +416,9 @@ func (s *Store) PutEntity(e Entity) error {
 		}
 		retiredNorms[Normalize(e.Slug)] = true
 		for norm := range retiredNorms {
+			if err := checkAliasRejectionTxn(txn, e.Slug, norm); err != nil {
+				return err
+			}
 			retired, err := entityRetiredTxn(txn, norm)
 			if err != nil {
 				return err
@@ -1190,6 +1193,9 @@ func (s *Store) ClaimAlias(name, slug string) error {
 		return nil
 	}
 	return s.update(func(txn *badger.Txn) error {
+		if err := checkAliasRejectionTxn(txn, slug, norm); err != nil {
+			return err
+		}
 		if retired, err := slugRetiredTxn(txn, slug); err != nil {
 			return err
 		} else if retired {
@@ -1219,6 +1225,9 @@ func (s *Store) DropAlias(slug, alias string) (bool, error) {
 // non-empty, atomically points the routing key at an existing entity that
 // already lists the spelling. This is the reviewed repair path for legacy
 // stores where the entity list and alias index disagree.
+// Unlike BackupAndRepairAliases, this low-level helper has no reviewed
+// manifest/reason and creates no durable rejection evidence. It cannot
+// override an existing rejection on the target.
 func (s *Store) DropAliasRehome(slug, alias, rehomeTo string) (bool, error) {
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
@@ -1251,6 +1260,9 @@ func (s *Store) DropAliasRehome(slug, alias, rehomeTo string) (bool, error) {
 			}
 		}
 		if rehomeTo != "" {
+			if err := checkAliasRejectionTxn(txn, rehomeTo, norm); err != nil {
+				return err
+			}
 			if rehomeTo == slug {
 				return errors.New("memory: alias rehome target must differ from source")
 			}

@@ -236,6 +236,11 @@ func sharesToken(alias string, names ...string) bool {
 // yet". The reason is for logs and tests.
 func AdmitAlias(st *store.Store, e store.Entity, alias, episodeID string) (admit bool, reason string, err error) {
 	norm := store.Normalize(alias)
+	if rejected, err := st.IsAliasRejected(e.Slug, alias); err != nil {
+		return false, "", err
+	} else if rejected {
+		return false, "explicit reviewed rejection for this entity", nil
+	}
 	if norm == "" || norm == store.Normalize(e.Name) {
 		return false, "is the entity's own name", nil
 	}

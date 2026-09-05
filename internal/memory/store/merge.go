@@ -41,6 +41,7 @@ type EntityMergeExpected struct {
 	Entities    map[string]string `json:"entities,omitempty"`     // slug -> SHA-256 of entity JSON
 	Facts       string            `json:"facts,omitempty"`        // SHA-256 of all touching facts
 	AliasClaims string            `json:"alias_claims,omitempty"` // SHA-256 of relevant normalized claims
+	Rejections  string            `json:"rejections"`
 }
 
 // EntityMergeFactFingerprint is one fact included in the group snapshot.
@@ -76,6 +77,7 @@ type EntityMergePreview struct {
 	Problems                         []string                     `json:"problems,omitempty"`
 	Ready                            bool                         `json:"ready"`
 	Applied                          bool                         `json:"applied"`
+	ProposedRejections               map[string][]AliasRejection  `json:"proposed_rejections"`
 }
 
 type entityMergeAnalysis struct {
@@ -94,6 +96,8 @@ type entityMergeAnalysis struct {
 	aliasDispositionEntities map[string]Entity
 	fingerprintNorms         map[string]string
 	group                    map[string]bool
+	rejections               map[string][]AliasRejection
+	updatedRejections        map[string][]AliasRejection
 }
 
 // PreviewEntityMerge snapshots and validates a group without writing.
@@ -119,169 +123,176 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 // read-your-writes entity/fact snapshot. An error aborts the merge before any
 // write becomes durable.
 func (s *Store) MergeEntitiesChecked(req EntityMergeRequest, postcondition func([]Entity, []Fact) error) (EntityMergePreview, error) {
-	s.maintenanceMu.RLock()
-	defer s.maintenanceMu.RUnlock()
 	var analysis entityMergeAnalysis
-	err := s.db.Update(func(txn *badger.Txn) error {
-		var err error
-		analysis, err = analyzeEntityMergeTxn(txn, req)
-		if err != nil {
-			return err
-		}
-		if err := verifyMergeExpected(req.Expected, analysis.preview.Expected); err != nil {
-			return err
-		}
-		if req.Metadata == nil {
-			return errors.New("memory: merge metadata is required for apply")
-		}
-		if !analysis.preview.Ready {
-			return fmt.Errorf("memory: merge %s is not ready: %s", mergeLabel(req), strings.Join(analysis.preview.Problems, "; "))
-		}
-
-		// Remove every old fact key and reverse edge first. All replacement
-		// keys were proven unique by the analysis above.
-		for _, f := range analysis.facts {
-			if err := txn.Delete(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom)); err != nil {
-				return err
-			}
-			if f.Dst != "" {
-				if err := txn.Delete(adjKey(f.Dst, f.Src, f.Relation, f.ValidFrom)); err != nil {
-					return err
-				}
-			}
-		}
-		for _, f := range analysis.updatedFacts {
-			b, err := json.Marshal(f)
+	err := func() error {
+		// Serialize marker-only reviewed maintenance too: iterator reads must
+		// not rely on phantom detection for newly inserted rejection records.
+		s.maintenanceMu.Lock()
+		defer s.maintenanceMu.Unlock()
+		return s.db.Update(func(txn *badger.Txn) error {
+			var err error
+			analysis, err = analyzeEntityMergeTxn(txn, req)
 			if err != nil {
 				return err
 			}
-			if err := txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b); err != nil {
+			if err := verifyMergeExpected(req.Expected, analysis.preview.Expected); err != nil {
 				return err
 			}
-			if f.Dst != "" {
-				if err := txn.Set(adjKey(f.Dst, f.Src, f.Relation, f.ValidFrom), nil); err != nil {
-					return err
-				}
+			if req.Metadata == nil {
+				return errors.New("memory: merge metadata is required for apply")
 			}
-		}
+			if !analysis.preview.Ready {
+				return fmt.Errorf("memory: merge %s is not ready: %s", mergeLabel(req), strings.Join(analysis.preview.Problems, "; "))
+			}
 
-		metadataJSON, err := json.Marshal(analysis.metadata)
-		if err != nil {
-			return err
-		}
-		if err := txn.Set([]byte(prefixEntity+req.Survivor), metadataJSON); err != nil {
-			return err
-		}
-		for slug := range analysis.group {
-			if slug != req.Survivor {
-				if err := txn.Delete([]byte(prefixEntity + slug)); err != nil {
+			// Remove every old fact key and reverse edge first. All replacement
+			// keys were proven unique by the analysis above.
+			for _, f := range analysis.facts {
+				if err := txn.Delete(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom)); err != nil {
 					return err
 				}
+				if f.Dst != "" {
+					if err := txn.Delete(adjKey(f.Dst, f.Src, f.Relation, f.ValidFrom)); err != nil {
+						return err
+					}
+				}
 			}
-		}
-		for slug, e := range analysis.updatedDropEntities {
-			b, err := json.Marshal(e)
+			for _, f := range analysis.updatedFacts {
+				b, err := json.Marshal(f)
+				if err != nil {
+					return err
+				}
+				if err := txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b); err != nil {
+					return err
+				}
+				if f.Dst != "" {
+					if err := txn.Set(adjKey(f.Dst, f.Src, f.Relation, f.ValidFrom), nil); err != nil {
+						return err
+					}
+				}
+			}
+
+			metadataJSON, err := json.Marshal(analysis.metadata)
 			if err != nil {
 				return err
 			}
-			if err := txn.Set([]byte(prefixEntity+slug), b); err != nil {
+			if err := txn.Set([]byte(prefixEntity+req.Survivor), metadataJSON); err != nil {
 				return err
 			}
-		}
+			for slug := range analysis.group {
+				if slug != req.Survivor {
+					if err := txn.Delete([]byte(prefixEntity + slug)); err != nil {
+						return err
+					}
+				}
+			}
+			for slug, e := range analysis.updatedDropEntities {
+				b, err := json.Marshal(e)
+				if err != nil {
+					return err
+				}
+				if err := txn.Set([]byte(prefixEntity+slug), b); err != nil {
+					return err
+				}
+			}
 
-		// Clear every routing key currently owned by a group member, then set
-		// the complete reviewed spelling set to the survivor.
-		for norm, owner := range analysis.aliasClaims {
-			if analysis.group[owner] {
+			// Clear every routing key currently owned by a group member, then set
+			// the complete reviewed spelling set to the survivor.
+			for norm, owner := range analysis.aliasClaims {
+				if analysis.group[owner] {
+					if err := txn.Delete([]byte(prefixAlias + norm)); err != nil {
+						return err
+					}
+				}
+			}
+			for norm := range analysis.droppedNorms {
 				if err := txn.Delete([]byte(prefixAlias + norm)); err != nil {
 					return err
 				}
 			}
-		}
-		for norm := range analysis.droppedNorms {
-			if err := txn.Delete([]byte(prefixAlias + norm)); err != nil {
-				return err
-			}
-		}
-		for norm := range analysis.requiredNorms {
-			if err := txn.Set([]byte(prefixAlias+norm), []byte(req.Survivor)); err != nil {
-				return err
-			}
-		}
-		for norm, target := range analysis.rehomeNorms {
-			if err := txn.Set([]byte(prefixAlias+norm), []byte(target)); err != nil {
-				return err
-			}
-		}
-		for norm := range analysis.droppedNorms {
-			if _, rehomed := analysis.rehomeNorms[norm]; rehomed {
-				continue
-			}
-			owner, found, err := aliasOwnerTxn(txn, norm)
-			if err != nil || found {
-				return fmt.Errorf("memory: merge postcondition: dropped alias %q still resolves to %q, found=%v: %w", norm, owner, found, err)
-			}
-			for slug := range analysis.updatedDropEntities {
-				e, err := getEntityTxn(txn, slug)
-				if err != nil {
+			for norm := range analysis.requiredNorms {
+				if err := txn.Set([]byte(prefixAlias+norm), []byte(req.Survivor)); err != nil {
 					return err
 				}
-				if entityListsNormalized(e, norm) {
-					return fmt.Errorf("memory: merge postcondition: dropped alias %q is still listed by %s", norm, slug)
+			}
+			for norm, target := range analysis.rehomeNorms {
+				if err := txn.Set([]byte(prefixAlias+norm), []byte(target)); err != nil {
+					return err
 				}
 			}
-		}
-
-		// Read-your-writes postconditions. A failed assertion aborts the same
-		// transaction, so no partially merged group can commit.
-		for slug := range analysis.group {
-			if slug == req.Survivor {
-				continue
-			}
-			if _, err := txn.Get([]byte(prefixEntity + slug)); !errors.Is(err, badger.ErrKeyNotFound) {
-				return fmt.Errorf("memory: merge postcondition: retired entity %s still exists", slug)
-			}
-		}
-		for norm := range analysis.requiredNorms {
-			owner, found, err := aliasOwnerTxn(txn, norm)
-			if err != nil || !found || owner != req.Survivor {
-				return fmt.Errorf("memory: merge postcondition: alias %q resolves to %q, found=%v: %w", norm, owner, found, err)
-			}
-		}
-		for norm, target := range analysis.rehomeNorms {
-			owner, found, err := aliasOwnerTxn(txn, norm)
-			if err != nil || !found || owner != target {
-				return fmt.Errorf("memory: merge postcondition: rehomed alias %q resolves to %q, found=%v: %w", norm, owner, found, err)
-			}
-		}
-		for _, f := range analysis.updatedFacts {
-			item, err := txn.Get(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom))
-			if err != nil {
-				return fmt.Errorf("memory: merge postcondition: fact missing: %w", err)
-			}
-			var stored Fact
-			if err := item.Value(func(value []byte) error { return json.Unmarshal(value, &stored) }); err != nil {
+			if err := writeAliasRejectionsTxn(txn, analysis.rejections, analysis.updatedRejections); err != nil {
 				return err
 			}
-			if !reflect.DeepEqual(stored, f) {
-				return errors.New("memory: merge postcondition: rewritten fact changed")
+			for norm := range analysis.droppedNorms {
+				if _, rehomed := analysis.rehomeNorms[norm]; rehomed {
+					continue
+				}
+				owner, found, err := aliasOwnerTxn(txn, norm)
+				if err != nil || found {
+					return fmt.Errorf("memory: merge postcondition: dropped alias %q still resolves to %q, found=%v: %w", norm, owner, found, err)
+				}
+				for slug := range analysis.updatedDropEntities {
+					e, err := getEntityTxn(txn, slug)
+					if err != nil {
+						return err
+					}
+					if entityListsNormalized(e, norm) {
+						return fmt.Errorf("memory: merge postcondition: dropped alias %q is still listed by %s", norm, slug)
+					}
+				}
 			}
-		}
-		if postcondition != nil {
-			postEntities, err := entitiesTxn(txn)
-			if err != nil {
-				return fmt.Errorf("memory: merge postcondition entity snapshot: %w", err)
+
+			// Read-your-writes postconditions. A failed assertion aborts the same
+			// transaction, so no partially merged group can commit.
+			for slug := range analysis.group {
+				if slug == req.Survivor {
+					continue
+				}
+				if _, err := txn.Get([]byte(prefixEntity + slug)); !errors.Is(err, badger.ErrKeyNotFound) {
+					return fmt.Errorf("memory: merge postcondition: retired entity %s still exists", slug)
+				}
 			}
-			postFacts, err := factsTxn(txn)
-			if err != nil {
-				return fmt.Errorf("memory: merge postcondition fact snapshot: %w", err)
+			for norm := range analysis.requiredNorms {
+				owner, found, err := aliasOwnerTxn(txn, norm)
+				if err != nil || !found || owner != req.Survivor {
+					return fmt.Errorf("memory: merge postcondition: alias %q resolves to %q, found=%v: %w", norm, owner, found, err)
+				}
 			}
-			if err := postcondition(postEntities, postFacts); err != nil {
-				return fmt.Errorf("memory: merge postcondition: %w", err)
+			for norm, target := range analysis.rehomeNorms {
+				owner, found, err := aliasOwnerTxn(txn, norm)
+				if err != nil || !found || owner != target {
+					return fmt.Errorf("memory: merge postcondition: rehomed alias %q resolves to %q, found=%v: %w", norm, owner, found, err)
+				}
 			}
-		}
-		return nil
-	})
+			for _, f := range analysis.updatedFacts {
+				item, err := txn.Get(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom))
+				if err != nil {
+					return fmt.Errorf("memory: merge postcondition: fact missing: %w", err)
+				}
+				var stored Fact
+				if err := item.Value(func(value []byte) error { return json.Unmarshal(value, &stored) }); err != nil {
+					return err
+				}
+				if !reflect.DeepEqual(stored, f) {
+					return errors.New("memory: merge postcondition: rewritten fact changed")
+				}
+			}
+			if postcondition != nil {
+				postEntities, err := entitiesTxn(txn)
+				if err != nil {
+					return fmt.Errorf("memory: merge postcondition entity snapshot: %w", err)
+				}
+				postFacts, err := factsTxn(txn)
+				if err != nil {
+					return fmt.Errorf("memory: merge postcondition fact snapshot: %w", err)
+				}
+				if err := postcondition(postEntities, postFacts); err != nil {
+					return fmt.Errorf("memory: merge postcondition: %w", err)
+				}
+			}
+			return nil
+		})
+	}()
 	if err != nil {
 		return analysis.preview, err
 	}
@@ -661,10 +672,35 @@ func analyzeEntityMergeTxn(txn *badger.Txn, req EntityMergeRequest) (entityMerge
 	for slug, e := range a.aliasDispositionEntities {
 		entityHashes[slug] = hashJSON(e)
 	}
+	a.rejections, err = aliasRejectionsTxn(txn)
+	if err != nil {
+		return a, err
+	}
+	participants := map[string]bool{}
+	for slug := range entityHashes {
+		participants[slug] = true
+	}
+	relevantRejections := rejectionSubset(a.rejections, participants)
+	// A merge cannot silently erase or reinterpret a negative identity
+	// decision. Inheritance/supersession needs a separately reviewed design.
+	if len(relevantRejections) > 0 {
+		problem("merge involving reviewed alias rejections requires explicit inheritance support")
+	}
+	a.updatedRejections = cloneAliasRejections(a.rejections)
+	for _, drop := range a.preview.DroppedAliases {
+		for slug := range a.group {
+			addAliasRejection(a.updatedRejections, AliasRejection{Entity: slug, Alias: drop.Alias, Why: drop.Why, Plan: hashJSON(req.DropAliases)})
+		}
+		for _, slug := range drop.DropFrom {
+			addAliasRejection(a.updatedRejections, AliasRejection{Entity: slug, Alias: drop.Alias, Why: drop.Why, Plan: hashJSON(req.DropAliases)})
+		}
+	}
+	a.preview.ProposedRejections = rejectionSubset(a.updatedRejections, participants)
 	a.preview.Expected = EntityMergeExpected{
 		Entities:    entityHashes,
 		Facts:       hashJSON(a.facts),
 		AliasClaims: hashAliasSubset(a.fingerprintNorms, claims),
+		Rejections:  hashJSON(relevantRejections),
 	}
 	for _, spelling := range a.requiredNorms {
 		a.preview.RequiredAliases = append(a.preview.RequiredAliases, spelling)

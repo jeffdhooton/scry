@@ -63,6 +63,7 @@ type EntityRetirementExpected struct {
 	Facts       string            `json:"facts,omitempty"`
 	AliasClaims string            `json:"alias_claims,omitempty"`
 	Adjacencies string            `json:"adjacencies,omitempty"`
+	Rejections  string            `json:"rejections"`
 }
 
 // EntityRetirementAdjacencyFingerprint exposes every reverse-index record
@@ -303,6 +304,9 @@ func applyEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest, anal
 		}
 	}
 	for norm, target := range analysis.rehomeNorms {
+		if err := checkAliasRejectionTxn(txn, target, norm); err != nil {
+			return err
+		}
 		if err := txn.Set([]byte(prefixAlias+norm), []byte(target)); err != nil {
 			return err
 		}
@@ -498,6 +502,13 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 			problem(fmt.Sprintf("alias rehome target %q does not exist or list %q", rehome.Entity, rehome.Alias))
 			continue
 		}
+		if err := checkAliasRejectionTxn(txn, rehome.Entity, norm); err != nil {
+			if !errors.Is(err, ErrAliasRejected) {
+				return a, err
+			}
+			problem(err.Error())
+			continue
+		}
 		a.rehomeNorms[norm] = rehome.Entity
 		a.rehomeTargets[rehome.Entity] = target
 	}
@@ -665,8 +676,17 @@ func analyzeEntityRetirementTxn(txn *badger.Txn, req EntityRetirementRequest) (e
 			}
 		}
 	}
+	rejections, err := aliasRejectionsTxn(txn)
+	if err != nil {
+		return a, err
+	}
+	rejectionOwners := map[string]bool{}
+	for slug := range expectedEntities {
+		rejectionOwners[slug] = true
+	}
 	a.preview.Expected = EntityRetirementExpected{
 		Entities: expectedEntities, Facts: hashJSON(a.facts), AliasClaims: hashAliasSubset(a.claimNorms, claims), Adjacencies: hashJSON(adjacencies),
+		Rejections: hashJSON(rejectionSubset(rejections, rejectionOwners)),
 	}
 	sort.Strings(a.preview.ExternalListings)
 	sort.Strings(a.preview.Problems)

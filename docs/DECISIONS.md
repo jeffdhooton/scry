@@ -3422,3 +3422,28 @@ class as canonical equality. No vocabulary or general alias admission rule
 was expanded. Separator regressions preserve metadata and alias claims;
 the earlier generic-name skip is allowed without identity mutation.
 Independent regrade is required before any deployment.
+
+## Reviewed alias removal is durable negative ownership (2026-09-05)
+
+**Decision, candidate not yet deployed.** Explicit reviewed alias dispositions
+must persist an owner-specific rejection in the same transaction as removal.
+An absent routing key means unclaimed, not forgotten review. Preserve literal
+reasons and the reviewed disposition-plan hash; do not discard existing positive
+attestations, facts or episode evidence. Resolver admission and every supported
+entity/claim writer must respect the rejection, including stale metadata writes.
+It is not a global spelling ban and does not choose a new owner.
+
+**Why.** Independent restored-source probes on 62cf6e0 restored all three proposed
+ChildScribe removals through a stale atomic entity write; two normal Apply calls
+restored Envoyer through repeated attestations. Forty of the prior batch's 45
+normalized spellings can likewise return through unclaimed-key writes. Current
+competing claims protect five spellings, but do not preserve negative ownership
+once those claims disappear. These are reproduced risks, not observed live regrowth.
+
+The first implementation rejects merges involving existing negative decisions
+until inheritance/supersession has an explicit reviewed contract. Heuristic alias
+omissions and low-level DropAlias create no fabricated review records. No inferred
+backfill or schema-version bump is allowed. Older binaries ignore the additive
+records, so binary-only downgrade becomes unsafe after the first marker; a backup
+rollback must also preserve/reconcile all intervening ingestion. See
+`memory-repairs/alias-rejection-implementation-2026-09-05.md` for the required gates.

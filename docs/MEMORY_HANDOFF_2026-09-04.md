@@ -717,3 +717,24 @@ with the repaired SQL-file alias. New context is being independently
 audited, not silently merged. Other parked items remain untouched. Full
 cleanup, recall floors, remaining ownership reviews and both final grading
 rounds are still unfinished; keep the active goal running.
+
+### Later checkpoint: durable alias rejection candidate, 21:44 UTC
+
+Prevention review now proves removed aliases can be recreated on deployed 62cf6e0.
+This is a reproduced write-path gap, not observed live regrowth. Further alias
+cleanup is held. Root candidate adds explicit owner-specific rejection records;
+no live markers, new alias drop, pending retry or deployment has occurred.
+Read `memory-repairs/alias-rejection-implementation-2026-09-05.md` and the archived
+independent alias-reintroduction gap report before continuing. Independent code
+and complete-replica reviews now PASS the supported APIs, with dormant legacy
+merge inheritance explicitly unapproved. Full tests, vet and race checks pass.
+Fresh backup restoration/deployment gate is still pending. Old binaries cannot safely write to a
+future marker-bearing store; preserve pre-marker backups and intervening facts.
+
+The four-hollow candidate has a fresh independent replica PASS; the migration-note
+retry has an expanded-closure conditional gate. Neither is applied/executed and
+neither bypasses fresh closure/code checks. Ordinary ingestion has moved live
+state to 80,338 facts / 30,480 entities / 9,332 episodes, queue 0/0/6. Second-ten Hermes
+review is committed 1cb5e2f (20/859 total reviewed); collision drift review 8d4c0c8
+keeps mixed migration0160 ownership unresolved. All broad goal requirements stay
+active; do not stop at this checkpoint or treat a candidate test pass as completion.

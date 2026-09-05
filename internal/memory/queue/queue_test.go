@@ -178,6 +178,7 @@ func TestTransportFailureBacksOffWithoutParking(t *testing.T) {
 func TestDeterministicResolverFailureParksImmediately(t *testing.T) {
 	for _, cause := range []error{
 		fmt.Errorf("resolve entity: %w: qwen belongs to qwen-3", store.ErrAliasClaimed),
+		fmt.Errorf("resolve entity: %w: reviewed wrong owner", store.ErrAliasRejected),
 		fmt.Errorf("resolve entity: %w: bad:slug", store.ErrInvalidSlug),
 		fmt.Errorf("resolve entity: %w: retired-status", store.ErrEntityRetired),
 		fmt.Errorf("resolve fact: %w: distinct fallback assertions", store.ErrFactConflict),
