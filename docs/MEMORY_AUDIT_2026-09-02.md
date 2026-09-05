@@ -3208,3 +3208,48 @@ the older actual-post-nine source, with all 80,242 facts preserved and exact
 raw delta 26 removed / 19 added. Report
 `memory-repairs/status-six-replica-review-2026-09-05.md`. This source is stale
 for live use: refresh after current processing and review against 62cf6e0.
+
+### Six more status values verified live — 2026-09-05, 21:05 UTC
+
+Fresh independent review on 62cf6e0 passed the exact six-node/seven-fact
+manifest SHA `6b625c190057026d4824e2d89a9146c75697e469e0bb2673d2ffd5e34be7573a`,
+committed 19ab9ec. Before applying, a new 21:04:32 backup was restored and
+all facts, entities, episodes and claims compared byte-for-byte with the
+reviewed 20:55 source. Six ready; queue 0 ready / 0 backoff / 6 parked.
+Both deployed binary hashes remained the reviewed 62cf6e0 artifact.
+
+Applied once at 21:05:30 UTC: six applied, zero refused. These are explicit
+test-count, verification and authorization-state values, not named artifacts.
+All seven facts retain source, relation/raw relation, text, time, validity,
+confidence and provenance; only destination becomes empty and value becomes
+the exact retired display name. Distinct 32/34 results and both indexing
+audit assertions survive. No network authorization or source rehome occurs.
+
+- Actual automatic pre `memory-20260905T210530Z.badger`, 78,001,464 bytes,
+  SHA `8bf422a4781869931c7e289caedde5b2749e059a0fcea14a520aaea20e47aa7b`.
+- Immediate post `memory-20260905T210535Z.badger`, 78,004,674 bytes,
+  SHA `ccd3dbd6fc4143458a6682481be5aba422d0ecc29f8f806c1db67c22dc9020b3`.
+- Independent actual-pre/post restore PASS: 80,299 facts, including 7,800
+  historical facts, unchanged; 30,473→30,467 entities, 9,329 episodes.
+  Exactly 26 raw deletions and 19 additions; complete actual post equals
+  prediction `445934d17d00081980491450e3814a44c0753bad7423699ae3d1b04f6226f3c6`.
+- Approved-source→actual-pre drift is exactly two sweep metadata records,
+  no graph/claim/cursor/episode/pending drift. All six parked items preserved.
+- Full defect lists unchanged: 484 collisions, 2,855 all-history hollows,
+  1,095 self-loops, 1,995 dangling-endpoint facts, 39 current relations.
+- All seven full source-value lookups succeed. Second exact CLI preview
+  applies nothing and refuses six absent entities; independent raw no-write
+  check passes. Replica rollback and nonempty backup restore probes pass.
+- Five root-measured suites unchanged: 52/62, 29/66, 7/7, 45/50, 47/50;
+  maximum payload 13,372 before / 13,370 after, zero over cap. Original
+  first-two floors remain failed; graph reviewer did not grade recall.
+
+Full outputs: `memory-repairs/status-six-live-receipt-2026-09-05.json`;
+fresh and actual independent reports are `status-six-fresh-review` and
+`status-six-live-review` under memory-repairs. Room 91–92 records gate/apply.
+No broad hygiene apply, live rollback, parked retry, or final completion.
+
+The narrow migration operation-note retry gate is recorded separately, but
+remains held: a new `migration0160` project was ordinarily ingested after its
+review snapshot. Its distinct key folds with a SQL-file alias in hygiene;
+the new semantic context must be reviewed despite unchanged file hashes.

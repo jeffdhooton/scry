@@ -690,3 +690,30 @@ Six further explicit status nodes/seven facts passed only replica review
 on the older 20:27 source. Fresh live-state review is mandatory before apply.
 First-ten Hermes ownership dispositions are in separate proposed review,
 not a complete857-fact audit or live repair. Continue the full active goal.
+
+### Later checkpoint: six status values verified, 21:05 UTC
+
+The fresh six-status gate and actual-live grade both passed on 62cf6e0.
+Manifest 19ab9ec, SHA
+`6b625c190057026d4824e2d89a9146c75697e469e0bb2673d2ffd5e34be7573a`.
+Six nodes removed; all seven assertions remain as exact source values, with
+all 80,299 facts including 7,800 history preserved. Entities 30,473→30,467;
+all complete defect lists unchanged: 484 collisions, 2,855 hollows, 1,095
+loops, 1,995 dangling-endpoint facts; 39 current relations. Second exact
+preview is a verified no-write. Five suites still 52/62,29/66,7/7,45/50,47/50.
+
+Actual pre/post Mini backups: `memory-20260905T210530Z.badger` and
+`memory-20260905T210535Z.badger`; complete receipts/hashes and independent
+verdicts are committed under `memory-repairs/status-six-*2026-09-05.*`.
+Newest immutable inventory is
+`/tmp/scry-canonical-62cf-deploy-sep05.G82GKc/status-six-postlive-inventory/`.
+It contains 859 unique Hermes-trio facts. First-ten review committed;
+second-ten proposed evidence review is awaiting an independent verdict.
+
+Do NOT blindly retry the parked migration note ed50810b. Its separately
+reviewed once-only retry remains held because normal ingestion at 20:51:36
+created `migration0160`, a project whose distinct alias key hygiene-folds
+with the repaired SQL-file alias. New context is being independently
+audited, not silently merged. Other parked items remain untouched. Full
+cleanup, recall floors, remaining ownership reviews and both final grading
+rounds are still unfinished; keep the active goal running.

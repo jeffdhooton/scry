@@ -1,0 +1,2082 @@
+{
+  "scope": "Exact six status-node retirements; not broad cleanup or source-ownership correction",
+  "manifest": "status-six-retirement-2026-09-05.json",
+  "manifest_sha256": "6b625c190057026d4824e2d89a9146c75697e469e0bb2673d2ffd5e34be7573a",
+  "deployed_commit": "62cf6e0d2d8db9d324da23114df837848e972c8f",
+  "backups": [
+    {
+      "role": "fresh_recheck",
+      "mini_path": "/Users/jclaw/.scry/backups/memory-20260905T210432Z.badger",
+      "bytes": 78001480,
+      "sha256": "67cd448a88c8c830f97bb1c530419fa5645d7d7d4c786d826ac0430c406a70d7"
+    },
+    {
+      "role": "automatic_pre",
+      "mini_path": "/Users/jclaw/.scry/backups/memory-20260905T210530Z.badger",
+      "bytes": 78001464,
+      "sha256": "8bf422a4781869931c7e289caedde5b2749e059a0fcea14a520aaea20e47aa7b"
+    },
+    {
+      "role": "immediate_post",
+      "mini_path": "/Users/jclaw/.scry/backups/memory-20260905T210535Z.badger",
+      "bytes": 78004674,
+      "sha256": "ccd3dbd6fc4143458a6682481be5aba422d0ecc29f8f806c1db67c22dc9020b3"
+    }
+  ],
+  "immediate_full_input_recheck": "Restored 21:04:32 backup; complete all-facts, all-entities, all-episodes and alias-claims JSON byte-identical to reviewed 20:55:34 source. Live preview six ready; queue 0/0/6; laptop and Mini binary SHA both 821358499706bd9388b63a4368bb5320fc1bac61f12c93df48a158667b19bc14.",
+  "apply": {
+    "dry_run": false,
+    "backup_path": "/Users/jclaw/.scry/backups/memory-20260905T210530Z.badger",
+    "applied": 6,
+    "refused": 0,
+    "groups": [
+      {
+        "id": "status-six-app-tests-32-passing",
+        "entity_snapshot": {
+          "slug": "app-tests-32-passing",
+          "name": "app-tests-32-passing",
+          "type": "concept",
+          "description": "Earlier release report: all 32 application tests and 18 ingestion tests passing.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-04T02:51:17.975Z",
+          "last_seen": "2026-09-04T02:51:17.975Z"
+        },
+        "expected": {
+          "entities": {
+            "app-tests-32-passing": "21cd77d0912e974903922ddf2a6dac3230b05c7c43235dc4d07d567888f228b5",
+            "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+          },
+          "facts": "7906dd0f2d31b1045f866fafb9e68c0cea69dd7cd1219dba75e890e93ce8559b",
+          "alias_claims": "1ce46c1d40bead619eaaf01c31238ff4efe5217461a5aa6e29c6cbe2c836a7cb",
+          "adjacencies": "027d418f12bf817eb1ff98c70f0e720a1e9e4207c6d582a4bf5ba6a12625f9d2"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:statelicenselookup:related_to:app-tests-32-passing:1788480000000000000",
+            "sha256": "4baa1c9b337894a98cbfa6ceb885ab0d5a6f5881412ee9ad8bd9a89fee37dd39",
+            "invalidated": false,
+            "fact": "At the two-release production update, all 32 application tests and 18 ingestion tests passed.",
+            "snapshot": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "app-tests-32-passing",
+              "raw_relation": "status",
+              "fact": "At the two-release production update, all 32 application tests and 18 ingestion tests passed.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 0.9,
+              "episodes": [
+                "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:app-tests-32-passing:statelicenselookup:related_to:1788480000000000000",
+            "sha256": "ef5fbb2f069478feceb88dc774c1975e1fd4a4e88a2c878cc0296c5186a90295",
+            "canonical_fact_key": "fa:statelicenselookup:related_to:app-tests-32-passing:1788480000000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:related_to:app-tests-32-passing:1788480000000000000",
+            "expected_sha256": "4baa1c9b337894a98cbfa6ceb885ab0d5a6f5881412ee9ad8bd9a89fee37dd39",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "app-tests-32-passing",
+              "raw_relation": "status",
+              "fact": "At the two-release production update, all 32 application tests and 18 ingestion tests passed.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 0.9,
+              "episodes": [
+                "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+              ]
+            },
+            "why": "Episode 3220878d distinguishes the earlier 32-test release result from the later 34-test discovery result. This is a time-specific count/result, not a test-suite identity. Preserve both assertions and the existing project source."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "app-tests-32-passing": "app-tests-32-passing"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-six-app-tests-34-passing",
+        "entity_snapshot": {
+          "slug": "app-tests-34-passing",
+          "name": "app-tests-34-passing",
+          "type": "concept",
+          "description": "Current count after the discovery machinery landed: 34 app tests and 18 ingestion tests passing.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-04T02:51:17.975Z",
+          "last_seen": "2026-09-04T02:51:17.975Z"
+        },
+        "expected": {
+          "entities": {
+            "app-tests-34-passing": "48db19d56237523afa6a5c2538450212736fac51ebb9cdbf67989ec466eebafa",
+            "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+          },
+          "facts": "ce90b116016815ff67b682ac6074ee8487086744c5adf517b7760f59e7204824",
+          "alias_claims": "c4081de654d54b0417585ada257fd7424f3f353fa86179a744fc70d4f27c26c0",
+          "adjacencies": "2747b5c49259d6b23616b2430d263188baeec7f68e0349740e8cb305531b4bfd"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:statelicenselookup:related_to:app-tests-34-passing:1788480000000000000",
+            "sha256": "1f63f926b8a495c54415801f490f1eb49ba1607cd9f93a521c26d292cad65ba8",
+            "invalidated": false,
+            "fact": "After the discovery machinery landed, all 34 app tests and 18 ingestion tests pass.",
+            "snapshot": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "app-tests-34-passing",
+              "raw_relation": "status",
+              "fact": "After the discovery machinery landed, all 34 app tests and 18 ingestion tests pass.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:app-tests-34-passing:statelicenselookup:related_to:1788480000000000000",
+            "sha256": "e02e468ba739dc8fa2ac37e7ade7c36152954de7244dd01bc3c59b305a777146",
+            "canonical_fact_key": "fa:statelicenselookup:related_to:app-tests-34-passing:1788480000000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:related_to:app-tests-34-passing:1788480000000000000",
+            "expected_sha256": "1f63f926b8a495c54415801f490f1eb49ba1607cd9f93a521c26d292cad65ba8",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "app-tests-34-passing",
+              "raw_relation": "status",
+              "fact": "After the discovery machinery landed, all 34 app tests and 18 ingestion tests pass.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+              ]
+            },
+            "why": "Episode 3220878d and its all-gates companion describe the later 34-test result after discovery tooling landed. Preserve its distinct text/time/confidence rather than superseding the earlier 32-test assertion."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "app-tests-34-passing": "app-tests-34-passing"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-six-canonical-route-sitemap-passing",
+        "entity_snapshot": {
+          "slug": "canonical-route-sitemap-passing",
+          "name": "canonical-route-sitemap-passing",
+          "type": "concept",
+          "description": "Status: canonical route and sitemap checks passed on both StateLicenseLookup production domains.",
+          "created_at": "2026-09-03T22:20:32.452788-04:00",
+          "last_seen": "2026-09-03T22:20:32.452788-04:00"
+        },
+        "expected": {
+          "entities": {
+            "canonical-route-sitemap-passing": "95f1bd6fde77079803ec4d8889b8beb02565346a6ccff3c94241fdfdccd855e0",
+            "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+          },
+          "facts": "29730edb100470c17ee1dde4a9bd8ef21b7793f36d85ec742e2937141768e3d5",
+          "alias_claims": "98477fb6ec6838550a4030a50875fb6e46025b556d7e5869d9210f5f8b73de53",
+          "adjacencies": "702f71612a8f47f6ffd9bf18a32e719c53b7a83832603c785c9ceca3adcc2436"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:statelicenselookup:related_to:canonical-route-sitemap-passing:1788393600000000000",
+            "sha256": "53c5e54f3814e2e0d3d0ae632c693216616483217cbaccd9b6e20e51178d49d3",
+            "invalidated": false,
+            "fact": "The canonical route and sitemap passed on both production domains.",
+            "snapshot": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "canonical-route-sitemap-passing",
+              "raw_relation": "status",
+              "fact": "The canonical route and sitemap passed on both production domains.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "7ce24fe4b4f012db56d5df6e738a6beb8bdfe606b05751ca45107ad3e1cb7e04"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:canonical-route-sitemap-passing:statelicenselookup:related_to:1788393600000000000",
+            "sha256": "d1bfc2a66cd57a96ad47c58eefb7491b492106ea6b0fa6e5c5b4dcf9fb2049ce",
+            "canonical_fact_key": "fa:statelicenselookup:related_to:canonical-route-sitemap-passing:1788393600000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:related_to:canonical-route-sitemap-passing:1788393600000000000",
+            "expected_sha256": "53c5e54f3814e2e0d3d0ae632c693216616483217cbaccd9b6e20e51178d49d3",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "canonical-route-sitemap-passing",
+              "raw_relation": "status",
+              "fact": "The canonical route and sitemap passed on both production domains.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "7ce24fe4b4f012db56d5df6e738a6beb8bdfe606b05751ca45107ad3e1cb7e04"
+              ]
+            },
+            "why": "Manual episode 7ce24fe4 explicitly records a successful route/sitemap verification after deployment 52489a6. Retain the project and actual sitemap/guide/migration artifacts; only the verification result becomes a literal."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "canonical-route-sitemap-passing": "canonical-route-sitemap-passing"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-six-indexing-audit-clean",
+        "entity_snapshot": {
+          "slug": "indexing-audit-clean",
+          "name": "indexing audit clean",
+          "type": "concept",
+          "description": "Outcome of the 2026-09-04 audit: no indexing leak and no malformed sitemap page found.",
+          "created_at": "2026-09-04T00:12:51.813203-04:00",
+          "last_seen": "2026-09-04T00:12:51.813203-04:00"
+        },
+        "expected": {
+          "entities": {
+            "indexing-audit-clean": "1c3c24e94b9b98a78a8d8a622171cd5e4ce4b50297f0f6c878a1bc0678bf2e26",
+            "sitemap": "07a1e412c23449fbb3bf2a6d1a37df80125ad95f1585c4c563cd7c7c5ea0d740",
+            "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+          },
+          "facts": "8f776d54852e44b160ee146f21a999865cc9f1b5d1355ded02eb913d941f09c9",
+          "alias_claims": "f0d727bcb7d61d266bb813f0819b67e2ced2359bab25360534e2a188bda11b47",
+          "adjacencies": "12a6575ff3150c0a2ea3b00bb326dd286760af8eb7bd8b7e19bf26a8b8343a7f"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:sitemap:related_to:indexing-audit-clean:1788480000000000000",
+            "sha256": "dec9d539b37ea8b31ace309178c43ef7c3abc653648549dffcb793bbecdc817e",
+            "invalidated": false,
+            "fact": "All 42 sitemap URLs returned 200 with unique titles and descriptions, exactly one H1, matching canonicals, valid JSON-LD, and no noindex.",
+            "snapshot": {
+              "src": "sitemap",
+              "relation": "related_to",
+              "dst": "indexing-audit-clean",
+              "raw_relation": "status",
+              "fact": "All 42 sitemap URLs returned 200 with unique titles and descriptions, exactly one H1, matching canonicals, valid JSON-LD, and no noindex.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+              ]
+            }
+          },
+          {
+            "key": "fa:statelicenselookup:related_to:indexing-audit-clean:1788480000000000000",
+            "sha256": "cca82055463b5bd07f49271dff98b10331f46b928c65658957789e57c95094af",
+            "invalidated": false,
+            "fact": "The exhaustive 2026-09-04 production indexing audit found no indexing leak or malformed sitemap page.",
+            "snapshot": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "indexing-audit-clean",
+              "raw_relation": "status",
+              "fact": "The exhaustive 2026-09-04 production indexing audit found no indexing leak or malformed sitemap page.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:indexing-audit-clean:sitemap:related_to:1788480000000000000",
+            "sha256": "ec030f454342951efbc0f226d0985eb726fb247c7d59fe89ef7d520823b04141",
+            "canonical_fact_key": "fa:sitemap:related_to:indexing-audit-clean:1788480000000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          },
+          {
+            "key": "adj:indexing-audit-clean:statelicenselookup:related_to:1788480000000000000",
+            "sha256": "c89da8a72a9067e22ef6fe86d484888f9fe6fb83dec48df7eaa63cbe43cecd07",
+            "canonical_fact_key": "fa:statelicenselookup:related_to:indexing-audit-clean:1788480000000000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:sitemap:related_to:indexing-audit-clean:1788480000000000000",
+            "expected_sha256": "dec9d539b37ea8b31ace309178c43ef7c3abc653648549dffcb793bbecdc817e",
+            "replacement": {
+              "src": "sitemap",
+              "relation": "related_to",
+              "dst": "",
+              "value": "indexing audit clean",
+              "raw_relation": "status",
+              "fact": "All 42 sitemap URLs returned 200 with unique titles and descriptions, exactly one H1, matching canonicals, valid JSON-LD, and no noindex.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+              ]
+            },
+            "why": "Manual episode e9a22440 reports no indexing defects and all 42 sitemap URLs passing. Both the site-level and sitemap-level facts describe that outcome, not a named audit artifact. Preserve both existing sources, including the broadly shared sitemap whose project-specific identity is a separate review."
+          },
+          {
+            "old_key": "fa:statelicenselookup:related_to:indexing-audit-clean:1788480000000000000",
+            "expected_sha256": "cca82055463b5bd07f49271dff98b10331f46b928c65658957789e57c95094af",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "indexing audit clean",
+              "raw_relation": "status",
+              "fact": "The exhaustive 2026-09-04 production indexing audit found no indexing leak or malformed sitemap page.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+              ]
+            },
+            "why": "Manual episode e9a22440 reports no indexing defects and all 42 sitemap URLs passing. Both the site-level and sitemap-level facts describe that outcome, not a named audit artifact. Preserve both existing sources, including the broadly shared sitemap whose project-specific identity is a separate review."
+          }
+        ],
+        "current_facts": 2,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "indexing-audit-clean": "indexing-audit-clean"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-six-live-checks-passing",
+        "entity_snapshot": {
+          "slug": "live-checks-passing",
+          "name": "live-checks-passing",
+          "type": "concept",
+          "description": "Live routes and sitemap passing on both StateLicenseLookup production domains.",
+          "created_at": "2026-09-03T22:16:24.278331-04:00",
+          "last_seen": "2026-09-03T22:16:24.278331-04:00"
+        },
+        "expected": {
+          "entities": {
+            "live-checks-passing": "fef40c92136263d796c2ea758253016311378b96056f0a6200085f84208b52b5",
+            "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+          },
+          "facts": "a55d0ee07a8b69cfed1da195185c265105b00baa8643a6ca3818b35872cd323a",
+          "alias_claims": "c316f84a2f9b7646eaabc7462f84a9f04ea31d5f1c027be1db63fe7ef73ef42f",
+          "adjacencies": "e7f4831ffc32d4a339ba049e057a19bce23387aa76503b49a619acb5593f9562"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:statelicenselookup:related_to:live-checks-passing:1788488184278331000",
+            "sha256": "a7160ae02fb3973e7fd2ded3b66f548285e29c930249ad42fef8c2163c60c731",
+            "invalidated": false,
+            "fact": "Live routes and sitemap passed on both production domains.",
+            "snapshot": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "live-checks-passing",
+              "raw_relation": "status",
+              "fact": "Live routes and sitemap passed on both production domains.",
+              "valid_from": "2026-09-03T22:16:24.278331-04:00",
+              "confidence": 1,
+              "episodes": [
+                "d0c2c19d530b6957e4d2d380ed0d803a96af5577a5b3819b14b0c5bfcd1dbd6a"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:live-checks-passing:statelicenselookup:related_to:1788488184278331000",
+            "sha256": "d55ae61f848d30490b8255078b4a9270d03da7509268d072f7f1d486521bae12",
+            "canonical_fact_key": "fa:statelicenselookup:related_to:live-checks-passing:1788488184278331000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:related_to:live-checks-passing:1788488184278331000",
+            "expected_sha256": "a7160ae02fb3973e7fd2ded3b66f548285e29c930249ad42fef8c2163c60c731",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "live-checks-passing",
+              "raw_relation": "status",
+              "fact": "Live routes and sitemap passed on both production domains.",
+              "valid_from": "2026-09-03T22:16:24.278331-04:00",
+              "confidence": 1,
+              "episodes": [
+                "d0c2c19d530b6957e4d2d380ed0d803a96af5577a5b3819b14b0c5bfcd1dbd6a"
+              ]
+            },
+            "why": "Manual episode d0c2c19d explicitly states routes and sitemap passed after deployment adb2c25. It is a time-specific verification result, not the retained route, sitemap, migration or deployment artifact."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "live-checks-passing": "live-checks-passing"
+        },
+        "ready": true,
+        "applied": true
+      },
+      {
+        "id": "status-six-network-authorization-pending",
+        "entity_snapshot": {
+          "slug": "network-authorization-pending",
+          "name": "network-authorization-pending",
+          "type": "concept",
+          "description": "The prepared, hash-locked discovery batch and priority Trawl crawl are not running because they require explicit network authorization; 354 authority/scope gaps remain.",
+          "repo_refs": [
+            "/Users/jeff/dotfiles"
+          ],
+          "created_at": "2026-09-04T03:40:34.51Z",
+          "last_seen": "2026-09-04T03:40:34.51Z"
+        },
+        "expected": {
+          "entities": {
+            "network-authorization-pending": "63d93cf28971dfa6094b3836a1ec3e3d91394430bb03f3e765e4f61c2a253c4d",
+            "statelicenselookup": "163001d2854e124f5e3ac5bf34f7723f2b20c56ff6bb56b8fe449069a03f9ee9"
+          },
+          "facts": "4063d13a7c9075fb4620ff1b2ed7573a4dbf99d01cf72418e8b83ca0e2dd1e6d",
+          "alias_claims": "65d7071c6cb9c518708023e9ffc93118812a5090d55a9ff0a29d0f1899e3b2e1",
+          "adjacencies": "56df277b77ed9f8fb6f97a70238619ff3843fb56fe0e721156e5592bdc5b6bdc"
+        },
+        "fact_fingerprints": [
+          {
+            "key": "fa:statelicenselookup:blocked_by:network-authorization-pending:1788493234510000000",
+            "sha256": "719b835b3fb0bb291f84845ebbaf9678098144e8a50c21fb0c1d57240eab7309",
+            "invalidated": false,
+            "fact": "354 authority/scope gaps remain; closing them requires running the prepared crawl batch, which needs explicit network authorization.",
+            "snapshot": {
+              "src": "statelicenselookup",
+              "relation": "blocked_by",
+              "dst": "network-authorization-pending",
+              "fact": "354 authority/scope gaps remain; closing them requires running the prepared crawl batch, which needs explicit network authorization.",
+              "valid_from": "2026-09-04T03:40:34.51Z",
+              "confidence": 1,
+              "episodes": [
+                "d096302243f3060cfbff13890e46db6a7b3640a18eb7fe8c25da85d5b6f5b269"
+              ]
+            }
+          }
+        ],
+        "adjacency_fingerprints": [
+          {
+            "key": "adj:network-authorization-pending:statelicenselookup:blocked_by:1788493234510000000",
+            "sha256": "a14c594f1b4951f47d295227036809c5010ec4ccf57803f088b0a3df7ba0776d",
+            "canonical_fact_key": "fa:statelicenselookup:blocked_by:network-authorization-pending:1788493234510000000",
+            "stale": false,
+            "value_base64": "",
+            "value_bytes": 0,
+            "needs_review": false
+          }
+        ],
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:blocked_by:network-authorization-pending:1788493234510000000",
+            "expected_sha256": "719b835b3fb0bb291f84845ebbaf9678098144e8a50c21fb0c1d57240eab7309",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "blocked_by",
+              "dst": "",
+              "value": "network-authorization-pending",
+              "fact": "354 authority/scope gaps remain; closing them requires running the prepared crawl batch, which needs explicit network authorization.",
+              "valid_from": "2026-09-04T03:40:34.51Z",
+              "confidence": 1,
+              "episodes": [
+                "d096302243f3060cfbff13890e46db6a7b3640a18eb7fe8c25da85d5b6f5b269"
+              ]
+            },
+            "why": "Episode d0963022 and hash-locked plan companions describe withheld authorization for a prepared crawl, not a service or policy document. Preserve blocked_by and the full assertion as a literal; this conversion grants no network approval and does not retire the actual plan or runner."
+          }
+        ],
+        "current_facts": 1,
+        "invalidated_facts": 0,
+        "alias_claims": {
+          "network-authorization-pending": "network-authorization-pending"
+        },
+        "ready": true,
+        "applied": true
+      }
+    ]
+  },
+  "immediate_post": [
+    {
+      "path": "/Users/jclaw/.scry/backups/memory-20260905T210535Z.badger",
+      "bytes": 78004674
+    },
+    {
+      "episodes": 9329,
+      "entities": 30467,
+      "facts": 80299,
+      "dormant": false,
+      "cursors": 3115,
+      "models": [
+        "glm-5.3-flash",
+        "deepseek-v4-flash"
+      ],
+      "queue_limit": 6,
+      "queue_ready": 0,
+      "queue_backoff": 0,
+      "queue_parked": 6,
+      "worker_running": true,
+      "last_ingest_at": "2026-09-05T20:46:42.803842Z",
+      "last_sweep_at": "2026-09-05T21:04:14.135005Z",
+      "last_extract_ok_at": "2026-09-05T20:55:14.250843Z"
+    }
+  ],
+  "second_preview": {
+    "dry_run": true,
+    "applied": 0,
+    "refused": 6,
+    "groups": [
+      {
+        "id": "status-six-app-tests-32-passing",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:related_to:app-tests-32-passing:1788480000000000000",
+            "expected_sha256": "4baa1c9b337894a98cbfa6ceb885ab0d5a6f5881412ee9ad8bd9a89fee37dd39",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "app-tests-32-passing",
+              "raw_relation": "status",
+              "fact": "At the two-release production update, all 32 application tests and 18 ingestion tests passed.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 0.9,
+              "episodes": [
+                "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+              ]
+            },
+            "why": "Episode 3220878d distinguishes the earlier 32-test release result from the later 34-test discovery result. This is a time-specific count/result, not a test-suite identity. Preserve both assertions and the existing project source."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: app-tests-32-passing"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-six-app-tests-34-passing",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:related_to:app-tests-34-passing:1788480000000000000",
+            "expected_sha256": "1f63f926b8a495c54415801f490f1eb49ba1607cd9f93a521c26d292cad65ba8",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "app-tests-34-passing",
+              "raw_relation": "status",
+              "fact": "After the discovery machinery landed, all 34 app tests and 18 ingestion tests pass.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+              ]
+            },
+            "why": "Episode 3220878d and its all-gates companion describe the later 34-test result after discovery tooling landed. Preserve its distinct text/time/confidence rather than superseding the earlier 32-test assertion."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: app-tests-34-passing"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-six-canonical-route-sitemap-passing",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:related_to:canonical-route-sitemap-passing:1788393600000000000",
+            "expected_sha256": "53c5e54f3814e2e0d3d0ae632c693216616483217cbaccd9b6e20e51178d49d3",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "canonical-route-sitemap-passing",
+              "raw_relation": "status",
+              "fact": "The canonical route and sitemap passed on both production domains.",
+              "valid_from": "2026-09-03T00:00:00Z",
+              "confidence": 0.95,
+              "episodes": [
+                "7ce24fe4b4f012db56d5df6e738a6beb8bdfe606b05751ca45107ad3e1cb7e04"
+              ]
+            },
+            "why": "Manual episode 7ce24fe4 explicitly records a successful route/sitemap verification after deployment 52489a6. Retain the project and actual sitemap/guide/migration artifacts; only the verification result becomes a literal."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: canonical-route-sitemap-passing"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-six-indexing-audit-clean",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:sitemap:related_to:indexing-audit-clean:1788480000000000000",
+            "expected_sha256": "dec9d539b37ea8b31ace309178c43ef7c3abc653648549dffcb793bbecdc817e",
+            "replacement": {
+              "src": "sitemap",
+              "relation": "related_to",
+              "dst": "",
+              "value": "indexing audit clean",
+              "raw_relation": "status",
+              "fact": "All 42 sitemap URLs returned 200 with unique titles and descriptions, exactly one H1, matching canonicals, valid JSON-LD, and no noindex.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+              ]
+            },
+            "why": "Manual episode e9a22440 reports no indexing defects and all 42 sitemap URLs passing. Both the site-level and sitemap-level facts describe that outcome, not a named audit artifact. Preserve both existing sources, including the broadly shared sitemap whose project-specific identity is a separate review."
+          },
+          {
+            "old_key": "fa:statelicenselookup:related_to:indexing-audit-clean:1788480000000000000",
+            "expected_sha256": "cca82055463b5bd07f49271dff98b10331f46b928c65658957789e57c95094af",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "indexing audit clean",
+              "raw_relation": "status",
+              "fact": "The exhaustive 2026-09-04 production indexing audit found no indexing leak or malformed sitemap page.",
+              "valid_from": "2026-09-04T00:00:00Z",
+              "confidence": 1,
+              "episodes": [
+                "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+              ]
+            },
+            "why": "Manual episode e9a22440 reports no indexing defects and all 42 sitemap URLs passing. Both the site-level and sitemap-level facts describe that outcome, not a named audit artifact. Preserve both existing sources, including the broadly shared sitemap whose project-specific identity is a separate review."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: indexing-audit-clean"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-six-live-checks-passing",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:related_to:live-checks-passing:1788488184278331000",
+            "expected_sha256": "a7160ae02fb3973e7fd2ded3b66f548285e29c930249ad42fef8c2163c60c731",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "related_to",
+              "dst": "",
+              "value": "live-checks-passing",
+              "raw_relation": "status",
+              "fact": "Live routes and sitemap passed on both production domains.",
+              "valid_from": "2026-09-03T22:16:24.278331-04:00",
+              "confidence": 1,
+              "episodes": [
+                "d0c2c19d530b6957e4d2d380ed0d803a96af5577a5b3819b14b0c5bfcd1dbd6a"
+              ]
+            },
+            "why": "Manual episode d0c2c19d explicitly states routes and sitemap passed after deployment adb2c25. It is a time-specific verification result, not the retained route, sitemap, migration or deployment artifact."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: live-checks-passing"
+        ],
+        "ready": false,
+        "applied": false
+      },
+      {
+        "id": "status-six-network-authorization-pending",
+        "entity_snapshot": {
+          "slug": "",
+          "name": "",
+          "type": "",
+          "description": "",
+          "created_at": "0001-01-01T00:00:00Z",
+          "last_seen": "0001-01-01T00:00:00Z"
+        },
+        "expected": {},
+        "fact_fingerprints": null,
+        "adjacency_fingerprints": null,
+        "replacements": [
+          {
+            "old_key": "fa:statelicenselookup:blocked_by:network-authorization-pending:1788493234510000000",
+            "expected_sha256": "719b835b3fb0bb291f84845ebbaf9678098144e8a50c21fb0c1d57240eab7309",
+            "replacement": {
+              "src": "statelicenselookup",
+              "relation": "blocked_by",
+              "dst": "",
+              "value": "network-authorization-pending",
+              "fact": "354 authority/scope gaps remain; closing them requires running the prepared crawl batch, which needs explicit network authorization.",
+              "valid_from": "2026-09-04T03:40:34.51Z",
+              "confidence": 1,
+              "episodes": [
+                "d096302243f3060cfbff13890e46db6a7b3640a18eb7fe8c25da85d5b6f5b269"
+              ]
+            },
+            "why": "Episode d0963022 and hash-locked plan companions describe withheld authorization for a prepared crawl, not a service or policy document. Preserve blocked_by and the full assertion as a literal; this conversion grants no network approval and does not retire the actual plan or runner."
+          }
+        ],
+        "current_facts": 0,
+        "invalidated_facts": 0,
+        "alias_claims": {},
+        "problems": [
+          "entity does not exist: network-authorization-pending"
+        ],
+        "ready": false,
+        "applied": false
+      }
+    ]
+  },
+  "lookups": {
+    "statelicenselookup": [
+      {
+        "confidence": 1,
+        "dst": "",
+        "episodes": [
+          "d096302243f3060cfbff13890e46db6a7b3640a18eb7fe8c25da85d5b6f5b269"
+        ],
+        "fact": "354 authority/scope gaps remain; closing them requires running the prepared crawl batch, which needs explicit network authorization.",
+        "relation": "blocked_by",
+        "src": "statelicenselookup",
+        "valid_from": "2026-09-04T03:40:34.51Z",
+        "value": "network-authorization-pending"
+      },
+      {
+        "confidence": 0.9,
+        "dst": "",
+        "episodes": [
+          "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+        ],
+        "fact": "At the two-release production update, all 32 application tests and 18 ingestion tests passed.",
+        "raw_relation": "status",
+        "relation": "related_to",
+        "src": "statelicenselookup",
+        "valid_from": "2026-09-04T00:00:00Z",
+        "value": "app-tests-32-passing"
+      },
+      {
+        "confidence": 0.95,
+        "dst": "",
+        "episodes": [
+          "3220878d4d2aec323d6090478896fc6422b9ca911f0908fc041b993c79d1b161"
+        ],
+        "fact": "After the discovery machinery landed, all 34 app tests and 18 ingestion tests pass.",
+        "raw_relation": "status",
+        "relation": "related_to",
+        "src": "statelicenselookup",
+        "valid_from": "2026-09-04T00:00:00Z",
+        "value": "app-tests-34-passing"
+      },
+      {
+        "confidence": 0.95,
+        "dst": "",
+        "episodes": [
+          "7ce24fe4b4f012db56d5df6e738a6beb8bdfe606b05751ca45107ad3e1cb7e04"
+        ],
+        "fact": "The canonical route and sitemap passed on both production domains.",
+        "raw_relation": "status",
+        "relation": "related_to",
+        "src": "statelicenselookup",
+        "valid_from": "2026-09-03T00:00:00Z",
+        "value": "canonical-route-sitemap-passing"
+      },
+      {
+        "confidence": 1,
+        "dst": "",
+        "episodes": [
+          "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+        ],
+        "fact": "The exhaustive 2026-09-04 production indexing audit found no indexing leak or malformed sitemap page.",
+        "raw_relation": "status",
+        "relation": "related_to",
+        "src": "statelicenselookup",
+        "valid_from": "2026-09-04T00:00:00Z",
+        "value": "indexing audit clean"
+      },
+      {
+        "confidence": 1,
+        "dst": "",
+        "episodes": [
+          "d0c2c19d530b6957e4d2d380ed0d803a96af5577a5b3819b14b0c5bfcd1dbd6a"
+        ],
+        "fact": "Live routes and sitemap passed on both production domains.",
+        "raw_relation": "status",
+        "relation": "related_to",
+        "src": "statelicenselookup",
+        "valid_from": "2026-09-03T22:16:24.278331-04:00",
+        "value": "live-checks-passing"
+      }
+    ],
+    "sitemap": [
+      {
+        "confidence": 1,
+        "dst": "",
+        "episodes": [
+          "e9a22440d55c0a97e545642c18242f3291ab68f1d870eef5fb4b1998208e9f15"
+        ],
+        "fact": "All 42 sitemap URLs returned 200 with unique titles and descriptions, exactly one H1, matching canonicals, valid JSON-LD, and no noindex.",
+        "raw_relation": "status",
+        "relation": "related_to",
+        "src": "sitemap",
+        "valid_from": "2026-09-04T00:00:00Z",
+        "value": "indexing audit clean"
+      }
+    ]
+  },
+  "benchmarks": {
+    "heldout-2026-09-03": {
+      "before": {
+        "total": 62,
+        "hits": 52,
+        "top_n": 20,
+        "hit_rate": 0.8387096774193549,
+        "mean_payload_bytes": 10550,
+        "max_payload_bytes": 12110,
+        "over_cap": 0,
+        "mean_latency_ms": 182.09677419354838,
+        "misses": [
+          {
+            "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+            "rank": -1,
+            "top": [
+              "halo-ssh-tunnel -[located_at]-> halo2: Second localhost SSH tunnel exposes halo2's Lemonade endpoint to Jeff's local Mac at 127.0.0.1:13306…",
+              "cron-mode -[decided]-> jeff: Jeff decided not to change cron_mode to 'approve' because the block couldn't be reproduced - flagging was from…",
+              "chatbox -[causes]-> lemonade: Chatbox couldn't fetch models because the API host omitted http://; verified working API Host http://halo:133…"
+            ]
+          },
+          {
+            "question": "What are we paying per million output tokens for the top Anthropic model?",
+            "rank": -1,
+            "top": [
+              "glm5next -[status]-> Z.AI: Z.ai pricing: $0.075 per million input tokens and $0.25 per million output tokens.",
+              "claude-opus-4-6 -[status]-> 25.00 USD: Claude Opus 4.6 output price is $25.00 per million tokens as of the 2026-06-24 cache",
+              "claude-opus-5 -[status]-> 25.00 USD: Claude Opus 5 output price is $25.00 per million tokens as of the 2026-06-24 cache"
+            ]
+          },
+          {
+            "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+            "rank": -1,
+            "top": [
+              "battery-designer -[provides]-> cloud-folder-navigation: Committed and pushed as 429b798: discoverable cloud folders with breadcrumbs and fo…",
+              "scry -[lacks]-> vue-sfc: Vue SFC is a coverage hole in existing scry TypeScript support, not a new language; ~4,500 files across 19 of 44 r…",
+              "jeff -[decided]-> nestjs: Jeff decided to build a NestJS + TypeORM + react-query practice repo to drill before the interview."
+            ]
+          },
+          {
+            "question": "What does Hermes use for inference when the primary model is down?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> halo-inference-backend: Best use of the box is a headless dedicated inference backend: add gpt-oss-120b and uncensored qw…",
+              "hermes -[uses]-> DeepSeek v4: Primary model is deepseek-v4-pro (provider deepseek, hosted)",
+              "hermes -[provides]-> halo2: The Hermes default profile runs inference on halo2 via lemonade with gpt-oss-120b-Q4_K_M."
+            ]
+          },
+          {
+            "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "flash-next -[uses]-> amd-halo: Flash-Next model runs on a single AMD Halo box (gfx1151) with full GPU offload, 32 cores, 125 GB memory.",
+              "hermes -[depends_on]-> lemonade: Hermes sends prompts and receives tokens over the LAN/Tailscale hop to the Halo — negligible versus infere…"
+            ]
+          },
+          {
+            "question": "Is the DBA filing site actually online yet?",
+            "rank": -1,
+            "top": [
+              "mississippi-dba -[produces]-> mississippi-online-portal: Earlier harvested fact: online portal for Mississippi DBA filing; provenance limit…",
+              "dbafiling-deploy -[part_of]-> hermes: dbafiling-deploy is a Hermes tmux session.",
+              "dbafilingguide -[deployed_on]-> dbafiling-deploy: Production inspections and deploys go through the scoped dbafiling-deploy session because…"
+            ]
+          },
+          {
+            "question": "What did Jeff want done about two-factor auth on the demo site?",
+            "rank": -1,
+            "top": [
+              "fortify-2fa -[status]-> Scribe: Two-factor authentication IS enabled",
+              "jeff -[related_to]-> gog: Jeff wants to add two more accounts to gog CLI",
+              "prior-owner-password-and-totp-factor -[related_to]-> owner@demo.programhealth.dev: The prior Owner password and TOTP factor are invalid aft…"
+            ]
+          },
+          {
+            "question": "What interface is Ollama bound to these days?",
+            "rank": -1,
+            "top": [
+              "ollama -[configures]-> ollama-memory-limits: Set via launchctl setenv: OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_KEEP_ALIVE…",
+              "jeff -[decided]-> ollama: Laptop Ollama must be bound to loopback only and published privately via Tailscale Serve for Jeff's own remote ac…",
+              "ollama -[excludes]-> ollama-env-plist: Ollama.app kept the old environment (5-minute keep-alive) until BOTH it and a lingering `ollama serv…"
+            ]
+          },
+          {
+            "question": "A memory write disappeared without an error - what happened?",
+            "rank": -1,
+            "top": [
+              "data-loss -[blocked_by]-> file-memories: File memories have everything, so nothing is lost despite the scry write failure.",
+              "opencode -[requires]-> enabled-providers: enabled_providers is an explicit allowlist: renaming the provider key ollama→mbp without updating…",
+              "validate -[status]-> healthy: Validation errors propagate to the job and pg-boss; invalid-PDF, missing fields, and oversized assets are nev…"
+            ]
+          },
+          {
+            "question": "What network did Jeff join so the hotspot's admin page would come up?",
+            "rank": -1,
+            "top": [
+              "jeff -[owns]-> toyota-hotspot: Jeff set up the vehicle hotspot through AT&T and supplied its SSID/password (read from the car's hotspot scr…",
+              "oui-spy -[depends_on]-> toyota-hotspot: In-car uplink: NetworkManager profile for 'TOYOTA 4Runner-2.4g_658eaa' (WPA2) provisioned offline w…",
+              "car-hotspot -[part_of]-> 4runner: SSID 'TOYOTA 4Runner-2.4g_658eaa' corresponds to the 4Runner's radio, not Jeff's phone — corrected prior …"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.115384615384615
+      },
+      "after": {
+        "total": 62,
+        "hits": 52,
+        "top_n": 20,
+        "hit_rate": 0.8387096774193549,
+        "mean_payload_bytes": 10550,
+        "max_payload_bytes": 12110,
+        "over_cap": 0,
+        "mean_latency_ms": 247.08064516129033,
+        "misses": [
+          {
+            "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+            "rank": -1,
+            "top": [
+              "halo-ssh-tunnel -[located_at]-> halo2: Second localhost SSH tunnel exposes halo2's Lemonade endpoint to Jeff's local Mac at 127.0.0.1:13306…",
+              "cron-mode -[decided]-> jeff: Jeff decided not to change cron_mode to 'approve' because the block couldn't be reproduced - flagging was from…",
+              "chatbox -[causes]-> lemonade: Chatbox couldn't fetch models because the API host omitted http://; verified working API Host http://halo:133…"
+            ]
+          },
+          {
+            "question": "What are we paying per million output tokens for the top Anthropic model?",
+            "rank": -1,
+            "top": [
+              "glm5next -[status]-> Z.AI: Z.ai pricing: $0.075 per million input tokens and $0.25 per million output tokens.",
+              "claude-opus-4-6 -[status]-> 25.00 USD: Claude Opus 4.6 output price is $25.00 per million tokens as of the 2026-06-24 cache",
+              "claude-opus-5 -[status]-> 25.00 USD: Claude Opus 5 output price is $25.00 per million tokens as of the 2026-06-24 cache"
+            ]
+          },
+          {
+            "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+            "rank": -1,
+            "top": [
+              "battery-designer -[provides]-> cloud-folder-navigation: Committed and pushed as 429b798: discoverable cloud folders with breadcrumbs and fo…",
+              "scry -[lacks]-> vue-sfc: Vue SFC is a coverage hole in existing scry TypeScript support, not a new language; ~4,500 files across 19 of 44 r…",
+              "jeff -[decided]-> nestjs: Jeff decided to build a NestJS + TypeORM + react-query practice repo to drill before the interview."
+            ]
+          },
+          {
+            "question": "What does Hermes use for inference when the primary model is down?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> halo-inference-backend: Best use of the box is a headless dedicated inference backend: add gpt-oss-120b and uncensored qw…",
+              "hermes -[uses]-> DeepSeek v4: Primary model is deepseek-v4-pro (provider deepseek, hosted)",
+              "hermes -[provides]-> halo2: The Hermes default profile runs inference on halo2 via lemonade with gpt-oss-120b-Q4_K_M."
+            ]
+          },
+          {
+            "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "flash-next -[uses]-> amd-halo: Flash-Next model runs on a single AMD Halo box (gfx1151) with full GPU offload, 32 cores, 125 GB memory.",
+              "hermes -[depends_on]-> lemonade: Hermes sends prompts and receives tokens over the LAN/Tailscale hop to the Halo — negligible versus infere…"
+            ]
+          },
+          {
+            "question": "Is the DBA filing site actually online yet?",
+            "rank": -1,
+            "top": [
+              "mississippi-dba -[produces]-> mississippi-online-portal: Earlier harvested fact: online portal for Mississippi DBA filing; provenance limit…",
+              "dbafiling-deploy -[part_of]-> hermes: dbafiling-deploy is a Hermes tmux session.",
+              "dbafilingguide -[deployed_on]-> dbafiling-deploy: Production inspections and deploys go through the scoped dbafiling-deploy session because…"
+            ]
+          },
+          {
+            "question": "What did Jeff want done about two-factor auth on the demo site?",
+            "rank": -1,
+            "top": [
+              "fortify-2fa -[status]-> Scribe: Two-factor authentication IS enabled",
+              "jeff -[related_to]-> gog: Jeff wants to add two more accounts to gog CLI",
+              "prior-owner-password-and-totp-factor -[related_to]-> owner@demo.programhealth.dev: The prior Owner password and TOTP factor are invalid aft…"
+            ]
+          },
+          {
+            "question": "What interface is Ollama bound to these days?",
+            "rank": -1,
+            "top": [
+              "ollama -[configures]-> ollama-memory-limits: Set via launchctl setenv: OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_KEEP_ALIVE…",
+              "jeff -[decided]-> ollama: Laptop Ollama must be bound to loopback only and published privately via Tailscale Serve for Jeff's own remote ac…",
+              "ollama -[excludes]-> ollama-env-plist: Ollama.app kept the old environment (5-minute keep-alive) until BOTH it and a lingering `ollama serv…"
+            ]
+          },
+          {
+            "question": "A memory write disappeared without an error - what happened?",
+            "rank": -1,
+            "top": [
+              "data-loss -[blocked_by]-> file-memories: File memories have everything, so nothing is lost despite the scry write failure.",
+              "opencode -[requires]-> enabled-providers: enabled_providers is an explicit allowlist: renaming the provider key ollama→mbp without updating…",
+              "validate -[status]-> healthy: Validation errors propagate to the job and pg-boss; invalid-PDF, missing fields, and oversized assets are nev…"
+            ]
+          },
+          {
+            "question": "What network did Jeff join so the hotspot's admin page would come up?",
+            "rank": -1,
+            "top": [
+              "jeff -[owns]-> toyota-hotspot: Jeff set up the vehicle hotspot through AT&T and supplied its SSID/password (read from the car's hotspot scr…",
+              "oui-spy -[depends_on]-> toyota-hotspot: In-car uplink: NetworkManager profile for 'TOYOTA 4Runner-2.4g_658eaa' (WPA2) provisioned offline w…",
+              "car-hotspot -[part_of]-> 4runner: SSID 'TOYOTA 4Runner-2.4g_658eaa' corresponds to the 4Runner's radio, not Jeff's phone — corrected prior …"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.115384615384615
+      }
+    },
+    "heldout-b": {
+      "before": {
+        "total": 66,
+        "hits": 29,
+        "top_n": 20,
+        "hit_rate": 0.4393939393939394,
+        "mean_payload_bytes": 10635,
+        "max_payload_bytes": 13372,
+        "over_cap": 0,
+        "mean_latency_ms": 163.95454545454547,
+        "misses": [
+          {
+            "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+            "rank": -1,
+            "top": [
+              "ollama -[deployed_on]-> mac-mini: Local Ollama serving the Qwen worker model runs on the Mac mini (the 'mini-qwen' lane).",
+              "shared-scry-memory -[decided]-> mac-mini: Decision: make the always-on Mac Mini the single authoritative Scry memory plane serving Hermes, …",
+              "document-extraction-job -[owns]-> mac-mini: Four durable named tmux workers on the Mini drive the extraction and survive disconnects; the r…"
+            ]
+          },
+          {
+            "question": "What happened to the DeepSeek worker container on the second box?",
+            "rank": -1,
+            "top": [
+              "fine-tuning -[blocked_by]-> DeepSeek v4: Clustered DeepSeek uses both boxes, so fine-tuning cannot run simultaneously",
+              "halo2 -[decided]-> DeepSeek v4: DeepSeek-V4-Flash was chosen by the user as the model for the two-box cluster.",
+              "scry -[blocked_by]-> hosted-deepseek: DeepSeek extraction returns 402 with the account out of balance; both providers are empty simultaneou…"
+            ]
+          },
+          {
+            "question": "Where do the deep research agent's model calls actually go?",
+            "rank": -1,
+            "top": [
+              "deepresearch -[uses]-> deepresearch-model-api: The agent's model calls go through the OpenAI-compatible endpoint http://100.77.13.39:13306/…",
+              "deepresearch -[blocked_by]-> deepresearch-model-api: Each model call takes 2-3 minutes, so the full research workflow (planning → sub-agent…",
+              "cloud-deep-research-service -[replaced_by]-> deepresearch: deepresearch is the replacement for the paid cloud deep-research service: free, …"
+            ]
+          },
+          {
+            "question": "How often are the queue backups taken and how long do we keep them?",
+            "rank": -1,
+            "top": [
+              "entity-retirement -[uses]-> maintenance-lock: An exclusive maintenance lock is taken before backup, sync, close, and apply; race testing co…",
+              "childscribe-laravel-alias-prune -[monitors]-> store-backup-20260904T170026Z: Pre-prune store backup taken before the prune landed.",
+              "advocates -[produces]-> jobs_backup_20260612_184343: Database backup table created before queue cleanup containing 16,570 rows from stale q…"
+            ]
+          },
+          {
+            "question": "What address does the interview engine bind to so a real phone can hit it?",
+            "rank": -1,
+            "top": [
+              "scriptschildscribe-mobile-device-devsh -[depends_on]-> expo-public-engine-url: Launcher sets EXPO_PUBLIC_ENGINE_URL to http://{LAN_IP}:3100…",
+              "scry -[uses]-> address-suffix-merge-rule: A name that is another same-type entity's name plus an address (an IP, a .local/.ts.net host, a b…",
+              "interview-engine -[documents]-> post-apienginefeedback: Engine summarizes beta Q&A and POSTs to new internal endpoint with engine-auth secr…"
+            ]
+          },
+          {
+            "question": "Why was the mobile app failing to reach the engine from its environment file?",
+            "rank": -1,
+            "top": [
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731",
+              "mobile -[requires]-> expo-public-api-url: Mobile app requires EXPO_PUBLIC_API_URL environment variable set to http://childscribe.test for R…",
+              "mobile -[requires]-> scribe-engine-prod: Mobile app calls production engine directly via EXPO_PUBLIC_ENGINE_URL for realtime voice, must be…"
+            ]
+          },
+          {
+            "question": "What do we use to run unit tests in the mobile app?",
+            "rank": -1,
+            "top": [
+              "mobile -[uses]-> maestro-mobile-e2e: Maestro flows target mobile app; testID additions made to sign-in screen, home CTA, button primitive; …",
+              "adb -[uses]-> appsmobile: Jeff uses Android emulator to test mobile app via adb.",
+              "mobile -[uses]-> eas-build: Mobile app built via EAS cloud builders"
+            ]
+          },
+          {
+            "question": "What is holding up charging sales tax to customers?",
+            "rank": -1,
+            "top": [
+              "codex-reports-financial-sales -[decided]-> sales-reports-plan: Resume inside owned paths without touching execute.ts: three sales aggregate…",
+              "childscribe-laravel -[blocked_by]-> apple-org-enrollment: Long pole blocker for TestFlight and iOS store submission",
+              "financial-report-definitions -[blocked_by]-> f0e0c2073ce6: Six of seven definitions (sales by period, sales by customer, sales by service t…"
+            ]
+          },
+          {
+            "question": "What extra step does staging need after the server-rendered bundle changes?",
+            "rank": -1,
+            "top": [
+              "scry-local-vectors -[documents]-> staging-bundle-question: Refreshing the local vectors alone moves the staging answer to rank 21, matching…",
+              "staging-bundle-question -[related_to]-> staging-deployment-fact: A newly ingested staging-deployment fact pushed the still-intact staging a…",
+              "staging-bundle-question -[excludes]-> scry-lexical-index: Updating the lexical index alone keeps the staging answer at rank 20."
+            ]
+          },
+          {
+            "question": "How is a review supposed to be requested in a fleet room?",
+            "rank": -1,
+            "top": [
+              "allow-room-task-metadata-listing -[implements]-> fleet-review: Rationale: listing the room's task metadata is a read-only, narrowly scoped …",
+              "room-task-board-read -[implements]-> fleet-task-review: The read-only room task board listing decision was made reasonably to support the e…",
+              "room-history-lookup -[implements]-> requested-review: The lookup was issued to support the review the user explicitly requested."
+            ]
+          },
+          {
+            "question": "Which git operations are workers not allowed to run?",
+            "rank": -1,
+            "top": [
+              "operations-north-star -[related_to]-> ratelimit: Rate-limit sleep has never fired; many paths (budget exhaustion, crash-resume, malformed e…",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "What was wrong with the dunning run endpoint when it got bad input?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> bug-f4-cascade-delete: F4's shape is right; only its two failure paths are wrong",
+              "text-matching -[blocked_by]-> smart quotes, truncation, wrong chapter attribution: micro-fixer text searches may fail due to smart quotes, …",
+              "chapter-plan-vnext -[decided]-> terminal-failure-artifacts: Terminal writer errors now carry all raw attempts and call metadata; the runner…"
+            ]
+          },
+          {
+            "question": "Is there any migration number range nobody has claimed yet?",
+            "rank": -1,
+            "top": [
+              "codex-migration-block-reservations -[uses]-> port-range-32156: This worktree owns the port range starting at 32156 (also in .setpoint-ports…",
+              "disposal-links-block -[assigned_to]-> claude-weight-ticket-task-and-stop-join: Added a README registry row claiming migration block 0200–02…",
+              "claude-weight-ticket-task-and-stop-join -[implements]-> weight-tickets: Deliberately deviated from its brief by shipping a second migration…"
+            ]
+          },
+          {
+            "question": "Is the messaging section of the office app actually built?",
+            "rank": -1,
+            "top": [
+              "officeapp -[contains]-> 310: There are 310 worktrees, using 911MB, though only ~9 should be live.",
+              "wave -[implements]-> officeapp: Wave 14 closed 12 epics, all 7 members converged with reviewers in-loop, repair backlog empty for first time",
+              "officeapp -[contains]-> ipv6-only: The dev server binds IPv6 only ([::1]:5173), causing IPv4 curl checks to fail."
+            ]
+          },
+          {
+            "question": "Why can nobody hit the customer portal endpoints?",
+            "rank": -1,
+            "top": [
+              "0360-portal-identities-sql -[replaced_by]-> kimi-customer-portal: Renamed the recovered migration 0360_customer_portal.sql to 0360_portal_i…",
+              "api -[implements]-> portal-customer-scoping: Scoped route matrix is green: all seven portal endpoints return 404 for an existing different …",
+              "codex-customer-portal -[decided]-> customer-portal-router-contract: codex-customer-portal proposed a createPortalRoutes() router boundary a…"
+            ]
+          },
+          {
+            "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+            "rank": -1,
+            "top": [
+              "sweep-agent -[depends_on]-> scry: The sweep uses the scry daemon binary which was rebuilt after the code changes.",
+              "scry-daemon-restart -[causes]-> scry: The restart targeted the scry daemon and interrupted in-flight socket clients during a sweep.",
+              "scry-daemon-takeover-race -[causes]-> scry-daemon-split-brain: Likely root cause (inferred from logs and source, not proven live): the non-…"
+            ]
+          },
+          {
+            "question": "What caused duplicate dev servers to be launched?",
+            "rank": -1,
+            "top": [
+              "cloudflare-vite-dev-server -[lacks]-> marketing-redirect-rule: The Cloudflare Vite dev server does not apply `_redirects`, so the lead form…",
+              "protocol-mismatch -[causes]-> econnreset: Potential HTTPS/TLS request to HTTP-only Laravel dev server causes connection reset",
+              "cad-mcp-server -[depends_on]-> cad-core-seam: The v2 MCP server is a second transport over the same core/, scheduled after the web site lau…"
+            ]
+          },
+          {
+            "question": "What is risky about the way the sync loop touches the Claude config file?",
+            "rank": -1,
+            "top": [
+              "ai-syncpy -[implements]-> claude-code: ai-sync.py currently syncs Claude Code skills/config as one of two hardcoded tools",
+              "ai-syncpy -[calls]-> mcp-servers-config: Propagates the registry so Claude, Codex and Kimi/OpenCode all pick up the server.",
+              "claude-registry-backlog-sync -[owns]-> dbmigrationsreadmemd: Named owner of db/migrations/README.md for this fleet wave; no other task may …"
+            ]
+          },
+          {
+            "question": "Why does the orientation output list things that aren't projects?",
+            "rank": -1,
+            "top": [
+              "pinned-cad-fixtures -[decided]-> 3d-conversion-site: Real CAD files arrive via a pinned dependency and are used for validation but not comm…",
+              "git-facade -[decided]-> setpoint-fleet: A deferred git façade would centralize setpoint's ~46 git invocations and classify git output into …",
+              "outputsentity-id -[decided]-> Sub-project 2: Engine output + graph fan-out: New outputs.entity_id column added for per-child output associa…"
+            ]
+          },
+          {
+            "question": "How do I know whether an agent actually got launched into its pane?",
+            "rank": -1,
+            "top": [
+              "remote-host-support -[blocked_by]-> jeff: Assistant asked Jeff whether remote-host support is actually wanted or whether the whole SSH bran…",
+              "hermes -[depends_on]-> agent-blank-pane-bug: Agent blank pane and nvim hang bugs were blocking for Hermes Phase 5+ where agents and TUI too…",
+              "agent-launch-service -[depends_on]-> session-manager: Public session launch delegates into AgentLaunchService, which takes the existing mut…"
+            ]
+          },
+          {
+            "question": "Which newsletter layout do customers get unless we change something?",
+            "rank": -1,
+            "top": [
+              "newsletter-layouttestts -[tests]-> newsletter-layout: new describe 'layoutNewsletterHtml — inset floats' adds 5 tests for float classes, al…",
+              "newsletter-layout -[blocked_by]-> single-column: The newsletter would stay unwrapped unless redesigned separately; the single-column no-col…",
+              "monthly-chapter-improvement -[blocked_by]-> monthly-chapter-improvement-lock: Monthly chapter improvement work must not change newsletter p…"
+            ]
+          },
+          {
+            "question": "Why does the voice interview traffic take a detour instead of going direct?",
+            "rank": -1,
+            "top": [
+              "jeff -[fixes]-> realtime-interview-client: Transport-driven phase boundaries implemented: processing starts on input_audio_buffer.speech_st…",
+              "realtime-interview-orchestrator -[fixes]-> childscribe-mobile: Phase boundaries now driven by transport events: user turn handoff on input_…",
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…"
+            ]
+          },
+          {
+            "question": "What fields is the sign-up form allowed to have?",
+            "rank": -1,
+            "top": [
+              "newsletter-forms -[uses]-> contact-honeypot: Both desktop and mobile newsletter signup forms now include honeypot field for bot detection.",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "How does the demo box get new code?",
+            "rank": -1,
+            "top": [
+              "local-auth-demo-any-mfa-code -[implements]-> program-health-demo-box: LOCAL_AUTH_DEMO_ANY_MFA_CODE=true, so any six-digit numeric MFA code …",
+              "demo-box-auth -[status]-> pending: A1: confirm demo box does not run dev-auth with default secret; remains outstanding.",
+              "hetzner-demo -[provides]-> box-migration: Demo box now serves main branch exclusively; deployed commit matches main head, invariant holds"
+            ]
+          },
+          {
+            "question": "What does the SEO data vendor charge per request?",
+            "rank": -1,
+            "top": [
+              "david-character -[related_to]-> dataforseo: Per scry memory orientation, David is responsible for resolving DataForSEO's -$0.00062 balance …",
+              "seo-audit -[uses]-> dataforseo: The audit used DataForSEO as a data source.",
+              "dataforseo -[related_to]-> dataforseo: Account balance is -$0.00062 and needs a top-up."
+            ]
+          },
+          {
+            "question": "Why was hunting for search terms with no existing player a dead end?",
+            "rank": -1,
+            "top": [
+              "conversionlinttest -[decided]-> no-dead-end-pages: Test asserts every page under pages/marketing/ links onward to a conversion path (via Mk…",
+              "web-app-shell -[blocked_by]-> sign-in-dead-end: Blocking finding 1: /sign-in is a dead end for an authenticated operator (no interactive el…",
+              "conversionlinttest -[decided]-> childscribe-marketing: Every public marketing page must have no dead onward links and no dead-end pages."
+            ]
+          },
+          {
+            "question": "How are the different kinds of events categorized in that WordPress site?",
+            "rank": -1,
+            "top": [
+              "wordpressadapter -[deployed_on]-> wordpress: WordPressAdapter targets WordPress REST API endpoint {site}/wp-json/wp/v2/posts with no plugin…",
+              "publishingconnection -[uses]-> wordpress: PublishingConnection stores application password credentials for WordPress Basic auth against sit…",
+              "wordpress -[blocked_by]-> yootheme: WordPress and YOOtheme auto-wrapped the wistia-player custom element in <p> tags, breaking the embed st…"
+            ]
+          },
+          {
+            "question": "Which model came out on top in the writing comparison?",
+            "rank": -1,
+            "top": [
+              "ch1-3-generation-then-editing-flow-comparison -[decided]-> next phase: Decision made to apply winning model to ch1-3 generation followed by…",
+              "cellsaviors -[related_to]-> cell-comparison-pages: Cell comparison pages (/cell-database/compare/X-vs-Y) proposed as top-priority follow-up…",
+              "jeff -[related_to]-> chainsh: Queued chain.sh: waits for run A exit, swaps models on Halo, runs run B until 11:00, writes AB-COMPARISON.md."
+            ]
+          },
+          {
+            "question": "What makes that page builder awkward for agents to edit?",
+            "rank": -1,
+            "top": [
+              "item6-audit -[implements]-> builder: Sent the builder the complete affected-file list (all 40 published guides / 215 editorial sections), h…",
+              "quick-wins-elementor-edits -[status]-> needs-work: H1 on /services/, homepage typo 'MFA'→'NFA', NAP in hero/footer, broken black block requ…",
+              "goal-1a-builder -[modifies]-> goal-1a-control-plane: The builder landed concurrent implementation changes in the shared jbuild-control-plan…"
+            ]
+          },
+          {
+            "question": "What data survives from one month's report to the next?",
+            "rank": -1,
+            "top": [
+              "monthly-clamp-short-month -[decided]-> task d2bc8e4dea22: Monthly clamps the 31st onto a short month's last day instead of skipping the mon…",
+              "chapter-departments -[uses]-> saidthismonth: saidThisMonth is model-selected from month's quote moments, enforced verbatim in postValidate …",
+              "journalentrydeletetest -[decided]-> chapter-stale-marking: Test verifies deleting entry marks that month's existing chapter stale if one ex…"
+            ]
+          },
+          {
+            "question": "How do we treat temporary errors coming back from Meta when publishing?",
+            "rank": -1,
+            "top": [
+              "metapublishexception -[documents]-> metapublisher: Any 401 or 403 is treated as revoked token and destination is immediately disabled; Meta…",
+              "metapublishexception -[fixes]-> Task 3: Meta Provider Abstraction and Publish: Meta error code 190 (expired token) now classified as auth f…",
+              "metapublishexception -[documents]-> deterministic-4xx-errors: Typed non-auth/non-unknown Meta 4xx errors are classified as failed (retryabl…"
+            ]
+          },
+          {
+            "question": "What is the minimum length the automated writing gate enforces?",
+            "rank": -1,
+            "top": [
+              "length-band-floor -[fixes]-> 100 (flat minimum with ceiling-buffer): Guard now enforces max(100, 1.5×source, ceiling−20) to prevent unsatis…",
+              "design-system-component-set -[decided]-> thumb-safe-hit-targets: product-spec.md §6 constraint enforced by tests: driver-facing hit targets…",
+              "d1-placeholder-id -[enforces]-> d1-id-length-check: disposal-trips.test.ts failed with D1_ERROR: CHECK constraint failed: length(id) = 26: …"
+            ]
+          },
+          {
+            "question": "What subject does Jeff say he cannot fake his way through?",
+            "rank": -1,
+            "top": [
+              "jeff -[documents]-> local-model-for-opencode: Jeff wants a model running on his MacBook Pro that he can use with opencode to work on longer…",
+              "jeff -[uses]-> cockpit: Jeff navigates sessions via Cockpit + Ghostty and prefers them over Helm for the way he works",
+              "jeff -[uses]-> iphone: Jeff will prompt a real session from his iPhone through the paired dogfood lane."
+            ]
+          },
+          {
+            "question": "Where do the Google OAuth tokens live for the assistant box?",
+            "rank": -1,
+            "top": [
+              "google-oauth-app-188849962955 -[status]-> Testing mode → Production: OAuth app was in Testing mode causing 7-day refresh token expiration. …",
+              "google-oauth -[related_to]-> google-oauth: google_accounts has zero rows on prod; needs one account authorized for Search Console, GA4, and…",
+              "heroic-assistant -[deployed_on]-> the-live-box: Deployed the platform to the LIVE box, which contacted the prod API."
+            ]
+          },
+          {
+            "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+            "rank": -1,
+            "top": [
+              "jeff -[reviews]-> multi-agent-fleet-design: The assistant asked Jeff to review the spec before writing the implementation plan.",
+              "setpoint-notification-template-rendering -[blocked_by]-> claude-reviewer: Task 05a5662f83ef awaits claude-reviewer's review before it can p…",
+              "codex-notification-template-rendering -[assigned_to]-> task-05a5662f83ef: codex-notification-template-rendering claimed task 05a5662f83ef i…"
+            ]
+          },
+          {
+            "question": "Which model is powering the visual design session and how fast is it going?",
+            "rank": -1,
+            "top": [
+              "design-visual-polish -[assigned_to]-> statelicenselookup-design: Redesign work is isolated on branch design/visual-polish; nothing merges t…",
+              "statelicenselookup-design -[related_to]-> design-visual-polish: All design work happens on branch design/visual-polish and is committed the…",
+              "slookup-design -[runs_on]-> statelicenselookup-design: Session launched from the isolated design/visual-polish worktree at /Users/jclaw/wor…"
+            ]
+          },
+          {
+            "question": "What URL do I open to see the battery pack layout tool locally?",
+            "rank": -1,
+            "top": [
+              "battery-pack-designer -[related_to]-> battery-pack-calculator: Tool ranks position 6.2 for 'battery pack calculator' (high-intent query); c…",
+              "battery-pack-calculator -[related_to]-> cell-saviors-battery-designer: /battery-pack-designer remains the classic tool while the upgraded i…",
+              "battery-pack-designer -[part_of]-> cellsaviors: The classic battery pack designer tool remains at the /battery-pack-designer route in cells…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.103448275862069
+      },
+      "after": {
+        "total": 66,
+        "hits": 29,
+        "top_n": 20,
+        "hit_rate": 0.4393939393939394,
+        "mean_payload_bytes": 10634,
+        "max_payload_bytes": 13370,
+        "over_cap": 0,
+        "mean_latency_ms": 236.5909090909091,
+        "misses": [
+          {
+            "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+            "rank": -1,
+            "top": [
+              "ollama -[deployed_on]-> mac-mini: Local Ollama serving the Qwen worker model runs on the Mac mini (the 'mini-qwen' lane).",
+              "shared-scry-memory -[decided]-> mac-mini: Decision: make the always-on Mac Mini the single authoritative Scry memory plane serving Hermes, …",
+              "document-extraction-job -[owns]-> mac-mini: Four durable named tmux workers on the Mini drive the extraction and survive disconnects; the r…"
+            ]
+          },
+          {
+            "question": "What happened to the DeepSeek worker container on the second box?",
+            "rank": -1,
+            "top": [
+              "fine-tuning -[blocked_by]-> DeepSeek v4: Clustered DeepSeek uses both boxes, so fine-tuning cannot run simultaneously",
+              "halo2 -[decided]-> DeepSeek v4: DeepSeek-V4-Flash was chosen by the user as the model for the two-box cluster.",
+              "scry -[blocked_by]-> hosted-deepseek: DeepSeek extraction returns 402 with the account out of balance; both providers are empty simultaneou…"
+            ]
+          },
+          {
+            "question": "Where do the deep research agent's model calls actually go?",
+            "rank": -1,
+            "top": [
+              "deepresearch -[uses]-> deepresearch-model-api: The agent's model calls go through the OpenAI-compatible endpoint http://100.77.13.39:13306/…",
+              "deepresearch -[blocked_by]-> deepresearch-model-api: Each model call takes 2-3 minutes, so the full research workflow (planning → sub-agent…",
+              "cloud-deep-research-service -[replaced_by]-> deepresearch: deepresearch is the replacement for the paid cloud deep-research service: free, …"
+            ]
+          },
+          {
+            "question": "How often are the queue backups taken and how long do we keep them?",
+            "rank": -1,
+            "top": [
+              "entity-retirement -[uses]-> maintenance-lock: An exclusive maintenance lock is taken before backup, sync, close, and apply; race testing co…",
+              "childscribe-laravel-alias-prune -[monitors]-> store-backup-20260904T170026Z: Pre-prune store backup taken before the prune landed.",
+              "advocates -[produces]-> jobs_backup_20260612_184343: Database backup table created before queue cleanup containing 16,570 rows from stale q…"
+            ]
+          },
+          {
+            "question": "What address does the interview engine bind to so a real phone can hit it?",
+            "rank": -1,
+            "top": [
+              "scriptschildscribe-mobile-device-devsh -[depends_on]-> expo-public-engine-url: Launcher sets EXPO_PUBLIC_ENGINE_URL to http://{LAN_IP}:3100…",
+              "scry -[uses]-> address-suffix-merge-rule: A name that is another same-type entity's name plus an address (an IP, a .local/.ts.net host, a b…",
+              "interview-engine -[documents]-> post-apienginefeedback: Engine summarizes beta Q&A and POSTs to new internal endpoint with engine-auth secr…"
+            ]
+          },
+          {
+            "question": "Why was the mobile app failing to reach the engine from its environment file?",
+            "rank": -1,
+            "top": [
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731",
+              "mobile -[requires]-> expo-public-api-url: Mobile app requires EXPO_PUBLIC_API_URL environment variable set to http://childscribe.test for R…",
+              "mobile -[requires]-> scribe-engine-prod: Mobile app calls production engine directly via EXPO_PUBLIC_ENGINE_URL for realtime voice, must be…"
+            ]
+          },
+          {
+            "question": "What do we use to run unit tests in the mobile app?",
+            "rank": -1,
+            "top": [
+              "mobile -[uses]-> maestro-mobile-e2e: Maestro flows target mobile app; testID additions made to sign-in screen, home CTA, button primitive; …",
+              "adb -[uses]-> appsmobile: Jeff uses Android emulator to test mobile app via adb.",
+              "mobile -[uses]-> eas-build: Mobile app built via EAS cloud builders"
+            ]
+          },
+          {
+            "question": "What is holding up charging sales tax to customers?",
+            "rank": -1,
+            "top": [
+              "codex-reports-financial-sales -[decided]-> sales-reports-plan: Resume inside owned paths without touching execute.ts: three sales aggregate…",
+              "childscribe-laravel -[blocked_by]-> apple-org-enrollment: Long pole blocker for TestFlight and iOS store submission",
+              "financial-report-definitions -[blocked_by]-> f0e0c2073ce6: Six of seven definitions (sales by period, sales by customer, sales by service t…"
+            ]
+          },
+          {
+            "question": "What extra step does staging need after the server-rendered bundle changes?",
+            "rank": -1,
+            "top": [
+              "scry-local-vectors -[documents]-> staging-bundle-question: Refreshing the local vectors alone moves the staging answer to rank 21, matching…",
+              "staging-bundle-question -[related_to]-> staging-deployment-fact: A newly ingested staging-deployment fact pushed the still-intact staging a…",
+              "staging-bundle-question -[excludes]-> scry-lexical-index: Updating the lexical index alone keeps the staging answer at rank 20."
+            ]
+          },
+          {
+            "question": "How is a review supposed to be requested in a fleet room?",
+            "rank": -1,
+            "top": [
+              "allow-room-task-metadata-listing -[implements]-> fleet-review: Rationale: listing the room's task metadata is a read-only, narrowly scoped …",
+              "room-task-board-read -[implements]-> fleet-task-review: The read-only room task board listing decision was made reasonably to support the e…",
+              "room-history-lookup -[implements]-> requested-review: The lookup was issued to support the review the user explicitly requested."
+            ]
+          },
+          {
+            "question": "Which git operations are workers not allowed to run?",
+            "rank": -1,
+            "top": [
+              "operations-north-star -[related_to]-> ratelimit: Rate-limit sleep has never fired; many paths (budget exhaustion, crash-resume, malformed e…",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "What was wrong with the dunning run endpoint when it got bad input?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> bug-f4-cascade-delete: F4's shape is right; only its two failure paths are wrong",
+              "text-matching -[blocked_by]-> smart quotes, truncation, wrong chapter attribution: micro-fixer text searches may fail due to smart quotes, …",
+              "chapter-plan-vnext -[decided]-> terminal-failure-artifacts: Terminal writer errors now carry all raw attempts and call metadata; the runner…"
+            ]
+          },
+          {
+            "question": "Is there any migration number range nobody has claimed yet?",
+            "rank": -1,
+            "top": [
+              "codex-migration-block-reservations -[uses]-> port-range-32156: This worktree owns the port range starting at 32156 (also in .setpoint-ports…",
+              "disposal-links-block -[assigned_to]-> claude-weight-ticket-task-and-stop-join: Added a README registry row claiming migration block 0200–02…",
+              "claude-weight-ticket-task-and-stop-join -[implements]-> weight-tickets: Deliberately deviated from its brief by shipping a second migration…"
+            ]
+          },
+          {
+            "question": "Is the messaging section of the office app actually built?",
+            "rank": -1,
+            "top": [
+              "officeapp -[contains]-> 310: There are 310 worktrees, using 911MB, though only ~9 should be live.",
+              "wave -[implements]-> officeapp: Wave 14 closed 12 epics, all 7 members converged with reviewers in-loop, repair backlog empty for first time",
+              "officeapp -[contains]-> ipv6-only: The dev server binds IPv6 only ([::1]:5173), causing IPv4 curl checks to fail."
+            ]
+          },
+          {
+            "question": "Why can nobody hit the customer portal endpoints?",
+            "rank": -1,
+            "top": [
+              "0360-portal-identities-sql -[replaced_by]-> kimi-customer-portal: Renamed the recovered migration 0360_customer_portal.sql to 0360_portal_i…",
+              "api -[implements]-> portal-customer-scoping: Scoped route matrix is green: all seven portal endpoints return 404 for an existing different …",
+              "codex-customer-portal -[decided]-> customer-portal-router-contract: codex-customer-portal proposed a createPortalRoutes() router boundary a…"
+            ]
+          },
+          {
+            "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+            "rank": -1,
+            "top": [
+              "sweep-agent -[depends_on]-> scry: The sweep uses the scry daemon binary which was rebuilt after the code changes.",
+              "scry-daemon-restart -[causes]-> scry: The restart targeted the scry daemon and interrupted in-flight socket clients during a sweep.",
+              "scry-daemon-takeover-race -[causes]-> scry-daemon-split-brain: Likely root cause (inferred from logs and source, not proven live): the non-…"
+            ]
+          },
+          {
+            "question": "What caused duplicate dev servers to be launched?",
+            "rank": -1,
+            "top": [
+              "cloudflare-vite-dev-server -[lacks]-> marketing-redirect-rule: The Cloudflare Vite dev server does not apply `_redirects`, so the lead form…",
+              "protocol-mismatch -[causes]-> econnreset: Potential HTTPS/TLS request to HTTP-only Laravel dev server causes connection reset",
+              "cad-mcp-server -[depends_on]-> cad-core-seam: The v2 MCP server is a second transport over the same core/, scheduled after the web site lau…"
+            ]
+          },
+          {
+            "question": "What is risky about the way the sync loop touches the Claude config file?",
+            "rank": -1,
+            "top": [
+              "ai-syncpy -[implements]-> claude-code: ai-sync.py currently syncs Claude Code skills/config as one of two hardcoded tools",
+              "ai-syncpy -[calls]-> mcp-servers-config: Propagates the registry so Claude, Codex and Kimi/OpenCode all pick up the server.",
+              "claude-registry-backlog-sync -[owns]-> dbmigrationsreadmemd: Named owner of db/migrations/README.md for this fleet wave; no other task may …"
+            ]
+          },
+          {
+            "question": "Why does the orientation output list things that aren't projects?",
+            "rank": -1,
+            "top": [
+              "pinned-cad-fixtures -[decided]-> 3d-conversion-site: Real CAD files arrive via a pinned dependency and are used for validation but not comm…",
+              "git-facade -[decided]-> setpoint-fleet: A deferred git façade would centralize setpoint's ~46 git invocations and classify git output into …",
+              "outputsentity-id -[decided]-> Sub-project 2: Engine output + graph fan-out: New outputs.entity_id column added for per-child output associa…"
+            ]
+          },
+          {
+            "question": "How do I know whether an agent actually got launched into its pane?",
+            "rank": -1,
+            "top": [
+              "remote-host-support -[blocked_by]-> jeff: Assistant asked Jeff whether remote-host support is actually wanted or whether the whole SSH bran…",
+              "hermes -[depends_on]-> agent-blank-pane-bug: Agent blank pane and nvim hang bugs were blocking for Hermes Phase 5+ where agents and TUI too…",
+              "agent-launch-service -[depends_on]-> session-manager: Public session launch delegates into AgentLaunchService, which takes the existing mut…"
+            ]
+          },
+          {
+            "question": "Which newsletter layout do customers get unless we change something?",
+            "rank": -1,
+            "top": [
+              "newsletter-layouttestts -[tests]-> newsletter-layout: new describe 'layoutNewsletterHtml — inset floats' adds 5 tests for float classes, al…",
+              "newsletter-layout -[blocked_by]-> single-column: The newsletter would stay unwrapped unless redesigned separately; the single-column no-col…",
+              "monthly-chapter-improvement -[blocked_by]-> monthly-chapter-improvement-lock: Monthly chapter improvement work must not change newsletter p…"
+            ]
+          },
+          {
+            "question": "Why does the voice interview traffic take a detour instead of going direct?",
+            "rank": -1,
+            "top": [
+              "jeff -[fixes]-> realtime-interview-client: Transport-driven phase boundaries implemented: processing starts on input_audio_buffer.speech_st…",
+              "realtime-interview-orchestrator -[fixes]-> childscribe-mobile: Phase boundaries now driven by transport events: user turn handoff on input_…",
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…"
+            ]
+          },
+          {
+            "question": "What fields is the sign-up form allowed to have?",
+            "rank": -1,
+            "top": [
+              "newsletter-forms -[uses]-> contact-honeypot: Both desktop and mobile newsletter signup forms now include honeypot field for bot detection.",
+              "solid-04 -[blocked_by]-> trial-budget: solid-04 is starved behind the $20 budget cap and has not been able to run.",
+              "solid-03 -[blocked_by]-> trial-budget: solid-03 is starved behind the $20 budget cap and has not been able to run."
+            ]
+          },
+          {
+            "question": "How does the demo box get new code?",
+            "rank": -1,
+            "top": [
+              "local-auth-demo-any-mfa-code -[implements]-> program-health-demo-box: LOCAL_AUTH_DEMO_ANY_MFA_CODE=true, so any six-digit numeric MFA code …",
+              "demo-box-auth -[status]-> pending: A1: confirm demo box does not run dev-auth with default secret; remains outstanding.",
+              "hetzner-demo -[provides]-> box-migration: Demo box now serves main branch exclusively; deployed commit matches main head, invariant holds"
+            ]
+          },
+          {
+            "question": "What does the SEO data vendor charge per request?",
+            "rank": -1,
+            "top": [
+              "david-character -[related_to]-> dataforseo: Per scry memory orientation, David is responsible for resolving DataForSEO's -$0.00062 balance …",
+              "seo-audit -[uses]-> dataforseo: The audit used DataForSEO as a data source.",
+              "dataforseo -[related_to]-> dataforseo: Account balance is -$0.00062 and needs a top-up."
+            ]
+          },
+          {
+            "question": "Why was hunting for search terms with no existing player a dead end?",
+            "rank": -1,
+            "top": [
+              "conversionlinttest -[decided]-> no-dead-end-pages: Test asserts every page under pages/marketing/ links onward to a conversion path (via Mk…",
+              "web-app-shell -[blocked_by]-> sign-in-dead-end: Blocking finding 1: /sign-in is a dead end for an authenticated operator (no interactive el…",
+              "conversionlinttest -[decided]-> childscribe-marketing: Every public marketing page must have no dead onward links and no dead-end pages."
+            ]
+          },
+          {
+            "question": "How are the different kinds of events categorized in that WordPress site?",
+            "rank": -1,
+            "top": [
+              "wordpressadapter -[deployed_on]-> wordpress: WordPressAdapter targets WordPress REST API endpoint {site}/wp-json/wp/v2/posts with no plugin…",
+              "publishingconnection -[uses]-> wordpress: PublishingConnection stores application password credentials for WordPress Basic auth against sit…",
+              "wordpress -[blocked_by]-> yootheme: WordPress and YOOtheme auto-wrapped the wistia-player custom element in <p> tags, breaking the embed st…"
+            ]
+          },
+          {
+            "question": "Which model came out on top in the writing comparison?",
+            "rank": -1,
+            "top": [
+              "ch1-3-generation-then-editing-flow-comparison -[decided]-> next phase: Decision made to apply winning model to ch1-3 generation followed by…",
+              "cellsaviors -[related_to]-> cell-comparison-pages: Cell comparison pages (/cell-database/compare/X-vs-Y) proposed as top-priority follow-up…",
+              "jeff -[related_to]-> chainsh: Queued chain.sh: waits for run A exit, swaps models on Halo, runs run B until 11:00, writes AB-COMPARISON.md."
+            ]
+          },
+          {
+            "question": "What makes that page builder awkward for agents to edit?",
+            "rank": -1,
+            "top": [
+              "item6-audit -[implements]-> builder: Sent the builder the complete affected-file list (all 40 published guides / 215 editorial sections), h…",
+              "quick-wins-elementor-edits -[status]-> needs-work: H1 on /services/, homepage typo 'MFA'→'NFA', NAP in hero/footer, broken black block requ…",
+              "goal-1a-builder -[modifies]-> goal-1a-control-plane: The builder landed concurrent implementation changes in the shared jbuild-control-plan…"
+            ]
+          },
+          {
+            "question": "What data survives from one month's report to the next?",
+            "rank": -1,
+            "top": [
+              "monthly-clamp-short-month -[decided]-> task d2bc8e4dea22: Monthly clamps the 31st onto a short month's last day instead of skipping the mon…",
+              "chapter-departments -[uses]-> saidthismonth: saidThisMonth is model-selected from month's quote moments, enforced verbatim in postValidate …",
+              "journalentrydeletetest -[decided]-> chapter-stale-marking: Test verifies deleting entry marks that month's existing chapter stale if one ex…"
+            ]
+          },
+          {
+            "question": "How do we treat temporary errors coming back from Meta when publishing?",
+            "rank": -1,
+            "top": [
+              "metapublishexception -[documents]-> metapublisher: Any 401 or 403 is treated as revoked token and destination is immediately disabled; Meta…",
+              "metapublishexception -[fixes]-> Task 3: Meta Provider Abstraction and Publish: Meta error code 190 (expired token) now classified as auth f…",
+              "metapublishexception -[documents]-> deterministic-4xx-errors: Typed non-auth/non-unknown Meta 4xx errors are classified as failed (retryabl…"
+            ]
+          },
+          {
+            "question": "What is the minimum length the automated writing gate enforces?",
+            "rank": -1,
+            "top": [
+              "length-band-floor -[fixes]-> 100 (flat minimum with ceiling-buffer): Guard now enforces max(100, 1.5×source, ceiling−20) to prevent unsatis…",
+              "design-system-component-set -[decided]-> thumb-safe-hit-targets: product-spec.md §6 constraint enforced by tests: driver-facing hit targets…",
+              "d1-placeholder-id -[enforces]-> d1-id-length-check: disposal-trips.test.ts failed with D1_ERROR: CHECK constraint failed: length(id) = 26: …"
+            ]
+          },
+          {
+            "question": "What subject does Jeff say he cannot fake his way through?",
+            "rank": -1,
+            "top": [
+              "jeff -[documents]-> local-model-for-opencode: Jeff wants a model running on his MacBook Pro that he can use with opencode to work on longer…",
+              "jeff -[uses]-> cockpit: Jeff navigates sessions via Cockpit + Ghostty and prefers them over Helm for the way he works",
+              "jeff -[uses]-> iphone: Jeff will prompt a real session from his iPhone through the paired dogfood lane."
+            ]
+          },
+          {
+            "question": "Where do the Google OAuth tokens live for the assistant box?",
+            "rank": -1,
+            "top": [
+              "google-oauth-app-188849962955 -[status]-> Testing mode → Production: OAuth app was in Testing mode causing 7-day refresh token expiration. …",
+              "google-oauth -[related_to]-> google-oauth: google_accounts has zero rows on prod; needs one account authorized for Search Console, GA4, and…",
+              "heroic-assistant -[deployed_on]-> the-live-box: Deployed the platform to the LIVE box, which contacted the prod API."
+            ]
+          },
+          {
+            "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+            "rank": -1,
+            "top": [
+              "jeff -[reviews]-> multi-agent-fleet-design: The assistant asked Jeff to review the spec before writing the implementation plan.",
+              "setpoint-notification-template-rendering -[blocked_by]-> claude-reviewer: Task 05a5662f83ef awaits claude-reviewer's review before it can p…",
+              "codex-notification-template-rendering -[assigned_to]-> task-05a5662f83ef: codex-notification-template-rendering claimed task 05a5662f83ef i…"
+            ]
+          },
+          {
+            "question": "Which model is powering the visual design session and how fast is it going?",
+            "rank": -1,
+            "top": [
+              "design-visual-polish -[assigned_to]-> statelicenselookup-design: Redesign work is isolated on branch design/visual-polish; nothing merges t…",
+              "statelicenselookup-design -[related_to]-> design-visual-polish: All design work happens on branch design/visual-polish and is committed the…",
+              "slookup-design -[runs_on]-> statelicenselookup-design: Session launched from the isolated design/visual-polish worktree at /Users/jclaw/wor…"
+            ]
+          },
+          {
+            "question": "What URL do I open to see the battery pack layout tool locally?",
+            "rank": -1,
+            "top": [
+              "battery-pack-designer -[related_to]-> battery-pack-calculator: Tool ranks position 6.2 for 'battery pack calculator' (high-intent query); c…",
+              "battery-pack-calculator -[related_to]-> cell-saviors-battery-designer: /battery-pack-designer remains the classic tool while the upgraded i…",
+              "battery-pack-designer -[part_of]-> cellsaviors: The classic battery pack designer tool remains at the /battery-pack-designer route in cells…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.103448275862069
+      }
+    },
+    "probes": {
+      "before": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9736,
+        "max_payload_bytes": 10101,
+        "over_cap": 0,
+        "mean_latency_ms": 200.28571428571428,
+        "mean_answer_rank": 1
+      },
+      "after": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9735,
+        "max_payload_bytes": 10098,
+        "over_cap": 0,
+        "mean_latency_ms": 352.57142857142856,
+        "mean_answer_rank": 1
+      }
+    },
+    "tuning-strict": {
+      "before": {
+        "total": 50,
+        "hits": 45,
+        "top_n": 20,
+        "hit_rate": 0.9,
+        "mean_payload_bytes": 10001,
+        "max_payload_bytes": 11527,
+        "over_cap": 0,
+        "mean_latency_ms": 177.1,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          },
+          {
+            "question": "Do we retain any recording of the child's voice from a live interview?",
+            "rank": -1,
+            "top": [
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…",
+              "chapter-plan-vnext -[enforces]-> child-speech-guard: Title/dek rendering enforces a deterministic guard that rejects any decorative reuse o…",
+              "recordedchildspeech -[part_of]-> chapter-plan-vnext: recordedChildSpeech carries the exact recorded child-speech span from a source entry; …"
+            ]
+          },
+          {
+            "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+            "rank": -1,
+            "top": [
+              "git-hooks -[lacks]-> commit-msg-hook: No commit-msg hook exists yet in the hooks wiring.",
+              "cockpit-remote-hosts -[blocked_by]-> hook-status-spec: Remote agent status needs the reverse tunnel from the sheet's §2.6, which is downstr…",
+              "codex -[requires]-> hook-driven-status-design: Codex hooks land untrusted and don't fire until trust is pinned to a config hash — writing t…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.533333333333333
+      },
+      "after": {
+        "total": 50,
+        "hits": 45,
+        "top_n": 20,
+        "hit_rate": 0.9,
+        "mean_payload_bytes": 10001,
+        "max_payload_bytes": 11540,
+        "over_cap": 0,
+        "mean_latency_ms": 259.42,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          },
+          {
+            "question": "Do we retain any recording of the child's voice from a live interview?",
+            "rank": -1,
+            "top": [
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…",
+              "chapter-plan-vnext -[enforces]-> child-speech-guard: Title/dek rendering enforces a deterministic guard that rejects any decorative reuse o…",
+              "recordedchildspeech -[part_of]-> chapter-plan-vnext: recordedChildSpeech carries the exact recorded child-speech span from a source entry; …"
+            ]
+          },
+          {
+            "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+            "rank": -1,
+            "top": [
+              "git-hooks -[lacks]-> commit-msg-hook: No commit-msg hook exists yet in the hooks wiring.",
+              "cockpit-remote-hosts -[blocked_by]-> hook-status-spec: Remote agent status needs the reverse tunnel from the sheet's §2.6, which is downstr…",
+              "codex -[requires]-> hook-driven-status-design: Codex hooks land untrusted and don't fire until trust is pinned to a config hash — writing t…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.533333333333333
+      }
+    },
+    "tuning": {
+      "before": {
+        "total": 50,
+        "hits": 47,
+        "top_n": 20,
+        "hit_rate": 0.94,
+        "mean_payload_bytes": 10001,
+        "max_payload_bytes": 11527,
+        "over_cap": 0,
+        "mean_latency_ms": 172.66,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.0638297872340425
+      },
+      "after": {
+        "total": 50,
+        "hits": 47,
+        "top_n": 20,
+        "hit_rate": 0.94,
+        "mean_payload_bytes": 10001,
+        "max_payload_bytes": 11540,
+        "over_cap": 0,
+        "mean_latency_ms": 263.24,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "hermes-gateway-restart -[uses]-> launchctl: Restart is performed with launchctl kickstart -k on ai.hermes.gateway",
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "cockpit-launch-agent -[owns]-> cockpit-daemon: The launch agent keeps the daemon alive, making `cockpit daemon stop` a no-op — restart requ…"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "scry -[uses]-> scry-extraction-chain: scry performs memory extraction through a chain of models.",
+              "scry-doctor -[causes]-> scry-extraction-chain: scry doctor fails rather than warns when every model in the extraction chain is refused, so …",
+              "memory-extraction -[uses]-> model-chain: Memory extraction runs an ordered model chain."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "mini-backup -[related_to]-> mac-mini: Current Mini backup of the scry memory store."
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.0638297872340425
+      }
+    }
+  },
+  "independent_actual_live_verdict": "PASS: status-six-live-review-2026-09-05.md; report SHA 7454e002fbc78eb61af32d786a797e94754c2a3497e941a96c7b4ae4db739945. Actual post raw hash equals independently predicted 445934d17d00081980491450e3814a44c0753bad7423699ae3d1b04f6226f3c6. Exactly 26 deletions and 19 additions; all 80,299 facts / 7,800 historical facts preserved. Only two sweep metadata records changed between approved source and actual pre; no graph, cursor, episode, claim or pending drift. All complete defect lists unchanged; seven exact values present; CLI second preview proven raw no-write."
+}
