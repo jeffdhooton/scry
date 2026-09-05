@@ -2883,3 +2883,61 @@ the later August 23 last-seen metadata and qualified old lookup. Report:
 `memory-repairs/migration0160-first-review-2026-09-05.md`. The actual Docket
 SQL file and its sole file-history commit `a7253c0` corroborate file identity;
 the table, enforcement module and reservation task remain distinct.
+
+### ChildScribe first live alias batch — 2026-09-05, 19:35 UTC
+
+After ready/backoff work drained, a fresh source at 19:30:41 was restored,
+the unchanged 49-row plan regenerated, and the independent reviewer checked
+all participant drift and full replica state. Exact committed manifest SHA
+`da2fd1a2397d37dbffcd0074e4caee96e64f5a8255b0213aeb91abf80eab5fc0` passed
+the renewed gate (room 71). Live previews matched. A subsequent unrelated
+manual item arrived during review; no reviewed graph input changed. The
+maintenance-locked backup/apply revalidated those exact inputs rather than
+forcing or weakening fingerprints. Guarded 53fafa9 applied all 49 rows with
+zero refusals at 19:35:22 (room 72).
+
+Actual backups on Mini, independently hashed, downloaded and restored:
+
+- `/Users/jclaw/.scry/backups/memory-20260905T193522Z.badger`, automatic
+  pre-apply, 77,447,357 bytes, SHA-256
+  `02c7561517ba179a01b1229c4d5e036100bd23b13a244bce81bd9349cdc73be3`.
+- `/Users/jclaw/.scry/backups/memory-20260905T193530Z.badger`, post-apply,
+  77,441,558 bytes, SHA-256
+  `71c339f10f5a193d4902cb4750f29b985cf8821e2f915565a9dfdadb7601cf3e`.
+
+Independent actual-live postcheck PASS (room 74): all 79,926 full current and
+historical facts unchanged, all 30,345 entity records unchanged except the
+exact ChildScribe alias list, 92→43. Collisions 489→486. Entire actual post
+raw map equals independently predicted repair of actual pre: precisely 40
+alias deletions, two Forge owner replacements and one entity record. No
+other key/value changes. Three API claims remain intact, all 49 exact
+lookups pass, and repeated preview refuses absent input without writing.
+Actual-pre versus reviewed source differs only in a pending manual Cell
+Saviors item and two normal sweep metadata records; all three survived the
+repair byte-for-byte. Existing hollows/missing endpoint sets are unchanged.
+
+Live fixed-suite before→after: heldout 52→52/62, heldout-b 30→30/66, probes
+7→7/7, strict 44→45/50, tuning 46→47/50. Largest payload 13,360→13,359
+bytes, no responses over cap. Two original recall floors still fail; these
+are reused fixed suites, not fresh held-outs. Exact lookups including
+history: ChildScribe 2,103 facts / 525 invalidated; Forge and each rehomed
+spelling 75; API and each preserved spelling 1,611 / 45 invalidated.
+
+Complete source/drift/replica/live review:
+`memory-repairs/childscribe-alias-batch-review-2026-09-05.md`.
+CLI receipts and benchmark measurements:
+`memory-repairs/childscribe-live-receipt-2026-09-05.json`.
+Durable operation episode `a429d47b01db70e3bfe1ebb8ed690b8adfdc6e855601eec20620304aa2c9f628`.
+Twenty-four ambiguous aliases, five target-metadata proposals, contaminated
+description/repo refs/facts and the broad graph audit remain unfinished.
+
+The corrected identity/fallback prevention at `393eeec` independently
+passed regrading (room 73), including the original restored-live failure,
+occupied current/historical keys, backfill, supersession, full rollback,
+real queue preservation through a local fake extractor, idempotency, full
+tests, vet and races. It is not yet deployed. Report:
+`memory-repairs/identity-relation-code-review-2026-09-05.md`.
+The expanded five-member migration-0160 replica also passed its separate
+gate on the older source; it restores all seven lookup keys to six facts
+and removes exactly one hollow. It is not a fresh/live manifest. Report:
+`memory-repairs/migration0160-five-review-2026-09-05.md`.

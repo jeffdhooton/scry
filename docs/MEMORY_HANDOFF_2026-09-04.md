@@ -522,3 +522,45 @@ extraction of audit discussion. The resulting ChildScribe-to-API/Forge facts
 are preserved by this alias repair, not semantic ownership evidence. A local
 whole-relation identity guard and regression tests are in progress; it is
 not deployed and no historical relation rewrite is approved.
+
+### Later checkpoint: ChildScribe first batch applied, 19:35 UTC
+
+The earlier pending-apply statements are superseded. Exact 49-row manifest
+SHA `da2fd1a2397d37dbffcd0074e4caee96e64f5a8255b0213aeb91abf80eab5fc0`
+passed fresh post-sweep source review and guarded live apply on 53fafa9.
+Independent actual automatic-pre/post backup comparison passed: all 79,926
+facts preserved, 30,345 entities unchanged except aliases 92→43, collisions
+489→486, exactly 43 raw keys changed. Mini backups are
+`memory-20260905T193522Z.badger` and `memory-20260905T193530Z.badger`;
+complete hashes/measurements/report/CLI receipt are appended to the audit.
+Live fixed suites are 52/62, 30/66, 7/7, 45/50, 47/50, no payload over cap.
+The first two required floors remain missed. All 24 ambiguous aliases and
+five unexecuted metadata rehomes remain untouched, as do contaminated facts.
+
+Mapper-only commit `8c2a05d` failed review before deployment: fallback triple
+coalescence discarded new routing sentences. Corrected `393eeec` preserves
+distinct fallback evidence, refuses occupied exact keys atomically, parks
+the intact conflicting episode, and disambiguates raw supersession. Fresh
+independent code regrade PASS, with full tests/vet/races. Current binaries
+remain 53fafa9; no historical relation rewrite is approved.
+
+Prepared deployment artifact `/tmp/scry-fallback-deploy-sep05.5OX7ef/scry`,
+SHA `acfb78186402aec9eef87e71e0b81f6edeac1b9ea46641efd417aaf4368f0bd0`,
+is archive-built from 393eeec, no CGO, signature verified. Both installed
+53fafa9 binaries are retained beside their paths as
+`scry.pre-393eeec-20260905T1939Z`. Fresh actual-store backups are Mini
+`memory-20260905T193835Z.badger` and laptop `memory-20260905T193836Z.badger`.
+Separate deployment-discipline review is running; do not install before it
+passes. No rollback/configuration/retention/provider changes are allowed.
+
+Next collision candidate is FIVE migration-file records, not three. The
+first three-record candidate failed semantic closure: it left a hollow
+qualified-path machine and two facts on another tool. Expanded replica at
+`/tmp/scry-migration0160-sep05.5STYbx/five-member/` passed independent review:
+six facts, seven normalized keys, one fewer hollow, 489→487 collisions on
+the older 19:04 snapshot. Manifest SHA
+`7947eb322e33582fce214183a5a84e5c5639fb869442695d999ad31afd3e265d` is
+replica-only, not live-approved. After prevention deploy, regenerate on a
+fresh stable post-ChildScribe source and regrade before any live merge.
+The full ten-clause goal, remaining collisions/statuses/Hermes ownership,
+fresh recall holdout and two consecutive complete grading rounds remain.

@@ -1,0 +1,753 @@
+{
+  "applied_at_utc": "2026-09-05T19:35:22Z",
+  "manifest_sha256": "da2fd1a2397d37dbffcd0074e4caee96e64f5a8255b0213aeb91abf80eab5fc0",
+  "deployed_commit": "53fafa9",
+  "binary_sha256": "31f185d70e1439a315a8ea12eaadf4f12d75e77d558edfa0852c890531705aff",
+  "reviewed_source": {
+    "path": "/Users/jclaw/.scry/backups/memory-20260905T193041Z.badger",
+    "bytes": 77445247,
+    "sha256": "6fb519ce181952aedbcc4f73011e33fc84a70c546f12e5dca4cc3b700f5204a3"
+  },
+  "automatic_pre_apply": {
+    "path": "/Users/jclaw/.scry/backups/memory-20260905T193522Z.badger",
+    "bytes": 77447357,
+    "sha256": "02c7561517ba179a01b1229c4d5e036100bd23b13a244bce81bd9349cdc73be3"
+  },
+  "post_apply": {
+    "path": "/Users/jclaw/.scry/backups/memory-20260905T193530Z.badger",
+    "bytes": 77441558,
+    "sha256": "71c339f10f5a193d4902cb4750f29b985cf8821e2f915565a9dfdadb7601cf3e"
+  },
+  "queue_boundary": "Source generated after ready=0/backoff=0 with3preservedparked. One new unrelated manual episode queued during review; all affected fingerprints matched fresh preview and were rechecked inside exclusive backup/apply window. No forced or weakened expected inputs.",
+  "cli_receipt": {
+    "dry_run": false,
+    "backup_path": "/Users/jclaw/.scry/backups/memory-20260905T193522Z.badger",
+    "dropped": 49,
+    "refused": 0,
+    "details": [
+      "childscribe-laravel drops Laravel backend",
+      "childscribe-laravel drops Laravel repo",
+      "childscribe-laravel drops Laravel app",
+      "childscribe-laravel drops Lararel Forge",
+      "childscribe-laravel drops childscribe.com (staging)",
+      "childscribe-laravel drops laravel backend",
+      "childscribe-laravel drops Laravel Forge -> forge",
+      "childscribe-laravel drops forge-ssh-access -> forge",
+      "childscribe-laravel drops prod web",
+      "childscribe-laravel drops staging Laravel",
+      "childscribe-laravel drops Laravel staging",
+      "childscribe-laravel drops prod Laravel",
+      "childscribe-laravel drops laravel-backend",
+      "childscribe-laravel drops Laravel API",
+      "childscribe-laravel drops web client",
+      "childscribe-laravel drops staging domain",
+      "childscribe-laravel drops laravel app",
+      "childscribe-laravel drops Laravel marketing",
+      "childscribe-laravel drops deploy-on-push",
+      "childscribe-laravel drops production posture",
+      "childscribe-laravel drops mobile/web side",
+      "childscribe-laravel drops web voice",
+      "childscribe-laravel drops refs/heads/main",
+      "childscribe-laravel drops marketing-site epic",
+      "childscribe-laravel drops forge user",
+      "childscribe-laravel drops Laravel web",
+      "childscribe-laravel drops fleet worktree",
+      "childscribe-laravel drops Client Dashboard",
+      "childscribe-laravel drops client dashboard",
+      "childscribe-laravel drops api project",
+      "childscribe-laravel drops roll-off software",
+      "childscribe-laravel drops driver tree",
+      "childscribe-laravel drops createApp",
+      "childscribe-laravel drops fleet wave",
+      "childscribe-laravel drops api app",
+      "childscribe-laravel drops campaign engine",
+      "childscribe-laravel drops fleet architecture",
+      "childscribe-laravel drops fleet skill",
+      "childscribe-laravel drops development build",
+      "childscribe-laravel drops --dev-client",
+      "childscribe-laravel drops iOS client",
+      "childscribe-laravel drops voice pipeline",
+      "childscribe-laravel drops production profile",
+      "childscribe-laravel drops prod environment",
+      "childscribe-laravel drops marketing source",
+      "childscribe-laravel drops web frontend",
+      "childscribe-laravel drops Envoyer release deployment",
+      "childscribe-laravel drops Laravel app symlink",
+      "childscribe-laravel drops Laravel Herd project"
+    ],
+    "preview": {
+      "expected": {
+        "plan": "8ff742fbe570347c726efe1f3ce66bb3a9de63c9e151038324d0e1e538f2250f",
+        "entities": {
+          "api": "cbe5044121633e1b5ec6f0bdc460e7ae5d4f2662fef5491a65fdc8150b5a8f02",
+          "childscribe-laravel": "fee277c344ef9c15f5448e6df6df192de0aa2e564e9c253483105e4b5dc579a6",
+          "forge": "6c10a9b7c366bd4237ffe27f8ec1260d7f8e69fcf1d32744fe63c73d39da667d"
+        },
+        "facts": "422313aae9d4df602f1ae92e4bf97e63f090139662a983d812398ad8fd6f572d",
+        "alias_claims": {
+          "--dev-client": "childscribe-laravel",
+          "api-app": "api",
+          "api-project": "api",
+          "campaign-engine": "childscribe-laravel",
+          "childscribe.com-(staging)": "childscribe-laravel",
+          "client-dashboard": "childscribe-laravel",
+          "createapp": "api",
+          "deploy-on-push": "childscribe-laravel",
+          "development-build": "childscribe-laravel",
+          "driver-tree": "childscribe-laravel",
+          "envoyer-release-deployment": "childscribe-laravel",
+          "fleet-architecture": "childscribe-laravel",
+          "fleet-skill": "childscribe-laravel",
+          "fleet-wave": "childscribe-laravel",
+          "fleet-worktree": "childscribe-laravel",
+          "forge-ssh-access": "childscribe-laravel",
+          "forge-user": "childscribe-laravel",
+          "ios-client": "childscribe-laravel",
+          "lararel-forge": "childscribe-laravel",
+          "laravel-api": "childscribe-laravel",
+          "laravel-app": "childscribe-laravel",
+          "laravel-app-symlink": "childscribe-laravel",
+          "laravel-backend": "childscribe-laravel",
+          "laravel-forge": "childscribe-laravel",
+          "laravel-herd-project": "childscribe-laravel",
+          "laravel-marketing": "childscribe-laravel",
+          "laravel-repo": "childscribe-laravel",
+          "laravel-staging": "childscribe-laravel",
+          "laravel-web": "childscribe-laravel",
+          "marketing-site-epic": "childscribe-laravel",
+          "marketing-source": "childscribe-laravel",
+          "mobile/web-side": "childscribe-laravel",
+          "prod-environment": "childscribe-laravel",
+          "prod-laravel": "childscribe-laravel",
+          "prod-web": "childscribe-laravel",
+          "production-posture": "childscribe-laravel",
+          "production-profile": "childscribe-laravel",
+          "refs/heads/main": "childscribe-laravel",
+          "roll-off-software": "childscribe-laravel",
+          "staging-domain": "childscribe-laravel",
+          "staging-laravel": "childscribe-laravel",
+          "voice-pipeline": "childscribe-laravel",
+          "web-client": "childscribe-laravel",
+          "web-frontend": "childscribe-laravel",
+          "web-voice": "childscribe-laravel"
+        },
+        "claim_present": {
+          "--dev-client": true,
+          "api-app": true,
+          "api-project": true,
+          "campaign-engine": true,
+          "childscribe.com-(staging)": true,
+          "client-dashboard": true,
+          "createapp": true,
+          "deploy-on-push": true,
+          "development-build": true,
+          "driver-tree": true,
+          "envoyer-release-deployment": true,
+          "fleet-architecture": true,
+          "fleet-skill": true,
+          "fleet-wave": true,
+          "fleet-worktree": true,
+          "forge-ssh-access": true,
+          "forge-user": true,
+          "ios-client": true,
+          "lararel-forge": true,
+          "laravel-api": true,
+          "laravel-app": true,
+          "laravel-app-symlink": true,
+          "laravel-backend": true,
+          "laravel-forge": true,
+          "laravel-herd-project": true,
+          "laravel-marketing": true,
+          "laravel-repo": true,
+          "laravel-staging": true,
+          "laravel-web": true,
+          "marketing-site-epic": true,
+          "marketing-source": true,
+          "mobile/web-side": true,
+          "prod-environment": true,
+          "prod-laravel": true,
+          "prod-web": true,
+          "production-posture": true,
+          "production-profile": true,
+          "refs/heads/main": true,
+          "roll-off-software": true,
+          "staging-domain": true,
+          "staging-laravel": true,
+          "voice-pipeline": true,
+          "web-client": true,
+          "web-frontend": true,
+          "web-voice": true
+        },
+        "listings": {
+          "--dev-client": [
+            "childscribe-laravel"
+          ],
+          "api-app": [
+            "api",
+            "childscribe-laravel"
+          ],
+          "api-project": [
+            "api",
+            "childscribe-laravel"
+          ],
+          "campaign-engine": [
+            "childscribe-laravel"
+          ],
+          "childscribe.com-(staging)": [
+            "childscribe-laravel"
+          ],
+          "client-dashboard": [
+            "childscribe-laravel"
+          ],
+          "createapp": [
+            "api",
+            "childscribe-laravel"
+          ],
+          "deploy-on-push": [
+            "childscribe-laravel"
+          ],
+          "development-build": [
+            "childscribe-laravel"
+          ],
+          "driver-tree": [
+            "childscribe-laravel"
+          ],
+          "envoyer-release-deployment": [
+            "childscribe-laravel"
+          ],
+          "fleet-architecture": [
+            "childscribe-laravel"
+          ],
+          "fleet-skill": [
+            "childscribe-laravel"
+          ],
+          "fleet-wave": [
+            "childscribe-laravel"
+          ],
+          "fleet-worktree": [
+            "childscribe-laravel"
+          ],
+          "forge-ssh-access": [
+            "childscribe-laravel",
+            "forge"
+          ],
+          "forge-user": [
+            "childscribe-laravel"
+          ],
+          "ios-client": [
+            "childscribe-laravel"
+          ],
+          "lararel-forge": [
+            "childscribe-laravel"
+          ],
+          "laravel-api": [
+            "childscribe-laravel"
+          ],
+          "laravel-app": [
+            "childscribe-laravel"
+          ],
+          "laravel-app-symlink": [
+            "childscribe-laravel"
+          ],
+          "laravel-backend": [
+            "childscribe-laravel"
+          ],
+          "laravel-forge": [
+            "childscribe-laravel",
+            "forge"
+          ],
+          "laravel-herd-project": [
+            "childscribe-laravel"
+          ],
+          "laravel-marketing": [
+            "childscribe-laravel"
+          ],
+          "laravel-repo": [
+            "childscribe-laravel"
+          ],
+          "laravel-staging": [
+            "childscribe-laravel"
+          ],
+          "laravel-web": [
+            "childscribe-laravel"
+          ],
+          "marketing-site-epic": [
+            "childscribe-laravel"
+          ],
+          "marketing-source": [
+            "childscribe-laravel"
+          ],
+          "mobile/web-side": [
+            "childscribe-laravel"
+          ],
+          "prod-environment": [
+            "childscribe-laravel"
+          ],
+          "prod-laravel": [
+            "childscribe-laravel"
+          ],
+          "prod-web": [
+            "childscribe-laravel"
+          ],
+          "production-posture": [
+            "childscribe-laravel"
+          ],
+          "production-profile": [
+            "childscribe-laravel"
+          ],
+          "refs/heads/main": [
+            "childscribe-laravel"
+          ],
+          "roll-off-software": [
+            "childscribe-laravel"
+          ],
+          "staging-domain": [
+            "childscribe-laravel"
+          ],
+          "staging-laravel": [
+            "childscribe-laravel"
+          ],
+          "voice-pipeline": [
+            "childscribe-laravel"
+          ],
+          "web-client": [
+            "childscribe-laravel"
+          ],
+          "web-frontend": [
+            "childscribe-laravel"
+          ],
+          "web-voice": [
+            "childscribe-laravel"
+          ]
+        }
+      },
+      "entities": {
+        "api": {
+          "slug": "api",
+          "name": "api",
+          "type": "service",
+          "description": "API app that will consume integration providers via env-derived config from @program-health/integrations",
+          "aliases": [
+            "api project",
+            "api costing module",
+            "api app",
+            "api/src/search",
+            "api/",
+            "api/src/operations",
+            "api/src/repos/operations/order.ts",
+            "api test project",
+            "api/src/paperwork",
+            "docket api",
+            "@docket/api",
+            "api/test/routes/driver.test.ts",
+            "api vitest project",
+            "api/test/billing/gateway",
+            "api/src/scheduled/crons.ts",
+            "api/test/portal",
+            "api/src/integration/index.ts",
+            "api/test/billing/credits",
+            "api/test/billing/refunds",
+            "api/src/repos/collections/context.ts",
+            "api/tsconfig.json",
+            "api/src/routes/reviews.ts",
+            "createApp",
+            "api/src/reporting/index.ts",
+            "api workspace",
+            "api/src/onboarding/steps.ts",
+            "api/src/scheduled",
+            "api/test/search",
+            "api/test/scheduled",
+            "api/test/billing/payments",
+            "api route index",
+            "api/src/scheduled/recurring-pass.ts",
+            "api/src/routes/driver.ts",
+            "api/src/routes/operations.ts",
+            "api worker"
+          ],
+          "repo_refs": [
+            "/Users/jeff/workspace/scribe",
+            "/Users/jeff/workspace/program-health",
+            "/Users/jeff/dotfiles",
+            "/Users/jeff/workspace/docket/.claude/worktrees/driver-core",
+            "/Users/jeff/workspace/docket",
+            "/Users/jeff/workspace/context-stack/scry"
+          ],
+          "created_at": "2026-07-25T22:00:44.587929179-04:00",
+          "last_seen": "2026-09-05T18:58:38.747Z"
+        },
+        "childscribe-laravel": {
+          "slug": "childscribe-laravel",
+          "name": "childscribe-laravel",
+          "type": "service",
+          "description": "Default branch of survtest; unborn because no commits exist.",
+          "aliases": [
+            "Laravel backend",
+            "childscribe-backend",
+            "Laravel repo",
+            "Laravel app",
+            "Lararel Forge",
+            "/Users/jeff/Herd/childscribe",
+            "childscribe.com (staging)",
+            "Forge dashboard",
+            "childscribe-laravel.on-forge.com",
+            "https://child-scribe.com",
+            "laravel backend",
+            "Laravel Forge",
+            "forge-ssh-access",
+            "prod web",
+            "childscribe.on-forge.com",
+            "childscribe-prod",
+            "childscribe-app",
+            "childscribe web frontend",
+            "ChildScribe domain",
+            "staging Laravel",
+            "Laravel staging",
+            "prod Laravel",
+            "childscribe Laravel app",
+            "laravel-backend",
+            "ChildScribe backend",
+            "Laravel API",
+            "Laravel 13",
+            "web client",
+            "staging domain",
+            "/Users/jeff/Herd/ChildScribe",
+            "Repo: /Users/jeff/Herd/childscribe",
+            "https://childscribe.test",
+            "local ChildScribe app",
+            "/Users/jeff/workspace/childscribe-laravel",
+            "childscribe backend",
+            "ChildScribe Laravel app",
+            "laravel app",
+            "ChildScribe Laravel backend",
+            "Laravel marketing",
+            "deploy-on-push",
+            "production posture",
+            "mobile/web side",
+            "web voice",
+            "childscribe domain",
+            "refs/heads/main",
+            "public marketing site",
+            "marketing-site epic",
+            "forge user",
+            "Laravel web",
+            "envoyer",
+            "office dashboard",
+            "fleet worktree",
+            "Client Dashboard",
+            "client dashboard",
+            "api project",
+            "loop orchestra",
+            "roll-off software",
+            "driver-core worktree",
+            "driver tree",
+            "areaScreens",
+            "office application",
+            "office service",
+            "createApp",
+            "fleet wave",
+            "createApp()",
+            "api app",
+            "campaign engine",
+            "stops table",
+            "fleet architecture",
+            "fleet skill",
+            "Expo dev client",
+            "dev-client",
+            "development build",
+            "--dev-client",
+            "dev client",
+            "iOS client",
+            "voice pipeline",
+            "child-scribe.com (staging)",
+            "production profile",
+            "prod environment",
+            "marketing source",
+            "loop engine (former)",
+            "migration 0520",
+            "scrible",
+            "scrible-monorepo",
+            "web frontend",
+            "Envoyer release deployment",
+            "Laravel app symlink",
+            "Laravel Herd project",
+            "jeffdhooton/childscribe-laravel",
+            "childscribe-laravel repo",
+            "childscribe-laravel memory entity"
+          ],
+          "repo_refs": [
+            "/Users/jeff/Herd/hoopless_crm",
+            "/Users/jeff/workspace/docket/.claude/worktrees/webhooks",
+            "/Users/jeff/workspace/cleaning-company",
+            "/Users/jeff/workspace/context-stack/scry",
+            "/Users/jeff/workspace/scribe",
+            "/Users/jeff/workspace/docket"
+          ],
+          "created_at": "2026-07-24T12:58:04.13172624-04:00",
+          "last_seen": "2026-09-05T18:58:38.747Z"
+        },
+        "forge": {
+          "slug": "forge",
+          "name": "Forge",
+          "type": "service",
+          "description": "Laravel Forge staging/production deployment platform; hosts child-scribe.com",
+          "aliases": [
+            "forge-ssh-access",
+            "Laravel Forge",
+            "Forge prod deploy"
+          ],
+          "repo_refs": [
+            "/Users/jeff/Herd/ChildScribe",
+            "/Users/jeff/workspace/Herd/advocates",
+            "/Users/jeff/Herd/hoopless_crm",
+            "/Users/jeff/workspace/cellsaviors/server",
+            "/Users/jeff/workspace/docket",
+            "/Users/jeff/workspace/context-stack/scry"
+          ],
+          "created_at": "2026-07-28T14:22:46.061676057-04:00",
+          "last_seen": "2026-09-05T18:58:38.747Z"
+        }
+      },
+      "proposed_entities": {
+        "childscribe-laravel": {
+          "slug": "childscribe-laravel",
+          "name": "childscribe-laravel",
+          "type": "service",
+          "description": "Default branch of survtest; unborn because no commits exist.",
+          "aliases": [
+            "childscribe-backend",
+            "/Users/jeff/Herd/childscribe",
+            "Forge dashboard",
+            "childscribe-laravel.on-forge.com",
+            "https://child-scribe.com",
+            "childscribe.on-forge.com",
+            "childscribe-prod",
+            "childscribe-app",
+            "childscribe web frontend",
+            "ChildScribe domain",
+            "childscribe Laravel app",
+            "ChildScribe backend",
+            "Laravel 13",
+            "/Users/jeff/Herd/ChildScribe",
+            "Repo: /Users/jeff/Herd/childscribe",
+            "https://childscribe.test",
+            "local ChildScribe app",
+            "/Users/jeff/workspace/childscribe-laravel",
+            "childscribe backend",
+            "ChildScribe Laravel app",
+            "ChildScribe Laravel backend",
+            "childscribe domain",
+            "public marketing site",
+            "envoyer",
+            "office dashboard",
+            "loop orchestra",
+            "driver-core worktree",
+            "areaScreens",
+            "office application",
+            "office service",
+            "createApp()",
+            "stops table",
+            "Expo dev client",
+            "dev-client",
+            "dev client",
+            "child-scribe.com (staging)",
+            "loop engine (former)",
+            "migration 0520",
+            "scrible",
+            "scrible-monorepo",
+            "jeffdhooton/childscribe-laravel",
+            "childscribe-laravel repo",
+            "childscribe-laravel memory entity"
+          ],
+          "repo_refs": [
+            "/Users/jeff/Herd/hoopless_crm",
+            "/Users/jeff/workspace/docket/.claude/worktrees/webhooks",
+            "/Users/jeff/workspace/cleaning-company",
+            "/Users/jeff/workspace/context-stack/scry",
+            "/Users/jeff/workspace/scribe",
+            "/Users/jeff/workspace/docket"
+          ],
+          "created_at": "2026-07-24T12:58:04.13172624-04:00",
+          "last_seen": "2026-09-05T18:58:38.747Z"
+        }
+      },
+      "facts_touched": 3781,
+      "ready": true,
+      "applied": true
+    }
+  },
+  "second_dry_run": {
+    "dry_run": true,
+    "dropped": 0,
+    "refused": 49,
+    "ready": false,
+    "details": [
+      "childscribe-laravel does not list Laravel backend",
+      "childscribe-laravel does not list Laravel repo",
+      "childscribe-laravel does not list Laravel app",
+      "childscribe-laravel does not list Lararel Forge",
+      "childscribe-laravel does not list childscribe.com (staging)",
+      "childscribe-laravel does not list laravel backend",
+      "childscribe-laravel does not list Laravel Forge",
+      "childscribe-laravel does not list forge-ssh-access",
+      "childscribe-laravel does not list prod web",
+      "childscribe-laravel does not list staging Laravel",
+      "childscribe-laravel does not list Laravel staging",
+      "childscribe-laravel does not list prod Laravel",
+      "childscribe-laravel does not list laravel-backend",
+      "childscribe-laravel does not list Laravel API",
+      "childscribe-laravel does not list web client",
+      "childscribe-laravel does not list staging domain",
+      "childscribe-laravel does not list laravel app",
+      "childscribe-laravel does not list Laravel marketing",
+      "childscribe-laravel does not list deploy-on-push",
+      "childscribe-laravel does not list production posture",
+      "childscribe-laravel does not list mobile/web side",
+      "childscribe-laravel does not list web voice",
+      "childscribe-laravel does not list refs/heads/main",
+      "childscribe-laravel does not list marketing-site epic",
+      "childscribe-laravel does not list forge user",
+      "childscribe-laravel does not list Laravel web",
+      "childscribe-laravel does not list fleet worktree",
+      "childscribe-laravel does not list Client Dashboard",
+      "childscribe-laravel does not list client dashboard",
+      "childscribe-laravel does not list api project",
+      "childscribe-laravel does not list roll-off software",
+      "childscribe-laravel does not list driver tree",
+      "childscribe-laravel does not list createApp",
+      "childscribe-laravel does not list fleet wave",
+      "childscribe-laravel does not list api app",
+      "childscribe-laravel does not list campaign engine",
+      "childscribe-laravel does not list fleet architecture",
+      "childscribe-laravel does not list fleet skill",
+      "childscribe-laravel does not list development build",
+      "childscribe-laravel does not list --dev-client",
+      "childscribe-laravel does not list iOS client",
+      "childscribe-laravel does not list voice pipeline",
+      "childscribe-laravel does not list production profile",
+      "childscribe-laravel does not list prod environment",
+      "childscribe-laravel does not list marketing source",
+      "childscribe-laravel does not list web frontend",
+      "childscribe-laravel does not list Envoyer release deployment",
+      "childscribe-laravel does not list Laravel app symlink",
+      "childscribe-laravel does not list Laravel Herd project",
+      "reviewed alias repair fingerprints changed"
+    ]
+  },
+  "fixed_benchmarks": {
+    "before": {
+      "heldout-2026-09-03": {
+        "total": 62,
+        "hits": 52,
+        "top_n": 20,
+        "hit_rate": 0.8387096774193549,
+        "mean_payload_bytes": 10558,
+        "max_payload_bytes": 12111,
+        "over_cap": 0,
+        "mean_latency_ms": 108.1774193548387,
+        "mean_answer_rank": 5.038461538461538
+      },
+      "heldout-b": {
+        "total": 66,
+        "hits": 30,
+        "top_n": 20,
+        "hit_rate": 0.45454545454545453,
+        "mean_payload_bytes": 10629,
+        "max_payload_bytes": 13360,
+        "over_cap": 0,
+        "mean_latency_ms": 98.56060606060606,
+        "mean_answer_rank": 5.533333333333333
+      },
+      "probes": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9773,
+        "max_payload_bytes": 10110,
+        "over_cap": 0,
+        "mean_latency_ms": 55.714285714285715,
+        "mean_answer_rank": 1
+      },
+      "tuning-strict": {
+        "total": 50,
+        "hits": 44,
+        "top_n": 20,
+        "hit_rate": 0.88,
+        "mean_payload_bytes": 9996,
+        "max_payload_bytes": 11532,
+        "over_cap": 0,
+        "mean_latency_ms": 109.42,
+        "mean_answer_rank": 4.2727272727272725
+      },
+      "tuning": {
+        "total": 50,
+        "hits": 46,
+        "top_n": 20,
+        "hit_rate": 0.92,
+        "mean_payload_bytes": 9996,
+        "max_payload_bytes": 11532,
+        "over_cap": 0,
+        "mean_latency_ms": 107.44,
+        "mean_answer_rank": 3.8043478260869565
+      }
+    },
+    "after": {
+      "heldout-2026-09-03": {
+        "total": 62,
+        "hits": 52,
+        "top_n": 20,
+        "hit_rate": 0.8387096774193549,
+        "mean_payload_bytes": 10555,
+        "max_payload_bytes": 12111,
+        "over_cap": 0,
+        "mean_latency_ms": 129.3548387096774,
+        "mean_answer_rank": 5.0576923076923075
+      },
+      "heldout-b": {
+        "total": 66,
+        "hits": 30,
+        "top_n": 20,
+        "hit_rate": 0.45454545454545453,
+        "mean_payload_bytes": 10628,
+        "max_payload_bytes": 13359,
+        "over_cap": 0,
+        "mean_latency_ms": 117.5909090909091,
+        "mean_answer_rank": 5.533333333333333
+      },
+      "probes": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9768,
+        "max_payload_bytes": 10098,
+        "over_cap": 0,
+        "mean_latency_ms": 75.28571428571429,
+        "mean_answer_rank": 1
+      },
+      "tuning-strict": {
+        "total": 50,
+        "hits": 45,
+        "top_n": 20,
+        "hit_rate": 0.9,
+        "mean_payload_bytes": 9996,
+        "max_payload_bytes": 11532,
+        "over_cap": 0,
+        "mean_latency_ms": 131.02,
+        "mean_answer_rank": 4.533333333333333
+      },
+      "tuning": {
+        "total": 50,
+        "hits": 47,
+        "top_n": 20,
+        "hit_rate": 0.94,
+        "mean_payload_bytes": 9996,
+        "max_payload_bytes": 11532,
+        "over_cap": 0,
+        "mean_latency_ms": 135.04,
+        "mean_answer_rank": 4.0638297872340425
+      }
+    }
+  },
+  "post_review": "Independent actual-live-backup comparison PASS: all 79,926 full facts preserved; actual post raw map exactly equals independently predicted repair of actual pre backup, with precisely 43 changed keys. Report childscribe-alias-batch-review-2026-09-05.md. Not a full-goal receipt."
+}

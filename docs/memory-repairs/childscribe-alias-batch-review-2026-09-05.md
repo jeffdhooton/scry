@@ -119,3 +119,34 @@ Repeated independent-alias, independent-drift-full and independent-raw checks in
 Separate raw Badger comparison proves original 240,524 keys → 240,484 keys, with exactly the same 43 changed keys and zero other key/value changes. Entire source restoration from the automatic replica backup is exact at the raw key/value level. Backup: /tmp/scry-childscribe-independent.3JdDSY/post-sweep/rollback.badger, 77,445,207 bytes, SHA-256 d236a1822dcfb911ff5ce3d1ba28897c0551cf55641370a2027cf947d23ce4cd. The 40-byte serialized backup size difference does not represent missing logical data. The same 2,854 hollow entities and 994 distinct missing endpoint slugs remain unchanged.
 
 Evidence is retained in post-sweep/result.json, post-sweep/raw-result.txt, post-sweep/participant-drift.json and the independent original/apply/rollback replica directories. No live writes, remember calls, deployments, model calls, or shared source edits occurred. Lead-reported quiet-queue observations and installed daemon versions are not independently graded here. Immediately before guarded live apply, the lead still must verify the live preview matches this exact manifest and the queue remains suitable; any input drift requires refusal and renewed review. Actual live backup integrity and post-apply full-state/index/lookup/benchmark checks remain pending. Existing contamination, 24 ambiguous aliases, five unexecuted rehome proposals and broad-goal limits remain unchanged.
+
+## Actual live-application backup postcheck — 2026-09-05, 19:35 UTC
+
+Verdict: bounded actual-live-state PASS for the supplied automatic pre-apply and post-apply backups, independently restored and compared in new directories. This closes the pending live state/backup/lookup portion for this exact application; it does not grade live benchmarks, later ingestion, two real sweeps, deployment artifacts, or the full goal. The lead reports guarded application at 19:35:22 UTC, 49 dropped/zero refused, using reviewed production 53fafa9 and exact manifest da2fd1a2397d37dbffcd0074e4caee96e64f5a8255b0213aeb91abf80eab5fc0. This reviewer inspected supplied backups and reconstructed the operation, not the live daemon or original store directories.
+
+Independently computed hashes and sizes:
+
+| Actual artifact under /tmp/scry-childscribe-final-sep05.qcoHQ3/ | Bytes | SHA-256 |
+|---|---:|---|
+| memory-20260905T193522Z.badger — automatic pre-apply | 77,447,357 | 02c7561517ba179a01b1229c4d5e036100bd23b13a244bce81bd9349cdc73be3 |
+| memory-20260905T193530Z.badger — actual post-apply | 77,441,558 | 71c339f10f5a193d4902cb4750f29b985cf8821e2f915565a9dfdadb7601cf3e |
+
+The automatic pre-apply backup restores successfully and its independent preview matches ALL exact reviewed manifest expectations without regeneration or weakening. Independent-alias then applies the same request in its own replica and proves full facts/entities/index postconditions plus backup restoration. Independent-raw separately proves that replica changes exactly the expected raw keys and that its backup restores the entire original raw map. Independent-actual restores the actual post-apply backup into another new directory and compares its entire raw key/value map against the independently predicted repaired map: ZERO differences. This includes every fact, historical record, episode, adjacency, cursor, marker, queue, metadata and alias key, not just the participants.
+
+Actual pre→post results:
+
+- 79,926 full current/historical facts unchanged in every field, including invalidation/provenance; 30,345 entities retain every field except the exact ChildScribe alias removal.
+- ChildScribe aliases 92→43 with the exact retained strings and order; 49 reviewed literal removals across 45 normalized keys; cross-type collisions 489→486.
+- Entire alias index 51,658→51,618. Exactly 40 claims deleted, laravel-forge and forge-ssh-access rehomed to forge, and api-project/createapp/api-app preserved as api-owned. Every one of the 49 actual requested lookups passed. No foreign listing is orphaned and no unrelated index key changes.
+- Entire raw database 240,525→240,485 keys. Exactly 43 changed keys: 40 alias deletions, two alias-owner replacements, one en:childscribe-laravel replacement. No additional actual-post raw differences exist.
+- The actual post snapshot's second preview of the exact original manifest refuses the already-absent aliases and leaves its entity/fact/index state unchanged; its complete post-preview raw state still equals the independently predicted map. All previously measured hollow/missing-endpoint sets remain unchanged.
+
+Unrelated state was explicitly inspected, not ignored. The entire actual automatic pre-apply raw map differs from the previously reviewed 19:30:41 source in exactly three keys:
+
+1. meta:last_sweep_at advances to 2026-09-05T19:34:13.76812Z.
+2. meta:last_sweep_report records Mac.attlocal.net scanning 94 files with zero ingestions, zero episodes and zero errors.
+3. pq:1b9aeed7fd26d799d8f337a18299a488343fa559a3779dca7a4e87d063d6c0c8 is a new manual Cell Saviors/battery-designer audit item, enqueued at 15:33:54.809762-04:00 with attempts=0.
+
+There are no other pre-apply raw changes: the complete graph and the reviewed entity/fact/listing/claim inputs remain identical to the reviewed source. All three unrelated keys survive the actual repair byte-for-byte. Thus the pending item was preserved; there was no hidden concurrent extraction/fact mutation inside the compared pre/post window. This observation does not promise how the pending item behaves in a later sweep.
+
+Evidence: actual-live/actual-result.json, actual-live/actual-vs-predicted-raw.json (empty object), actual-live/reviewed-source-to-actual-pre-raw.json (all three complete differences), actual-live/actual-lookups.json, actual-live/actual-second-preview.json, actual-live/result.json, actual-live/raw-result.txt and the separately restored original/actual-post/independent-repair/rollback directories. No live write/read of original stores, remember, deployment, model call or shared source edit occurred in this postcheck. The 24 ambiguous aliases, five unexecuted rehome proposals, contaminated metadata/facts, 486 collisions and existing global anomalies remain outside this bounded PASS.
