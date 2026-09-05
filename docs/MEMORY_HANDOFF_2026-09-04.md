@@ -845,3 +845,26 @@ Do not retry it. Stops-table technical/semantic review passes only the fixed
 22:53:12 source; refresh the complete closure after new ingestion before any
 apply. Expo/dev-client review is discovery only, with two missing original
 Claude transcripts still unlocated. No new broad cleanup or goal completion.
+
+### 2026-09-05 23:36 UTC — refused stale alias gate; review progress
+
+Stops-table is STILL UNAPPLIED. Independent 23:14:10 source remained fully
+equal at 23:23:03; real 23:27 ingestion then changed Child's fact fingerprint.
+Immediate 23:33:34 preview refused before any apply command. New full
+23:33:53 backup SHA 907b9ae1e3210ac3840271e66ab95e34c9a24838863031812937c161bd076703
+has 80,844 facts / 30,725 entities / 9,371 episodes. Private refreshed manifest
+9f081e8f6180717ebfe6020adcbcd20bf190a40aa2754ec64e8584fee609c964 is under complete
+independent source/replica extension; committed 9b34 manifest is stale.
+
+Fourth-ten Hermes dispositions now independently pass: 2 KEEP, 8 UNRESOLVED,
+zero moves. Full report/verdicts and integrated proposal are under
+memory-repairs/hermes-fourth-ten-*. Forty records reviewed is not the full
+873-record snapshot, and later ingestion still needs review.
+
+Current recall disproof and rejected original-query lexical experiment are
+archived. Fixed-source baseline 51/29/7/45/47 regressed to 40/31/7/41/44.
+Do not deploy or copy that private candidate into source. Live binary remains
+d1f0a95 with three rejection records and 19 retirements. No new remember was
+sent after combined note 5c5ce0b2; never retry that successful note.
+Both original recall floors, remaining aliases/global defects and final two
+fresh grading rounds remain open. Continue the active goal.

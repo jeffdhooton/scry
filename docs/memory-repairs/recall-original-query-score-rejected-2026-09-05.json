@@ -1,0 +1,745 @@
+{
+  "verdict": "REJECTED_REPLICA_ONLY",
+  "source": "memory-20260905T230854Z.badger",
+  "source_sha256": "188e5bd97b24221c61ac86b4e605f6f05dc0d8184d39be8a464ece4230c785ce",
+  "private_archive": "/tmp/scry-recall-scoring-sep05.EHNmnp",
+  "candidate": "scry-original-query-score",
+  "baseline": "d1f0a958608389a385ac9a9f57ec1eb941015a10",
+  "baseline_hits": [
+    51,
+    29,
+    7,
+    45,
+    47
+  ],
+  "change": "Keep expanded candidate and episode retrieval; globally replace expanded fact lexical score with ScoreDoc(original query), and use original query for entity-injected fact lexical score. No other scoring changes.",
+  "validation": "Recall/search package tests passed; all five suites run on same fixed restored 80,710-fact replica; complete raw stream before/after SHA2ff1ea657a217bd3d038da694d1e18bc2ca34ae7b1758006f3fe79dfc52c6d12 unchanged. No live/shared source edit, build deployment or store write.",
+  "results": [
+    {
+      "suite": "heldout-2026-09-03",
+      "result": {
+        "total": 62,
+        "hits": 40,
+        "top_n": 20,
+        "hit_rate": 0.6451612903225806,
+        "mean_payload_bytes": 10475,
+        "max_payload_bytes": 12093,
+        "over_cap": 0,
+        "mean_latency_ms": 156.5483870967742,
+        "misses": [
+          {
+            "question": "How are the two AMD machines physically wired together and what addresses does that link use?",
+            "rank": -1,
+            "top": [
+              "codex -[decided]-> keep-exec-summary-together: Chose the narrowest robust fix — keep the executive-summary two-column grid together across …",
+              "task-2-two-tier-detection -[documents]-> task-3-builder-wiring: Task 2 changes detectLanguages' signature and deletes it from builder.go, s…",
+              "asset-task-state-machines-task -[assigned_to]-> claude-asset-and-task-state-machines: claude-asset-and-task-state-machines implements the s…"
+            ]
+          },
+          {
+            "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+            "rank": -1,
+            "top": [
+              "halo-ssh-tunnel -[located_at]-> halo2: Second localhost SSH tunnel exposes halo2's Lemonade endpoint to Jeff's local Mac at 127.0.0.1:13306…",
+              "cron-mode -[decided]-> jeff: Jeff decided not to change cron_mode to 'approve' because the block couldn't be reproduced - flagging was from…",
+              "chatbox -[causes]-> lemonade: Chatbox couldn't fetch models because the API host omitted http://; verified working API Host http://halo:133…"
+            ]
+          },
+          {
+            "question": "What are we paying per million output tokens for the top Anthropic model?",
+            "rank": -1,
+            "top": [
+              "glm5next -[status]-> Z.AI: Z.ai pricing: $0.075 per million input tokens and $0.25 per million output tokens.",
+              "claude-opus-4-6 -[status]-> 25.00 USD: Claude Opus 4.6 output price is $25.00 per million tokens as of the 2026-06-24 cache",
+              "claude-opus-5 -[status]-> 25.00 USD: Claude Opus 5 output price is $25.00 per million tokens as of the 2026-06-24 cache"
+            ]
+          },
+          {
+            "question": "What broke on trunk when the app shell branch landed?",
+            "rank": -1,
+            "top": [
+              "docket-web-shell-review -[decided]-> loop-branch-authoritative: Thread's review request cites setpoint/land-web-app-shell while the instruc…",
+              "land-web-app-shell -[depends_on]-> web: Task depends on main branch where web/src/App.tsx is still the 18-line scaffold placeholder.",
+              "web-app-shell -[replaced_by]-> repair-web-app-shell: Backlog repair line incorrectly implies shell already landed when it only exists on a …"
+            ]
+          },
+          {
+            "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+            "rank": -1,
+            "top": [
+              "battery-designer -[provides]-> cloud-folder-navigation: Committed and pushed as 429b798: discoverable cloud folders with breadcrumbs and fo…",
+              "scry -[lacks]-> vue-sfc: Vue SFC is a coverage hole in existing scry TypeScript support, not a new language; ~4,500 files across 19 of 44 r…",
+              "jeff -[decided]-> nestjs: Jeff decided to build a NestJS + TypeORM + react-query practice repo to drill before the interview."
+            ]
+          },
+          {
+            "question": "What made the first couple of cloud builds of the ChildScribe phone app fail?",
+            "rank": -1,
+            "top": [
+              "childscribe-mobile -[lacks]-> eas-build: ChildScribe mobile had never had a successful EAS cloud build before this session",
+              "scribe -[decided]-> childscribe: Strategic pivot to ChildScribe-first development instead of SportsScribe-first.",
+              "childscribe -[depends_on]-> eas-build: ChildScribe mobile release depends on EAS for iOS and Android builds"
+            ]
+          },
+          {
+            "question": "Who is keeping an eye on the Cell Saviors site, and with what login?",
+            "rank": -1,
+            "top": [
+              "cell-detail-redesign -[part_of]-> cellsaviors: The redesign sweep concerns the Cell Saviors site's cell database UI.",
+              "cell-database-detail-page -[part_of]-> cellsaviors: The /cell-database/{slug} detail page is part of the Cell Saviors site.",
+              "cell-saviors-queue-item -[part_of]-> cellsaviors: The unrelated queue item in the scry queue belongs to the Cell Saviors project."
+            ]
+          },
+          {
+            "question": "What does Hermes use for inference when the primary model is down?",
+            "rank": -1,
+            "top": [
+              "jeff -[decided]-> halo-inference-backend: Best use of the box is a headless dedicated inference backend: add gpt-oss-120b and uncensored qw…",
+              "hermes -[uses]-> DeepSeek v4: Primary model is deepseek-v4-pro (provider deepseek, hosted)",
+              "loom -[uses]-> DeepSeek v4: loom uses DeepSeek-v4 (pro or flash) as its primary inference engine for loop planning and execution."
+            ]
+          },
+          {
+            "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "flash-next -[uses]-> amd-halo: Flash-Next model runs on a single AMD Halo box (gfx1151) with full GPU offload, 32 cores, 125 GB memory.",
+              "hermes -[depends_on]-> lemonade: Hermes sends prompts and receives tokens over the LAN/Tailscale hop to the Halo — negligible versus infere…"
+            ]
+          },
+          {
+            "question": "Two tests were red on the whole-repo gate around the job costing work - what was actually wrong?",
+            "rank": -1,
+            "top": [
+              "claude-job-costing -[fixes]-> repair-job-costing: commit 8a69e97 ('job-costing: a spent capture ref stays spent') on loop/job-costing addre…",
+              "job-costing -[decided]-> job-costs-soft-delete: Modelling call argued in the migration header: job_costs is an ordinary soft-delete table, …",
+              "job-costing -[depends_on]-> job-costing-margin-reports: job-costing's outstanding report-definition slice corresponds to the 'Job costing: …"
+            ]
+          },
+          {
+            "question": "Which search provider does the overnight research agent use and how many searches was it allowed?",
+            "rank": -1,
+            "top": [
+              "guild-plan -[uses]-> deep-research-agent: The research channel doc is written to feed its five questions to the deep-research agent once th…",
+              "smoothhauling-design-brief -[related_to]-> shortlist-search-doc: The canvas should be judged against the shortlist agent's page map in docs…",
+              "unified-genre-dataset-research-question -[blocked_by]-> overnight-2026-08-24-run: The queued question runs once deepresearch's overnight 20…"
+            ]
+          },
+          {
+            "question": "What did Jeff set as the acceptance criteria for the research reports?",
+            "rank": -1,
+            "top": [
+              "claude-reviewer -[contains]-> collections-acceptance-criteria: Re-review will judge six cases: inbound to existing thread, inbound opening …",
+              "collections-acceptance-criteria -[depends_on]-> task 3b3ef370e206: The reviewer will judge exactly four things against real code: accrual n…",
+              "jeff -[blocked_by]-> research-agents: Jeff is waiting for research agents to report back with architecture findings"
+            ]
+          },
+          {
+            "question": "Where did Jeff buy the domain for the DBA filing site?",
+            "rank": -1,
+            "top": [
+              "dba-filing-guide -[blocked_by]-> jeff: The DBA filing guide is awaiting Jeff's review and domain approval; nothing has been purchased or la…",
+              "2026-09-02-dba-filing-guide-design -[documents]-> dba-filing-guide: The project design is captured in the design spec /Users/jeff/dotfiles/…",
+              "dba-filing-guide -[part_of]-> single-purpose-site-program: The DBA filing guide is a project in the single-purpose site portfolio program (…"
+            ]
+          },
+          {
+            "question": "Is the DBA filing site actually online yet?",
+            "rank": -1,
+            "top": [
+              "mississippi-dba -[produces]-> mississippi-online-portal: Earlier harvested fact: online portal for Mississippi DBA filing; provenance limit…",
+              "dba-filing-guide -[part_of]-> single-purpose-site-program: The DBA filing guide is a project in the single-purpose site portfolio program (…",
+              "dbafilingguide-homepage -[part_of]-> dba-filing-guide: The homepage is the primary page of the DBA Filing Guide site."
+            ]
+          },
+          {
+            "question": "Which states are still outstanding on the DBA guide build?",
+            "rank": -1,
+            "top": [
+              "dba-filing-guide -[documents]-> 2026-09-02-build-dba-filing-guide: The build kickoff is recorded in the build prompt /Users/jeff/dotfiles/a…",
+              "dba-filing-guide -[deployed_on]-> hermes: The DBA Filing Guide build runs on Hermes",
+              "dba-filing-guide -[related_to]-> actively-building-maine: DBA Filing Guide is healthy and actively building Maine after its builder resumed."
+            ]
+          },
+          {
+            "question": "What is actually holding up hiring for the cleaning business?",
+            "rank": -1,
+            "top": [
+              "wren-home-cleaning -[blocked_by]-> google-business-profile: Phone number decision deferred pending family discussion",
+              "wren-home-cleaning -[requires]-> concept: Insurance needs include general liability, janitorial bond, workers' compensation, hired and non-…",
+              "business -[decided]-> jeff: No separate Client model, migrations, or Client ↔ Business bridging logic should exist"
+            ]
+          },
+          {
+            "question": "What did Jeff want done about two-factor auth on the demo site?",
+            "rank": -1,
+            "top": [
+              "fortify-2fa -[status]-> Scribe: Two-factor authentication IS enabled",
+              "jeff -[related_to]-> gog: Jeff wants to add two more accounts to gog CLI",
+              "prior-owner-password-and-totp-factor -[related_to]-> owner@demo.programhealth.dev: The prior Owner password and TOTP factor are invalid aft…"
+            ]
+          },
+          {
+            "question": "A test was hitting a real server on the internet - what was missing and where did the traffic go?",
+            "rank": -1,
+            "top": [
+              "routeall -[causes]-> mbp: RouteAll was true and a peer advertised a route covering 192.168.1.0/24, so traffic to the gateway at 192.168.1.2…",
+              "ga4-internal-traffic-exclusion -[configures]-> ga4analyticsservice: Excluding internal traffic requires defining the internal-traffic rule …",
+              "ga4-internal-traffic-exclusion -[implements]-> 108.77.71.250: The internal-traffic rule uses match type 'IP address equals' on the single a…"
+            ]
+          },
+          {
+            "question": "What interface is Ollama bound to these days?",
+            "rank": -1,
+            "top": [
+              "ollama -[configures]-> ollama-memory-limits: Set via launchctl setenv: OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_KEEP_ALIVE…",
+              "jeff -[decided]-> ollama: Laptop Ollama must be bound to loopback only and published privately via Tailscale Serve for Jeff's own remote ac…",
+              "ollama -[excludes]-> ollama-env-plist: Ollama.app kept the old environment (5-minute keep-alive) until BOTH it and a lingering `ollama serv…"
+            ]
+          },
+          {
+            "question": "A memory write disappeared without an error - what happened?",
+            "rank": -1,
+            "top": [
+              "data-loss -[blocked_by]-> file-memories: File memories have everything, so nothing is lost despite the scry write failure.",
+              "operations-task-event -[fixes]-> append-race: At 06ded34 the guard is the write: append is one INSERT...SELECT...WHERE gated on both neighb…",
+              "superpowerssubagent-driven-development -[requires]-> worktree: Implementation must happen in an isolated worktree; never on main/master wit…"
+            ]
+          },
+          {
+            "question": "What network did Jeff join so the hotspot's admin page would come up?",
+            "rank": -1,
+            "top": [
+              "jeff -[owns]-> toyota-hotspot: Jeff set up the vehicle hotspot through AT&T and supplied its SSID/password (read from the car's hotspot scr…",
+              "oui-spy -[depends_on]-> toyota-hotspot: In-car uplink: NetworkManager profile for 'TOYOTA 4Runner-2.4g_658eaa' (WPA2) provisioned offline w…",
+              "tailscale-admin-console -[excludes]-> home-wifi-network: The offending advertised route should be disabled at source in the Tailscale admin…"
+            ]
+          },
+          {
+            "question": "What happened the very first time the external Wi-Fi dongle was plugged into the Pi?",
+            "rank": -1,
+            "top": [
+              "fuckflock -[decided]-> esp-wifi-detector: Keep the working ESP in Wi-Fi mode as real-time alerting; Pi becomes the comprehensive recorder/c…",
+              "jeff -[decided]-> orbic-wifi: Decision: connect to the Orbic's own Wi-Fi instead of home Wi-Fi so 192.168.1.1 points at the Orbic; USB teth…",
+              "ouispy-pi -[modifies]-> home-wifi: The Pi is online on home Wi-Fi as ouispy.local (192.168.1.242, Raspberry Pi MAC); NetworkManager autocon…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.875
+      }
+    },
+    {
+      "suite": "heldout-b",
+      "result": {
+        "total": 66,
+        "hits": 31,
+        "top_n": 20,
+        "hit_rate": 0.4696969696969697,
+        "mean_payload_bytes": 10641,
+        "max_payload_bytes": 13446,
+        "over_cap": 0,
+        "mean_latency_ms": 151.3030303030303,
+        "misses": [
+          {
+            "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+            "rank": -1,
+            "top": [
+              "ollama -[deployed_on]-> mac-mini: Local Ollama serving the Qwen worker model runs on the Mac mini (the 'mini-qwen' lane).",
+              "shared-scry-memory -[decided]-> mac-mini: Decision: make the always-on Mac Mini the single authoritative Scry memory plane serving Hermes, …",
+              "document-extraction-job -[owns]-> mac-mini: Four durable named tmux workers on the Mini drive the extraction and survive disconnects; the r…"
+            ]
+          },
+          {
+            "question": "What happened to the DeepSeek worker container on the second box?",
+            "rank": -1,
+            "top": [
+              "fine-tuning -[blocked_by]-> DeepSeek v4: Clustered DeepSeek uses both boxes, so fine-tuning cannot run simultaneously",
+              "halo2 -[decided]-> DeepSeek v4: DeepSeek-V4-Flash was chosen by the user as the model for the two-box cluster.",
+              "scry -[blocked_by]-> hosted-deepseek: DeepSeek extraction returns 402 with the account out of balance; both providers are empty simultaneou…"
+            ]
+          },
+          {
+            "question": "Where do the deep research agent's model calls actually go?",
+            "rank": -1,
+            "top": [
+              "deepresearch -[uses]-> deepresearch-model-api: The agent's model calls go through the OpenAI-compatible endpoint http://100.77.13.39:13306/…",
+              "deepresearch -[blocked_by]-> deepresearch-model-api: Each model call takes 2-3 minutes, so the full research workflow (planning → sub-agent…",
+              "cloud-deep-research-service -[replaced_by]-> deepresearch: deepresearch is the replacement for the paid cloud deep-research service: free, …"
+            ]
+          },
+          {
+            "question": "How often are the queue backups taken and how long do we keep them?",
+            "rank": -1,
+            "top": [
+              "scry-ingest-queue -[status]-> 0 ready / 0 backoff / 6 parked: The backup verified directly before the six-node fresh live gate was quiet.",
+              "entity-retirement -[uses]-> maintenance-lock: An exclusive maintenance lock is taken before backup, sync, close, and apply; race testing co…",
+              "childscribe-laravel-alias-prune -[monitors]-> store-backup-20260904T170026Z: Pre-prune store backup taken before the prune landed."
+            ]
+          },
+          {
+            "question": "What address does the interview engine bind to so a real phone can hit it?",
+            "rank": -1,
+            "top": [
+              "interview-runtime -[runs_on]-> childscribe-phone-up: childscribe-phone-up script now starts interview runtime alongside Laravel, engine, an…",
+              "m1 -[status]-> in-progress: Mobile voice interview end-to-end on real iPhone hardware: code complete, never run on device; requires dev-pho…",
+              "engine-interview-id -[modifies]-> journalentry-model: Multiple entries from same interview session share the same engine_interview_id field"
+            ]
+          },
+          {
+            "question": "Why was the mobile app failing to reach the engine from its environment file?",
+            "rank": -1,
+            "top": [
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731",
+              "mobile -[requires]-> expo-public-api-url: Mobile app requires EXPO_PUBLIC_API_URL environment variable set to http://childscribe.test for R…",
+              "mobile -[requires]-> scribe-engine-prod: Mobile app calls production engine directly via EXPO_PUBLIC_ENGINE_URL for realtime voice, must be…"
+            ]
+          },
+          {
+            "question": "What do we use to run unit tests in the mobile app?",
+            "rank": -1,
+            "top": [
+              "mobile -[uses]-> maestro-mobile-e2e: Maestro flows target mobile app; testID additions made to sign-in screen, home CTA, button primitive; …",
+              "adb -[uses]-> appsmobile: Jeff uses Android emulator to test mobile app via adb.",
+              "mobile -[uses]-> eas-build: Mobile app built via EAS cloud builders"
+            ]
+          },
+          {
+            "question": "What is holding up charging sales tax to customers?",
+            "rank": -1,
+            "top": [
+              "codex-reports-financial-sales -[decided]-> sales-reports-plan: Resume inside owned paths without touching execute.ts: three sales aggregate…",
+              "tax-engine -[lacks]-> orders: taxable flags exist on charges, price_rules, orders; invoice_lines.tax exists; zero hits for taxRate, compute…",
+              "financial-report-definitions -[blocked_by]-> f0e0c2073ce6: Six of seven definitions (sales by period, sales by customer, sales by service t…"
+            ]
+          },
+          {
+            "question": "What extra step does staging need after the server-rendered bundle changes?",
+            "rank": -1,
+            "top": [
+              "scry-local-vectors -[documents]-> staging-bundle-question: Refreshing the local vectors alone moves the staging answer to rank 21, matching…",
+              "staging-bundle-question -[related_to]-> staging-deployment-fact: A newly ingested staging-deployment fact pushed the still-intact staging a…",
+              "staging-bundle-question -[excludes]-> scry-lexical-index: Updating the lexical index alone keeps the staging answer at rank 20."
+            ]
+          },
+          {
+            "question": "How is a review supposed to be requested in a fleet room?",
+            "rank": -1,
+            "top": [
+              "allow-room-task-metadata-listing -[implements]-> fleet-review: Rationale: listing the room's task metadata is a read-only, narrowly scoped …",
+              "room-task-board-read -[implements]-> fleet-task-review: The read-only room task board listing decision was made reasonably to support the e…",
+              "room-history-lookup -[implements]-> requested-review: The lookup was issued to support the review the user explicitly requested."
+            ]
+          },
+          {
+            "question": "What was wrong with the dunning run endpoint when it got bad input?",
+            "rank": -1,
+            "top": [
+              "dunning -[depends_on]-> late-fees: Dunning may trigger late fees",
+              "cockpit -[tests]-> hooks-status-endpoint: Live daemon e2e: Codex PermissionRequest returned 204 and set needs_input, Claude Stop returned 2…",
+              "collections -[lacks]-> childscribe-laravel: Collections endpoints (22 total: dunning, late fees, autopay, chase queue) are all built and te…"
+            ]
+          },
+          {
+            "question": "Is there any migration number range nobody has claimed yet?",
+            "rank": -1,
+            "top": [
+              "codex-migration-block-reservations -[uses]-> port-range-32156: This worktree owns the port range starting at 32156 (also in .setpoint-ports…",
+              "disposal-links-block -[assigned_to]-> claude-weight-ticket-task-and-stop-join: Added a README registry row claiming migration block 0200–02…",
+              "claude-weight-ticket-task-and-stop-join -[implements]-> weight-tickets: Deliberately deviated from its brief by shipping a second migration…"
+            ]
+          },
+          {
+            "question": "Is the messaging section of the office app actually built?",
+            "rank": -1,
+            "top": [
+              "officeapp -[contains]-> 310: There are 310 worktrees, using 911MB, though only ~9 should be live.",
+              "wave -[implements]-> officeapp: Wave 14 closed 12 epics, all 7 members converged with reviewers in-loop, repair backlog empty for first time",
+              "officeapp -[contains]-> ipv6-only: The dev server binds IPv6 only ([::1]:5173), causing IPv4 curl checks to fail."
+            ]
+          },
+          {
+            "question": "Why can nobody hit the customer portal endpoints?",
+            "rank": -1,
+            "top": [
+              "0360-portal-identities-sql -[replaced_by]-> kimi-customer-portal: Renamed the recovered migration 0360_customer_portal.sql to 0360_portal_i…",
+              "api -[implements]-> portal-customer-scoping: Scoped route matrix is green: all seven portal endpoints return 404 for an existing different …",
+              "codex-customer-portal -[decided]-> customer-portal-router-contract: codex-customer-portal proposed a createPortalRoutes() router boundary a…"
+            ]
+          },
+          {
+            "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+            "rank": -1,
+            "top": [
+              "sweep-agent -[depends_on]-> scry: The sweep uses the scry daemon binary which was rebuilt after the code changes.",
+              "scry-daemon-restart -[causes]-> scry: The restart targeted the scry daemon and interrupted in-flight socket clients during a sweep.",
+              "scry-daemon-takeover-race -[causes]-> scry-daemon-split-brain: Likely root cause (inferred from logs and source, not proven live): the non-…"
+            ]
+          },
+          {
+            "question": "What caused duplicate dev servers to be launched?",
+            "rank": -1,
+            "top": [
+              "cloudflare-vite-dev-server -[lacks]-> marketing-redirect-rule: The Cloudflare Vite dev server does not apply `_redirects`, so the lead form…",
+              "protocol-mismatch -[causes]-> econnreset: Potential HTTPS/TLS request to HTTP-only Laravel dev server causes connection reset",
+              "cad-mcp-server -[depends_on]-> cad-core-seam: The v2 MCP server is a second transport over the same core/, scheduled after the web site lau…"
+            ]
+          },
+          {
+            "question": "What is risky about the way the sync loop touches the Claude config file?",
+            "rank": -1,
+            "top": [
+              "ai-syncpy -[implements]-> claude-code: ai-sync.py currently syncs Claude Code skills/config as one of two hardcoded tools",
+              "ai-syncpy -[calls]-> mcp-servers-config: Propagates the registry so Claude, Codex and Kimi/OpenCode all pick up the server.",
+              "claude-registry-backlog-sync -[owns]-> dbmigrationsreadmemd: Named owner of db/migrations/README.md for this fleet wave; no other task may …"
+            ]
+          },
+          {
+            "question": "Why does the orientation output list things that aren't projects?",
+            "rank": -1,
+            "top": [
+              "pinned-cad-fixtures -[decided]-> 3d-conversion-site: Real CAD files arrive via a pinned dependency and are used for validation but not comm…",
+              "git-facade -[decided]-> setpoint-fleet: A deferred git façade would centralize setpoint's ~46 git invocations and classify git output into …",
+              "outputsentity-id -[decided]-> Sub-project 2: Engine output + graph fan-out: New outputs.entity_id column added for per-child output associa…"
+            ]
+          },
+          {
+            "question": "How do I know whether an agent actually got launched into its pane?",
+            "rank": -1,
+            "top": [
+              "hermes -[depends_on]-> agent-blank-pane-bug: Agent blank pane and nvim hang bugs were blocking for Hermes Phase 5+ where agents and TUI too…",
+              "vale -[lacks]-> claude-code: Vale is deterministic and cannot reliably judge imperative mood or whether an explanation is actually clear.",
+              "routesapiphp -[blocked_by]-> agent-blank-pane-bug: Routes were returning 500 errors for non-numeric child IDs due to missing parameter vali…"
+            ]
+          },
+          {
+            "question": "Which newsletter layout do customers get unless we change something?",
+            "rank": -1,
+            "top": [
+              "newsletter-layout -[blocked_by]-> single-column: The newsletter would stay unwrapped unless redesigned separately; the single-column no-col…",
+              "newsletter-layouttestts -[tests]-> newsletter-layout: new describe 'layoutNewsletterHtml — inset floats' adds 5 tests for float classes, al…",
+              "monthly-chapter-improvement -[blocked_by]-> monthly-chapter-improvement-lock: Monthly chapter improvement work must not change newsletter p…"
+            ]
+          },
+          {
+            "question": "Why does the voice interview traffic take a detour instead of going direct?",
+            "rank": -1,
+            "top": [
+              "in-interview-voice-feedback -[depends_on]-> interview-engine: In-interview feedback implementation requires engine logic to shift to feedba…",
+              "createsocialpostdraft -[requires]-> interview-time-photo-selection: Task 2 must support direct picker asset mapping for interview-time phot…",
+              "jeff -[decided]-> interview-attachment-feature: First pass should support photo library + typed note + short voice note (option A from desi…"
+            ]
+          },
+          {
+            "question": "What fields is the sign-up form allowed to have?",
+            "rank": -1,
+            "top": [
+              "newsletter-forms -[uses]-> contact-honeypot: Both desktop and mobile newsletter signup forms now include honeypot field for bot detection.",
+              "docket-wave-14-marketing-site-repair -[implements]-> honest-signup: No password field, no form without onSubmit (only signupUnavailable cop…",
+              "childscribe-mobile -[modifies]-> registertsx: In-app register form is retired; sign-in repoints to web signup"
+            ]
+          },
+          {
+            "question": "How does the demo box get new code?",
+            "rank": -1,
+            "top": [
+              "local-auth-demo-any-mfa-code -[implements]-> program-health-demo-box: LOCAL_AUTH_DEMO_ANY_MFA_CODE=true, so any six-digit numeric MFA code …",
+              "demo-box-auth -[status]-> pending: A1: confirm demo box does not run dev-auth with default secret; remains outstanding.",
+              "hetzner-demo -[provides]-> box-migration: Demo box now serves main branch exclusively; deployed commit matches main head, invariant holds"
+            ]
+          },
+          {
+            "question": "What does the SEO data vendor charge per request?",
+            "rank": -1,
+            "top": [
+              "david-character -[related_to]-> dataforseo: Per scry memory orientation, David is responsible for resolving DataForSEO's -$0.00062 balance …",
+              "seo-audit -[uses]-> dataforseo: The audit used DataForSEO as a data source.",
+              "dataforseo -[related_to]-> dataforseo: Account balance is -$0.00062 and needs a top-up."
+            ]
+          },
+          {
+            "question": "Why was hunting for search terms with no existing player a dead end?",
+            "rank": -1,
+            "top": [
+              "conversionlinttest -[decided]-> no-dead-end-pages: Test asserts every page under pages/marketing/ links onward to a conversion path (via Mk…",
+              "web-app-shell -[blocked_by]-> sign-in-dead-end: Blocking finding 1: /sign-in is a dead end for an authenticated operator (no interactive el…",
+              "conversionlinttest -[decided]-> childscribe-marketing: Every public marketing page must have no dead onward links and no dead-end pages."
+            ]
+          },
+          {
+            "question": "How are the different kinds of events categorized in that WordPress site?",
+            "rank": -1,
+            "top": [
+              "wordpressadapter -[deployed_on]-> wordpress: WordPressAdapter targets WordPress REST API endpoint {site}/wp-json/wp/v2/posts with no plugin…",
+              "publishingconnection -[uses]-> wordpress: PublishingConnection stores application password credentials for WordPress Basic auth against sit…",
+              "wordpress -[blocked_by]-> yootheme: WordPress and YOOtheme auto-wrapped the wistia-player custom element in <p> tags, breaking the embed st…"
+            ]
+          },
+          {
+            "question": "Which model came out on top in the writing comparison?",
+            "rank": -1,
+            "top": [
+              "ch1-3-generation-then-editing-flow-comparison -[decided]-> next phase: Decision made to apply winning model to ch1-3 generation followed by…",
+              "cellsaviors -[related_to]-> cell-comparison-pages: Cell comparison pages (/cell-database/compare/X-vs-Y) proposed as top-priority follow-up…",
+              "jeff -[related_to]-> chainsh: Queued chain.sh: waits for run A exit, swaps models on Halo, runs run B until 11:00, writes AB-COMPARISON.md."
+            ]
+          },
+          {
+            "question": "What makes that page builder awkward for agents to edit?",
+            "rank": -1,
+            "top": [
+              "item6-audit -[implements]-> builder: Sent the builder the complete affected-file list (all 40 published guides / 215 editorial sections), h…",
+              "quick-wins-elementor-edits -[status]-> needs-work: H1 on /services/, homepage typo 'MFA'→'NFA', NAP in hero/footer, broken black block requ…",
+              "goal-1a-builder -[modifies]-> goal-1a-control-plane: The builder landed concurrent implementation changes in the shared jbuild-control-plan…"
+            ]
+          },
+          {
+            "question": "What data survives from one month's report to the next?",
+            "rank": -1,
+            "top": [
+              "monthly-clamp-short-month -[decided]-> task d2bc8e4dea22: Monthly clamps the 31st onto a short month's last day instead of skipping the mon…",
+              "chapter-departments -[uses]-> saidthismonth: saidThisMonth is model-selected from month's quote moments, enforced verbatim in postValidate …",
+              "journalentrydeletetest -[decided]-> chapter-stale-marking: Test verifies deleting entry marks that month's existing chapter stale if one ex…"
+            ]
+          },
+          {
+            "question": "How do we treat temporary errors coming back from Meta when publishing?",
+            "rank": -1,
+            "top": [
+              "metapublishexception -[documents]-> metapublisher: Any 401 or 403 is treated as revoked token and destination is immediately disabled; Meta…",
+              "metapublishexception -[fixes]-> Task 3: Meta Provider Abstraction and Publish: Meta error code 190 (expired token) now classified as auth f…",
+              "metapublishexception -[documents]-> deterministic-4xx-errors: Typed non-auth/non-unknown Meta 4xx errors are classified as failed (retryabl…"
+            ]
+          },
+          {
+            "question": "What is the minimum length the automated writing gate enforces?",
+            "rank": -1,
+            "top": [
+              "length-band-floor -[fixes]-> 100 (flat minimum with ceiling-buffer): Guard now enforces max(100, 1.5×source, ceiling−20) to prevent unsatis…",
+              "design-system-component-set -[decided]-> thumb-safe-hit-targets: product-spec.md §6 constraint enforced by tests: driver-facing hit targets…",
+              "memory-book -[uses]-> length-band-floor: Guard enforces floor as max(100, 1.5×source, ceiling−20) with re-roll on violation"
+            ]
+          },
+          {
+            "question": "What subject does Jeff say he cannot fake his way through?",
+            "rank": -1,
+            "top": [
+              "jeff -[documents]-> local-model-for-opencode: Jeff wants a model running on his MacBook Pro that he can use with opencode to work on longer…",
+              "jeff -[uses]-> cockpit: Jeff navigates sessions via Cockpit + Ghostty and prefers them over Helm for the way he works",
+              "jeff -[uses]-> iphone: Jeff will prompt a real session from his iPhone through the paired dogfood lane."
+            ]
+          },
+          {
+            "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+            "rank": -1,
+            "top": [
+              "setpoint-notification-template-rendering -[blocked_by]-> claude-reviewer: Task 05a5662f83ef awaits claude-reviewer's review before it can p…",
+              "jeff -[related_to]-> stop-hook-feedback: Jeff interrupted the stop-hook feedback loop asking what still needs deciding",
+              "hermes -[decided]-> build-agent-template-first: Recommendation: build gap 1 (personas) and gap 2 (approval queue) together first as one age…"
+            ]
+          },
+          {
+            "question": "Which model is powering the visual design session and how fast is it going?",
+            "rank": -1,
+            "top": [
+              "design-visual-polish -[assigned_to]-> statelicenselookup-design: Redesign work is isolated on branch design/visual-polish; nothing merges t…",
+              "statelicenselookup-design -[related_to]-> design-visual-polish: All design work happens on branch design/visual-polish and is committed the…",
+              "slookup-design -[runs_on]-> statelicenselookup-design: Session launched from the isolated design/visual-polish worktree at /Users/jclaw/wor…"
+            ]
+          },
+          {
+            "question": "What URL do I open to see the battery pack layout tool locally?",
+            "rank": -1,
+            "top": [
+              "battery-pack-designer -[related_to]-> battery-pack-calculator: Tool ranks position 6.2 for 'battery pack calculator' (high-intent query); c…",
+              "battery-pack-calculator -[related_to]-> cell-saviors-battery-designer: /battery-pack-designer remains the classic tool while the upgraded i…",
+              "battery-pack-designer -[part_of]-> cellsaviors: The classic battery pack designer tool remains at the /battery-pack-designer route in cells…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 5.290322580645161
+      }
+    },
+    {
+      "suite": "probes",
+      "result": {
+        "total": 7,
+        "hits": 7,
+        "top_n": 20,
+        "hit_rate": 1,
+        "mean_payload_bytes": 9639,
+        "max_payload_bytes": 10107,
+        "over_cap": 0,
+        "mean_latency_ms": 70.57142857142857,
+        "mean_answer_rank": 1
+      }
+    },
+    {
+      "suite": "tuning-strict",
+      "result": {
+        "total": 50,
+        "hits": 41,
+        "top_n": 20,
+        "hit_rate": 0.82,
+        "mean_payload_bytes": 9959,
+        "max_payload_bytes": 11429,
+        "over_cap": 0,
+        "mean_latency_ms": 157.34,
+        "misses": [
+          {
+            "question": "I need to SSH into the Hermes Mac mini over the tailnet. What user and address do I use?",
+            "rank": -1,
+            "top": [
+              "tailnet-forwarder -[implements]-> mac-mini: Tailnet scan on 2026-09-01 found no host named 'hermes'; the Hermes box is mini at 100.96.45.73…",
+              "hermes -[depends_on]-> mac-mini: Hermes/Jermes runs on the Mac Mini over SSH with Tailscale; SSH identity had to be resolved locally becaus…",
+              "mac-mini -[part_of]-> tailnet-forwarder: Mac mini is already on the tailnet with MagicDNS name jclaws-mac-mini."
+            ]
+          },
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "comjhootscrydplist -[owns]-> scryd: LaunchAgent configuration manages scryd daemon lifecycle",
+              "scry -[uses]-> launchd: Scry daemon managed by LaunchAgent, which became single authority after fix"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "admissionsservicegetpipeline -[uses]-> mirror-store-salesforce-leads: AdmissionsService.getPipeline reads SF leads from MirrorStore.salesfo…",
+              "scry-memory-solid -[targets]-> scry: The run's goal is that every agent (Claude Code, Codex, Kimi, OpenCode) writes to scry's memory graph …",
+              "scry -[provides]-> scry-memory-path: scry_memory_path is one of scry's exposed MCP memory tools."
+            ]
+          },
+          {
+            "question": "What process actually drives ingestion of sessions into the scry memory graph?",
+            "rank": -1,
+            "top": [
+              "memory-ingestion -[uses]-> memory-graph: memory-graph tags interview_id in metadata JSONB for both timeline entries and relationships writt…",
+              "jeff -[decided]-> trawl-ingestion-process: Jeff chose a Trawl-centric ingestion process for the portfolio sites.",
+              "trawl-ingestion-process -[uses]-> source-harvest: The ingestion process is carried out via the reusable source-harvest skill."
+            ]
+          },
+          {
+            "question": "How are the two Strix Halo inference boxes physically wired to each other?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "mac-mini -[owns]-> halo2: Local AI rack architecture (subject of 'The Small AI Rack'): orchestration on the Mac mini, inference on the two …",
+              "halo-inference-server -[deployed_on]-> amd-halo: The inference endpoint runs on the local AMD Halo box."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "prepost-raw-store-comparison -[calls]-> mac-mini: Independent complete pre/post raw-store comparison on the Mac mini found the store unchan…"
+            ]
+          },
+          {
+            "question": "What happens to the Laravel app's web environments when a commit lands on main?",
+            "rank": -1,
+            "top": [
+              "childscribe-laravel -[deployed_on]-> web-src-driver-cache-merge: The driver app's cache module exists in the docket repo.",
+              "land-web-app-shell-review -[tests]-> loop/land-web-app-shell: The verdict applies to commit 41a95fc, identical to the setpoint/land-web-app…",
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731"
+            ]
+          },
+          {
+            "question": "Do we retain any recording of the child's voice from a live interview?",
+            "rank": -1,
+            "top": [
+              "childscribe-engine-core -[lacks]-> audio-recording: Voice interviews stream over OpenAI Realtime; transcripts are kept, audio files are nev…",
+              "familyinterviewservice -[depends_on]-> family-interview: Service creates and modifies FamilyInterview records and child records post-interv…",
+              "in-interview-voice-feedback -[depends_on]-> interview-engine: In-interview feedback implementation requires engine logic to shift to feedba…"
+            ]
+          },
+          {
+            "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+            "rank": -1,
+            "top": [
+              "git-hooks -[lacks]-> commit-msg-hook: No commit-msg hook exists yet in the hooks wiring.",
+              "cockpit-remote-hosts -[blocked_by]-> hook-status-spec: Remote agent status needs the reverse tunnel from the sheet's §2.6, which is downstr…",
+              "codex -[requires]-> hook-driven-status-design: Codex hooks land untrusted and don't fire until trust is pinned to a config hash — writing t…"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.219512195121951
+      }
+    },
+    {
+      "suite": "tuning",
+      "result": {
+        "total": 50,
+        "hits": 44,
+        "top_n": 20,
+        "hit_rate": 0.88,
+        "mean_payload_bytes": 9959,
+        "max_payload_bytes": 11429,
+        "over_cap": 0,
+        "mean_latency_ms": 158.36,
+        "misses": [
+          {
+            "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+            "rank": -1,
+            "top": [
+              "launchd-scryd-plist -[deployed_on]-> hermes-ops: ~/Library/LaunchAgents/com.jhoot.scryd.plist now owns scryd daemon; sources ~/.secrets.zsh…",
+              "comjhootscrydplist -[owns]-> scryd: LaunchAgent configuration manages scryd daemon lifecycle",
+              "scry -[uses]-> launchd: Scry daemon managed by LaunchAgent, which became single authority after fix"
+            ]
+          },
+          {
+            "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+            "rank": -1,
+            "top": [
+              "admissionsservicegetpipeline -[uses]-> mirror-store-salesforce-leads: AdmissionsService.getPipeline reads SF leads from MirrorStore.salesfo…",
+              "scry-memory-solid -[targets]-> scry: The run's goal is that every agent (Claude Code, Codex, Kimi, OpenCode) writes to scry's memory graph …",
+              "scry -[provides]-> scry-memory-path: scry_memory_path is one of scry's exposed MCP memory tools."
+            ]
+          },
+          {
+            "question": "What process actually drives ingestion of sessions into the scry memory graph?",
+            "rank": -1,
+            "top": [
+              "memory-ingestion -[uses]-> memory-graph: memory-graph tags interview_id in metadata JSONB for both timeline entries and relationships writt…",
+              "jeff -[decided]-> trawl-ingestion-process: Jeff chose a Trawl-centric ingestion process for the portfolio sites.",
+              "trawl-ingestion-process -[uses]-> source-harvest: The ingestion process is carried out via the reusable source-harvest skill."
+            ]
+          },
+          {
+            "question": "How are the two Strix Halo inference boxes physically wired to each other?",
+            "rank": -1,
+            "top": [
+              "local-models -[runs_on]-> amd-strix-halo-boxes: Local models are hosted on two AMD Strix Halo boxes.",
+              "mac-mini -[owns]-> halo2: Local AI rack architecture (subject of 'The Small AI Rack'): orchestration on the Mac mini, inference on the two …",
+              "halo-inference-server -[deployed_on]-> amd-halo: The inference endpoint runs on the local AMD Halo box."
+            ]
+          },
+          {
+            "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+            "rank": -1,
+            "top": [
+              "scry -[runs_on]-> mac-mini: The shared-memory socket points every machine at the mini's scry store.",
+              "mac-mini -[calls]-> hermes: The Mac mini at 100.96.45.73 runs the Hermes gateway.",
+              "prepost-raw-store-comparison -[calls]-> mac-mini: Independent complete pre/post raw-store comparison on the Mac mini found the store unchan…"
+            ]
+          },
+          {
+            "question": "What happens to the Laravel app's web environments when a commit lands on main?",
+            "rank": -1,
+            "top": [
+              "childscribe-laravel -[deployed_on]-> web-src-driver-cache-merge: The driver app's cache module exists in the docket repo.",
+              "land-web-app-shell-review -[tests]-> loop/land-web-app-shell: The verdict applies to commit 41a95fc, identical to the setpoint/land-web-app…",
+              "mobile -[depends_on]-> port-18731: Mobile app's EXPO_PUBLIC_API_URL environment variable set to http://127.0.0.1:18731"
+            ]
+          }
+        ],
+        "mean_answer_rank": 4.0227272727272725
+      }
+    }
+  ]
+}

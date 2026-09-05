@@ -1,0 +1,20 @@
+{
+  "scope": "Bounded fourth-ten disposition review only; no apply or whole-goal PASS",
+  "proposal_sha256": "c337809ce6f66f54d2261450b5d59ee5f766f2b6f4099f1bc51ecabaca6c6f08",
+  "source_sha256": "ec8f3db013100299700f126e8bdee30a727043e6ff23012229f790b1f5dcbd1f",
+  "pass_keep": 2,
+  "pass_unresolved": 8,
+  "block": 0,
+  "records": [
+    {"old_key":"fa:chief-of-staff-morning-brief:fixes:hermes-ops:1788119373000000000","expected_sha256":"fbc729e02c19daf6be01d62f764a93fce38d3a20155636c3638fd091bf94d779","verdict":"PASS_UNRESOLVED","report_section":1},
+    {"old_key":"fa:childscribe-alias-batch:related_to:mac-mini:1788636922000000000","expected_sha256":"eff17b852672d85e3a13c3f554dc92d802fce7fdb8f3459edcb69e90b14900b1","verdict":"PASS_KEEP","report_section":2},
+    {"old_key":"fa:childscribe-alias-prune:related_to:mac-mini:1788480000000000000","expected_sha256":"b5aeb32aea399ac22e071b3a55d0703b69444ccfdd510229924cc93174b75b1d","verdict":"PASS_KEEP","report_section":3},
+    {"old_key":"fa:childscribe-engine-core:deployed_on:hermes-ops:1784073600000000000","expected_sha256":"e589d43feda22fe0b5f6be087f86bbdd94d4f6e7fcdb3042cde7cb21d99b1ea8","verdict":"PASS_UNRESOLVED","report_section":4},
+    {"old_key":"fa:childscribe-feedback:deployed_on:mac-mini:1784678400000000000","expected_sha256":"ed6fdcc5d2f70089c78c5dc3423158c54b7432c117156d3c34f7d80811c77b79","verdict":"PASS_UNRESOLVED","report_section":5},
+    {"old_key":"fa:childscribe-laravel:deployed_on:hermes-ops:1787154300000000000","expected_sha256":"cacdda198d1fbf139a5ac574a3f23ce3512d7013c589ca562467f120e6a072ca","verdict":"PASS_UNRESOLVED","report_section":6},
+    {"old_key":"fa:childscribe-laravel:deployed_on:hermes-ops:1788244817720000000","expected_sha256":"dbba415462e8de7e9c6cac1e232159981d9272cbc513ca3789b11cffecdf74a9","verdict":"PASS_UNRESOLVED","report_section":7},
+    {"old_key":"fa:childscribe-laravel:monitors:mac-mini:1788480000000000000","expected_sha256":"34323b4e2d55a0f2f1e71048a985ca2674bc2d7440dd74fb3592165d33d82838","verdict":"PASS_UNRESOLVED","report_section":8},
+    {"old_key":"fa:childscribe-sentry-monitoring:targets:hermes:1784749912358000000","expected_sha256":"0663b46a37712618a1b6aa52310ed1d174bf6a90b50bab6b25a53655869c8958","verdict":"PASS_UNRESOLVED","report_section":9},
+    {"old_key":"fa:chrome-cdp-profile:runs_on:mac-mini:1788307200000000000","expected_sha256":"c2d7a817b5685e6aada2630cc3699deade90db1e3dba461cc90d6f425a521bfa","verdict":"PASS_UNRESOLVED","report_section":10}
+  ]
+}

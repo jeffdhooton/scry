@@ -1,0 +1,286 @@
+{
+  "scope": "Fourth ten exact current/historical records, excluding the first thirty by complete Go Fact payload, from the immutable 23:14:10 source. Review proposal only; not an apply manifest.",
+  "source_backup": "/Users/jclaw/.scry/backups/memory-20260905T231410Z.badger",
+  "source_local": "/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/memory-20260905T231410Z.badger",
+  "source_sha256": "ec8f3db013100299700f126e8bdee30a727043e6ff23012229f790b1f5dcbd1f",
+  "inventory_unique_facts": 873,
+  "reviewed_records": 10,
+  "independently_graded_records": 10,
+  "evidence_root": "/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/hermes-fourth-ten-231410",
+  "evidence_read": "All ten selected payloads, ten complete source episode objects, 144 complete companion payloads and eleven selected endpoint metadata records; five exact-ID full projections including one breadcrumb-only source; one full recorded span with historical-ID limit; the complete available seed and full manual source. Two original transcripts missing locally; no omitted tool/reasoning payload is claimed semantically read.",
+  "source_projection_roots": [
+    "/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/hermes-fourth-five-complete-sources",
+    "/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/hermes-fourth-recorded-span"
+  ],
+  "seed": {
+    "path": "/Users/jeff/.claude/projects/-Users-jeff-workspace-scribe/memory/reference_childscribe_observability_hermes_mini.md",
+    "sha256": "f1c0f5d8f8ddac50111a2f704d72de5f76223053d320d9993c488fa18f01be31",
+    "historical_revision_verified": false
+  },
+  "hash_format": "expected_sha256 is SHA-256 of production Go json.Marshal(Fact); old_key is raw Badger key with UnixNano suffix, index_key is search.FactKey with UTC RFC3339Nano.",
+  "rules": "No fact changed. KEEP applies only to the exact recorded fact, not all endpoint metadata. UNRESOLVED is neither an implied keep nor permission to move. This is not a complete trio audit; later drift requires separate review.",
+  "records": [
+    {
+      "expected_sha256": "fbc729e02c19daf6be01d62f764a93fce38d3a20155636c3638fd091bf94d779",
+      "fact": {
+        "src": "chief-of-staff-morning-brief",
+        "relation": "fixes",
+        "dst": "hermes-ops",
+        "raw_relation": "fixed_at",
+        "fact": "Skill reference path fixed by moving symlink from skills/productivity/chief-of-staff to skills/chief-of-staff",
+        "valid_from": "2026-08-30T19:49:33Z",
+        "confidence": 0.9,
+        "episodes": [
+          "304e2f9e93fcb2ff00428a5b866d58e847b39ebc9044ba1965cee396370e5c76"
+        ]
+      },
+      "index_key": "fa:chief-of-staff-morning-brief:fixes:hermes-ops:2026-08-30T19:49:33Z",
+      "old_key": "fa:chief-of-staff-morning-brief:fixes:hermes-ops:1788119373000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The complete 304e2f9e source fixes the installed Hermes skill symlink under ~/.hermes/skills, while the target reference files are version-controlled in hermes-ops. The stored fixes relation makes the morning-brief job appear to fix the repository; neither that subject nor the fixed_at-to-fixes meaning follows from moving a runtime registration.",
+        "caveat": "Separate skill folder, scheduled job and installed symlink identities before choosing endpoints. Preserve the source's two retracted cron-block explanations and final nonreproduction; do not infer a security-setting change.",
+        "independent_review": "PASS_UNRESOLVED",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "eff17b852672d85e3a13c3f554dc92d802fce7fdb8f3459edcb69e90b14900b1",
+      "fact": {
+        "src": "childscribe-alias-batch",
+        "relation": "related_to",
+        "dst": "mac-mini",
+        "raw_relation": "applied_on",
+        "fact": "The reviewed ChildScribe alias batch was applied on the Mini at 2026-09-05 19:35:22 UTC.",
+        "valid_from": "2026-09-05T19:35:22Z",
+        "confidence": 0.95,
+        "episodes": [
+          "a429d47b01db70e3bfe1ebb8ed690b8adfdc6e855601eec20620304aa2c9f628"
+        ]
+      },
+      "index_key": "fa:childscribe-alias-batch:related_to:mac-mini:2026-09-05T19:35:22Z",
+      "old_key": "fa:childscribe-alias-batch:related_to:mac-mini:1788636922000000000",
+      "review": {
+        "disposition": "KEEP",
+        "proposed_src": "childscribe-alias-batch",
+        "proposed_dst": "mac-mini",
+        "reason": "The full manual source explicitly identifies this reviewed alias operation as applied to the memory store on the Mini. The archived independent actual-live section of childscribe-alias-batch-review-2026-09-05.md verifies the exact automatic backup and post-state for that operation. The host endpoint belongs to mac-mini, not the repository or gateway.",
+        "caveat": "This keeps this exact historical fact only. It does not endorse the operation entity's project type, turn a pending review at the note's time into a contemporaneous PASS, or authorize another apply.",
+        "independent_review": "PASS_KEEP",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "b5aeb32aea399ac22e071b3a55d0703b69444ccfdd510229924cc93174b75b1d",
+      "fact": {
+        "src": "childscribe-alias-prune",
+        "relation": "related_to",
+        "dst": "mac-mini",
+        "raw_relation": "backup_on",
+        "fact": "Reversible pre-prune backup at ~/.scry/backups/memory-20260904T170026Z.badger on the mini.",
+        "valid_from": "2026-09-04T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "d53c26f5894bd2027700324df052512883d2716d0ac6c62860b04ae833f074d5"
+        ]
+      },
+      "index_key": "fa:childscribe-alias-prune:related_to:mac-mini:2026-09-04T00:00:00Z",
+      "old_key": "fa:childscribe-alias-prune:related_to:mac-mini:1788480000000000000",
+      "review": {
+        "disposition": "KEEP",
+        "proposed_src": "childscribe-alias-prune",
+        "proposed_dst": "mac-mini",
+        "reason": "The exact-ID reproduced d53c26f5 handoff explicitly places the reversible pre-prune memory backup on the Mini. The subject is the alias-prune decision and the preserved raw backup_on relationship concerns a host-held backup, so mac-mini is the appropriate endpoint.",
+        "caveat": "The source says verification was outstanding at that time. Preserve that history; this does not claim a new backup or alter the fact's day-level validity.",
+        "independent_review": "PASS_KEEP",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "e589d43feda22fe0b5f6be087f86bbdd94d4f6e7fcdb3042cde7cb21d99b1ea8",
+      "fact": {
+        "src": "childscribe-engine-core",
+        "relation": "deployed_on",
+        "dst": "hermes-ops",
+        "fact": "Prod engine deployed to Fly.io iad with pgvector-17.2, fresh secrets, and health checks passing",
+        "valid_from": "2026-07-15T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "eb90ebf874ae0dfab6dae884e991a9216b053c8e18d4bfaa3947c737f291b4e8"
+        ]
+      },
+      "index_key": "fa:childscribe-engine-core:deployed_on:hermes-ops:2026-07-15T00:00:00Z",
+      "old_key": "fa:childscribe-engine-core:deployed_on:hermes-ops:1784073600000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The sentence describes a production engine deployment to Fly.io iad, not to hermes-ops. The stored episode summary agrees on a Fly engine and separate Forge sites, but its original 7c4dd46d transcript is missing from the recorded path and bounded local filename search.",
+        "caveat": "Do not guess a Fly app/region/platform identity or move this to the Mini. Original-source recovery and exact target/conflict review remain open.",
+        "independent_review": "PASS_UNRESOLVED",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "ed6fdcc5d2f70089c78c5dc3423158c54b7432c117156d3c34f7d80811c77b79",
+      "fact": {
+        "src": "childscribe-feedback",
+        "relation": "deployed_on",
+        "dst": "mac-mini",
+        "fact": "Feedback digest launchd job runs on hermes Mac mini daily at 9am",
+        "valid_from": "2026-07-22T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "75a4b5112ab9431992c497005407df32f20cfb2b52b8fc765a992b21cd305835"
+        ]
+      },
+      "index_key": "fa:childscribe-feedback:deployed_on:mac-mini:2026-07-22T00:00:00Z",
+      "old_key": "fa:childscribe-feedback:deployed_on:mac-mini:1784678400000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The complete available observability seed explicitly places the daily 9am feedback_digest.py launchd job on the Mini, distinct from the Hermes on-demand feedback-review skill and the production Laravel API. The selected childscribe-feedback entity aggregates that digest with the in-app form, API, model and table, so the full source endpoint is not yet a reviewed single runtime identity.",
+        "caveat": "The host interpretation is supported; the aggregate source and exact historical seed revision are not resolved. The available seed is modified July 29 after its recorded July 24 source time. Do not silently endorse the whole aggregate as deployed on Mini.",
+        "independent_review": "PASS_UNRESOLVED",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "cacdda198d1fbf139a5ac574a3f23ce3512d7013c589ca562467f120e6a072ca",
+      "fact": {
+        "src": "childscribe-laravel",
+        "relation": "deployed_on",
+        "dst": "hermes-ops",
+        "fact": "ChildScribe Laravel production is deployed via Forge (a service tracked in hermes-ops context).",
+        "valid_from": "2026-08-19T15:45:00Z",
+        "confidence": 0.7,
+        "episodes": [
+          "198d4bf626a6e1f511e7009261497d35a0ee387dc65667a4913eed4cc8bbfb93"
+        ]
+      },
+      "index_key": "fa:childscribe-laravel:deployed_on:hermes-ops:2026-08-19T15:45:00Z",
+      "old_key": "fa:childscribe-laravel:deployed_on:hermes-ops:1787154300000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The exact historical source ID 198d4bf6 reproduces a complete 25-byte human/assistant projection consisting only of an Assistant Bash breadcrumb. It does not reproduce any Forge or Hermes assertion in that projection. Stored summary and companion assertions cannot substitute for missing substantive source text. The sentence itself says Forge, not the repository.",
+        "caveat": "Tool/reasoning payloads are not claimed semantically read; preserve the exact raw span hash. No exact Forge recipient or source-supported historical deployment is approved from this evidence.",
+        "independent_review": "PASS_UNRESOLVED",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "dbba415462e8de7e9c6cac1e232159981d9272cbc513ca3789b11cffecdf74a9",
+      "fact": {
+        "src": "childscribe-laravel",
+        "relation": "deployed_on",
+        "dst": "hermes-ops",
+        "fact": "Docket is deployed on the Node host.",
+        "valid_from": "2026-09-01T06:40:17.72Z",
+        "confidence": 1,
+        "episodes": [
+          "72f04f3f59c2d5322e5b2a3546c8d7db37f5e6fbc00de53fe75e02d7d18fde80"
+        ]
+      },
+      "index_key": "fa:childscribe-laravel:deployed_on:hermes-ops:2026-09-01T06:40:17.72Z",
+      "old_key": "fa:childscribe-laravel:deployed_on:hermes-ops:1788244817720000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The complete 72f04f3f office-host source is Docket work comparing Node and Cloudflare adapters with local live/e2e checks. It does not identify the office as ChildScribe or the generic Node host as the hermes-ops repository. Both stored endpoints are unsupported as an ownership pair.",
+        "caveat": "Host-adapter behavior and successful journeys do not by themselves establish a physical deployment target. The node-host, host-environment, Docket and physical Mini identities need separate exact review before moving either endpoint.",
+        "independent_review": "PASS_UNRESOLVED",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "34323b4e2d55a0f2f1e71048a985ca2674bc2d7440dd74fb3592165d33d82838",
+      "fact": {
+        "src": "childscribe-laravel",
+        "relation": "monitors",
+        "dst": "mac-mini",
+        "raw_relation": "backed_up_on",
+        "fact": "Pre-prune store backup memory-20260904T170026Z.badger is kept on the Mac mini.",
+        "valid_from": "2026-09-04T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "416bd0b4f61472a56edb29de8b728a48c0d3e50b6e48c28e197d213c6d67dfae"
+        ]
+      },
+      "index_key": "fa:childscribe-laravel:monitors:mac-mini:2026-09-04T00:00:00Z",
+      "old_key": "fa:childscribe-laravel:monitors:mac-mini:1788480000000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The complete 416bd0b4 handoff is about a Scry memory-store backup on the Mini, not a ChildScribe Laravel service monitoring the Mini. The host location is explicit, but source and canonical monitors relation do not describe that assertion.",
+        "caveat": "Review a backup/repair artifact subject and the backed_up_on mapping; do not repair only the destination or rewrite the historical stopping/verification discussion.",
+        "independent_review": "PASS_UNRESOLVED",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "0663b46a37712618a1b6aa52310ed1d174bf6a90b50bab6b25a53655869c8958",
+      "fact": {
+        "src": "childscribe-sentry-monitoring",
+        "relation": "targets",
+        "dst": "hermes",
+        "raw_relation": "planned_to_run_on",
+        "fact": "The proposed Sentry monitoring system would run on hermes mac mini as an agent",
+        "valid_from": "2026-07-22T19:51:52.358Z",
+        "confidence": 0.85,
+        "episodes": [
+          "9565e22374ac3a4a4a585b8a57f7ecf76432f1d6cf36defd6e02d2da341a68d8"
+        ]
+      },
+      "index_key": "fa:childscribe-sentry-monitoring:targets:hermes:2026-07-22T19:51:52.358Z",
+      "old_key": "fa:childscribe-sentry-monitoring:targets:hermes:1784749912358000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The stored sentence and summary describe a proposed monitoring agent on the hermes Mac mini, not a monitoring system targeting the standing Hermes gateway. The original 705695a9 transcript is missing locally; the later observability seed is not the same historical source.",
+        "caveat": "Keep proposal status and distinguish agent, host and monitor target. No endpoint relocation or promotion from planned_to_run_on to deployed behavior is authorized.",
+        "independent_review": "PASS_UNRESOLVED",
+        "applied": false
+      }
+    },
+    {
+      "expected_sha256": "c2d7a817b5685e6aada2630cc3699deade90db1e3dba461cc90d6f425a521bfa",
+      "fact": {
+        "src": "chrome-cdp-profile",
+        "relation": "runs_on",
+        "dst": "mac-mini",
+        "fact": "Real Chrome under launchd with a persistent profile and remote debugging on the mini; cdp_url confirmed empty and available to point at it.",
+        "valid_from": "2026-09-02T00:00:00Z",
+        "confidence": 1,
+        "episodes": [
+          "277fead1c7a904d139dc844662262e520dad68ff8519c4363da1578c8fbcd661"
+        ]
+      },
+      "index_key": "fa:chrome-cdp-profile:runs_on:mac-mini:2026-09-02T00:00:00Z",
+      "old_key": "fa:chrome-cdp-profile:runs_on:mac-mini:1788307200000000000",
+      "review": {
+        "disposition": "UNRESOLVED",
+        "proposed_src": null,
+        "proposed_dst": null,
+        "reason": "The complete recorded 277fead1 source span proposes a real Chrome with a persistent profile and CDP on the Mini; it explicitly confirms cdp_url is empty and ends with a design spec awaiting further approval. It does not establish that this Chrome was already installed and running.",
+        "caveat": "The original historical chunk ID is not reproduced by current distillation; the full recorded span projection is hashed and read with that limit. The Mini is the proposed host, but present-tense runs_on metadata must not be treated as a proven deployment.",
+        "independent_review": "PASS_UNRESOLVED",
+        "applied": false
+      }
+    }
+  ],
+  "independent_review": {
+    "report": "hermes-fourth-ten-independent-review-2026-09-05.md",
+    "report_sha256": "7f214f428572e1e798d9680e62db4415395c54f7cfdd1cc3969233f38db045d4",
+    "reviewed_proposal_sha256": "c337809ce6f66f54d2261450b5d59ee5f766f2b6f4099f1bc51ecabaca6c6f08",
+    "integration": "Only review status and this receipt changed after independent review; all ten fact payloads, keys, hashes and disposition reasons are unchanged.",
+    "source_rendering_correction": "Private Chrome closure labeled 84 parsed role turns substantive; only 41 are nonempty. Independent parent-span projection is substantively equal after blank-turn/role-format normalization. Historical chunk ID remains unreproduced."
+  }
+}

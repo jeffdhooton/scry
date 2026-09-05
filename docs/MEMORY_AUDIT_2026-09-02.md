@@ -3479,3 +3479,57 @@ semantic/input extension before apply. Two original transcripts needed for the
 next Expo/dev-client candidate are missing at their recorded local paths; no
 disposition or live mutation is inferred from their absence. Broader acceptance
 clauses, original recall floors and final grading rounds remain unfinished.
+
+### 2026-09-05 23:36 UTC — stale alias refusal and bounded review progress
+
+Stops-table remains UNAPPLIED. Independent gates extended through 23:14:10
+and proved complete raw equality through 23:23:03 (243,249 pairs), archived as
+child-stops-table-{drained-gate,latest-gate,freshness-232303}-2026-09-05.md.
+Immediate 23:33:34 live preview refused committed manifest 9b34e94a: real
+ingestion increased Child touching facts 2,111 to 2,112, fingerprint now
+7e8b10b870e25afdf3bfb55912ae71f8dbf83e715000e5eed29db08973ceafec.
+No apply command ran; Child still has 40 aliases and only three rejections.
+Room 108 announced intended apply; room 109 records immediate refusal.
+New complete memory-20260905T233353Z.badger, 73,971,229 bytes, matches
+Mini/local SHA 907b9ae1e3210ac3840271e66ab95e34c9a24838863031812937c161bd076703.
+Root restored 80,844 facts / 30,725 entities / 9,371 episodes; private candidate
+9f081e8f6180717ebfe6020adcbcd20bf190a40aa2754ec64e8584fee609c964 is undergoing
+complete independent drift/source/replica review. New fingerprints alone are
+not semantic approval.
+
+Independent current recall disproof is archived as
+memory-repairs/recall-floor-disproof-2026-09-05.md, SHA
+ff15702e1aa373858afec1a39da17d3df9be5ae8fc8846148b71272d682fb5e2.
+Of 48 held-out misses on fixed 23:08:54, 44 have current answers already in
+the candidate pool, two miss the 4,000-candidate cutoff, and two have no
+single stored fact satisfying the existing expectation. The prior limited
+payload diagnostic was not an uncapped ceiling. Full current traces identify
+synonym evidence multiplication and a relation-only reason prior. No question,
+expectation or source fact was rewritten.
+
+A private original-query lexical scoring candidate retained expanded
+candidates but replaced fact lexical scores with ScoreDoc(original query).
+It FAILED: 40/62, 31/66, 7/7, 41/50, 44/50 versus pinned same-source baseline
+51/62, 29/66, 7/7, 45/50, 47/50; max 13,446 bytes, zero over cap.
+Recall/search tests passed, but retrieval regression rejects the candidate.
+Full results: memory-repairs/recall-original-query-score-rejected-2026-09-05.json.
+Private /tmp/scry-recall-scoring-sep05.EHNmnp/scry-original-query-score SHA
+ee7ca473a88a1320d7db80905f0d9739a597d0d7f768b94145df08bbf01f1977 was not deployed.
+Fixed replica complete raw SHA remains
+2ff1ea657a217bd3d038da694d1e18bc2ca34ae7b1758006f3fe79dfc52c6d12 before/after.
+Production scoring, synonym entries, facts and running binaries are unchanged.
+
+Fourth-ten Hermes review passes 2 KEEP and 8 UNRESOLVED, zero blocks/moves.
+Full memory-repairs/hermes-fourth-ten-independent-review-2026-09-05.md SHA
+7f214f428572e1e798d9680e62db4415395c54f7cfdd1cc3969233f38db045d4 and separate
+verdicts are archived. Independent raw restore recovers 873 trio records,
+144 companions, ten episodes, eleven endpoints and excludes all prior thirty
+complete payloads. Five exact-ID projections, one full parent span with
+unreproduced historical ID, complete available seed and manual source were
+read; two originals are missing locally. Chrome closure's 84 parsed role
+turns includes empty projections; 41 are nonempty. Independent substantive
+equality survives rendering normalization. No disposition changes.
+Only review-status/receipt fields changed when root integrated the verdict;
+the report retains its exact pre-integration proposal hash. Forty reviewed
+records do not close the complete trio audit or subsequent drift. Room 110
+records this bounded verdict. Original floors and all final gates remain open.
