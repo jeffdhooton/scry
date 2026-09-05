@@ -2993,3 +2993,20 @@ conflict: episode
 This is the deliberate no-overwrite boundary, not successful ingestion.
 The pending source needs explicit fact review; no broad retry or timestamp
 nudge is authorized. Existing queue work continues normally.
+
+### Recall attribution closed narrowly — 2026-09-05, 19:57 UTC
+
+Independent review (room 77) reproduced identical old/new binary results
+on three separately restored sources: 30/66 on the 19:35 ChildScribe post
+backup, 30/66 on the 19:38 predeployment backup, and 29/66 on the 19:45
+postdeployment backup. Complete JSON matches except latency; all graph
+fingerprints remain unchanged. Report and exact hashes:
+`memory-repairs/recall-attribution-2026-09-05.md`.
+
+The unchanged current ChildScribe SSR/supervisorctl answer moves from rank
+20 to 21 after new legitimate staging evidence enters the graph. A read-only
+incremental-index/vector-refresh simulation reproduces this displacement.
+This excludes a direct binary regression on the measured sources, not the
+unmet retrieval floor. Keep 393eeec prevention; do not remove the competing
+fact, restore leaking aliases, change questions or lower acceptance bars.
+The fresh-source migration review can proceed; no stale manifest is approved.

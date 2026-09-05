@@ -588,3 +588,18 @@ for explicit review (`cockpit-attention` to `cockpit-signals`, September 5
 midnight). Four parked items now exist, with more normal work processing.
 Parking prevents overwrite but is not a completed ingestion result. The
 full goal remains active and unfinished.
+
+### Later checkpoint: direct recall attribution complete, 19:57 UTC
+
+The independent same-snapshot old/new comparison is complete (room 77).
+Both binaries score 30, 30, then 29/66 on the three immutable sources. The
+current SSR answer is intact but ranks 21 after new staging evidence and
+vector refresh; a read-only simulation reproduces the displacement. Full
+report: `memory-repairs/recall-attribution-2026-09-05.md`. Keep 393eeec;
+the original recall floors remain failed, with no benchmark weakening.
+
+The earlier temporary hold pending attribution is now lifted only for
+preparing/reviewing the next bounded repair. Refresh the five-member
+migration-0160 manifest from a stable postdeployment/post-ChildScribe source
+and independently regrade complete inputs before live apply. The older
+five-member replica manifest remains stale and must not be applied.
