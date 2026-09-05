@@ -1,0 +1,58 @@
+[
+  {
+    "id": "11409342a788051a765e144c2a9789d4a2f59741e2e4490f94ca060c5965ae97",
+    "raw_bytes": 376978,
+    "raw_sha256": "4a456421c4a5092691f6f628d640321279f7fb2085a9dc4a93d343803c6fbfca",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/05/24/rollout-2026-05-24T13-22-05-019e5b02-1dd5-7182-86be-7c81bccafcf4.jsonl#2611882-2988860",
+    "text_bytes": 15992,
+    "text_sha256": "0354077f2aed72418637603eb18b0a020752992b63d1b2a8dd13cd0725bea350"
+  },
+  {
+    "id": "4c41ca282d4cf9acd1ace1ee2a8e127724384df2e8b81cf2382d00efca49154c",
+    "raw_bytes": 355136,
+    "raw_sha256": "13a2b5e02262511c0525b8d8a89f0cf1baaabb85ee33db140b80199a531640ec",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/05/20/rollout-2026-05-20T13-49-37-019e4681-e255-7a52-a8df-a2587d12fe31.jsonl#1987028-2342164",
+    "text_bytes": 13567,
+    "text_sha256": "11ff2a3bcd2bf42ba7482dff29f5b35ea56bce503186aec54b596b73fe8faf91"
+  },
+  {
+    "id": "8374ea564cc7a7812956164cebe4aa19f845c695e7a5728d7bc24298f1c3c21f",
+    "raw_bytes": 736602,
+    "raw_sha256": "0505d88f5e123e9f31d4919b658a74edf266e3b390f178c4e422b6f221ff27df",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/05/14/rollout-2026-05-14T07-16-14-019e2633-926c-7de2-b69c-51444dd48f6f.jsonl#1128183-1864785",
+    "text_bytes": 15738,
+    "text_sha256": "fcc4495f457d77196c438409c2b0d1d7aa2fea406c1d50271df346b4d80f0802"
+  },
+  {
+    "id": "9927145e402bd833197436ce1d95749b79fa5007b985b0971e24c4c741c274ec",
+    "raw_bytes": 660530,
+    "raw_sha256": "c336ac0385f02d17186cde690a99350993969d8bbb86f2a8ae3cd02fc77e531d",
+    "source_ref": "/Users/jeff/.claude/projects/-Users-jeff-workspace-scribe/eb55c55d-e55b-46d3-a107-818960b29c6d.jsonl#8968-669498",
+    "text_bytes": 13031,
+    "text_sha256": "8e49891c183125294ccd6bd4222f7e1193fccb609bb3653f787039601c0a4f6a"
+  },
+  {
+    "id": "99659758a7be1b405d444ecd1f41b0d5cf35c1ceafd9a05575c2266973414b42",
+    "raw_bytes": 724729,
+    "raw_sha256": "069c91e1e636a3d70d40d3e7c3ac1e76d7e7d35f3a347610892dc65fba6d6b21",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/05/05/rollout-2026-05-05T09-59-35-019df86f-e38b-78d1-9186-9435ff49e125.jsonl#1043606-1768335",
+    "text_bytes": 14575,
+    "text_sha256": "f0c07e4b3ad0b3ad6c92f2d42dbf6c89e6cc6b959a99f15d9cedf48bec05b1f5"
+  },
+  {
+    "id": "b580d6b88a894b2f915becd0e68bc9f7cb60117c6da5e1ac42b549e16b99354c",
+    "raw_bytes": 148143,
+    "raw_sha256": "1209739638460cd66d7936c40a33527d4f88fd646cc6258c6d5ac533a35dc7e6",
+    "source_ref": "/Users/jeff/.codex/sessions/2026/05/14/rollout-2026-05-14T07-16-14-019e2633-926c-7de2-b69c-51444dd48f6f.jsonl#1864474-2012617",
+    "text_bytes": 7484,
+    "text_sha256": "0e32d39d6732c061473274a41295f41c3d6cda287d9caf8d332e0129b3f38903"
+  },
+  {
+    "id": "f104e3733d42d73a6309147c0c9a39c7df7719d038cf3591da799bf31d0eb150",
+    "raw_bytes": 2308630,
+    "raw_sha256": "4690ef14878ade2b36410f1fd586eccebd2a65d05aabb8bba1d627401d36b5d6",
+    "source_ref": "/Users/jeff/.claude/projects/-Users-jeff-workspace-program-health/289cf254-4dcf-4bed-a30b-0380c614689a.jsonl#8527-2317157",
+    "text_bytes": 12842,
+    "text_sha256": "f0f4eae67fd2c9f5236d8e88e84fa62ef13029a171e16a4bab1ea51abfd5b322"
+  }
+]

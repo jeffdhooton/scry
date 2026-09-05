@@ -11,7 +11,7 @@
     "entities": {
       "childscribe-laravel": "c7293a75b15d988dfd82a421349e8d80399352142e8264a94bcbc859398c115b"
     },
-    "facts": "e476cf64dd83d44ee352f0f95bbd4600612ae68f74c0f8473a4fb019584aef4b",
+    "facts": "7e8b10b870e25afdf3bfb55912ae71f8dbf83e715000e5eed29db08973ceafec",
     "alias_claims": {
       "stops-table": "childscribe-laravel"
     },
