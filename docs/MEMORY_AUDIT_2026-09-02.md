@@ -2842,3 +2842,44 @@ fixed-suite hits remained 51/62, 30/66, 7/7, 44/50, 46/50; largest payload
 after restart; two deterministic identity conflicts remain parked, preserved.
 The first stable postdeployment backup at 19:04:41 contains 30,231 entities,
 79,692 facts and 9,292 episodes and is the next live manifest's source.
+
+### Additional replica disproofs and fallback prevention — 2026-09-05
+
+The 19:04 ChildScribe replica gate passed all 79,692 complete facts and its
+exact 43-key raw delta. The committed manifest is not an applied receipt:
+a later normal sweep changed participant fingerprints. Live preview refused
+all 49 rows, with no apply. Do not refresh fingerprints without reviewing
+the new source and every relevant difference. Routine extraction timeouts
+retried successfully; subsequent manual items continue arriving. Three
+deterministic identity conflicts are preserved/parked, including `scry-store`.
+
+Independent code gate for `8c2a05d`: FAIL (room 70), before deployment.
+Its identity guard passed 2,154 checks and all 31 effective identity synonyms;
+the vocabulary remained exactly 39. Diagnostic-only mapping of all 8,946
+effective raw strings changed 19 strings affecting 25 current and two
+invalidated facts, exclusively `same_as` to `related_to`. No stored relation
+was rewritten. However, a parent/candidate differential and restored-live
+normal Apply proved that an existing fallback triple could absorb the new
+routing sentence and raw relation. Report:
+`memory-repairs/identity-relation-first-review-2026-09-05.md`.
+
+The correction keeps distinct fallback statements at their actual times,
+coalesces only exact sentence/raw/value matches, refuses occupied current or
+historical keys atomically (including backfills and same-episode conflicts),
+and parks such conflicts without losing the queued episode. Ambiguous
+fallback supersession refuses rather than selecting the first matching
+canonical triple. New regressions reproduced the original loss before the
+fix. Full `go test ./...`, `go vet ./...`, and resolver/queue races pass;
+independent regrading and deployment remain pending.
+
+Independent migration-0160 candidate gate: FAIL (room 70), before any live
+apply. Three-record mechanics preserved all 79,692 facts and moved the four
+reviewed facts without content loss, reducing collisions 489 to 487 on a
+replica. The semantic closure was incomplete: a hollow machine owns the
+qualified SQL path, and a fifth tool record holds two additional facts for
+the same file. The three-record manifest must not be applied. Read the full
+five-member/six-fact evidence and regenerate an explicit manifest, preserving
+the later August 23 last-seen metadata and qualified old lookup. Report:
+`memory-repairs/migration0160-first-review-2026-09-05.md`. The actual Docket
+SQL file and its sole file-history commit `a7253c0` corroborate file identity;
+the table, enforcement module and reservation task remain distinct.

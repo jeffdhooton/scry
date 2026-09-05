@@ -3355,3 +3355,22 @@ repairs after this prevention is deployed. We would revisit the boundary
 only with independently reviewed evidence that a broader contextual
 identity mapping preserves both true identities and nonidentity operations;
 more stem exceptions alone are not that evidence.
+
+**Reviewer correction: fallback triples are not fact identity.** The first
+guard (`8c2a05d`, not deployed) failed independent normal-Apply testing:
+an existing `related_to` edge absorbed the newly untyped routing claim,
+discarding its sentence and raw relation while acquiring its episode ID.
+The corrected write path coalesces fallback facts only when the complete
+sentence, raw relation, source, destination and literal value agree. Distinct
+statements retain their supplied timestamps as distinct facts. An occupied
+exact timestamp key, including historical keys and backfill relocation,
+refuses the whole episode with `ErrFactConflict`; no timestamp is nudged.
+The queue preserves and parks that episode for explicit review. Fallback
+supersession must match the original raw relation unambiguously, or refuse;
+it cannot invalidate an arbitrary first edge between those endpoints.
+
+This changes ordinary fallback evidence handling, not existing graph facts,
+the storage format, retention, extraction providers or canonical vocabulary.
+It intentionally favors exact evidence preservation over merging paraphrases
+with no semantic proof. Any resulting preserved review-queue item remains
+unfinished ingestion, not a claimed successful drain.

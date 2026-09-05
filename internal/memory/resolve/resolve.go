@@ -508,7 +508,7 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 	// invalidations run.
 	for i := range resolved {
 		rf := &resolved[i]
-		current, err := currentFact(st, rf.src, rf.fct.Relation, rf.keyDst())
+		current, err := matchingFactForMerge(st, *rf)
 		if err != nil {
 			return err
 		}
@@ -536,6 +536,21 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 
 		if rf.merged {
 			continue
+		}
+		// Two fallback statements in this episode may share a triple. Only
+		// an exact statement/raw-relation repeat can coalesce; check again
+		// because Phase A deliberately saw only the pre-existing facts.
+		if rf.fct.Relation == Fallback {
+			current, err := matchingFactForMerge(st, *rf)
+			if err != nil {
+				return err
+			}
+			if current != nil {
+				if err := mergeFact(st, ep, *current, rf.validFrom, rf.fct.Confidence, stats); err != nil {
+					return err
+				}
+				continue
+			}
 		}
 
 		// Rule 6: exclusive relations invalidate any current fact with the
@@ -587,6 +602,11 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 		if supersededAt != nil && rf.validFrom.Before(*supersededAt) {
 			newFact.InvalidAt = supersededAt
 		}
+		if newFact.Relation == Fallback {
+			if err := requireVacantFallbackKey(st, newFact); err != nil {
+				return err
+			}
+		}
 		if err := st.PutFact(newFact); err != nil {
 			return err
 		}
@@ -619,6 +639,11 @@ func mergeFact(st *store.Store, ep store.Episode, current store.Fact, incomingVa
 	if incomingValidFrom.Before(current.ValidFrom) {
 		oldValidFrom := current.ValidFrom
 		current.ValidFrom = incomingValidFrom
+		if current.Relation == Fallback {
+			if err := requireVacantFallbackKey(st, current); err != nil {
+				return err
+			}
+		}
 		if err := st.DeleteFact(current.Src, current.Relation, current.KeyDst(), oldValidFrom); err != nil {
 			return err
 		}
@@ -709,6 +734,9 @@ func applySupersedes(st *store.Store, ep store.Episode, ref extract.SupRef, decl
 	}
 
 	current, err := currentFact(st, srcSlug, relation, keyDst)
+	if relation == Fallback {
+		current, err = currentFallbackForReference(st, srcSlug, keyDst, raw)
+	}
 	if err != nil {
 		return err
 	}

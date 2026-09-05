@@ -444,7 +444,7 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 // fail records one failed attempt. Parse failures count toward parking,
 // and so do timeouts on transcript episodes (too long for the chain).
 // Deterministic resolver verdicts are parked immediately: retrying the same
-// extracted identities cannot move an alias claim safely. Everything else —
+// extracted input cannot resolve an identity or fact-key conflict safely. Everything else —
 // a refused connection, a 5xx, a transient store error, and any failure on a
 // manual item that is not a parse failure — is retried indefinitely, because
 // none of those say anything about the episode. In particular, ErrNotFound
@@ -471,7 +471,7 @@ func (w *Worker) fail(p store.PendingEpisode, cause error) {
 	switch {
 	case permanentResolverFailure(cause):
 		p.Parked = true
-		w.o.Logf("memory queue: PARKED %s after deterministic resolver conflict: %v — repair the identity claim, then replay with `scry memory queue retry %s`",
+		w.o.Logf("memory queue: PARKED %s after deterministic resolver conflict: %v — review and repair the exact identity or fact conflict, then replay with `scry memory queue retry %s`",
 			p.ID, cause, p.ID)
 	case parse && p.Attempts >= MaxParseAttempts:
 		p.Parked = true
@@ -511,7 +511,7 @@ func (w *Worker) fail(p store.PendingEpisode, cause error) {
 // permanent: they can be caused by a concurrent retirement or transaction
 // conflict and must retain the queue's retry guarantee.
 func permanentResolverFailure(err error) bool {
-	return errors.Is(err, store.ErrAliasClaimed) || errors.Is(err, store.ErrInvalidSlug) || errors.Is(err, store.ErrEntityRetired)
+	return errors.Is(err, store.ErrAliasClaimed) || errors.Is(err, store.ErrInvalidSlug) || errors.Is(err, store.ErrEntityRetired) || errors.Is(err, store.ErrFactConflict)
 }
 
 // splitPending halves p's text at a turn boundary and queues both halves

@@ -180,6 +180,7 @@ func TestDeterministicResolverFailureParksImmediately(t *testing.T) {
 		fmt.Errorf("resolve entity: %w: qwen belongs to qwen-3", store.ErrAliasClaimed),
 		fmt.Errorf("resolve entity: %w: bad:slug", store.ErrInvalidSlug),
 		fmt.Errorf("resolve entity: %w: retired-status", store.ErrEntityRetired),
+		fmt.Errorf("resolve fact: %w: distinct fallback assertions", store.ErrFactConflict),
 	} {
 		t.Run(cause.Error(), func(t *testing.T) {
 			st := openTemp(t)

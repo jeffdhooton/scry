@@ -72,6 +72,9 @@ var (
 	// ErrEntityRetired is returned when an ordinary write tries to recreate an
 	// entity that the reviewed retirement path permanently converted to values.
 	ErrEntityRetired = errors.New("memory: entity retired")
+	// ErrFactConflict preserves an episode for review when distinct fallback
+	// assertions cannot share a stored key, or a reference is ambiguous.
+	ErrFactConflict = errors.New("memory: distinct fact assertions conflict")
 )
 
 // Episode is one ingested slice of source material (a session transcript
