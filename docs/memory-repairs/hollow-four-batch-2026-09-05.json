@@ -1,0 +1,58 @@
+[
+  {
+    "id": "hollow-four-all-tasks-implemented",
+    "entity": "all-tasks-implemented",
+    "expected": {
+      "entities": {
+        "all-tasks-implemented": "b364b3ab55bc1c65e855a5733e184292c5f23f5fe02a970ebbebe77c7e6609f7"
+      },
+      "facts": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "alias_claims": "0ee3db1d61534c6188c4d4141a3d0d07e1ac685911607b3d5124de291a359ed1",
+      "adjacencies": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rejections": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "why": "Episode 14e2e6f3 and surviving hermes-agent-templates status value describe ten implemented tasks and 432 passing tests while the independent do-not-merge verdict remains. This empty record is the outcome, not the campaign. Preserve every existing fact, including blockers."
+  },
+  {
+    "id": "hollow-four-api-2312-tests-passing",
+    "entity": "api-2312-tests-passing",
+    "expected": {
+      "entities": {
+        "api-2312-tests-passing": "1172907b3bc7bc898fa1437270c01b964ec528581083dce9ee9d03aec54df9d5"
+      },
+      "facts": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "alias_claims": "c434090305e756b483c79747a5f31c431971ccaeff6d6de1b21166e6de2f90e5",
+      "adjacencies": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rejections": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "why": "Episode 5eb04f98 and its unchanged claude-reviewer documents audit-api fact preserve the 2312-test pre-fix baseline and empty-router gap. The empty record is a measured result, not audit-api, the real front-door test or a named suite. Later 2313/2314 reports remain distinct and unmodified."
+  },
+  {
+    "id": "hollow-four-engine-unavailable",
+    "entity": "engine-unavailable",
+    "expected": {
+      "entities": {
+        "engine-unavailable": "3ca8317cd0dd3d6299296b9162455f9559d115a771cccddde06be07d9de45454"
+      },
+      "facts": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "alias_claims": "f01aa08c5dff3b350a7e585627a407ca0c3df2d587ad7866d6e6187fcccbb82b",
+      "adjacencies": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rejections": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "why": "Episode 831a9ca1 and the existing historical codex-repair-route-explainer status attribute preserve this terminal engine-unavailable outcome. Keep its invalidation time and no-handoff assertion; this empty record is not the engine or worker."
+  },
+  {
+    "id": "hollow-four-git-diff-check-clean",
+    "entity": "git-diff-check-clean",
+    "expected": {
+      "entities": {
+        "git-diff-check-clean": "160aadcc9200952beb86c3829f21911848d76d713fc18c1c5a86637697364f7e"
+      },
+      "facts": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "alias_claims": "807fac2557a095eb8d9e776bf477f42f58d8866ae5402f70fead262b73c41fd3",
+      "adjacencies": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rejections": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "why": "Episode 98402d39 and its unchanged slookup-ingestion final-state fact preserve git diff --check passing with a clean tree after the sitemap commit. This empty result record is not Git, the worktree, branch or sitemap artifact. The same episode's outstanding QA and no-deploy constraints remain."
+  }
+]

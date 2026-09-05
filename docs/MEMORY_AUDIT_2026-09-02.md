@@ -3349,7 +3349,7 @@ Full 22:15 and 22:21 snapshot maps are independently identical. No live apply
 or rejection marker has been written. Before suites remain 51/29/7/45/47;
 the original recall floors remain unmet.
 
-A later normal sweep added eleven episodes and two parked ownership conflicts
+A later normal sweep enqueued eleven items: nine completed episodes and two parked ownership conflicts
 (superpowers-plugin and .superpowers); no pending item was retried manually.
 At 22:31 queue is 0 ready / 0 backoff / 10 parked, last extraction 22:28:05,
 80,586 facts / 30,604 entities / 9,353 episodes. Fresh nonempty Mini backup

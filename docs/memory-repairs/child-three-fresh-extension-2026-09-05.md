@@ -1,0 +1,51 @@
+# Independent three-alias gate extension — 22:31:22 UTC
+
+**Bounded PASS** for the unchanged exact three-drop manifest SHA-256 `4ac2ac02f2d855de6e9afa6233f97b9bb1a37e8241b3387bb8dfd13d32a6b652` on the complete drained source `/tmp/scry-alias-rejection-deploy-sep05.pPmnn3/mini-child-final-223122.badger`, SHA-256 `b669593b978041a646b8c6f3f3dc2cee5eb8cbad0e83d48063915a7a7aaeaea0`. Both supplied snapshot and shared-repository manifest `docs/memory-repairs/child-three-alias-batch-2026-09-05.json` hashes were independently checked.
+
+This extension does not overwrite or replace the full original semantic report `/tmp/scry-child-three-fresh-independent.G20a7Q/REVIEW.md` (SHA-256 `9c3ba52cacb4ec08eb9ad860c1654436085566240f5443d3786723f01e49cecd`). Its three negative-pair decisions, unresolved facts, source reconstruction limitation, rollback boundary and exclusions remain applicable. This is a preapply gate for exactly Child/`envoyer`, Child/`office-dashboard`, Child/`driver-core-worktree`, with no rehome or fact changes. It is not whole-goal approval.
+
+## Complete new snapshot comparison
+
+The source independently restores to 80,586 facts, 30,604 entities, 9,353 completed episodes, and 242,732 raw keys. Queue is independently 0 ready / 0 backoff / 10 parked; no alias-rejection prefix exists before repair.
+
+Compared with the independently reviewed 22:15 source (itself fully raw-identical to 22:21), there are **352 added raw keys, 32 modified raw keys, and zero removed raw keys**. The complete before maps remain in both evidence directories. This includes 87 added facts plus four modified existing fact records, 42 added entities plus 11 modified entity records, nine new completed episodes, and two added parked queue rows. Thus eleven newly processed inputs did not become eleven completed episodes: two remain parked.
+
+I read every one of the 91 changed assertion texts, all 53 changed/new entity metadata records, all nine completed episode summaries, and the complete original text of each newly ownership-relevant source. All existing slugs, names, aliases, and actual claims were scanned again; none of the three normalized spellings has an outside listing, and all three existing claims still point solely to Child. The final source contains 51,957 claims, 10,850 positive attestations, 3,124 cursor records, and 607 value-evidence records. Every one is part of the complete replica preservation proof.
+
+The four modified existing fact keys are Cockpit uses tmux, Scry deployed_on Mini, Scry runs_on Mini, and the Scry post-deployment-suite status. None touches Child. Complete 2,106 Child-touching rows (1,581 current, 525 historical), Child metadata, and the 61 original source companions are exactly unchanged. Every original 150 reviewed source companion remains present and unchanged.
+
+## New semantic evidence
+
+There are now six exact target-matching fact records, up from five. The one addition is the **invalidated old review finding** `scry-child-three-independent status “scry manifest d9c44edc”`, sourced by episode `908b2c918d49f31a0b0da7ef083be04a628e7a5f9cbab99b9b0eaca31be6af03`. Its assertion describes the old reason falsely saying “No existing entity lists this spelling” and requiring “No outside existing entity lists this spelling.” I recovered its exact episode ID and full 9,856-byte distilled source from its 1,619,672-byte original span. The source explicitly records the original wording BLOCK followed by bounded PASS after correction, with no live/shared writes. Its five companions concern that same review and live hold. This is review history, not contrary ownership evidence, a new reason blocker, or evidence of live alias regrowth. The current manifest already has the corrected wording.
+
+A broader text match comes from new provenance on Cockpit's tmux-session statement containing “docket.” Full source episode `531f82c7f26cae8b066bef4e19063cc9a6634736cad9c555716efeffc15ca196` is Jeff asking for a fuller Cockpit agent/terminal multiplexer view built around herdr. Its full distilled source is 689 bytes, reproduced with the exact ID from a 1,248,865-byte raw span. All five companions were inspected. It does not concern any selected Child identity or alias.
+
+All other changed assertions concern Cockpit brainstorming/plugin context, CADFormats integration/private admission, filing/license tool proposals, or Scry deployment/recall/review history. No new assertion establishes Child ownership of the three spellings, an outside rightful exact listing, an actual Envoyer-service identity, or package/worktree equivalence. The new parked rows are IDs `53fbef84...` and `753a3642...`, both one-attempt Cockpit inputs blocked on superpowers ownership conflicts. Their complete payloads remain intact in `pending.json`; neither was retried or altered.
+
+The refreshed broader target/driver-core scan has 129 current/history assertions, consisting of the prior 128 plus the old review finding above. The complete reviewed source closure now has 16 original spans and 160 same-episode companions. Fifteen exact episode IDs reproduce; the unchanged additional Scribe root-tsconfig span retains the explicitly documented current-distiller ID limitation from the original report. All original source byte spans were reread and compared again. No new source correction is proposed.
+
+## Independent replica and admission proof
+
+A new complete restore, not the prior replica, was created at `evidence-223122/replica`. Direct Badger loading established the original raw map before candidate Store.Open; candidate Open and a separate production Restore equal that original raw map. The unchanged complete Expected was independently reconstructed and matched: plan `274e1e580ec0ac70464546990f4653f9956432071ffacde89d5d0487125f543f`, Child entity `b7fa1df19b48d1713368d546bda53d32ea6e748292092936fc10b55f26026c59`, touching facts `5d879da1900f8e146b5e98858efa44e77445c0ad21b5b21b20b130badb1913fa`, and exact listings/claims/rejection closure.
+
+The independent full predicted state again changes **exactly seven keys**: the Child entity loses exactly three literal aliases (43 → 40), three selected `al:` claims disappear, and three owner-specific `ar:` records appear with the exact manifest reason and plan. Actual full raw state equals the independent prediction. Every original and newly ingested fact/history/provenance record, every other entity byte, source episode, adjacency, positive attestation, queue item, cursor, and metadata byte is preserved.
+
+The actual nonempty durable pre-apply backup restores to the original raw state. Close/reopen preserves the post-state. Exact and normalized lookup variants refuse the removed Child routes. Stale complete entity writes, direct/atomic reintroduction, explicit claims, rehomes, and marker-bearing merge previews refuse. Actual merge calls with freshly supplied Expected/metadata also refuse, explicitly including the marker-inheritance restriction, without raw writes. Second preview is not ready and second apply refuses without changes.
+
+Two distinct-episode normal AdmitAlias attempts per spelling refuse without any write. A complete post-repair clone then ran two actual normal resolver Apply calls proposing all three normalized aliases. Exactly two synthetic episode records and Child's expected last_seen field change; no original fact or other raw key changes, no aliases regrow, and all three markers persist. A distinct synthetic Envoyer tool remains representable only in that disposable probe clone, adding exactly its entity and alias keys while preserving Child's rejection. This tests representability, not actual ownership.
+
+Fresh independent test `TestChildThreeIndependent223122` passed in 9.498 seconds including package result; separate admission/actual-Apply/distinct-identity/merge/queue probes all pass. All original, predicted and actual defect lists remain equal with the same counts as the preceding review, including 2,441 dangling fact endpoints, 3,867 missing listing claims, 505 wrong listing owners, and 462 multiple-listing spellings. Additional structural zero-fact, self-loop and exact-normalized cross-type lists also remain identical. This does not declare the graph clean.
+
+## Exact evidence and remaining live boundary
+
+Evidence root: `/tmp/scry-child-three-fresh-independent.G20a7Q/evidence-223122/`. Full facts/entities/episodes/claims/pending exports; complete before/predicted/actual raw maps; previews; defect lists; source manifests; all changed assertions and metadata; and all probe outputs are retained. Reproducers are `internal/memory/store/child_three_223122_test.go`, `analyze-223122.mjs`, `closure-extra-223122.mjs`, and `cmd/independent-*-223122/`, all private reviewer files.
+
+- Before raw closure: `b584dfcd0b3239354eea6a9becec849c4207a5d8fce6a816aed1bc184d7516b8`.
+- Independently predicted = actual raw closure: `0a06637ae163cf734fc12eca81c4a1571e7a4bc4456b4765d1e1ebf1d0a09c6f`.
+- Actual durable pre-apply backup SHA-256: `a29ca1938b9a67363f54693454bb0a11f7885c57b5282be393543dfa1fad7f59`.
+- Complete 16-source manifest SHA-256: `ccc4479eeec40421a721dd1957b56b174753e645898940083d54c3e8a7b8f92f`.
+- Complete 160-companion file SHA-256: `927c595f9ba5f04b8620d1cab48f1cbbf5b9d4de4b3268b5425f3fff5f2d3885`.
+
+The code remains the independently archived d1f0a958 candidate, binary SHA-256 `290a14c04ef0cfa9618db3f1a848bc6f3a343ec28d9c197ea49720eedb30b553`. Root must still take/verify an immediate nonempty live backup and recheck deployed writers, exact manifest, full relevant semantic closure and Expected immediately before apply. Post-apply independent full raw/lookup/second-no-write/five-suite grading remains required. These would be the first three live rejection markers: **an old-binary-only downgrade becomes unsafe**. Marker-aware code or a reviewed restore reconciling intervening writes is required for rollback.
+
+No live/shared writes, provider calls, retries, deployments, source corrections, or shared repository edits occurred in this extension. Prior report and user workflow assessment remain untouched. No other alias batch, positive owner assignment, fact move, backfill, queue retry, or whole-goal acceptance is approved.
