@@ -829,3 +829,19 @@ SHA 94484a6d7929e98ac42b06aa49b9276b0fc812976bc4cf275613abcf3ffd5c87.
 No stops-table live apply, previous 49/33 rejection backfill, queue retry or
 broader cleanup occurred. Global 484 collisions and original recall floors
 remain open; two final grading rounds have not begun.
+
+### 2026-09-05 23:06 UTC — actual four-record verdict complete
+
+The independent actual four-record review is now PASS and fully archived as
+`memory-repairs/hollow-four-actual-independent-review-2026-09-05.md` (SHA
+56eaa1a627bd7c6cdd1f1824ac9d2d397012ba0a97a60d4fa97198e5616c7401).
+Exact 16-key prediction, full raw preservation, restored backups, all retained
+assertions, complete inventories and no-write refusals pass. Independent five
+scores remain 51/29/7/45/47; room 107 records the bounded verdict.
+
+The subsequent five-item sweep drained; a combined durable repair note was
+queued ONCE as 5c5ce0b27cfaad9b697c9c73aaa6a3cea1ed8ef3df542273839820c22002141b.
+Do not retry it. Stops-table technical/semantic review passes only the fixed
+22:53:12 source; refresh the complete closure after new ingestion before any
+apply. Expo/dev-client review is discovery only, with two missing original
+Claude transcripts still unlocated. No new broad cleanup or goal completion.

@@ -3452,3 +3452,30 @@ closure. Root's single-drop replica on the actual post-four source preserves
 every fact and refuses normal readmission; exact candidate manifest SHA
 94484a6d7929e98ac42b06aa49b9276b0fc812976bc4cf275613abcf3ffd5c87
 is under a separate fresh technical/semantic gate. It has NOT been applied.
+
+### 2026-09-05 23:06 UTC — actual four-record independent PASS
+
+The complete actual review is archived as
+`memory-repairs/hollow-four-actual-independent-review-2026-09-05.md`, SHA
+56eaa1a627bd7c6cdd1f1824ac9d2d397012ba0a97a60d4fa97198e5616c7401.
+The reviewer independently proves actual pre equals both fresh reviewed sources
+across all 242,798 raw keys; actual post equals the exact 16-key prediction.
+All 80,602 facts, including 7,820 historical, 9,354 episodes, three alias
+rejections and all unrelated state survive. Complete structural inventories,
+backup restores/reopens, resurrection and stale-claim refusal, retained rank-1
+assertions, private repeat apply and final complete no-write checks pass.
+Independent remote hashes, five unique live exact-name absences and live
+dry-run refusal also pass. Five snapshot suites remain 51/62, 29/66, 7/7,
+45/50, 47/50; largest independent response is 13,371 bytes before / 13,370
+after. Root and independent payload differences are retained, not flattened.
+Room 107 records this bounded actual PASS. No additional repair is approved.
+
+The later five-item real sweep drained normally. One combined durable note of
+the two actual repairs was then queued successfully exactly once as episode
+5c5ce0b27cfaad9b697c9c73aaa6a3cea1ed8ef3df542273839820c22002141b.
+Never retry that successful remember. The stops-table fixed post-four gate
+passed, but its source predates this ingestion and requires a complete fresh
+semantic/input extension before apply. Two original transcripts needed for the
+next Expo/dev-client candidate are missing at their recorded local paths; no
+disposition or live mutation is inferred from their absence. Broader acceptance
+clauses, original recall floors and final grading rounds remain unfinished.
