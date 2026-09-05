@@ -1,0 +1,48 @@
+{
+  "drops": [
+    {
+      "entity": "childscribe-laravel",
+      "alias": "envoyer",
+      "why": "Complete source episode ea3bd9d6 and Cell Saviors production companions describe an Envoyer-style deployment, not ChildScribe. No outside existing entity lists this spelling; remove only the wrong ChildScribe alias/index. Do not infer actual Envoyer service identity or rehome to Cell Saviors/Forge. The misattached fact remains unchanged for separate review."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "office dashboard",
+      "why": "All three complete office-dashboard source episodes concern Docket office responsive/coherence/scale-ticket work, not ChildScribe. No outside entity lists this spelling. Drop the ambiguous global surface alias without selecting among overlapping Docket office entities; keep every source fact unchanged."
+    },
+    {
+      "entity": "childscribe-laravel",
+      "alias": "driver-core worktree",
+      "why": "Complete source episode 38ee8140 and skeleton/branch companions explicitly concern a Docket driver-core checkout. Existing driver-core identifies a package, not automatically the worktree. Remove the unsupported ChildScribe listing/index only; no outside exact listing is stranded and no package/worktree identity merge is inferred."
+    }
+  ],
+  "expected": {
+    "plan": "274e1e580ec0ac70464546990f4653f9956432071ffacde89d5d0487125f543f",
+    "entities": {
+      "childscribe-laravel": "b7fa1df19b48d1713368d546bda53d32ea6e748292092936fc10b55f26026c59"
+    },
+    "facts": "5d879da1900f8e146b5e98858efa44e77445c0ad21b5b21b20b130badb1913fa",
+    "alias_claims": {
+      "driver-core-worktree": "childscribe-laravel",
+      "envoyer": "childscribe-laravel",
+      "office-dashboard": "childscribe-laravel"
+    },
+    "claim_present": {
+      "driver-core-worktree": true,
+      "envoyer": true,
+      "office-dashboard": true
+    },
+    "listings": {
+      "driver-core-worktree": [
+        "childscribe-laravel"
+      ],
+      "envoyer": [
+        "childscribe-laravel"
+      ],
+      "office-dashboard": [
+        "childscribe-laravel"
+      ]
+    },
+    "rejections": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  }
+}

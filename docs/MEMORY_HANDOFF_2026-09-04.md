@@ -772,3 +772,17 @@ Eight parked payloads remain untouched. Durable deployment note queued once as
 `64e172818729c23519f61824b5c2cd068efe77fe876e73af970a8d96738d6136`; never retry
 that successful remember. The full goal, remaining ownership audit and both final
 grading rounds remain active and unfinished.
+
+### 2026-09-05 22:33 UTC — next exact alias gate
+
+The exact three-alias manifest is now checked in beside the full bounded fresh
+review, `memory-repairs/child-three-fresh-gate-2026-09-05.md`. Its independent
+PASS extends through 22:21:40, not the subsequent sweep. No live apply yet.
+The 22:31:22 backup SHA b669593b978041a646b8c6f3f3dc2cee5eb8cbad0e83d48063915a7a7aaeaea0
+contains 80,586 facts / 30,604 entities / 9,353 episodes and queue 0/0/10.
+An independent fresh-closure extension is running against that complete source.
+Two new parked Cockpit conflicts are untouched. Four empty status records have
+a regenerated d1 rejection-aware replica under separate independent review;
+if the Child batch goes first, refresh that gate to preserve the three new
+rejection records. Original 53/62 and 34/66 floors, remaining aliases and full
+Hermes/Mini review, global defects, real sweeps and final grading remain open.

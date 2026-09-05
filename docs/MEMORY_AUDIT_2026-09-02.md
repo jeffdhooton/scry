@@ -3337,3 +3337,24 @@ is the source for a fresh three-alias semantic gate, not permission to reuse a
 stale manifest. Room 101 records deployment/attribution verdicts. The one durable
 deployment note was successfully queued as 64e172818729c23519f61824b5c2cd068efe77fe876e73af970a8d96738d6136;
 do not retry. No new live aliases have been dropped and no pending episode retried.
+
+### 2026-09-05 22:33 UTC — bounded three-alias gate; later sweep held apply
+
+Independent full semantic/replica gate passed exact manifest SHA
+`4ac2ac02f2d855de6e9afa6233f97b9bb1a37e8241b3387bb8dfd13d32a6b652`,
+archived as `memory-repairs/child-three-fresh-gate-2026-09-05.md`. It covers
+Child's envoyer, office dashboard and driver-core worktree spellings only:
+43 to 40 aliases, precisely seven raw keys, all 80,499 facts preserved.
+Full 22:15 and 22:21 snapshot maps are independently identical. No live apply
+or rejection marker has been written. Before suites remain 51/29/7/45/47;
+the original recall floors remain unmet.
+
+A later normal sweep added eleven episodes and two parked ownership conflicts
+(superpowers-plugin and .superpowers); no pending item was retried manually.
+At 22:31 queue is 0 ready / 0 backoff / 10 parked, last extraction 22:28:05,
+80,586 facts / 30,604 entities / 9,353 episodes. Fresh nonempty Mini backup
+`/Users/jclaw/.scry/backups/memory-20260905T223122Z.badger` is 73,526,260 bytes,
+SHA `b669593b978041a646b8c6f3f3dc2cee5eb8cbad0e83d48063915a7a7aaeaea0`,
+independently checked locally after completed transfer and on Mini. Apply is
+held pending a complete fresh closure/replica extension, not merely matching
+manifest fingerprints. Separate four-record retirement gate remains preapply.
