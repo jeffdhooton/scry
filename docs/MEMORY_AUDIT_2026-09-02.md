@@ -3159,3 +3159,52 @@ failed normalized determiner references. Both failures were independently
 reproduced and retained as reports. Corrected 62cf6e0 passes full Go tests,
 vet and resolve/queue races, and is awaiting fresh independent regrade.
 Both live binaries remain 393eeec. No parked episode was retried.
+
+### Canonical-name prevention deployed — 2026-09-05, 20:50 UTC
+
+Corrected 62cf6e0 passed the independent code/replica regrade and a separate
+fresh-context deployment gate. Exact reviewed artifact SHA-256:
+`821358499706bd9388b63a4368bb5320fc1bac61f12c93df48a158667b19bc14`.
+Independent rebuild was byte-identical, all 356 tracked source blobs matched,
+and full tests passed. Both earlier rejected candidates stayed undeployed.
+Reports: `memory-repairs/canonical-name-code-review-2026-09-05.md` and
+`memory-repairs/canonical-name-deployment-review-2026-09-05.md`.
+
+Only the two authorized binaries were atomically replaced and launchd services
+restarted. Laptop PID 40300→77189; Mini 99227→9886. Installed version/hash,
+process command and open executable path agree. Both prior 393eeec binaries
+remain as `scry.pre-62cf6e0-20260905T2043Z`, SHA-256
+`acfb78186402aec9eef87e71e0b81f6edeac1b9ea46641efd417aaf4368f0bd0`.
+No hook/configuration/provider/retention/schema change or other deployment.
+
+- Verified real Mini backup `memory-20260905T204303Z.badger`, 77,937,531
+  bytes, SHA `ef5d6bd0536ef59723a88ed99978b3897112d6844f55f7646b05ef90f1681685`.
+  Independent complete restore: 80,258 facts, 30,453 entities, 9,326 episodes,
+  241,548 raw keys; queue 1 ready / 0 backoff / 6 parked, not quiet.
+- Verified REAL laptop-local backup `memory-20260905T204304Z.badger`,
+  19,445,032 bytes, SHA `a760b1a7683f8f098872bc5cb2d3765508bec00aa8117a2f82e8401d951c7c16`.
+  Independent complete restore: 21,004 facts, 14,200 entities, 2,689 episodes,
+  83,378 keys. It remains dormant as before; no provider secret was installed.
+- Mini normal ingestion advanced to 80,268 facts before restart. At startup
+  the new daemon rebuilt its index and started its worker. The canceled
+  in-flight extraction remained durably queued. Six parked episodes untouched.
+- Immediate post Mini `memory-20260905T205021Z.badger`, 77,959,020 bytes,
+  SHA `a6eea06bf04ab409d37a7a2aeb24ac94c5e259148336300f149e5098384d497e`;
+  restored inventory confirms 80,268 facts / 30,460 entities / 9,327 episodes.
+- Five live suites unchanged across deployment: 52/62, 29/66, 7/7, 45/50,
+  47/50. Pre/post maximum payloads 13,379/13,367 bytes, zero over cap.
+  This is no regression, not passage of the two failed original floors.
+
+Full measurements/recovery references are in
+`memory-repairs/canonical-name-live-receipt-2026-09-05.json`; room 87–89.
+Independent exceptional-path cost was p95 78.984 ms on a 30,436-entity
+replica, not a live remember measurement. Correctly typed ordinary names
+avoid that scan. Mistyped reference-looking brands retain prior conservative
+refusal. The exact parked migration note needs its own review before retry;
+the deployment gate authorizes neither retry nor a new semantic repair.
+
+The next six-status/seven-fact replica candidate independently passed on
+the older actual-post-nine source, with all 80,242 facts preserved and exact
+raw delta 26 removed / 19 added. Report
+`memory-repairs/status-six-replica-review-2026-09-05.md`. This source is stale
+for live use: refresh after current processing and review against 62cf6e0.

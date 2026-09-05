@@ -666,3 +666,27 @@ Latest immutable post-state inventory is
 1,002 old-candidate touching facts, 156 outgoing, 857 Hermes-trio facts.
 Further status/alias/collision/Hermes review and the full two-round final
 grade remain unfinished. The active goal continues.
+
+### Later checkpoint: canonical-name fix deployed, 20:50 UTC
+
+Both machines now run reviewed 62cf6e0, SHA
+`821358499706bd9388b63a4368bb5320fc1bac61f12c93df48a158667b19bc14`.
+Independent code/replica and separate deployment gates passed; rejected
+a965177/1dac187 were never deployed. Previous393eeec executables retained as
+`scry.pre-62cf6e0-20260905T2043Z` on both machines. Only the two Scry launchd
+services restarted, laptop PID77189 / Mini9886. No configuration changes.
+Both real predeployment backups were independently restored; exact paths,
+hashes, processes and five-suite JSON are in
+`memory-repairs/canonical-name-live-receipt-2026-09-05.json`.
+
+Postdeploy suites unchanged: 52/62,29/66,7/7,45/50,47/50. First two floors
+remain failed. Mini is processing normal work; six parked episodes were not
+retried. A separate exact retry review of migration note ed50810b is pending.
+Immediate post source is Mini `memory-20260905T205021Z.badger`, local
+`/tmp/scry-canonical-62cf-deploy-sep05.G82GKc/mini-after-deploy.badger`,
+80,268 facts. The real laptop local store remains dormant, unchanged.
+
+Six further explicit status nodes/seven facts passed only replica review
+on the older 20:27 source. Fresh live-state review is mandatory before apply.
+First-ten Hermes ownership dispositions are in separate proposed review,
+not a complete857-fact audit or live repair. Continue the full active goal.
