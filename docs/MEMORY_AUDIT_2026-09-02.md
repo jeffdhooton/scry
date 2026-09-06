@@ -4847,3 +4847,53 @@ Next private birth-registration design19474eeb at
 fresh-context DESIGN disproof only. No registration code, policy activation,
 live adoption/repair/deployment or two full-goal grading rounds. Installed
 a06cd7b remains unchanged and the complete objective remains active.
+
+### 2026-09-06 08:30 UTC — ordered birth registration, private only
+
+Retained source509faba40f6e3f56710d2475b50bddd8091375decff5d80e7cb3aca6147ccb02
+after design reviewcd07b5b4 and complete independent code review
+bb8541d67137e10b560915e0157dd6ac20ad1c22f15940db371f3b970edfde70.
+Contracte512d776, designs, both complete reviews and root evidence are archived
+under memory-repairs/birth-registration-*. Root read complete reports and the full
+independent test61dab1aa before integration. Three supplied test files
+ffd97200/ef5339c7/6085a0ec and independent test retained exact; all576 baseline
+files unchanged in the independent export. No normal caller or activation.
+
+Fixed wrapper captures its own canonical input and complete identity/fact ledgers
+before BODY. A birth handle precedes every owned actor mutation, including alias
+and transient history; full original observation, not birth tuple alone, defines
+an exact retry. Freeze checks every new identity creation and stable name/time,
+refuses recreation, verifies both ledgers, and returns owned accounting only after
+actual commit. Preexisting current/historical references produce normal typed
+deferrals without a handle; prior poison, malformed data or occupied controls
+cannot become a deferral. All other proposals/links remain purely descriptive.
+
+Independent six new groups plus12 supplied PASS2.437s; full no-CGO noncached
+PASS store50.827s/resolve15.246s/daemon28.180s, log
+33dbbcbf262da6fa05f90e6d70933fa213b99b450462c9d3dc4b8414c17678f1.
+Root private full PASS51.182s/15.810s/30.191s; combined shared full
+PASS50.787s/15.555s/28.339s. Root private vet PASS. Initial root7 deferral cases
+failed before registration because public PutFact refused missing source; changed
+only new fixture to raw synthetic legacy seed. Initial log7afef8d6 preserved;
+source and every original test unchanged. Independent runs passed first attempt.
+
+Fresh081846 Mini backup76,492,348bytes SHA
+5111bb78a6bd9f33d55f4bff8f67f358a84d212c48ac5d16565933b1e548983c
+restored shared-081846 in /tmp/scry-foundation-closure-sep06.8IEPu5;
+all248,468raw rows exact through load/Open/index/read, digest
+109d8a5d1dd5d8c2fcc4fed7677949a365ad85012ebea6499fd9d4f328ec2ef4.
+31,374entities/82,099facts/74,206current/7,893historical/9,472episodes/32pending.
+Accepted-once note3da1026d61249d973e025d20986632755a77b5e707a7f8083df98a5c3655819f
+now ingested/absentpending, EP raw
+c30c8f9d6c07895646dd1c2480c434eeb91cb8fa90b0cd0ec9ad14102473cd2c.
+No retry. Root-only pure candidate registration on that replica takes2.606648s,
+all raw rows unchanged/events0, registered1/materialized0; this is not independent
+actual-write, throughput or live-p95 evidence. NEVER integrate private replica
+testf43933d2. Full measurement/source/log pins remain in archived root evidence.
+
+Room158. Installeda06cd7b unchanged; no live repair, adoption, sweep or deployment.
+An unsupported entity can still commit here; fact ordinals and deletions remain
+mechanical accounting, not authorized production semantics. B/support/undo/dependency
+closure, all-writer lifecycle, durable outcomes/Force/current selection and complete
+cleanup/recall/two all-clause rounds remain open. Next concrete episode-selection
+design3fd0d796 is under fresh design disproof, not implemented or approved.

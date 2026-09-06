@@ -3803,3 +3803,23 @@ This is cooperative isolation for one genuine Store, not a fixed ownership polic
 or raw-writer predicate lock. Keep serialized admission private and uncalled until
 complete birth/support/lifecycle and finalizer accounting are reviewed. Do not
 export or ship the private callback bridge used by cross-package evidence tests.
+
+### Register new identity candidates before their first recorded mutation
+
+**Decision, 2026-09-06.** The private registration wrapper owns the original parsed
+revision and both complete mutation ledgers before invoking its body. Registration
+records the actual identity-history position and full original observation. Final
+absence alone cannot prove that an alias or entity was not briefly created earlier.
+Likewise, an equal birth tuple is not an equal occurrence: the original fact's two
+sides can have the same name and ordinal while retaining distinct observations.
+
+Keep ordinary old-reference deferral separate from structural failure. A missing
+identity already referenced by current or historical baseline facts cannot silently
+become a new owner; its observation receives a normal, owned deferred disposition
+without a birth handle. Unrelated work may continue, but invalid controls or prior
+errors still refuse the transaction. Catching an error cannot turn it into success.
+
+The automatic finalizer verifies complete recorded creation history and both raw
+ledgers; report only after actual commit. These handles and reports are accounting,
+not factual support or ownership authority. Preserve that distinction until the
+fixed support/undo, lifecycle and current-result policies are independently proven.

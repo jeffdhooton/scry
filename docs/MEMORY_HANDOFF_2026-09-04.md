@@ -1424,3 +1424,30 @@ is under fresh design disproof. No implementation yet. Resolve capture timing,
 exact creation coverage and Force inventory requirements before implementing its
 smallest coherent scope. Full fixed finalizer, B, dependencies before both fact
 phases, lifecycle, cleanup/recall and two all-clause rounds still open.
+
+### 2026-09-06 08:30 UTC — registration accounting retained
+
+Private source509faba4 retained after independent code reviewbb8541d6 and prior
+design reviewcd07b5b4. Complete contract/reports/root evidence archived under
+memory-repairs/birth-registration-*. Suppliedffd97200/ef5339c7/6085a0ec and
+independent61dab1aa tests exact; independent and combined full no-CGO suites PASS.
+Initial root legacy-fixture setup failure retained, no source/original-test changes.
+
+Fixed owned input/both-ledger wrapper enforces registration before actual actor
+history, exact first observation retries, stable creation coverage, and normal
+baseline-reference deferral. No support, alias/lifecycle, Force or EP certificate.
+Private registration has no production caller. Unsupported registered entities
+still can commit under this finite accounting boundary; do not activate it alone.
+
+Fresh081846 backup SHA5111bb78 restores all248,468raw unchanged. Prior note3da1026d
+confirmed ingested/absentpending; no retry. Root-only pure synthetic registration
+on own replica2.606648s, no writes/events; not independent/live-p95. Private probe
+f43933d2 MUST NEVER ship. Audit and root evidence retain exact pins. Room158,
+installeda06cd7b unchanged, no live adoption/repair/deployment.
+
+Next design /tmp/scry-episode-selection-contract-sep06.A6dX3r/EPISODE_SELECTION_CONTRACT_DESIGN.md
+SHA3fd0d796 is under independent DESIGN review. Preliminary corrections require
+canonical proposed outcome-link and declaration birth-reference order, and a
+strictly local head-counter read claim rather than proof of full history length.
+No selector implementation yet. Full admission/support/undo/B/lifecycle, cleanup,
+recall and two complete grading rounds remain active work.
