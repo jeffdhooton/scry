@@ -1164,3 +1164,34 @@ support handling; final report pending. Next private unit likely immutable
 occurrence-observation storage, not production admission. Keep reviewing full
 controller/adoption/lifecycle and utility; overall goal still FAIL, never mark
 these foundation commits as prevention deployment or final grading rounds.
+
+### 2026-09-06 04:08 UTC — controller reviewed; observation/owner fixes private
+
+Controller V2 report67218c1c is archived: GO for separately private observation
+storage and owner harness; NO-GO integration/adoption. Retain all new-birth
+occurrences, supported or unsupported, with original facts before flips;
+validate existing fact-only anchors. Finalization belongs to the outermost real
+transaction. Duplicate raw fact fields/key-body conflicts must refuse support
+cleanup, and dangling references cannot authorize an owner by slug. Full review
+and audit record the selected next units and still-open B/adoption mechanics.
+
+Observation/tmp/scry-observation-evidence-sep06.97oku1: initial56f7ce81 rejected
+for duplicate raw episode id/time authority, report4ad70548. Corrected83a39c03
+uses raw known-field provenance checks and preserves unrelated unknown bytes;
+all unchanged reproducers/new controls/full no-CGO suite pass locally. Independent
+corrected /root/observation_primitive_disproof running. This code is NOT integrated.
+
+Owner/tmp/scry-admission-owner-sep06.t3WRXJ: initiala4d48fc6/store1fd30285 rejected
+because public merge commits through a closed/finalizing facade outside outer
+rollback, report4a2c5be3. Corrected owner14821246/store9491d689 plus private
+merge/retire/unalias guards refuse public independent maintenance in every owned
+phase. Root30 phase/entrypoint checks and full no-CGO suite pass; unchanged
+required-safety regressions retained. Independent corrected
+/root/admission_owner_harness_disproof running. No shared Store edits or deploy.
+
+Shared87a6d1a still has only uncalled journal/generation foundations; daemons
+remainactuala06cd7b, no new live apply. New source-only remember note
+406c30f42de41e6b023473390a0e17b6f4eb87347cd91797c35fda46f0a6495c
+was accepted ONCE~03:48UTC(depth28); ingestion not checked. NEVERretry. Room139
+records private rejections/corrections. Continue the active full goal; no final
+quality pass or deployment authority follows from either private-unit verdict.

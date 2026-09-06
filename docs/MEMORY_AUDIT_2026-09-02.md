@@ -4266,3 +4266,55 @@ is under fresh independent design disproof. It makes outer-owned finalization,
 per-occurrence structured metadata, generation lifecycle, support proof and
 explicit adoption mandatory; its unresolved options are not implementation
 approval. Room137 records the primitive PASS and precise integration limits.
+
+### 2026-09-06 04:08 UTC — controller review; two private failures corrected
+
+Controller V2 independent reviewSHA
+67218c1c362ab20f8a0d328f3a1895935b132c76c33c1e31c5a8f955a3fde49b
+is archived. GO only for private uncalled immutable occurrence storage and a
+separate outer-owner harness; NO-GO integration/adoption. Independent baseline
+fixtures prove nested callbacks are not commit boundaries, decoded AllFacts
+does not validate duplicate endpoint/key-body authority, and missing adjacency
+hides historical incoming facts. Every new-birth occurrence must be preserved,
+including supported conflicting metadata; original Fct must be captured before
+inverse/value flips. Fact-only existing identities need anchor validation too.
+Matching a dangling slug does not authorize ownership. Prefer later buffered
+provisional votes (B) and an exact reviewed legacy inventory, neither approved
+for adoption. Room138 records the bounded design result.
+
+Private observation work lives in/tmp/scry-observation-evidence-sep06.97oku1.
+Initial source56f7ce81 independently FAILS because GetEpisode accepts conflicting
+duplicate id/time members. Writer commits and reader returns evidence despite
+that ambiguity. Archived initial report
+SHA4ad7054893a06cc595a08abda584bb86c3c1fe49b67cd8103dfa6d9331d52fad;
+full frozen regressionSHA8cf067486ffc704fbaba9eacdceee05b4f3fda075bd48d2acf7d719f79c8e113.
+Seven other independent tests pass, including145 complete revisions, full
+encoded pagination bounds, exact backup/restore, actual staging rollback and
+zero other-family/routing effects. Root corrected source
+83a39c03435185963a4a2931f94f30f03a7bd1a86c6e4c545ece95580ad9e0ab
+validates raw episode identity fields, refuses duplicate/missing/noncanonical
+known scalars, preserves unknown unrelated fields unchanged, and never rewrites
+episodes. Original reproducers, additional boundary controls and full no-CGO
+suite pass locally; separate corrected independent review is running.
+
+Private owner harness lives in/tmp/scry-admission-owner-sep06.t3WRXJ.
+Initial sourcea4d48fc6/store1fd30285 independently FAILS: public MergeEntities
+on the very admission facade opens an independent DB transaction, committing
+after closure or inside a finalizer whose outer transaction then fails.
+Archived reportSHA4a2c5be33699a4aa766707e9b81dd5fabeab3ce756aba78495e54e4c79645bfd
+keeps both unsafe characterization and reusable required-safety failures.
+Root correction refuses merge/retirement/backup-alias/Backup/Restore/Close on
+any admission-owned facade, in all phases, while leaving root-store maintenance
+unchanged. Corrected owner14821246232b3210476778b12bd3366957b35ca296ac2b4e13a1f388d20cff82,
+store9491d689f4a41c3ea6bb8e2a622b46f04810b49daecd375a68428fd8dc6d8891;
+merge/retire/unalias changed only in this private export. Root30 maintenance
+entrypoint/phase checks and full no-CGO suite pass; original safety regressions
+are retained, corrected independent review is running. No claim is narrowed
+to excuse the bypass. Room139 records both rejected candidates and private fixes.
+
+These two units are NOT source-integrated or deployed. Shared HEAD87a6d1a
+contains only the earlier uncalled journal/generation foundations. Both actual
+daemons still runa06cd7b. No live repair, schema/adoption or production behavior
+changed. Foundation source note submitted ONCE approximately03:48UTC is
+406c30f42de41e6b023473390a0e17b6f4eb87347cd91797c35fda46f0a6495c,
+accepted queued(depth28); ingestion not yet verified. Never retry it.
