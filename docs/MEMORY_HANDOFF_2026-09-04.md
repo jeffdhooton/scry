@@ -1273,3 +1273,21 @@ Backup051519 SHA193f19b3 (76,112,807bytes) restored at
 digest9b6626fc. Root now verifies5b7c8402 note ingested/absentpending, rawEPfd029819.
 Do not retry it. Room146 records bounded review and root-only closure. Deployed
 a06cd7b unchanged; B still private/ungraded correction/raw-phantom caveat unchanged.
+
+### 2026-09-06 05:45 UTC — adoption unit reviewed, not enabled
+
+Exact adopter/active-reader285ae96d now copied uncalled into shared. Independent
+review373d92b8 and tests51d07183 prove complete preview/apply preservation on own
+restored051519 backup:247,638 originals unchanged,31,247 anchors+one marker,
+manifest5292699c,9,178,163 newKVbytes,zero events. Real late errors roll back.
+Root combined full no-CGO suite PASS. Report/contract under docs/memory-repairs.
+No production caller, public CLI, tombstone writer or ongoing admission policy.
+Live adoption is explicitly prohibited until complete lifecycle/controller review.
+
+Complete reference inventoryd80563bb separately reviewed next. Then actual fact
+mutation attribution, per-key identity/alias writer history, dependency closure,
+Force current projection and all-writer lifecycle gates remain. Include generic
+metadata setters protecting reserved markers; no legacy timestamp-nudge helper.
+Private next ledger workspace /tmp/scry-fact-ledger-sep06.aWw65K initially empty.
+Source notec51e3b8a accepted ONCE queued30 around05:28UTC remains unverified;
+never retry. Room147, deployeda06cd7b unchanged, full objective still open.

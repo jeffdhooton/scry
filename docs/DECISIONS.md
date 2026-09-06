@@ -3692,3 +3692,16 @@ A proposed consumption record keeps the complete anchor, but persistence,
 consumed-reader refusal and reviewed maintenance authorization remain separate
 implementation obligations. No absence-based automatic legacy classification,
 startup adoption or unconsume API is implied.
+
+### Adoption preview must exercise the actual transaction
+
+**Decision, 2026-09-06.** An exact full-inventory adoption preview stages every
+proposed anchor and the marker in one transaction, then deliberately rolls back.
+Estimates cannot establish that the real transaction/value limits permit apply.
+The independently reviewed uncalled adopter preserves all old raw records and
+refuses inventory drift and preexisting reserved rows, with no silent batching.
+
+Root maintenance-lock coordination prevents ordinary producer races during the
+operation; it does not install policy afterward or confer arbitrary raw-writer
+immunity. Do not expose live adoption until all lifecycle writers are integrated,
+including generic metadata setters that could otherwise replace reserved markers.

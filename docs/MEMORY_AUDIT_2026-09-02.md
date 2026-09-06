@@ -4492,3 +4492,48 @@ inventory adoption and active-anchor recognition, before complete controller and
 all-producer lifecycle enforcement. No startup adoption or automatic ownership
 inference is authorized. Original goal remains open, including benchmark floors,
 whole-graph defects, remaining reviewed repairs and two complete grading rounds.
+
+### 2026-09-06 05:45 UTC — exact adoption and recognition, uncalled
+
+Candidate /tmp/scry-legacy-adoption-sep06.cdtdmm baseline315fa2a:
+source285ae96d0886e70a65ba437690890d9fe61edf6cd814341d91bc13d61d83b635,
+contract4b66855e, supplied064f38a2/155e1ce9. Independent report373d92b81cbce2add62f53e1f1da032d2d1b7aab453d9dc73c1e10e2159ebb50
+archived as memory-repairs/legacy-adoption-independent-review-2026-09-06.md;
+contract archived alongside. Independent tests51d07183 remain unchanged in shared.
+Private independent export /tmp/scry-adoption-disproof-jRBRuU retains full logs:
+full-suite2f033d794ccb1b451f315e81b1a93b43b603767c004b5b5fa05aa1a2ab280cc9,
+replica753f81c4129fb0e7c6562110baddbc8538db786d8259dd9272589b829492e6d3,
+late-failure09d3552e4a02fee3b4b7b555266267698f9c406a2eb1772650bccbb59b5ad479.
+
+Exact complete canonical en: inventory, all reserved-family absence, exclusive
+root maintenance lock and one transaction. Preview actually stages all anchors
+and marker then rolls back; apply commits only that write set. No automatic
+replay/adoption. Active reader refuses missing/corrupt/wrong-inventory controls,
+selected generation or ANY consumption row, even if en: is deleted/recreated.
+No tombstone persistence, ongoing all-writer admission or semantic authority yet.
+
+Independent actual051519 backup restore/apply:247,638 original rows all raw-equal,
+31,247 anchors plus one marker, zero events, every identity recognized. Full
+manifest16,308,695bytes, SHA5292699c3a75e5ce4d34ff9bd2a41e2900bf53c0dbf549358780191c04c488c3,
+9,178,163 added KVbytes. Independent real failures after1,080/2 successful anchor
+stages roll back both modes. Eighteen ordinary writer lock boundaries tested;
+arbitrary raw writers/concurrent Close remain outside the coordination contract.
+Root separately obtains identical counts/hashes/preservation on its own replica;
+preview442.809792ms/apply831.954666ms are point measurements, NOT p95 acceptance.
+
+Root first size-limit fixture failed opening its synthetic DB because the default
+1MiB value threshold exceeds its intentionally reduced batch limit. Only the new
+fixture threshold changed to64KiB; source unchanged, corrected targeted/full PASS.
+Independent final full suite PASS; combined shared full no-CGO noncached PASS
+(daemon30.663s/resolve16.626s/store33.248s). No prior regressions weakened.
+Room147 records the bounded verdict. These helpers remain uncalled and MUST NOT
+be deployed/adopted live before complete lifecycle/controller integration.
+Both installed binaries remaina06cd7b; no live graph change or new final grading.
+
+Accepted-once source notec51e3b8a8ae7d4050aff91e24004300316064b6de480fbd976795d0bdb68c8cc
+queued30 at05:28UTC, ingestion unverified; NEVERretry. Complete raw reference
+inventoryd80563bb is the next integration, separately reviewed, not a support
+certificate. Generic PutMetaJSON/PutMetaTime must also protect reserved lifecycle
+marker keys during all-writer integration; taking the maintenance lock alone does
+not prevent a caller replacing a marker afterward. Existing RelocateFact's
+collision timestamp-nudge path must not be used by the new admission policy.
