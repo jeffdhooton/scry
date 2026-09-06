@@ -4713,3 +4713,30 @@ Deployed a06cd7b unchanged; no live adoption/cleanup/deployment, complete goal o
 Combined shared full no-CGO noncached input-revision suite subsequently PASS:
 store38.834s/resolve15.011s/daemon28.189s. All seven copied/changed artifact hashes
 match the independent input review. No original regression changed.
+
+### 2026-09-06 06:53 UTC — complete identity relationship inventory reviewed
+
+Inventoryeae817f6892b5ec6c2151e4467b187fc9eee55311b1705787e773bbbcc679a2e
+retained uncalled with corrected supplieddfc258a8 and independent4c1b6a99 unchanged.
+Contractb758a05b and report46fb43bf077d65da024025f15d1a2f722cce4843c3bd7e2b9743c9c9f577a4e0
+archived memory-repairs/relationship-inventory-*. Independent export
+/tmp/scry-inventory-independent.tTqsVm, full logc4e21a0bc5b7810c5099e5e135dcedd67045403c30ddcf37e38090837fd63935.
+Eleven targeted groups PASS1.153s; independent full no-CGO PASS37.590s store.
+Combined shared full no-CGO noncached PASS40.292s store/16.253s resolve/29.015s daemon.
+
+Exact selected al:/ar:/en:/ig:/il:/il-consumed:/meta:identity_/rs:/rt: raw maps,
+global framed digest, canonical entity projection, every duplicate name/alias
+occurrence and separate natural projection, all raw owner reverse keys retained.
+Malformed aliases/controls remain opaque observations; malformed canonical entity
+projection refuses globally. Independent read-only Badger root, fixed snapshot plus
+newer root commit/staged writes/rollback, binary prefix boundaries, owned outputs
+and explicit present-empty rows PASS. Parent fixture failure and root-only actual
+measurement remain separate evidence, not attributed to independent execution.
+No support/ownership/defect exception or post-undo closure is granted by this scan.
+
+Room153. Next private composition /tmp/scry-identity-ledger-sep06.7AWIWi captures
+its own baseline and replays owned actual writer history against the full final
+map, rejecting untracked selected-family changes. It is not yet reviewed and does
+not authorize undo/materialization or solve concurrent raw range phantoms. Normal
+producer coordination, fixed finalizer and all remaining whole-goal gates remain.
+Deployed a06cd7b unchanged; source2347785 input revision retained, no live writes.

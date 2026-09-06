@@ -1368,3 +1368,18 @@ Next composition needs finalizer-owned complete baseline and actual writer histo
 verification before any post-undo relationship policy, never caller support flags.
 Notee7be6597 accepted ONCE queued30, unverified; never retry. Room152, installed
 a06cd7b unchanged, full objective and two all-clause grading rounds remain open.
+
+### 2026-09-06 06:53 UTC — relationship inventory retained; attribution next
+
+Uncalled inventoryeae817f6/contractb758a05b retained after independent review46fb43bf,
+supplieddfc258a8 plus independent4c1b6a99 unchanged. Eleven targeted groups and
+independent/combined full no-CGO suites PASS. Reports under memory-repairs/
+relationship-inventory-*. Raw identity/control observation only; no alias or lifecycle
+authority. Root-only061537 measurement/fixed fixture history remain in prior audit.
+
+Next /tmp/scry-identity-ledger-sep06.7AWIWi captures its own complete baseline and
+actual writer, checks ordered before/after against full final selected raw map.
+Source/tests private and unreviewed, no normal callers. Post-verify materialization
+and undo must receive separate fixed-policy accounting; full scans do not establish
+serializable prefix locks or prevent uncoordinated producer phantoms. Room153,
+installeda06cd7b unchanged, complete goal remains active.

@@ -3759,3 +3759,15 @@ bounded lossless chunks pinned to their immutable key. Provenance-checked storag
 proves retention, not successful classification or a completed ingestion result.
 Keep these APIs private until current-result, fixed-finalizer and lifecycle proofs
 are integrated. The adopter must refuse the new family in the meantime.
+
+### Observe complete ownership relationships before deciding undo
+
+**Decision, 2026-09-06.** Capture exact identity/index/control bytes and every
+canonical-name and alias occurrence in one transaction view. Keep unlisted index
+keys and malformed control bytes visible as data. A strict entity decoding failure
+refuses the projection rather than inventing a partial relationship graph.
+
+The capture is a prerequisite, not an authorization rule. Complete mutation
+accounting must bind it to actual writer history, and a later fixed finalizer must
+prove approved post-undo relationships. Snapshot scans alone cannot provide range
+locking against uncoordinated concurrent producers.
