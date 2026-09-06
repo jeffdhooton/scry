@@ -942,3 +942,50 @@ recall-exact-tie-independent-review-2026-09-06.md SHA849f12ab. It does not
 fix clipped-value identity collisions or unequal-endpoint scoring. Both
 production binaries remain d1f0a95. No new remember since successful3be6deac;
 do not retry it or5c5ce0b2. No global PASS or final grading. Continue.
+
+### 2026-09-06 00:57 UTC — combined guard deployed, actual grading active
+
+The exact reviewed occupied-key guard and bounded tie-order fix are committed
+as24eafab and deployed on BOTH machines at00:49:06UTC. Installed artifact
+SHA4a4391090531a7112956dfae99e82633ed49d4e8ca2eb26f0916b5eae55e6b27,
+Go1.26.2darwin/arm64/noCGO/trimpath. Laptop PID93994, Mini PID98265.
+Both old d1f binaries retain SHA290a14 at their installed path plus
+.pre-24eafab-20260906T0048Z. The suffix is a label, not exact retention time.
+Never use the older marker-unaware62cf binary as a standalone rollback.
+
+Read complete integrated predeployment and immediate004209 freshness reports
+under memory-repairs/fact-guard-*. Both independently pass their bounded
+prospective scope. Actual pre004209/post004916 backups are fully copied,
+hashed and restored. Root's actual whole-map delta is ONE added pending row
+on Mini, with every244498preexisting record unchanged; laptop83378records
+remain exactly equal. Immediate live five-suite counts/miss sets match
+51/29/7/45/47, cap0max13373. Mean answer ranks improve slightly in the two
+heldout suites; independent old-CLI frozen-post measurements reproduce those
+same means, so do not attribute the differences to new scoring weights.
+Full root receipt is fact-guard-actual-deploy-root-receipt-2026-09-06.json.
+Fresh-context actual grader is running; do not count the root receipt as PASS.
+
+Later005430 backupSHA4aa1e86c349dd9f2d972a1b9567de7614bcc5736e3b3cae1e9a1f7cb8153fb9e
+contains only one changed pending payload relative to immediate post. That
+new manual input was enqueued00:47:13 before deployment and has now parked
+after ONE ErrAliasClaimed attempt. It is NOT an ErrFactConflict capture and
+NOT successful ingestion. All facts, episodes, old parked payloads and
+markers remain byte-identical in root's comparison. Independent later-delta
+verification is requested. Do not retry it. Two actual subsequent sweeps,
+normal successful extraction and the complete goal bars remain open.
+
+The first private credential regex prototype is independently REJECTED;
+full report credential-redaction-independent-rejection-2026-09-06.md.
+No redaction changes are in the deployed artifact. A second private parser
+experiment at /tmp/scry-credential-parser-sep06.glUWUF has original bounded
+tests passing, but the unchanged prior35-case adversarial matrix still has
+6 failures (29pass), plus320idempotence checks pass. Read REDACTION_REVISION.md
+for exact scope/limits. It is neither integrated nor independently approved;
+do not edit expectations to claim a clean suite. Historic credential cleanup
+still requires permission, and the old lost assertion is not recovered.
+
+Dev-client three-alias apply remains HELD; no further graph repair follows
+from the guard deployment. Child39aliases, ar4 and nineteen retirements are
+preserved. Global collisions/hollows/dangling endpoints, Hermes review,
+recall floors and final two fresh grading rounds remain open. No new durable
+deploy note yet; never retry3be6deac or5c5ce0b2. Continue the active goal.
