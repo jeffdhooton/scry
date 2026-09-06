@@ -1842,3 +1842,22 @@ Apply or ship that WIP restriction. Read private MATERIALIZATION_IMPLEMENTATION_
 old generation helpers write IG outside the EN/AL ledger; complete fixed lifecycle
 accounting and final actual inventories must follow genuine support, not HasEpisode.
 No live/probe/backup/note changes. Keep full goal active.
+
+## Continuation — 2026-09-06, actual owned materialization
+
+Read memory-repairs/owned-materialization-progress-2026-09-06.md. Private6qYb7K
+now connects real normal materialization and durable head selection to the same
+fixed entry as conflict preservation; the previous temporary refusal is gone.
+Shared complete planning, exact adjacency deltas, EN/AL/FA ledgers, supported
+lifecycle/vote-domain writes and complete final raw inventories are exercised by
+actual transactions. Root fixed real no-op partial retry and none-accepted revision
+replacement failures without changing supplied tests. Full no-CGO PASS69.325/
+17.829/28.979 logdbf3b3db; vet PASS.
+
+Immutable review export /tmp/scry-owned-commit-review-sep06.xfHydo/code,
+freezea8976cf6 (600 baseline+99 additions), is with fresh owned_commit_disproof.
+No independent verdict yet. Root working export adds post-freeze reopen test
+493c0c70, PASS.747s/log87760bba; review source remains unchanged. Root should keep
+testing actual temporal/hint/historical behavior and then close reviewer findings.
+No normal Apply adapter, public V2 status or all-writer/schema floor yet. No live,
+actual replica, backup or durable note change. Full goal remains active.

@@ -5391,3 +5391,21 @@ Full uncached no-CGO suite PASS74.101/18.783/28.749, completed log
 2b932280ccd97da346545722661137c452425876865bf3e6d9bc50bb275ce8a1; vet PASS.
 No independent grade, actual memory replica probe, live write/deploy/adoption or
 new durable note. Main/live and latest155247/last candidate132039 remain unchanged.
+
+## Continuation — 2026-09-06, actual owned materialization
+
+Private fixed entry now commits normal graph/lifecycle/result/head and retains its
+durable changed-revision conflict branch. Earlier conflict-only status is superseded.
+See memory-repairs/owned-materialization-progress-2026-09-06.md for exact retained
+failures, source corrections, raw adjacency and fixed final inventory accounting.
+Actual partial retries reuse exact head; later deferred progress cannot rerun old
+metadata/FA/votes. Proven-none-accepted revision replacement retains old lineage.
+Late selection failure rolls back all staged graph/evidence/events.
+
+Full uncached no-CGO PASS69.325/17.829/28.979 logdbf3b3db; vet PASS. Immutable
+600+99-file freezea8976cf6 is under bounded fresh-context actual transaction review;
+no verdict yet. Additional root synthetic backup/restore/reopen test493c0c70 passes
+.747s/log87760bba for supported generation/votes, legacy partial and unsupported
+declarations. This new test is outside the immutable review freeze. No actual
+memory replica/live operation or new note. Normal Apply, all-writer/schema floor,
+actual-backup review and all original live/two-round acceptance bars remain open.
