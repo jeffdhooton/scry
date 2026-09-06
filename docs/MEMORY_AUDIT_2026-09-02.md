@@ -3748,3 +3748,25 @@ Private redaction rejection is archived as
 credential-redaction-independent-rejection-2026-09-06.md (room119). A separate
 private syntax-parser design exists but no replacement is implemented or
 approved. Historical credential remediation and assertion recovery remain open.
+
+### 2026-09-06 01:00 UTC — actual guard gate independently passes
+
+Full independent actual report is archived as
+fact-guard-actual-independent-review-2026-09-06.md SHA
+f29f9237c2e1aa4c41453440f7ad63a257bad1c8cc5c794a72af32953454ad93.
+It independently verifies both installed/retained binaries and processes,
+all FIVE complete direct restores and candidate startup/read preservation,
+every actual pre/post raw family, and the later one-attempt alias-claim
+refusal with original input preserved. No fact/history/marker mutation
+occurred. All ten independent offline before/candidate controls match
+51/29/7/45/47, all full misses/mean ranks, maximum13373bytes and cap0.
+The old CLI on the same post source reproduces the two improved live means;
+their cause is not attributed to changed scoring. Room122 records bounded
+actual PASS, not completed extraction, sweeps, graph repair or global goal.
+
+After that verdict, ONE durable deploy note succeeded at01:00:11UTC in97ms:
+f1cb541f509f5a41307648b05d8071608e9725b3d366e81991070650d3e12fd9.
+It was queued, not yet proven extracted; never retry it. One97ms submission
+does not establish p95 durability. Prior3be6deac/5c5ce0b2 remain successful
+and must not be retried. Full shared no-CGO suite remains green atcbba2f3.
+The user's untracked workflow assessment remains untouched.
