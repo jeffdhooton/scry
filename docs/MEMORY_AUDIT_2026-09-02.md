@@ -4568,3 +4568,61 @@ before-images to detect unattributed final changes without retaining all rawfact
 That ledger is not yet implemented/reviewed and cannot certify parsed semantics.
 Identity/alias writer history, pre-PhaseA dependency closure, current Force outcomes,
 all-writer lifecycle/maintenance remain. No deployment, live adoption or cleanup.
+
+### 2026-09-06 06:05 UTC — exact fact mutation ledger and identity design review
+
+Private baseline0995859 ledger /tmp/scry-fact-ledger-sep06.aWw65K:
+source2040e19a3e0bcf505b6faf8253551e687f6d4dc2059823aeeb744536cb8697c7,
+contractc8e6074c, suppliedd43613c5. Independent report73c4319f1c93f945f95a6bd2e6f63d05683ec67a52d6dbb350e55e30af66541b
+archived memory-repairs/fact-ledger-independent-review-2026-09-06.md; contract
+alongside. Independent tests2786ed68 copied unchanged into shared with source/tests.
+Frozen independent export /tmp/scry-fact-ledger-independent-sep06.1EvdxR;
+full-suite logee4be898a6430d62a9fe51618ad796188204aa7bf20c7db36e0b807a68cb9fa6.
+
+Ledger actual fa:Set/Delete writers retain exact touched-key before/after and
+ordered descriptive occurrence ordinals. Same-owner body-only writes; finalizing
+verification checks complete final rawfacts and reconstructs baseline count/digest
+by substituting exact touched-key first images. Detects untracked final changes,
+including before a key's first tracked write. No full raw baseline map; errors
+poison even if ignored and omit arbitrary diagnostics. Existing earlier owner
+error precedence remains unchanged; ledger returns its own static refusal.
+
+Independent1,440 modeled mutations,30 untracked-change cases,16 staged refusals,
+owned buffers/isolation/expired capabilities/panics/actual capacity and commit
+conflict PASS. Independent final full no-CGO PASS (store36.311s/resolve15.483s/
+daemon28.696s). Combined shared full no-CGO noncached PASS (store34.984s/
+resolve15.475s/daemon28.498s). No original regression edits. Ordinals still do NOT
+prove allowed parsed assertion semantics. No support/owner/all-writer policy or
+normal caller yet; no permission to drop/replace a distinct assertion.
+
+Root independently of that synthetic review restored051519 into its own private
+replica and ran20 exact delete/reinsert writes through this ledger. All247,638
+raw rows remain identical;81,892facts/digeste1c6b989,zero events,1.8331635s including
+baseline/final/reconstruction. Root-only testda567608 remains private. This is NOT
+independent actual-store/p95/semantic-support evidence. Room149 records limits.
+
+Identity/alias designaede57c7 at/tmp/scry-identity-mutation-sep06.zzGGzz now has
+bounded independent review94e6e51f71e8caaa49e23e2e7c8a92de556c73099345a4b29d1c904c8219b3d3,
+archived memory-repairs/identity-mutation-design-independent-review-2026-09-06.md.
+Five baseline characterizations in/tmp/scry-identity-design-review.QcQ7fg,
+test897d7f20, reproduce undesirable behavior; NOT copied into shared as required
+semantics. GO only private actual en:/al: actor-history writer, no cleanup/undo
+policy yet. Whole ownership closure must include every baseline/final listing,
+canonical names, aliases pointing at changed identities even unlisted/untouched,
+and target/listing identity/selector/consumption state. Unchanged al: bytes plus
+unchanged retained listing can still become dangling when the owner is removed.
+Preserved baseline defects require equality of that complete relationship; writer
+attribution/successful ClaimAlias/DropAlias is never ownership authorization.
+
+Current episode projection private design/tmp/scry-current-outcome-sep06.0Eu5lS/
+CURRENT_OUTCOME_DESIGN.md SHA39b32ab741eae10731f0203869531a2133f52feb6231c1b9b885625b73c4fbfd
+is unreviewed/unimplemented. Prefer complete episode result over independent
+per-birth heads so changed extraction can omit old ordinals/births without leaving
+them falsely current. Must retain TypeFallback explicitly (extract.Ent JSON omits
+it), distinguish rejected non-assertions from committed/deferred, preserve immutable
+history and use exact head CAS. No new transcript retention or caller support grant.
+
+Accepted-once noteb2a40dabc86e8dbb05c006216cbb4f642b77a7b7f4e886dd069b31e7bc058824
+queued30 around05:49UTC remains ingestion-unverified; c51e3b8a likewise unverified.
+Never retry either. Deployed a06cd7b unchanged; no live adoption/repair/deployment.
+All remaining whole-goal clauses and two complete grading rounds still required.

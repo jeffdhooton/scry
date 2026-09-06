@@ -3718,3 +3718,18 @@ Counts cannot certify who wrote supporting assertions. The next private mutation
 ledger must account for actual same-transaction changes before a fixed finalizer
 can use the inventory for support selection. No reference count grants ownership
 of an old dangling endpoint.
+
+### Mutation accounting and ownership policy are different proofs
+
+**Decision, 2026-09-06.** Track actual same-transaction fact writes with exact
+touched-key before/after bytes and ordered occurrence labels. Reconstruct the
+complete baseline fingerprint from the final scan and first before-images to
+detect unattributed final changes. Labels and byte accounting are not approval
+to replace an assertion or count it as valid support; the fixed finalizer still
+needs parsed dependency and preservation policy.
+
+For eventual alias undo, unchanged bytes do not imply an unchanged relationship:
+deleting an owner can make an untouched alias dangling. The reviewed design
+requires complete affected listing/owner/lifecycle closure, including unlisted
+keys pointing to changed identities. Preserve an old defect only if its complete
+relationship is unchanged; never promote that preservation into ownership.

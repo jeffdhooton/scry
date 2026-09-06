@@ -1304,3 +1304,26 @@ Room148; report/contract under docs/memory-repairs/reference-inventory-*.
 Continue private /tmp/scry-fact-ledger-sep06.aWw65K: FACT_LEDGER_CONTRACT.md now
 written, source/tests next. No actual ledger, attribution policy or controller yet.
 Prior prototype/review failures and remaining whole-goal gates still apply.
+
+### 2026-09-06 06:05 UTC — fact ledger reviewed; alias history next
+
+Uncalled fact ledger2040e19a/contractc8e6074c, suppliedd43613c5 plus unchanged
+independent2786ed68 tests now shared. Review73c4319f/full independent and combined
+no-CGO suites PASS. It accounts actual fa: mutations and reconstructs complete
+baseline digest, but ordinals are descriptive: no parsed semantics/support or
+all-writer integration yet. Root-only restored05151920-mutation no-op preserves
+all247,638raw rows,1.8331635s; private measurement testda567608 not integrated.
+
+Identity mutation designaede57c7 in/tmp/scry-identity-mutation-sep06.zzGGzz has
+review94e6e51f archived. Next GO only private en:/al: actual-writer actor-history
+unit. Full eventual undo/legacy-defect exception must include target identity and
+selector/consumption state, ALL retained canonical/alias listings and unlisted
+alias keys pointing at changed owners. An unchanged alias can become dangling.
+Baseline characterizations897d7f20 stay private, not required bad semantics.
+
+Current episode result design39b32ab7 in/tmp/scry-current-outcome-sep06.0Eu5lS is
+only draft. Changed Force extraction may omit old births/ordinals: per-subject
+heads alone leave stale current counts. Full structured input/revision must not
+lose TypeFallback through extract.Result marshaling; no transcript retention.
+Note b2a40dab accepted ONCE queued30 around05:49UTC and priorc51e3b8a remain
+unverified; do not retry. Room149; installeda06cd7b unchanged, complete goal open.
