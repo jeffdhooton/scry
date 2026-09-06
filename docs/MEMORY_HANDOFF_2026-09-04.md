@@ -1348,3 +1348,23 @@ Root restored fresh061537 backupSHAfd22b0c3 with all247,951raw rows unchanged.
 c51e3b8a/b2a40dab/c9c7295b now independently of synthetic grading root-verified
 ingested and absent pending; exact hashes/counts in audit. Never retry. Room151,
 deployed a06cd7b unchanged. All remaining whole-goal gates and two rounds required.
+
+### 2026-09-06 06:47 UTC — parsed input revisions retained
+
+Uncalled input sourceb69e6daf/contract71e1b290 retained after independent review
+80eb05f0, unchanged supplied14ce28a2/f5ab5f5e and independent4c670e87 tests/full
+no-CGO PASS. Reports under memory-repairs/input-revision-*. Full canonical parsed
+revision, exact observation matching, immutable provenance-checked writer and
+bounded key/chunk readers only. Adopter now refuses io-input: (SHA9ac1ea52).
+Current result/head, total declaration/registration/fact accounting, semantic replay,
+fixed support/ownership policy and all-writer lifecycle protection still required.
+
+Private relationship inventoryeae817f6 at/tmp/scry-relationship-inventory-sep06.MukgqY
+under independent review. Root corrected only nil-as-delete malformed-empty fixture;
+source unchanged, corrected tests/full PASS. Restored061537 read-only scan84,248
+selected rows/all247,951rawsame260.756583ms; exact details in audit, no ownership or
+independent actual/p95 claim. Root-only replica test58451572 not for integration.
+Next composition needs finalizer-owned complete baseline and actual writer history
+verification before any post-undo relationship policy, never caller support flags.
+Notee7be6597 accepted ONCE queued30, unverified; never retry. Room152, installed
+a06cd7b unchanged, full objective and two all-clause grading rounds remain open.

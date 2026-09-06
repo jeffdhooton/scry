@@ -3749,3 +3749,13 @@ Every declaration and original fact must be accounted for, including non-asserti
 resolver paths; missing legacy selection state is unknown rather than completed.
 These are reviewed implementation requirements, not current support authority or
 permission to deploy the uncalled codecs.
+
+### Preserve parsed input without promoting it to completion
+
+**Decision, 2026-09-06.** Retain complete canonical structured input revisions in
+immutable records, including fields omitted by ordinary extractor JSON encoding.
+Match observations against full revision bytes, and inspect large records through
+bounded lossless chunks pinned to their immutable key. Provenance-checked storage
+proves retention, not successful classification or a completed ingestion result.
+Keep these APIs private until current-result, fixed-finalizer and lifecycle proofs
+are integrated. The adopter must refuse the new family in the meantime.

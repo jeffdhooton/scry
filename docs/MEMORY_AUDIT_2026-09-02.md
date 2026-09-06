@@ -4669,3 +4669,47 @@ unchanged; no live adoption, cleanup or deployment. Whole-goal failures remain.
 Combined shared full CGO_ENABLED=0 go test ./... -count=1 subsequently PASS:
 store36.754s/resolve15.702s/daemon28.686s. All copied source/report/test hashes
 match review pins; original regressions unchanged. User assessment remains untracked.
+
+### 2026-09-06 06:47 UTC — immutable parsed input revision reviewed
+
+Private baseline8fda77e unit /tmp/scry-input-revision-sep06.UfziK3 now retained
+uncalled: sourceb69e6daf91e98fba34166fe949c374d65f9196831d49ddcd11b9650364e59908,
+contract71e1b290, supplied14ce28a2/f5ab5f5e, independent4c670e87 unchanged.
+Report80eb05f062df6d9d3cfbd16c67ceb9cce580f6c0b4b914eb66f7acc5cc073bfe
+and contract archived memory-repairs/input-revision-*. Independent export
+/tmp/scry-input-revision-disproof.s8T9zi, full loged85472c5c2641c404b97ea8be14688e6fc93156ea23ef41fe29f7a7b2df57d6.
+Six independent+nine supplied tests PASS, full independent no-CGO noncached PASS
+(store38.615s/resolve15.110s/daemon27.886s), root private full PASS39.573s store.
+
+Versioned complete structured input io-input: binds full episode/cwd/summary/exact
+UTC nanoseconds, ordered declarations/facts, TypeFallback, nil/empty and unparsed
+ValidFrom/Supersedes. Pure matcher reconstructs full expected observation and
+compares exact canonical key AND bytes. Immutable actual writer and bounded
+key/chunk readers verify raw EP provenance; no graph write/events. Independent
+all-string, exact float/time boundaries, freshly addressed missing/duplicate
+canonical fields, mixed-revision matrix,11 EP poison cases,107 key pages, pinned
+large-byte reassembly under changed input, actual failures/conflicts and unchanged
+reopen/backup/restore tests PASS. Budget covers internal envelopes only, not RPC.
+The only existing-source diff adds io-input: to adoption occupied-family refusal
+(adopter SHA9ac1ea52); full lifecycle protection still absent. No result/head,
+registration completeness, support, normal routing or live adoption is certified.
+
+Separate relationship inventory /tmp/scry-relationship-inventory-sep06.MukgqY is
+private under disproof: sourceeae817f6, contractb758a05b, corrected testdfc258a8.
+Initial targeted and full suites failed only new malformed-empty fixture because
+gradeGenerationSet(nil) deletes the key. Changed ONLY that fixture to []byte{},
+preserving assertions and source. Corrected targeted0.686s and full no-CGO PASS
+(store37.739s/resolve13.990s/daemon28.942s). Not yet independent approval.
+Root restored061537 into its own replica and scanned read-only:84,248selected rows,
+31,297entities,52,880normalized groups,52,282natural groups,53,537listing occurrences,
+31,269raw owner groups; digest3a4be57144fc9e07fcbb78eb81d0929bcc4f31f640b2188a68a226f658c3c754,
+13,973,896retained KV bytes,260.756583ms,zero events,all247,951raw rows same.
+Root-only opt-in test58451572 stays private, not independent actual/p95 evidence.
+
+Room152. Source note e7be659773fe81c3eb8589b7bb1cc51d6bc7ccb6c8de7f4b853d3403e0ed14e3
+accepted ONCE queued30 around06:35UTC; ingestion unverified, never retry.
+Deployed a06cd7b unchanged; no live adoption/cleanup/deployment, complete goal open.
+
+Combined shared full no-CGO noncached input-revision suite subsequently PASS:
+store38.834s/resolve15.011s/daemon28.189s. All seven copied/changed artifact hashes
+match the independent input review. No original regression changed.
