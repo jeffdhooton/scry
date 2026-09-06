@@ -4740,3 +4740,41 @@ map, rejecting untracked selected-family changes. It is not yet reviewed and doe
 not authorize undo/materialization or solve concurrent raw range phantoms. Normal
 producer coordination, fixed finalizer and all remaining whole-goal gates remain.
 Deployed a06cd7b unchanged; source2347785 input revision retained, no live writes.
+
+### 2026-09-06 07:21 UTC — complete identity mutation ledger retained
+
+Uncalled ledger e43d2b90840774ea732a8b22299da5fd3b919d8722b2e7f4525d65e8401d2767
+retained with contract f22e3ac0, supplied c3714fb6 and independent e2017062 tests
+unchanged. Full report 618182c8444ea1c794034d4a4af743cafa8390387878c8bcca2ca8e90609b2f5
+archived under memory-repairs/identity-ledger-*. Independent export
+/tmp/scry-ledger-disproof-PmmAQv: seven independent plus five supplied groups PASS
+3.115s; full noncached no-CGO PASS store42.082s/resolve14.820s/daemon29.231s.
+Root combined shared full noncached no-CGO PASS42.004s/15.135s/28.403s.
+No existing test was weakened; all copied artifact hashes match their review pins.
+
+The ledger obtains its own complete baseline and actual writer, replays every
+generated before/after tuple, and compares the full final selected raw map. It
+does not certify ownership, undo, support, lifecycle or later finalizer writes.
+Independent tests demonstrate a public root ClaimAlias range phantom under the
+old harness, reverted transient raw writes, post-verify writes and outside-family
+writes as explicit exclusions. Those characterizations are preserved, not claims
+that those behaviors are acceptable for eventual production admission.
+
+Root fresh Mini backup070235:76,337,662bytes, SHA
+dd34872197da239af46120f9ebe8c219ae223817dfc13873252f198de20e1b8a.
+Restored /tmp/scry-foundation-closure-sep06.8IEPu5/shared-070235:
+all248,206raw rows unchanged through direct load/Open/index/read, digest
+f4520c7e79e9f9b92c40d080a8aa92541360cab3731d0580970d70a2e707606d.
+31,337entities/82,035facts/74,143current/7,892historical/9,467episodes/29pending.
+Accepted-once e7be659773fe81c3eb8589b7bb1cc51d6bc7ccb6c8de7f4b853d3403e0ed14e3
+now root-verified ingested and absent pending; EP raw SHA
+13a1a65afb1af86657085c079e4629c0bf8d8f0471f235d784e76ac97085da9d.
+No retry or p95/whole-graph grade. Room154; installed a06cd7b unchanged.
+
+Private narrow coordination design dedcbb18 at
+/tmp/scry-serial-admission-sep06.wDNcu0/SERIAL_ADMISSION_DESIGN.md is under fresh
+design disproof, not code approval. Do not exclusively hold maintenanceMu during
+ingestion: it would couple graph scans to durable PutPending. Proposed separate
+graph lock coordinates public producers while the ordinary remember queue path
+retains progress; existing exclusive maintenance, raw writers, lifecycle policy
+and event ordering remain explicit separate concerns. Full objective still open.

@@ -1383,3 +1383,21 @@ Source/tests private and unreviewed, no normal callers. Post-verify materializat
 and undo must receive separate fixed-policy accounting; full scans do not establish
 serializable prefix locks or prevent uncoordinated producer phantoms. Room153,
 installeda06cd7b unchanged, complete goal remains active.
+
+### 2026-09-06 07:21 UTC — identity ledger retained; coordination next
+
+Uncalled ledger e43d2b90 retained after independent review618182c8 with unchanged
+supplied c3714fb6 and independent e2017062 tests. Full independent and combined
+shared no-CGO suites PASS. Contract/report under memory-repairs/identity-ledger-*.
+Exact complete-map accounting is not ownership/support/undo or production safety.
+The review's public ClaimAlias phantom and post-verification-write counterexamples
+remain explicit unclosed integration requirements, with tests preserved unchanged.
+
+Root restored fresh070235 backup SHA dd348721 with all248,206raw rows unchanged;
+e7be6597 now confirmed ingested/absent pending, no retry. Exact pins in audit.
+Room154, installed a06cd7b unchanged; no live adoption, repair or deployment.
+Next private design /tmp/scry-serial-admission-sep06.wDNcu0/SERIAL_ADMISSION_DESIGN.md
+SHA dedcbb18 is under fresh-context design disproof. It proposes separate graph
+coordination because exclusive maintenanceMu would delay durable remember queue
+writes. Do not implement or claim production safety from an unreviewed design.
+Fixed finalizer/lifecycle, full cleanup/recall and two all-clause rounds still open.

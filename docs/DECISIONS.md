@@ -3771,3 +3771,16 @@ The capture is a prerequisite, not an authorization rule. Complete mutation
 accounting must bind it to actual writer history, and a later fixed finalizer must
 prove approved post-undo relationships. Snapshot scans alone cannot provide range
 locking against uncoordinated concurrent producers.
+
+### Reconcile actual identity writes against a complete owned baseline
+
+**Decision, 2026-09-06.** Compose the reviewed relationship inventory and actual
+writer into a private ledger that captures both itself. Replay exact ordered
+before/after bytes against that baseline and require complete final-map equality.
+Do not accept a caller's expected state as proof that its mutations were tracked.
+
+This is accounting, not ownership policy or production isolation. The independent
+review demonstrated a public alias writer escaping the old snapshot. Coordinate
+producers before activating admission, and account separately for all subsequent
+undo/materialization writes. Preserve those counterexamples as evidence, rather
+than broadening a finite ledger verdict into a full memory-quality pass.
