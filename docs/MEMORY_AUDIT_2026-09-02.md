@@ -5203,3 +5203,41 @@ events0 on all synthetic fixtures. Complete outcomes/replay/support/ownership/wr
 normal Apply, neutral production deduplication and all-writer/schema adoption floor
 are still missing; seventh overlay in this export still needs its accepted successor.
 No shared Go change, deployment, live graph cleanup or complete grading round.
+
+## 2026-09-06 — ninth reference scope and final-FA planning checkpoint
+
+Eighth independent reportc79bdbca archived, root all8 failures reproduced/.748s,
+room174. Ninth source freeze2e06afc117db9c961924dffc93202f816b2f9523e53a29997c364c6195247dbb
+owns complete strict FA reference index matching registry digest/counts, exact
+matching current/history row witnesses and explicit bounded zero-query scopes.
+Both actual count consumers instrumented, including current-only alias branch.
+New source4f29e36c, overlayff85841b, controls277fdd0e, aliases8abec80d;
+all600 baseline/54 additions pinned and prior supplied tests exact. Root scope
+tests6101be7f PASS.555s; retained suite PASS10.526/2.334, logbacd33f8;
+full uncached PASS69.528/16.800/27.460, logd8ad22a7. Vet/token157/248 PASS.
+Missing import and new-test field-name compile errors/sources preserved; no
+assertions weakened. Fresh ninth reviewer reports a preliminary generation-vote
+empty-prefix scope gap; final bounded report still pending. No promotion approval.
+
+New backup13203977,341,054bytes SHA
+cb1f9eef28b018a5682193043bbbb27e6a2ce169aaf78e931e33f187c3e2992e,
+both fresh restores exact250029 rows/digest5916d0aa. Full root ninth replica evidence
+558cfc5b1a19f68dd99f29122223fee42331bf9f7631334442d3209af95c95e3
+archived: separate exact export plus one private probe f8bf99c0 NEVER SHIP;
+first runPASS20.282s, log4fc9d01f7e6b63ef1d15b1e8dc93589b2692555e6e82b549f46fb54c32bec08c.
+Raw equality/events0/writers0 before/after reopen, unadopted and PRIVATE adopted.
+Adoption adds31596 only, all old rows exact; manifest8038a1d6, post281625/7c47d6d1.
+shared-132039 untouched; overlay-132039 now privately adopted. No actual per-query
+scope audit by this root probe; independent synthetic reviewer remains separate.
+059723bc closes INGESTED/absent pending/not parked, EPrawd851156f, no retry.
+
+Private composed admission now adds monotonic final-FA projection and support
+inputs from retained original assertions. Tests cover removal of exclusive effect
+when its primary hint defers, exact restatement plus hint end, unknown raw exclusive
+target preservation and independent support for an earlier rejected discovery.
+Construction/temporal/effects selection PASS1.091s, log8b27581769bcdc9e5c0fa028747ccfd12d3e475e3c51545191c0b2797327edb3.
+Full uncached PASS70.674/17.537/29.570,
+logea19bc4d538d288b8654a940a7e42d71c4712a1afb0288cb7bccda6a6bba980f.
+No actual identity closure/receipts/replay/materialization/Apply implementation yet,
+and this export still includes rejected seventh overlay. No independent code grade,
+shared Go change, live prevention/deploy/cleanup or full-goal round. Goal stays active.

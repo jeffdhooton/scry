@@ -1653,3 +1653,43 @@ bb92111e is now verified INGESTED/absent pending/not parked, EPraw74f6b72f, no r
 New note059723bc63eaff3c9eab2772a5d4a4ce98419cfa1fb98c1bc2c02f13990182e6
 accepted once at depth36, not yet backup-verified: verify later, never retry.
 Prioracc0f253 remains parked. All original cleanup/recall/sweep/two-round bars remain.
+
+## Continuation — 2026-09-06, after 13:20 UTC
+
+Plan/design archive committed18a4f1d, shared Go source still unchanged. Eighth
+independent NO-GO c79bdbca now archived: eight current/history reference-veto routes
+omit exact consumed FA rows. Initial independent dangling-FA fixture correctly
+failed ordinary PutFact; only new seed changed to retained raw FA, assertions
+unchanged. Root reproduced all8 failures/.748s; room174 records verdict.
+
+Ninth private /tmp/scry-ordered-overlay-ninth-sep06.nAculd/code, freeze
+2e06afc117db9c961924dffc93202f816b2f9523e53a29997c364c6195247dbb
+(600 baseline/54 additions). Adds exact matching FA witnesses plus scoped reference
+queries bound to complete snapshot digest/count, including zero-result queries and
+current-only alias veto. Only overlay/controls/aliases change plus new references
+source and test. Root new tests pass actual zero query/current/historical alias
+branches. Retained PASS10.526/2.334, full uncached PASS69.528/16.800/27.460,
+logd8ad22a7bcaaea8fc5295494226cd11a792232173ded58bd25b86fdbc57a8457.
+Vet/token PASS. Two compile mistakes preserved: missing slices import f4300e63 and
+new test Inventory→actual Final field5786d642; source/import corrections only.
+Fresh ordered_overlay_ninth_disproof is active and has reported two preliminary
+generation-vote empty-prefix scope failures, not a final report yet. Do not promote.
+
+Fresh132039 backup77,341,054bytes SHAcb1f9eef restores250029 rows/digest5916d0aa
+twice. shared-132039 untouched; overlay-132039 now privately adopted by root probe.
+Complete root conservation evidence558cfc5b is archived. Separate exact ninth
+replica export /tmp/scry-overlay-ninth-replica-sep06.dUF8Nm, private probe f8bf99c0
+NEVER SHIP, PASS20.282s before/after reopen/adoption; all original rows exact and
+planner events/writers0. Private adoption adds31596 only, post281625/7c47d6d1.
+New059723bc is now verified INGESTED/absent pending/not parked, EPrawd851156f.
+No retry, live graph mutation, binary deployment or full-goal round.
+
+Complete-admission workspace6qYb7K now has six Go source/test files, adding actual
+monotonic FA effect projection to construction/temporal/hint stages. Deferred
+primary effects disappear from baseline targets; exact restatement and hint end
+combine once; full raw/endpoint/old EP validation covers changing routes; support
+inputs derive only from retained incoming assertions. No identity closure, receipts,
+terminal replay, writes or normal Apply adapter yet. Source/test hashes and worklist
+in its IMPLEMENTATION.md. Selected builder tests PASS1.091s, log8b275817; full
+uncached suite PASS70.674/17.537/29.570, logea19bc4d. Export still includes seventh
+overlay and cannot ship. Continue the complete program and original goal bars.
