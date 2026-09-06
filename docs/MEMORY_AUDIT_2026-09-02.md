@@ -5241,3 +5241,24 @@ logea19bc4d538d288b8654a940a7e42d71c4712a1afb0288cb7bccda6a6bba980f.
 No actual identity closure/receipts/replay/materialization/Apply implementation yet,
 and this export still includes rejected seventh overlay. No independent code grade,
 shared Go change, live prevention/deploy/cleanup or full-goal round. Goal stays active.
+
+## 2026-09-06 after14:00 — bounded planner GO, projection tests
+
+Independent tenth report e965ccac84e5025ed15e79f5e1f79800c2c223dbf0f6111afc4174a2b6a27dc0
+and fresh testea16c92f archived exactly, following ninth NO-GOa5f5c8fa. Room176:
+GO only for fixed private read-only planner912c4592; all74 prior independent failing
+leaves now pass along with new interleaved scoped generation evidence, malformed
+evidence and mixed utility tests. Independent full uncached suite PASS
+73.902/18.437/28.650, logd6a67c99; vet,157/248 exact policy and all600+57 pins PASS.
+No FA/support/ownership/writer/deployment or full-goal certification.
+
+Root complete-admission6qYb7K ported all57 reviewed additions with exact hashes,
+keeping600 baseline files intact. Projection test fixture correction and full
+failure/source lineage are in memory-repairs/admission-projection-checkpoint-2026-09-06.md.
+No source policy change: frontend was not removed by the retained policy; the
+established Atlas box type-revalidation case now proves the removal precondition.
+Post-port full uncached suite PASS71.967/17.492/28.928,
+log3b73539e6979b082cd5a541cf7513067889ca692ce049db33a3f47e25c1154bf.
+Subsequent ownership/dependency implementation is private WIP and is not covered
+by that earlier full-suite result. No actual stores/writers/receipts/Force replay/
+normal Apply/prevention deployment changed. Original goal remains active.

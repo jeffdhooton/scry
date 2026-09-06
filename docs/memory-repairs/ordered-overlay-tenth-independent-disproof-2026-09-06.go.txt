@@ -1,0 +1,214 @@
+package store
+
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"reflect"
+	"slices"
+	"sort"
+	"strings"
+	"testing"
+	"time"
+)
+
+// Independently reconstruct every reported prefix from the complete raw fixture,
+// including adjacent out-of-scope addresses and more than one positive row.
+func TestTenthFreshInterleavedScopesAndWholePlan(t *testing.T) {
+	st := openTemp(t)
+	r := overlayTestInput()
+	g := overlayTestGeneration(t, st, r)
+	aliases := []string{"Polar Manual", "Lunar Handbook", "Stellar Ledger"}
+	for i, alias := range aliases[:2] {
+		ids := []string{r.EpisodeID}
+		if i == 1 {
+			ids = []string{"prior-one", "prior-two"}
+		}
+		for _, id := range ids {
+			if err := st.PutEpisode(Episode{ID: id, OccurredAt: r.OccurredAt.Add(-time.Minute)}); err != nil {
+				t.Fatal(err)
+			}
+			a := generationAttestation{Generation: g.ID, Alias: Normalize(alias), EpisodeID: id}
+			overlayTestRaw(t, st, string(generationAttestationKey(a)), dpJSON(t, a))
+		}
+	}
+	var excluded []string
+	for _, alias := range aliases {
+		prefix := identityGenerationAttestPrefix + g.ID + ":" + generationDigest([]byte(Normalize(alias))) + ":"
+		for _, key := range []string{strings.TrimSuffix(prefix, ":"), strings.TrimSuffix(prefix, ":") + ";outside", prefixAttest + "atlas:" + Normalize(alias), identityGenerationAttestPrefix + strings.Repeat("f", 64) + ":" + generationDigest([]byte(Normalize(alias))) + ":opaque"} {
+			overlayTestRaw(t, st, key, []byte("opaque outside exact query"))
+			excluded = append(excluded, key)
+		}
+	}
+	r.Declarations = []observedDeclaration{
+		{Name: "Atlas", Type: "service", Description: "first", Aliases: aliases},
+		{Name: "Cobalt", Type: "service", Aliases: []string{"Cobalt daemon"}},
+		{Name: "Cobalt daemon", Type: "machine", Description: "blocked metadata"},
+		{Name: "Atlas", Type: "machine", Description: "later conflict", Aliases: []string{aliases[2], aliases[0]}},
+		{Name: "queue.go", Type: "value", Description: "artifact"},
+	}
+	r.Facts = []observedFact{
+		{Src: "Atlas", Relation: "uses", Dst: "queue.go", Fact: "useful full original", Confidence: .713, ValidFrom: "2026-07-01", Supersedes: &observedSupersedes{Src: "Atlas", Relation: "status", Dst: "Nimbus Core"}},
+		{Src: "!!!", Relation: "uses", Dst: "Nimbus Core", Fact: "later rejected discovery"},
+		{Src: "Cobalt daemon", Relation: "status", Dst: "ready", Fact: "blocked stays typed"},
+		{Src: "Atlas", Relation: ":::", Dst: "unknown", Fact: "empty relation survives", Supersedes: &observedSupersedes{}},
+		{Src: "Nimbus_Core", Relation: "used_by", Dst: "Nimbus Core", Fact: "original inverse sides"},
+	}
+	before := dpRows(t, st)
+	p := overlayTestPlan(t, st, r)
+	if p.Declarations[2].Route.Kind != "deferred" || p.Assertions[2].Kind != "dependency-deferred" || p.Assertions[0].Kind != "proposed-resolution" || p.Assertions[1].Kind != "unresolved" || p.Assertions[3].Kind != "non-assertion" {
+		t.Fatal("whole-plan partial utility or original typed slots changed")
+	}
+	if p.Assertions[0].Hint == nil || p.Assertions[0].Hint.Destination.Slug != "nimbus-core" || p.Assertions[0].Hint.Relation != "related_to" || p.Assertions[4].SourceSide != "dst" {
+		t.Fatal("late-primary hint visibility or inverse original sides changed")
+	}
+	if e := overlayTestProjection(t, p, "atlas"); e.Type != "service" || e.Description != "first" || !slices.Contains(e.Aliases, aliases[1]) || slices.Contains(e.Aliases, aliases[0]) || slices.Contains(e.Aliases, aliases[2]) {
+		t.Fatal("metadata order, separate aliases, or current episode deduplication changed")
+	}
+	for _, key := range excluded {
+		if _, exists := p.Witnesses[key]; exists {
+			t.Fatalf("consumed out-of-scope evidence %q", key)
+		}
+	}
+	if len(p.PrefixViews) != 3 {
+		t.Fatalf("wanted three independent query scopes, got %d", len(p.PrefixViews))
+	}
+	for prefix, view := range p.PrefixViews {
+		keys := []string{}
+		for key := range before {
+			if strings.HasPrefix(key, prefix) {
+				keys = append(keys, key)
+			}
+		}
+		sort.Strings(keys)
+		h := sha256.New()
+		h.Write([]byte("identity-overlay-prefix-v1\x00"))
+		var size [8]byte
+		parts := [][]byte{[]byte(prefix)}
+		for _, key := range keys {
+			parts = append(parts, []byte(key), before[key])
+		}
+		for _, part := range parts {
+			binary.BigEndian.PutUint64(size[:], uint64(len(part)))
+			h.Write(size[:])
+			h.Write(part)
+		}
+		if view.Version != 1 || view.Prefix != prefix || view.Keys == nil || !slices.Equal(view.Keys, keys) || view.Count != uint64(len(keys)) || view.Digest != hex.EncodeToString(h.Sum(nil)) {
+			t.Fatal("query failed independent scope/row/digest reconstruction")
+		}
+	}
+	consumers := 0
+	for _, d := range p.Decisions {
+		if d.Kind == "alias-proposal" && slices.Contains(aliases, d.Alias) {
+			consumers++
+			prefix := identityGenerationAttestPrefix + g.ID + ":" + generationDigest([]byte(Normalize(d.Alias))) + ":"
+			if !slices.Contains(d.Trace.PrefixQueries, prefix) {
+				t.Fatal("initial/cached interleaved vote lost its own query")
+			}
+			for _, key := range p.PrefixViews[prefix].Keys {
+				var a generationAttestation
+				if json.Unmarshal(before[key], &a) != nil || !slices.Contains(d.Trace.Rows, key) || !slices.Contains(d.Trace.Rows, prefixEpisode+a.EpisodeID) || !bytes.Equal(p.Witnesses[key].Raw, before[key]) {
+					t.Fatal("consumer omitted exact attestation or actual EP")
+				}
+			}
+		}
+	}
+	if consumers != 5 {
+		t.Fatalf("wanted five vote consumers, got %d", consumers)
+	}
+	check := func(tr overlayTrace, beforePosition uint64) {
+		t.Helper()
+		for _, producer := range tr.Producers {
+			if producer == 0 || producer >= beforePosition || producer > uint64(len(p.Decisions)) {
+				t.Fatal("invalid producer order")
+			}
+		}
+		for _, key := range tr.Rows {
+			w, exists := p.Witnesses[key]
+			raw, present := before[key]
+			if !exists || w.Exists != present || !bytes.Equal(raw, w.Raw) {
+				t.Fatal("route points to missing or inexact baseline point witness")
+			}
+		}
+		for _, key := range tr.ReferenceQueries {
+			if _, exists := p.ReferenceViews[key]; !exists {
+				t.Fatal("missing reference view")
+			}
+		}
+		for _, key := range tr.PrefixQueries {
+			if _, exists := p.PrefixViews[key]; !exists {
+				t.Fatal("missing prefix view")
+			}
+		}
+	}
+	for _, d := range p.Decisions {
+		check(d.Trace, d.Position)
+	}
+	for _, d := range p.Declarations {
+		check(d.Trace, uint64(len(p.Decisions)+1))
+	}
+	for _, f := range p.Assertions {
+		check(f.Trace, uint64(len(p.Decisions)+1))
+		if f.Hint != nil {
+			check(f.Hint.Trace, uint64(len(p.Decisions)+1))
+		}
+	}
+	baseline, _ := json.Marshal(p)
+	for key, view := range p.PrefixViews {
+		if len(view.Keys) > 0 {
+			view.Keys[0] = "caller mutation"
+		}
+		view.Digest = "caller mutation"
+		p.PrefixViews[key] = view
+	}
+	for key, witness := range p.Witnesses {
+		if len(witness.Raw) > 0 {
+			witness.Raw[0] ^= 1
+		}
+		p.Witnesses[key] = witness
+	}
+	again, _ := json.Marshal(overlayTestPlan(t, st, r))
+	if !bytes.Equal(baseline, again) || !reflect.DeepEqual(before, dpRows(t, st)) {
+		t.Fatal("returned evidence corrupted storage or subsequent snapshot")
+	}
+}
+
+func TestTenthFreshRelevantGenerationRowsRefuse(t *testing.T) {
+	for _, mode := range []string{"empty", "extra-suffix", "wrong-alias", "wrong-generation", "missing-episode", "duplicate-episode-id", "wrong-episode-time-type"} {
+		t.Run(mode, func(t *testing.T) {
+			st := openTemp(t)
+			r := overlayTestInput()
+			g := overlayTestGeneration(t, st, r)
+			a := generationAttestation{Generation: g.ID, Alias: Normalize("Polar Manual"), EpisodeID: "prior-vote"}
+			if err := st.PutEpisode(Episode{ID: a.EpisodeID, OccurredAt: r.OccurredAt.Add(-time.Hour)}); err != nil {
+				t.Fatal(err)
+			}
+			key, raw := string(generationAttestationKey(a)), dpJSON(t, a)
+			switch mode {
+			case "empty":
+				raw = []byte{}
+			case "extra-suffix":
+				key += ":extra"
+			case "wrong-alias":
+				a.Alias = Normalize("Lunar Handbook")
+				raw = dpJSON(t, a)
+			case "wrong-generation":
+				a.Generation = strings.Repeat("0", 64)
+				raw = dpJSON(t, a)
+			case "missing-episode":
+				a.EpisodeID = "missing-vote"
+				key, raw = string(generationAttestationKey(a)), dpJSON(t, a)
+			case "duplicate-episode-id":
+				overlayTestRaw(t, st, prefixEpisode+a.EpisodeID, []byte(`{"id":"prior-vote","ID":"prior-vote","occurred_at":"2026-08-01T00:00:00Z"}`))
+			case "wrong-episode-time-type":
+				overlayTestRaw(t, st, prefixEpisode+a.EpisodeID, []byte(`{"id":"prior-vote","occurred_at":1}`))
+			}
+			overlayTestRaw(t, st, key, raw)
+			r.Declarations = []observedDeclaration{{Name: "Atlas", Type: "service", Aliases: []string{"Polar Manual"}}}
+			r.Facts = []observedFact{{Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "structural error aborts full fixed scope"}}
+			independentOverlayError(t, st, r)
+		})
+	}
+}

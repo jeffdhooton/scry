@@ -1693,3 +1693,23 @@ terminal replay, writes or normal Apply adapter yet. Source/test hashes and work
 in its IMPLEMENTATION.md. Selected builder tests PASS1.091s, log8b275817; full
 uncached suite PASS70.674/17.537/29.570, logea19bc4d. Export still includes seventh
 overlay and cannot ship. Continue the complete program and original goal bars.
+
+## Continuation — 2026-09-06, after 14:00 UTC
+
+Ninth NO-GOa5f5c8fa and tenth independent GOe965ccac are archived unchanged.
+Tenth freeze912c4592 passes the complete finite read-only planner contract,
+all retained/fresh/full uncached suites, vet and exact policy pins. Room176 records
+the bounded verdict; it does not approve assertion admission, writers, deployment
+or either full-goal round. Root read report, complete fresh testea16c92f and index.
+
+Private complete-admission6qYb7K now uses all57 exact tenth additions in place of
+the rejected seventh overlay;600 baseline pins remain exact. Eight admission WIP
+files added ordered identity projection. A new root removal fixture incorrectly
+expected frontend removal; preserved failure/source, then used retained Atlas box
+case with an explicit removal-proposal precondition, no policy/source change.
+Selected tests PASS2.372s. Full post-port uncached suite PASS71.967/17.492/28.928,
+log3b73539e. Details in memory-repairs/admission-projection-checkpoint-2026-09-06.md.
+Root is now implementing full identity relationship comparison and monotonic
+proposal/support closure inside that same private program. No actual writer,
+receipt/replay or normal Apply adapter yet. Live source/binaries/graph unchanged;
+newest backup and durable-note closure remain132039/059723bc. Keep goal active.
