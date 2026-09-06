@@ -3891,3 +3891,37 @@ laptop83378 digest8efead71b3128363e95c7f39678e3ec9332ae4a7645af03454ccf4780f02c2
 The source-only decision note065d17ba is not retried. Both deployed binaries
 remain24eafab; no schema migration, recovery or live repair is authorized by
 these root measurements alone.
+
+### 2026-09-06 — exact schema-refusal artifact predeployment PASS
+
+Fresh-context exact-artifact review is archived in
+memory-repairs/schema-refusal-artifact-predeploy-review-2026-09-06.md,
+SHA05d36896062e2e159daed3171103b68882ea0ddaf22f5917660eea1ed1b7262c.
+Independent rebuild equals7783216755045eb365e0e0cd281ead8e2842da1b8fb697dfb42158c232cbb7e7.
+Full no-CGO suite passes. Direct restores of013401shared/013402laptop,
+startup/index/read and twenty exact old/candidate benchmark commands leave
+every logical record unchanged. All235shared per-question ranks and payload
+sizes are identical; rank-file SHA442343dcbac85aa4604ef4d9de30a0c4008601f5b0b28ce4e0a10a253e63cb7d.
+Shared scores51/29/7/45/47 and caps pass bounded comparison, not original floors.
+Exact old24eafab binary wipes three opaque records for numeric999; exact
+candidate refuses eight incompatible marker variants without changing rows.
+
+Both current24eafab binaries were retained at installed path plus
+.pre-a078240-20260906T0146Z and independently hash-verified as4a439109.
+Candidate77832167 is staged on Mini but NOT installed or restarted. Older
+retained binaries remain untouched. Room126 records the bounded review.
+
+Root fresh014746 backups fully restore with exact startup/index/read equality:
+shared74,762,625bytes SHA041b07af4d8774f234f714a27b12f792b2eb5a6365c0fddf5eac035054b116fb,
+245373rows digestdd58bd54ec7450dffc52388e95fea4fd32a3aa6783e1655a767e300debd0e479;
+laptop19,445,016bytes SHA70b59f513fa0101b48ad57ca99d6a2e52ff7a1f6ce2b998e733c7cf1cb1a1097,
+same83378logicalrows as before. Independent freshness extension is pending.
+The shared013401→014746 delta includes118added facts,2removed fact addresses,
+three current→historical changes,8episodes and one additional parked input.
+Removed addresses require assertion/provenance relocation accounting; do not
+infer either preservation or loss from net counts. No deployment follows yet.
+
+Root confirmed once-submitted source decision065d17baa95af84a1d1b6c69c3e66ba5dd8e924f84f3b0c7d8245e042679d29e
+is ingested in013401, absent pending, episode raw SHA
+553c61e8f413806a4860e724101c052c169c943391e09b7b4eae7f7e38309e2c.
+No retry was sent; this is not an independent p95 or overall durability grade.
