@@ -1036,3 +1036,52 @@ previous actual fact-guard deployment notef1cb541f is independently ingested.
 No new a078240 actual-deploy note at this entry. Never retry those notes or
 the earlier IDs. Child dev-client alias apply stays held. Continue the active
 goal; no final completion or full two-round grading claim is made.
+
+### 2026-09-06 02:49 UTC — historical source gate; admission remains open
+
+This supersedes the preceding private/integration and reviewer-pending status.
+Schema a078240 actual deployment independently PASSES its bounded preservation
+gate; full report SHA c3fde6b6071652ddeaf33e76794db8ab21527bf24feffe5f25873cb3c0afa4ba
+is archived under memory-repairs. Its later two explicit sweeps FAIL final
+graph quality: archived report SHA
+3754421fe93521da8f4ce9beaea6fff1aa2ecb44d0ffbbaeac9d91f82665ae74.
+All 81,304 original assertions survive those intervals, but one new factless
+runbook persists, and held-out floors still fail. Subsequent fresh 02:36:47
+inventory finds three new factless runbooks in total, not just the first one.
+Other structural defects and existing capped-ref loss/backdating remain open.
+
+Exact historical-address preservation is now SOURCE-INTEGRATED in a06cd7b
+after independent source, post-supersession, fallback-coverage and real-replica
+reviews; root full no-CGO tests pass. It is NOT DEPLOYED at this entry. Both
+installed binaries remain a078240, with the previous rollback files intact.
+Candidate /tmp/scry-historical-deploy-sep06.INlBVW/scry is built from an exact
+a06cd7b export, Go1.26.2 CGO0 darwin/arm64 trimpath/version ldflags, SHA
+7938d05258bb3b08461441b7448a8da4a95374664f42a9b240f22c3327de55ef.
+Independent exact-artifact grader /root/historical_artifact_predeploy has
+reproduced the hash, full suite, both direct restores, real historical replay
+controls and all 235 rank/full-payload comparisons on BOTH fresh replicas.
+Final report and 02:47:04 freshness extension are pending; read them before
+deploying. Root has independently restored both 02:36 and 02:47 complete
+backups with all raw bytes preserved through Open/index/read. No alias apply.
+
+Actual schema deployment note 41fc642ba3b1f0726f842a3a30a2bd82e7e7e4cca5f69ddd8b95afefe09da7fb
+is now proven ingested in 02:36:47, absent pending, raw episode SHA
+1a62dce9051c451894a3211bb0eef4efe1dbb6833ac9ee19d29ce88687cf3732;
+the reviewer independently confirms 17 citing facts with closed provenance.
+Source-only historical note be14c4835407470abf98fcf385b85ec93377056a772657b3728657ec135e6f37
+was submitted once at approximately02:36:27 and is pending in that snapshot.
+NEVER retry either note. Room130 records source integration and later quality
+failure. Current repository 7c32a75 adds the full later-sweep report/audit.
+
+Unattached-metadata prevention is a PRIVATE design, not source or store policy:
+/tmp/scry-unattached-evidence-sep06.db52ow/PROPOSAL.md,
+SHA e8022c81ecb06e193a5925ddab0d9893cf1bb672f7dae1fd49f2a2f89cd0e728.
+Root baseline fixtures preserve existing expectations and reproduce declared
+metadata with zero facts plus DeleteEntity retaining alias attestations.
+Independent /root/unattached_admission_design_disproof is grading architecture;
+early fixtures prove old orphan attestations can route a real fact before any
+final hollow filter, and deleting a new node can delete an old orphan claim.
+Do not implement simple filtering, delete metadata, invent filler facts, or
+count hidden evidence as a completed repair. Keep this separate from a06cd7b.
+The user's untracked workflow assessment remains untouched. Its hook/install,
+old41group and other suggestions do not override the stricter active goal.
