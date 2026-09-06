@@ -4076,3 +4076,53 @@ before resolving their facts; temporal/cwd correlation with a new episode is
 not causal tracing. This independently observed quality failure blocks final
 goal completion, not the already proven startup-only behavior. No facts are
 manufactured and no metadata is discarded to make a zero-hollow count.
+
+### 2026-09-06 — later schema sweeps fail final quality
+
+Archived complete independent four-snapshot report:
+`memory-repairs/schema-refusal-two-sweeps-independent-review-2026-09-06.md`,
+SHA256 `3754421fe93521da8f4ce9beaea6fff1aa2ecb44d0ffbbaeac9d91f82665ae74`.
+Private evidence `/tmp/scry-schema-two-sweeps.AZXYyV`; all 62 artifact hashes
+verify. This is a FAIL for final graph quality, not a full-goal passing round.
+All 81,304 original assertions remain at their original addresses: 81,300 raw
+payloads equal and four current facts gain provenance only. All 7,855 original
+historical rows, 52,428 old claims and 42 repair markers are byte-identical.
+All old pending inputs survive; five additional alias-claim failures park with
+unchanged non-retry inputs. Fifteen previously parked payloads remain exact.
+The new zero-fact runbook raises hollows 2,851→2,852 and persists through both
+explicit sweeps. Existing dangling endpoints (2,441), wrong-owner spellings
+(504), cross-type listed spellings (27), and self-loops (1,099/93 current)
+remain. A six-reference cap also evicts one old repository reference; the
+unchanged AddRepoRef reproduces it, which explains but does not approve loss.
+
+Both persisted completion reports are independently verified: 02:14:01.927205
+and 02:16:31.642506 UTC. CLI start chronology comes from root tool receipts,
+not independent persisted start metadata. Sweep success is not queue drainage.
+Twenty actual CLI suite runs and 940 individual question measurements preserve
+all 235 answer ranks and complete miss sets at 51/29/7/45/47. Payload lengths
+change on 219/219/221 questions versus the initial snapshot; maximum 13,369,
+zero cap violations. Do not claim complete non-timing byte identity across
+different live snapshots. Original two held-out floors still fail.
+Deployment note 41fc642ba3b1f0726f842a3a30a2bd82e7e7e4cca5f69ddd8b95afefe09da7fb
+remains byte-identical pending at 02:17:07; this is not ingestion or p95 proof.
+
+Room 130 records historical source integration and these bounded findings.
+Historical source-only note submitted ONCE at approximately 02:36:27 UTC:
+be14c4835407470abf98fcf385b85ec93377056a772657b3728657ec135e6f37.
+Accepted queued; do not retry. Both installed binaries still a078240.
+Exact a06cd7b artifact SHA256
+7938d05258bb3b08461441b7448a8da4a95374664f42a9b240f22c3327de55ef
+is built from a fresh export with Go 1.26.2, CGO=0, darwin/arm64, trimpath,
+and version ldflags. Independent exact-artifact predeployment review is running.
+Root directly restored complete fresh shared 02:36:47 and laptop 02:36:48
+backups before any live change; all active raw bytes survive baseline Open,
+index and read. Shared backup 75,333,548 bytes, SHA256
+f45e7f5ebe00656719898d47161f7aaed64f744b83feb9f5a1058c118dfd7dfe;
+laptop 19,445,016 bytes, SHA256
+2ac44696d6b1cb6f665803cd987f1d40982e396741e2491a11898756042891a8.
+Shared restored logical digest
+05190ee4863b083ba6d8b03641a0c8de0e26b9e3042c8f8d9f391f6d48b71c43
+contains 246,169 rows, 81,504 facts (73,641 current), 31,064 entities,
+9,424 episodes and 24 pending inputs. Laptop digest remains
+8efead71b3128363e95c7f39678e3ec9332ae4a7645af03454ccf4780f02c2c7.
+These root checks are not substitutes for the candidate's independent gate.
