@@ -36,7 +36,7 @@ func putTestEntities(t *testing.T, s *Store, slugs ...string) {
 	}
 }
 
-func TestOpenCloseAndSchemaWipe(t *testing.T) {
+func TestOpenCloseAndSchemaRefusal(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "badger")
 
 	s, err := Open(dir)
@@ -65,25 +65,20 @@ func TestOpenCloseAndSchemaWipe(t *testing.T) {
 	}
 
 	s2, err := Open(dir)
+	if s2 != nil {
+		_ = s2.Close()
+		t.Fatal("incompatible store was opened")
+	}
+	if !errors.Is(err, ErrSchemaMismatch) {
+		t.Fatalf("wanted schema refusal, got %v", err)
+	}
+	raw, err = badger.Open(badger.DefaultOptions(dir).WithLogger(nil).WithCompression(0))
 	if err != nil {
-		t.Fatalf("reopen: %v", err)
+		t.Fatal(err)
 	}
-	defer s2.Close()
-
-	episodes, entities, facts, err := s2.Counts()
-	if err != nil {
-		t.Fatalf("Counts: %v", err)
-	}
-	if episodes != 0 || entities != 0 || facts != 0 {
-		t.Fatalf("schema mismatch should wipe store, got episodes=%d entities=%d facts=%d", episodes, entities, facts)
-	}
-
-	has, err := s2.HasEpisode("e1")
-	if err != nil {
-		t.Fatalf("HasEpisode: %v", err)
-	}
-	if has {
-		t.Fatalf("episode from before the schema wipe should be gone")
+	defer raw.Close()
+	if err := raw.View(func(txn *badger.Txn) error { _, err := txn.Get([]byte("ep:e1")); return err }); err != nil {
+		t.Fatalf("schema refusal lost the original episode: %v", err)
 	}
 }
 

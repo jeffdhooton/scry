@@ -3527,3 +3527,26 @@ not solve earlier current-triple coalescing or existing metadata/provenance
 update semantics. Those limitations must not be disguised as universal fact
 preservation. Rollback to the old writer reopens this proven overwrite hole.
 Full evidence: memory-repairs/fact-key-collision-independent-review-2026-09-06.md.
+
+### A memory schema mismatch is not permission to wipe
+
+**Decision, 2026-09-06.** Memory startup refuses incompatible schema markers
+and missing markers on populated stores. Only a genuinely empty logical store
+may initialize its marker. A schema mismatch never authorizes automatic data
+deletion. SchemaVersion remains1; there is no migration in this change.
+
+**Why.** The old startup path and its test deliberately deleted every record
+for a different nonzero numeric version. Independent fixtures reproduce that
+loss and prove the replacement refuses without changing any active logical
+key/value. Supported stores open byte-preserving; malformed/null/zero/future
+markers, opaque data, repeated/concurrent opens and tested error paths refuse.
+The full no-CGO suite and full restored live-backup startup/index/read pass.
+
+This is a source prevention bridge, not a fact-format design. Old installed
+or retained binaries still have destructive numeric-mismatch behavior; a
+separate additive writer-floor key would be ignored by them. Restore also
+still wipes before validating its input. Neither behavior is made safe by
+this change, and no numeric schema bump or populated-store restore is approved.
+Future transitions require concrete legacy refusal and explicit activation,
+data preservation and rollback proofs. See the complete schema-startup-refusal
+review and comment-only hash extension under memory-repairs.

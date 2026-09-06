@@ -3770,3 +3770,26 @@ It was queued, not yet proven extracted; never retry it. One97ms submission
 does not establish p95 durability. Prior3be6deac/5c5ce0b2 remain successful
 and must not be retried. Full shared no-CGO suite remains green atcbba2f3.
 The user's untracked workflow assessment remains untouched.
+
+### 2026-09-06 — schema startup refusal integrated locally
+
+Independent recovery-design disproof exposed automatic DropAll on a numeric
+schema mismatch; the old test explicitly expected this. The private startup
+refusal replacement independently PASSES: reportSHA
+db351db6e9869788a84c0de3f8adf5ae5e9b2d5fe7b9d7fe0c8475a4b9d8e68b,
+plus comment-only extensionSHAadcaf9dfc6ff3e82d92477294dfb33cddce7894fc9ca041ea27a7141a84298da.
+Both are archived under memory-repairs/schema-startup-refusal-*.
+
+Exact integrated store.goSHA4b18a0037534aa0111b3d8fede8883dbf4bfa3ffe955b3ff15ebd0d07fa38f88;
+store_test.goSHA90a3ca56009afed022f49b15c8793445fa57601ce9681bed9e1e2e174ee8d5f5;
+schema_refusal_test.goSHAca3b6a85b74616f47ce050fa1413eff3b500311ee73327c76a4df7dc3259f1c5.
+No schema bump, new fact key or live store change. The independent23-marker
+matrix, opaque binary/empty records, repeated/concurrent opens, error paths,
+baseline999-wipe reproduction and full no-CGO suite pass. Fresh010309 backup
+is directly restored; all244694rawrecords remain equal through startup/index/
+read, digest07aacc2b661cfe8d7973b5d2bed50d4ab77e1f296f5512f25139bf660779a4e6.
+Root's full no-CGO suite passes after exact shared-source integration too.
+
+Both running binaries remain24eafab/4a439109. This source has NOT been
+deployed. Retained older binaries and destructive Restore remain separate
+hazards; no migration or recovery is approved. Room123 records the review.

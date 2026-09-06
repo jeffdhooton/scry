@@ -2,7 +2,7 @@
 // temporal knowledge graph (the memory domain). Unlike the per-repo indexes
 // under internal/*/store, this store is global, incremental, and additive:
 // episodes, entities, and facts accumulate over time rather than being wiped
-// and rebuilt on every run. The only automatic wipe is on schema mismatch.
+// and rebuilt on every run. Schema mismatches are refused without a wipe.
 //
 // Key prefixes:
 //
@@ -39,9 +39,11 @@ import (
 	"github.com/dgraph-io/badger/v4"
 )
 
-// SchemaVersion is bumped whenever the on-disk layout changes. On mismatch
-// the store is wiped and rebuilt from scratch.
+// SchemaVersion identifies the supported layout. A mismatch is refused;
+// changing the format requires an explicit reviewed migration.
 const SchemaVersion = 1
+
+var ErrSchemaMismatch = errors.New("memory: incompatible or missing schema marker; preserve the store for explicit recovery")
 
 const (
 	prefixMeta    = "meta:"
@@ -186,9 +188,8 @@ type Store struct {
 	observer func(Event)
 }
 
-// Open opens (creating if necessary) the store at dir. If the on-disk schema
-// version does not match SchemaVersion, the store is wiped and reinitialized
-// at the current version.
+// Open opens (creating if necessary) the store at dir. Only an empty store
+// is initialized; an incompatible or unversioned populated store is refused.
 func Open(dir string) (*Store, error) {
 	opts := badger.DefaultOptions(dir).
 		WithLogger(nil).
@@ -261,27 +262,32 @@ func (s *Store) AtomicWrite(fn func(*Store) error) error {
 }
 
 func (s *Store) ensureSchema() error {
-	disk, err := s.schemaVersionOnDisk()
-	if err != nil {
-		return fmt.Errorf("read schema version: %w", err)
-	}
-	if disk != 0 && disk != SchemaVersion {
-		if err := s.db.DropAll(); err != nil {
-			return fmt.Errorf("wipe stale schema (disk=%d, want=%d): %w", disk, SchemaVersion, err)
-		}
-	}
-	if disk != SchemaVersion {
-		if err := s.db.Update(func(txn *badger.Txn) error {
+	return s.db.Update(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(keySchemaVersion))
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			it := txn.NewIterator(badger.DefaultIteratorOptions)
+			defer it.Close()
+			it.Rewind()
+			if it.Valid() {
+				return ErrSchemaMismatch
+			}
 			b, err := json.Marshal(SchemaVersion)
 			if err != nil {
 				return err
 			}
 			return txn.Set([]byte(keySchemaVersion), b)
-		}); err != nil {
-			return fmt.Errorf("write schema version: %w", err)
 		}
-	}
-	return nil
+		if err != nil {
+			return fmt.Errorf("read schema marker: %w", err)
+		}
+		return item.Value(func(b []byte) error {
+			var disk int
+			if err := json.Unmarshal(b, &disk); err != nil || disk != SchemaVersion {
+				return fmt.Errorf("%w: marker sha256=%x", ErrSchemaMismatch, sha256.Sum256(b))
+			}
+			return nil
+		})
+	})
 }
 
 func (s *Store) schemaVersionOnDisk() (int, error) {
