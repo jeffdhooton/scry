@@ -1875,3 +1875,23 @@ completion before claiming success. Frozen xfHydo remains immutable. No actual
 replica/live/note change. Continue actual integration and remaining full-goal gates.
 
 Latest full run now complete: PASS79.082/19.743/30.526 log63ad549e; vet PASS.
+
+## Continuation — 2026-09-06, normal Apply connected privately
+
+Read memory-repairs/normal-admission-integration-progress-2026-09-06.md. Root6qYb7K
+now changes resolve.ApplyWith to thin applyOwned adapter, sharing store's fixed
+executeCompleteAdmission with raw test entry. Bounded typed status distinguishes
+selected counts, new writes/classifications and retained unselected conflicts.
+Normal focused tests.779/300289ab and full store78.073/e48ce135 pass; vet PASS.
+Unchanged resolver suite has71 failing groups (13.264/9415910c), NOT a green full
+repository. No supplied tests edited. Main Go unchanged. Earlier corrected green
+core frozen /tmp/scry-owned-corrected-sep06.7Aah7P/code, manifest4d8593e4.
+
+Largest concrete regression: VE classification rows read but never newly written.
+Implement complete original-occurrence-bound value-evidence effects/replay under
+the fixed owner; don't restore old post-commit writes or word lists. Other failures
+need explicit lifecycle fixture/provenance, old error/status and replaced temporal/
+unsupported-birth requirement reconciliation, not blanket waiver. Queue partial/
+conflict handling, memory.commit EP context, V2 readers and old policy copies still
+need work. Private source/log pins in report. No tests/reviewers running now; no
+actual memory/live/note change. Continue full goal; no all-clause round has passed.

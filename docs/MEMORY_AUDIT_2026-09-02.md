@@ -5427,3 +5427,17 @@ approved. Full composed suite running. No actual replica/live/note changes.
 
 Latest composed run completed PASS79.082/19.743/30.526, final log
 63ad549edb3b2134f6719508b23839502ac95d4a4d183885c357e1c414719865; vet PASS.
+
+## Continuation — 2026-09-06, normal adapter WIP
+
+Private normal Apply now calls the fixed owned transaction; main production remains
+unchanged. See memory-repairs/normal-admission-integration-progress-2026-09-06.md.
+Pre-adapter corrected code frozen7Aah7P/4d8593e4 (600+107 files). Typed output
+separates selected complete counts from attempt writes and unselected conflicts.
+Focused normal Apply tests PASS.779/300289ab; full store78.073/e48ce135; vet PASS.
+Unchanged resolver suite FAIL13.264, 71 top-level groups, log9415910c. This private
+integration is NOT full-repository green or promoted. A concrete regression is
+missing durable explicit value-evidence writes: later episodes can recreate status
+nodes. Close that under the same owned plan/receipts/replay before claiming parity.
+Need public partial/conflict consumers, policy deduplication, adoption/all-writer/
+schema floor and actual replica/independent proof. No live or note changes.
