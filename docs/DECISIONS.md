@@ -3924,3 +3924,33 @@ including invalidation targets; guarding restatements alone still loses extensio
 Malformed-date handling must retain parse status without globally withholding an
 unrelated valid assertion. Final identity support/ownership and durable partial
 outcomes must derive from the retained complete plan, not caller flags or EP presence.
+
+### Complete assertion admission must carry terminal effects on retry
+
+**Decision, 2026-09-06.** The controlling implementation contract is
+`docs/MEMORY_ASSERTION_ADMISSION_PLAN_2026-09-06.md`, SHA20d5ed6f98903571560f8ffd441ae5a76e6634815992bb90953a5a630218fcb9.
+It incorporates independent initial NO-GO a3c25081 and complete corrected-design
+addendum88bf6aa6. The rejected draft508a70c2 and executable characterizations remain
+archived; conditional design acceptance is not a code or production grade.
+
+Exact current/history assertion identity includes full target, raw relation,
+statement and UTC start, independently of legacy address. Preserve exact repeats,
+defer occupied-address conflicts, plan exclusive intervals from effective starts,
+and freeze full hint universes before eligibility and zero/one/many targeting.
+Resolved self-loops and malformed explicit dates defer locally. Every rewrite
+must preserve complete supported raw representation and actual provenance.
+
+Existing v1 identity outcomes cannot truthfully encode resolved-endpoint FA
+deferral or exact hint effects. The composed program needs versioned complete
+occurrence results preserving v1 records. Same-revision Force carries terminal
+effects rather than rerunning hints against new candidates. A changed extraction
+with any prior accepted occurrence durably retains conflict input/evidence only:
+old EP/head/graph stay exact, and public conflict is returned after successful
+retention, not inside a callback that rolls retention back. Acceptance includes
+metadata, votes, restatements and invalidations, not just new FA count. Actual
+immutable EP bytes, not a reused ID, establish same-episode provenance.
+
+Implement these together with support/ownership closure and actual materialization
+behind one fixed owned normal-Apply program. Another uncalled helper is not delivery.
+All-writer/schema/adoption/rollback and actual-backup gates remain prerequisites
+to activation; no live adoption or cleanup is authorized by this design review.

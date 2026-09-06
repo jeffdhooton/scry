@@ -1,0 +1,104 @@
+package resolve
+
+import (
+	"testing"
+	"time"
+
+	"github.com/jeffdhooton/scry/internal/memory/extract"
+	"github.com/jeffdhooton/scry/internal/memory/store"
+)
+
+// PASS characterizes inherited behavior, not compliant admission.
+func TestCompleteFactDesignBaselineAliasSelfLoop(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC)
+	for _, ent := range []store.Entity{
+		{Slug: "atlas", Name: "Atlas", Aliases: []string{"Atlas Service"}, Type: "service", CreatedAt: at},
+		{Slug: "draco", Name: "Draco", Type: "service", CreatedAt: at},
+		{Slug: "equuleus", Name: "Equuleus", Type: "service", CreatedAt: at},
+	} {
+		if err := st.PutEntity(ent); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res := extract.Result{Facts: []extract.Fct{
+		{Src: "Atlas", Relation: "uses", Dst: "Atlas Service", Fact: "Atlas uses Atlas Service.", Confidence: .8},
+		{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "Draco uses Equuleus.", Confidence: .8},
+	}}
+	stats, err := Apply(st, store.Episode{ID: "self-loop-proof", OccurredAt: at}, "", res, DefaultExclusive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	atlas := mustFacts(t, st, "atlas")
+	draco := mustFacts(t, st, "draco")
+	if len(atlas) != 1 || atlas[0].Src != atlas[0].Dst || len(draco) != 1 {
+		t.Fatalf("baseline characterization changed: stats=%+v atlas=%+v draco=%+v", stats, atlas, draco)
+	}
+	t.Logf("baseline commits a self-loop through valid established alias routes, alongside unrelated fact: stats=%+v loop=%+v", stats, atlas[0])
+}
+
+func TestCompleteFactDesignBaselineHistoricalRestatementKeepsClosedEnd(t *testing.T) {
+	st := openTemp(t)
+	at := time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC)
+	start := at.Add(-9 * 24 * time.Hour)
+	end := at.Add(-5 * 24 * time.Hour)
+	for _, name := range []string{"Atlas", "Borealis"} {
+		if err := st.PutEntity(store.Entity{Slug: store.Slugify(name), Name: name, Type: "service", CreatedAt: start}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := store.Fact{Src: "atlas", Relation: "replaced_by", Dst: "borealis", Fact: "Atlas was replaced by Borealis.", ValidFrom: start, InvalidAt: &end, Confidence: .9, Episodes: []string{"original"}}
+	if err := st.PutFact(old); err != nil {
+		t.Fatal(err)
+	}
+	stats, err := Apply(st, store.Episode{ID: "historical-proof", OccurredAt: at}, "", extract.Result{Facts: []extract.Fct{{Src: "Atlas", Relation: "replaced_by", Dst: "Borealis", Fact: old.Fact, ValidFrom: start.Format(time.RFC3339Nano), Confidence: .2}}}, DefaultExclusive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := mustFacts(t, st, "atlas")
+	if len(got) != 1 || got[0].InvalidAt == nil || !got[0].InvalidAt.Equal(end) || !got[0].ValidFrom.Equal(start) || got[0].Confidence != .9 {
+		t.Fatalf("exact historical preservation regressed: %+v", got)
+	}
+	t.Logf("passing exact-history control: stats=%+v row=%+v", stats, got[0])
+}
+
+// The baseline has no partial-result mechanism. This characterizes its Force
+// retargeting independently; the design report supplies the partial-result
+// timeline to which the new completed-input no-op exception does not apply.
+func TestCompleteFactDesignBaselineForceHintRetargets(t *testing.T) {
+	st := openTemp(t)
+	event := time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC)
+	for _, name := range []string{"Atlas", "Borealis", "Draco", "Equuleus"} {
+		if err := st.PutEntity(store.Entity{Slug: store.Slugify(name), Name: name, Type: "service", CreatedAt: event}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	putTarget := func(day int) {
+		t.Helper()
+		f := store.Fact{Src: "atlas", Relation: "uses", Dst: "borealis", Fact: "Assertion beginning " + time.Date(2026, 8, day, 0, 0, 0, 0, time.UTC).Format(time.RFC3339), ValidFrom: time.Date(2026, 8, day, 0, 0, 0, 0, time.UTC), Confidence: .8, Episodes: []string{"target-origin"}}
+		if err := st.PutFact(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	putTarget(1)
+	ep := store.Episode{ID: "force-target-proof", OccurredAt: event}
+	res := extract.Result{Facts: []extract.Fct{{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "Draco uses Equuleus.", Confidence: .8, Supersedes: &extract.SupRef{Src: "Atlas", Relation: "uses", Dst: "Borealis"}}}}
+	if _, err := Apply(st, ep, "", res, DefaultExclusive); err != nil {
+		t.Fatal(err)
+	}
+	putTarget(5)
+	stats, err := ApplyWith(st, ep, "", res, DefaultExclusive, ApplyOptions{Force: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := mustFacts(t, st, "atlas")
+	if len(rows) != 2 || stats.FactsInvalidated != 1 {
+		t.Fatalf("baseline retarget characterization changed: stats=%+v rows=%+v", stats, rows)
+	}
+	for _, row := range rows {
+		if row.InvalidAt == nil || !row.InvalidAt.Equal(event) {
+			t.Fatalf("expected both rows ended by same hint episode: %+v", rows)
+		}
+	}
+	t.Logf("same input hint closes another candidate on Force: stats=%+v rows=%+v", stats, rows)
+}

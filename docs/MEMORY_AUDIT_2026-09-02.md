@@ -5156,3 +5156,50 @@ bb92111e accepted once11:42:58;114330 verifies durable pending attempts0/not par
 not ingested, raw3cfac8fdaa399a0ff559d5c29c817871c25da0ffa6430f0235e1ca48f82dec82.
 Do not retry. Prioracc0f253 remains parked1attempt afterfactconflict. No live graph
 write/deploy/provider/config change; live a06cd7b remains exact on both machines.
+
+## 2026-09-06 — successive overlay disproofs and composed assertion implementation
+
+Independent fifth a0cb2d9e, sixth565ce2d5 and seventh52e50249 NO-GO reports archived
+exactly in memory-repairs. Fifth proves7 missing natural-owner cases; sixth proves6
+fact-only endpoint controls; seventh proves4 absent explicit-claimant entity witnesses.
+All counterpart utility/raw/event checks and earlier retained suites pass. These
+are finite dependency defects, not support or production grades. Every rejected
+export, failed test and correction remains immutable; rooms170/172/173 report them.
+
+Eighth freeze fab44ba27d8922d657d33da54840187651268a2523454dbf2231544792896de7
+in /tmp/scry-ordered-overlay-eighth-sep06.8lun4B contains600 baseline/51 additions;
+only controls880e2629047ae032c73b09fb212c8ef469173e7c7036fab2110a653e440963a1
+changes from seventh, retaining exact entity presence/absence inside common missing
+endpoint validation. Root reproduces four unchanged failures/.970s before correction.
+Retained tests PASS10.481s store/2.370s resolve, log590a25ce6aee354cb3a8e700b9cae54c1fadc9a0196da93b6c7accae510d6194.
+Full uncached suite PASS70.371/17.482/28.047, log286716006c0f55c688b9fd95daedfc88911669d96f17c307865bfc1c186579c7.
+Vet and exact neutral token verifier157/248 PASS. Fresh independent whole-unit
+review is active; no eighth replica/prod/FA/support/all-goal approval is implied.
+
+Root sixth restored-replica evidence351b15562139867ce8282eb9604af0189288090fb2909b9457b47f3545fd5ef9
+is archived with exact counts, hashes, timings and private-adoption boundaries.
+Backup12210377,150,279bytes SHAa49eefd40e6e66af152951a48998eb851120c4bb07d361deda17ed28042baf45
+restores249613 rows/digestd037654b twice; sixth probe PASS16.906s and all original
+rows survive private adoption31536 additions, post281149/eb75ad9d. shared-122103
+untouched, overlay-122103 privately adopted. Seventh has NO actual replica probe.
+Safe lookup closes bb92111e as INGESTED/absent pending/not parked, EPraw74f6b72f.
+New059723bc accepted once/depth36 remains unverified. No duplicate remember call.
+
+Complete assertion contract20d5ed6f is now a repository plan, with original draft
+508a70c2, independent NO-GOa3c25081, corrected-design addendum88bf6aa6 and executable
+characterizations7bc8620a/a9b56e60 archived unmodified. Its key corrections are exact
+terminal-effect carry on partial Force, truthful versioned FA/hint results, local
+resolved self-loop deferral, finite canonical input boundary and durable-unselected
+changed-revision conflict without old EP/head/graph alteration. Conditional design
+direction is not implementation approval; DECISIONS records the reasoning.
+
+Composed private implementation /tmp/scry-complete-admission-sep06.6qYb7K currently
+has construction and temporal/hint planning only. Construction initial two failures
+were empty deferral-map entries from union-find; source7cf1f5dc and failed log retained,
+source-only fix yields unchanged test PASS. Temporal first tests PASS2.234s including
+owner regression groups, log88b143dbdbb76b1eb26fabf05da86929fdd4cfaa1833a77ebb0b52d4ab0274f8.
+No assertion weakening or fixture correction. Planning retains actual raw rows and
+events0 on all synthetic fixtures. Complete outcomes/replay/support/ownership/writers,
+normal Apply, neutral production deduplication and all-writer/schema adoption floor
+are still missing; seventh overlay in this export still needs its accepted successor.
+No shared Go change, deployment, live graph cleanup or complete grading round.

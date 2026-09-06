@@ -1,0 +1,48 @@
+package store
+
+import (
+	"math"
+	"testing"
+	"time"
+)
+
+// These passing tests expose the present codec's bounded schema; they do not
+// claim any composed planner or production outcome contract exists.
+func TestCompleteFactDesignCodecCannotDescribeResolvedTemporalDeferral(t *testing.T) {
+	ordinal := 0
+	o := identityOutcome{Version: 1, EpisodeID: "episode", AssertionOrdinal: &ordinal, Disposition: "deferred", Links: []outcomeLink{
+		{Key: "original-src", Role: "primary-src", FinalSide: "src", Spelling: "Atlas", ResolvedSlug: "atlas", State: "resolved"},
+		{Key: "original-dst", Role: "primary-dst", FinalSide: "dst", Spelling: "Borealis", ResolvedSlug: "borealis", State: "resolved"},
+	}}
+	if _, _, err := encodeIdentityOutcome(o); err == nil {
+		t.Fatal("expected codec to reject temporal deferral with resolved routes")
+	}
+	o.Links[1].State, o.Links[1].FinalSide, o.Links[1].ResolvedSlug = "deferred", "none", ""
+	if _, _, err := encodeIdentityOutcome(o); err != nil {
+		t.Fatalf("codec only permits this by changing a true route result: %v", err)
+	}
+	t.Log("A temporal/address conflict cannot encode truthful resolved routes; changing one route to unresolved makes the codec accept.")
+}
+
+func TestCompleteFactDesignCodecCannotRecordAssertionMaterialization(t *testing.T) {
+	ordinal := 0
+	o := identityOutcome{Version: 1, EpisodeID: "episode", AssertionOrdinal: &ordinal, Disposition: "committed", Links: []outcomeLink{{Key: "original-src", Role: "primary-src", FinalSide: "src", Spelling: "Atlas", ResolvedSlug: "atlas", State: "resolved"}}}
+	if _, _, err := encodeIdentityOutcome(o); err != nil {
+		t.Fatal(err)
+	}
+	o.Materialization = []byte(`{"src":"atlas","relation":"uses","dst":"borealis"}`)
+	if _, _, err := encodeIdentityOutcome(o); err == nil {
+		t.Fatal("expected assertion materialization to be forbidden")
+	}
+	t.Log("Committed assertion accepts nil materialization and rejects every non-nil materialization; no exact FA/hint evidence fits this schema.")
+}
+
+func TestCompleteFactDesignExistingInputCannotPreserveAllConfidenceBits(t *testing.T) {
+	for _, bits := range []uint64{0x7ff8000000000001, 0x7ff8000000000002, 0x7ff0000000000000} {
+		r := identityInputRevision{Version: 1, EpisodeID: "episode", OccurredAt: time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC), Facts: []observedFact{{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "A confidence witness.", Confidence: math.Float64frombits(bits)}}}
+		if _, _, err := encodeIdentityInput(r); err == nil {
+			t.Fatalf("expected nonfinite float rejection for %x", bits)
+		}
+		t.Logf("existing input codec cannot preserve original confidence bits %x", bits)
+	}
+}

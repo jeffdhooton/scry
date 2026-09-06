@@ -1600,3 +1600,56 @@ once at11:42:58; verified114330 durable pending, attempts0, not parked/not inges
 pending raw3cfac8fd. Verify later, never retry. acc0f253 remains closed as parked,
 not ingestion success. All cleanup/recall/production integration and two complete
 fresh-context rounds remain required; keep the unbounded goal active.
+
+## Continuation — 2026-09-06, after 13:00 UTC
+
+Root remains sole builder/live writer; complete unbounded objective remains active.
+Main source is unchanged from e097fa6; subsequent commits contain documentation.
+Both live binaries remain a06cd7b/SHA7938d052; no deployment/live graph mutation.
+Do not treat the private implementation below as production prevention.
+
+Fifth independent NO-GO a0cb2d9e, sixth NO-GO565ce2d5 and seventh NO-GO52e50249
+are now archived in memory-repairs. They successively prove actual natural-owner
+controls, fact-only consumer controls, and four missing explicit-claimant entity
+absence witnesses. Prior immutable exports/tests and all failed outputs remain.
+Rooms170/172/173 record verdicts. Seventh has no actual replica canary.
+
+Eighth private correction: /tmp/scry-ordered-overlay-eighth-sep06.8lun4B/code,
+freeze fab44ba27d8922d657d33da54840187651268a2523454dbf2231544792896de7
+(600 baseline/51 additions). Only controls880e2629 changes: common missingControls
+captures exact en:slug existence/absence before lifecycle checks, including claimant
+and inferred-veto consumers. Unchanged seventh test reproduces four FAIL before
+correction (.970s). Retained tests PASS10.481/2.370; full uncached no-CGO suite
+PASS store70.371/resolve17.482/daemon28.047, log286716006c0f55c688b9fd95daedfc88911669d96f17c307865bfc1c186579c7.
+Vet/token157 declarations/248 symbols PASS. Fresh whole-unit reviewer
+ordered_overlay_eighth_disproof is active; no independent eighth verdict yet.
+
+Complete assertion plan docs/MEMORY_ASSERTION_ADMISSION_PLAN_2026-09-06.md
+SHA20d5ed6f includes corrected v2 cf278586 and full independent addendum88bf6aa6;
+initial draft508a70c2/reviewa3c25081 and two characterization tests are archived.
+Private ACTUAL composed-program work has begun in
+/tmp/scry-complete-admission-sep06.6qYb7K/code, not main. Four new Go source/test
+files identity_assertion_admission_plan{,_test}.go and
+identity_assertion_admission_temporal{,_test}.go implement incremental original
+ordinal/full-identity/address proposals, local deferrals, effective-start exclusive
+timelines and frozen eligible-unique hint planning. No normal Apply adapter,
+committed outcomes/terminal replay, final support/ownership closure or writer yet.
+This export still includes rejected seventh overlay; port the accepted successor
+only after exact checks. Do not ship or separately promote these partial stages.
+
+Construction first failed two groups because union-find created empty entries in
+the deferred map. Initial source7cf1f5dc and log preserved; source-only correction,
+unchanged tests PASS. Temporal first corpus then PASS2.234s including existing
+owner tests; log88b143dbdbb76b1eb26fabf05da86929fdd4cfaa1833a77ebb0b52d4ab0274f8.
+Both input orders, older-arriving state, equal-start/closed overlap, 1971/2002 hint
+eligibility at1980, ambiguity/raw extension/closed-target local deferral, repeated
+hints and unrelated failed future hint are covered. Raw equality/events0 throughout.
+These are builder planning-stage tests, not actual writes or independent acceptance.
+
+Newest restored backup122103:77,150,279bytes SHAa49eefd4,249613 raw rows digestd037654b.
+shared-122103 untouched; overlay-122103 privately adopted by sixth probe only.
+Complete root evidence351b1556 is archived. It does not override sixth NO-GO.
+bb92111e is now verified INGESTED/absent pending/not parked, EPraw74f6b72f, no retry.
+New note059723bc63eaff3c9eab2772a5d4a4ce98419cfa1fb98c1bc2c02f13990182e6
+accepted once at depth36, not yet backup-verified: verify later, never retry.
+Prioracc0f253 remains parked. All original cleanup/recall/sweep/two-round bars remain.
