@@ -1,0 +1,260 @@
+package resolve
+
+import (
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/jeffdhooton/scry/internal/memory/extract"
+	"github.com/jeffdhooton/scry/internal/memory/store"
+)
+
+func delayedEP() store.Episode {
+	at := time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC)
+	return store.Episode{ID: "delayed-design", Source: "manual", SourceRef: "synthetic", OccurredAt: at, IngestedAt: at}
+}
+
+// Baseline characterization, not an implementation of the proposed overlay.
+func TestDelayedBirthRejectedDiscoveryChangesLaterStatus(t *testing.T) {
+	for _, discovery := range []bool{false, true} {
+		t.Run(map[bool]string{false: "no-discovery", true: "rejected-discovery"}[discovery], func(t *testing.T) {
+			st := openTemp(t)
+			facts := []extract.Fct{}
+			if discovery {
+				facts = append(facts, extract.Fct{Src: "!!!", Relation: "uses", Dst: "Nimbus Core", Fact: "unresolvable source"})
+			}
+			facts = append(facts, extract.Fct{Src: "Borealis", Relation: "status", Dst: "Nimbus Core", Fact: "Borealis references Nimbus Core", Confidence: 0.8})
+			stats, err := Apply(st, delayedEP(), "", extract.Result{Facts: facts}, DefaultExclusive)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := mustFacts(t, st, "borealis")
+			if len(got) != 1 {
+				t.Fatalf("facts=%+v", got)
+			}
+			if discovery {
+				if got[0].Relation != RelRelatedTo || got[0].Dst != "nimbus-core" {
+					t.Fatalf("discovery did not preserve edge: %+v", got[0])
+				}
+			} else if got[0].Relation != RelStatus || got[0].Value != "Nimbus Core" {
+				t.Fatalf("without discovery: %+v", got[0])
+			}
+			t.Logf("stats=%+v fact=%+v", stats, got[0])
+		})
+	}
+}
+
+func TestDelayedBirthProvisionalAliasRoutesAndConflicts(t *testing.T) {
+	for _, typ := range []string{"service", "machine"} {
+		t.Run(typ, func(t *testing.T) {
+			st := openTemp(t)
+			input := extract.Result{Entities: []extract.Ent{{Name: "Cobalt", Type: "service", Aliases: []string{"Cobalt daemon"}}, {Name: "Cobalt daemon", Type: typ}}, Facts: []extract.Fct{{Src: "Cobalt daemon", Relation: "uses", Dst: "Borealis", Fact: "Cobalt daemon uses Borealis"}}}
+			stats, err := Apply(st, delayedEP(), "", input, DefaultExclusive)
+			if typ == "machine" {
+				if !errors.Is(err, store.ErrAliasClaimed) || stats != (Stats{}) {
+					t.Fatalf("expected canonical ownership refusal and rollback: %+v %v", stats, err)
+				}
+				entities, e := st.Entities()
+				if e != nil || len(entities) != 0 {
+					t.Fatalf("rollback=%+v %v", entities, e)
+				}
+				t.Logf("unsupported first declaration blocks incompatible useful assertion: %v", err)
+			} else {
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := mustFacts(t, st, "cobalt")
+				if len(got) != 1 || got[0].Dst != "borealis" {
+					t.Fatalf("alias route=%+v", got)
+				}
+				t.Logf("later canonical-looking declaration resolves first candidate: %+v", got[0])
+			}
+		})
+	}
+}
+
+func TestDelayedBirthRepeatedDeclarationAndArtifactState(t *testing.T) {
+	st := openTemp(t)
+	input := extract.Result{Entities: []extract.Ent{
+		{Name: "Nimbus Core", Type: "concept", Description: "first", Aliases: []string{"Nimbus Core box"}},
+		{Name: "Nimbus Core", Type: "project", Description: "second"},
+		{Name: "Nimbus Core", Type: "machine", Description: "third"},
+		{Name: "queue.go", Type: "value", Description: "file"},
+		{Name: "validation_failed", Type: "value"},
+	}, Facts: []extract.Fct{{Src: "Nimbus Core", Relation: "uses", Dst: "queue.go", Fact: "Nimbus Core uses queue.go"}}}
+	stats, err := Apply(st, delayedEP(), "/Users/test/Herd/nimbus", input, DefaultExclusive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := st.GetEntity("nimbus-core")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Type != "project" || e.Description != "first" || len(e.Aliases) != 0 || len(e.RepoRefs) != 1 {
+		t.Fatalf("ordered metadata: %+v", e)
+	}
+	file, err := st.GetEntity(store.Slugify("queue.go"))
+	if err != nil || file.Type != "concept" {
+		t.Fatalf("artifact=%+v %v", file, err)
+	}
+	if _, err := st.GetEntity("validation-failed"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("value got entity: %v", err)
+	}
+	t.Logf("stats=%+v entity=%+v artifact=%+v", stats, e, file)
+}
+
+func TestDelayedBirthPhaseABackdateChangesHintEligibility(t *testing.T) {
+	st := openTemp(t)
+	ep := delayedEP()
+	for _, name := range []string{"Atlas", "Borealis", "Cygnus"} {
+		if err := st.PutEntity(store.Entity{Slug: store.Slugify(name), Name: name, Type: "service", CreatedAt: ep.OccurredAt.Add(-240 * time.Hour)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	oldStart := ep.OccurredAt.Add(24 * time.Hour)
+	if err := st.PutFact(store.Fact{Src: "atlas", Relation: "uses", Dst: "borealis", Fact: "Atlas uses Borealis", ValidFrom: oldStart, Confidence: 0.4, Episodes: []string{"seed"}}); err != nil {
+		t.Fatal(err)
+	}
+	earlier := ep.OccurredAt.Add(-24 * time.Hour)
+	input := extract.Result{Facts: []extract.Fct{
+		{Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "Atlas uses Cygnus", Supersedes: &extract.SupRef{Src: "Atlas", Relation: "uses", Dst: "Borealis"}},
+		{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "Atlas uses Borealis", ValidFrom: earlier.Format(time.RFC3339), Confidence: 0.8},
+	}}
+	stats, err := Apply(st, ep, "", input, DefaultExclusive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := mustFacts(t, st, "atlas")
+	var found bool
+	for _, f := range got {
+		if f.Dst == "borealis" {
+			found = true
+			if !f.ValidFrom.Equal(earlier) || f.InvalidAt == nil || !f.InvalidAt.Equal(ep.OccurredAt) || len(f.Episodes) != 2 || f.Confidence != 0.8 {
+				t.Fatalf("backdate/hint=%+v", f)
+			}
+		}
+	}
+	if !found || stats.FactsMerged != 1 || stats.FactsInvalidated != 1 {
+		t.Fatalf("stats=%+v facts=%+v", stats, got)
+	}
+	t.Logf("initial future fact becomes eligible after Phase A: %+v", got)
+}
+
+func TestDelayedBirthSameEpisodeHistoricalSupportAndFallback(t *testing.T) {
+	st := openTemp(t)
+	ep := delayedEP()
+	early := ep.OccurredAt.Add(-24 * time.Hour).Format(time.RFC3339)
+	input := extract.Result{Facts: []extract.Fct{
+		{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "Atlas uses Borealis", ValidFrom: early},
+		{Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "Atlas uses Cygnus", Supersedes: &extract.SupRef{Src: "Atlas", Relation: "uses", Dst: "Borealis"}},
+		{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "Atlas uses Borealis", ValidFrom: early, Confidence: 0.9},
+		{Src: "Atlas", Relation: "aliases_index_to", Dst: "Draco", Fact: "Atlas consults Draco", Confidence: 0.4},
+		{Src: "Atlas", Relation: "aliases_index_to", Dst: "Draco", Fact: "Atlas consults Draco", Confidence: 0.8},
+	}}
+	stats, err := Apply(st, ep, "", input, DefaultExclusive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := mustFacts(t, st, "atlas")
+	if len(got) != 3 || stats.FactsAdded != 3 || stats.FactsMerged != 2 || stats.FactsInvalidated != 1 {
+		t.Fatalf("stats=%+v facts=%+v", stats, got)
+	}
+	for _, f := range got {
+		if f.Dst == "borealis" && (f.InvalidAt == nil || f.Confidence != 0.9) {
+			t.Fatalf("history lost=%+v", f)
+		}
+		if f.Dst == "draco" && (f.Relation != Fallback || f.Confidence != 0.8) {
+			t.Fatalf("fallback lost=%+v", f)
+		}
+	}
+	for _, slug := range []string{"atlas", "borealis", "cygnus", "draco"} {
+		f, e := st.FactsAbout(slug, true)
+		if e != nil || len(f) == 0 {
+			t.Fatalf("missing actual support %s: %+v %v", slug, f, e)
+		}
+	}
+	t.Logf("new candidates retain current/historical support after ordered effects: %+v", got)
+}
+
+func TestDelayedBirthStaleSelfClaimDoesNotProveIdentity(t *testing.T) {
+	st := openTemp(t)
+	ep := delayedEP()
+	if err := st.ClaimAlias("unlisted old spelling", "atlas"); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ClaimAlias("Atlas", "atlas"); err != nil {
+		t.Fatal(err)
+	}
+	owner, ok, err := st.ResolveAlias("unlisted old spelling")
+	if err != nil || !ok || owner != "atlas" {
+		t.Fatalf("seed=%s %v %v", owner, ok, err)
+	}
+	if _, err := st.GetEntity("atlas"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal(err)
+	}
+	stats, err := Apply(st, ep, "", extract.Result{Facts: []extract.Fct{{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "Atlas uses Borealis"}}}, DefaultExclusive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := st.GetEntity("atlas")
+	if err != nil || entityListsMention(e, store.Normalize("unlisted old spelling")) {
+		t.Fatalf("entity=%+v %v", e, err)
+	}
+	owner, ok, err = st.ResolveAlias("unlisted old spelling")
+	if err != nil || !ok || owner != "atlas" {
+		t.Fatalf("final=%s %v %v", owner, ok, err)
+	}
+	t.Logf("unchanged old alias now points at a newly present identity: stats=%+v entity=%+v", stats, e)
+}
+
+func TestDelayedBirthCompactCacheHasDifferentVisibility(t *testing.T) {
+	st := openTemp(t)
+	defer forgetCompactIndex(st)
+	e := store.Entity{Slug: "borealis", Name: "Borealis", Type: "service"}
+	if err := st.PutEntity(e); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.AttestAlias(e.Slug, store.Normalize("Cobalt Atlas daemon"), "prior"); err != nil {
+		t.Fatal(err)
+	}
+	if err := RefreshCompactIndex(st); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutEntity(store.Entity{Slug: "cobalt-atlas", Name: "Cobalt Atlas", Type: "service"}); err != nil {
+		t.Fatal(err)
+	}
+	admitted, reason, err := AdmitAlias(st, e, "Cobalt Atlas daemon", "current")
+	if err != nil || !admitted {
+		t.Fatalf("cached view: %v %q %v", admitted, reason, err)
+	}
+	t.Logf("old cache admits: %s", reason)
+	if err := RefreshCompactIndex(st); err != nil {
+		t.Fatal(err)
+	}
+	admitted, reason, err = AdmitAlias(st, e, "Cobalt Atlas daemon", "current")
+	if err != nil || admitted {
+		t.Fatalf("complete view: %v %q %v", admitted, reason, err)
+	}
+	t.Logf("updated cache refuses: %s", reason)
+}
+
+func TestDelayedBirthCurrentTripleSupportDoesNotProveAssertionPreservation(t *testing.T) {
+	st := openTemp(t)
+	ep := delayedEP()
+	first := extract.Result{Facts: []extract.Fct{{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "Atlas uses Borealis for batch imports", Confidence: 0.4}}}
+	if _, err := Apply(st, ep, "", first, DefaultExclusive); err != nil {
+		t.Fatal(err)
+	}
+	ep.ID = "second"
+	ep.OccurredAt = ep.OccurredAt.Add(time.Hour)
+	second := extract.Result{Facts: []extract.Fct{{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "Atlas uses Borealis exclusively for interactive queries", Confidence: 0.9}}}
+	stats, err := Apply(st, ep, "", second, DefaultExclusive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	facts := mustFacts(t, st, "atlas")
+	if len(facts) != 1 || facts[0].Fact != first.Facts[0].Fact || facts[0].Confidence != 0.9 || len(facts[0].Episodes) != 2 || stats.FactsMerged != 1 {
+		t.Fatalf("baseline coalescing: %+v %+v", stats, facts)
+	}
+	t.Logf("references survive but distinct input sentence is absent from facts: %+v", facts[0])
+}

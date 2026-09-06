@@ -4970,3 +4970,142 @@ permits a private ordered read-only overlay after corrections, not a replacement
 controller. Its complete provisional visibility, cache, dependency and old alias
 relationship requirements must be frozen before code; current-triple sentence loss
 is still reproduced and requires the separate assertion-identity repair.
+
+### 2026-09-06 11:00 UTC — ordered overlay NO-GO retained; correction under review
+
+Independent design33b764c9 allowed one private uncalled read-only ordered planner
+after six corrections; complete contracte56d63aa and design review now archived in
+memory-repairs/ordered-overlay-*. No additional foundation was required. Root ported
+157 existing pure declarations/248 symbols into a neutral identitypolicy package,
+with exact token verification, eleven unchanged-body baseline test files and adapter
+differential tests. No new lexical rules/thresholds; original resolver unchanged.
+Parallel lexical copies are private scaffolding, not permanent production approval.
+
+First candidate manifest680539f6 preserves all600 e097fa6 baseline files and adds32
+private source/test files. Root first six and twelve planner groups passed, but new
+tests exposed closed-planner poison, cached-vote witness, retirement-control and
+same-slug duplicate-projection defects. Root corrected those and 14 shortcut methods
+that initially bypassed each of three invalid phases (42 failures). New generation
+fixtures initially used spaces rather than Normalize's hyphens: fixture-only fixes
+and all failed logs remain. One endpoint edit failed compilation before assignment
+correction. A real discarded transaction exposed inconsistent safe sentinel wrapping;
+fixed without weakening the test. Final root24 groups including102 phase cases pass,
+full suite store56.633s (other unchanged packages cached after earlier full pass),
+logfc8ec19c; targeted vet and exact mechanical token parity pass.
+
+Independent CODE verdict **NO-GO**, report
+e42c9196efdfb07491bd53cbcdc981366ddf275694504882ce8ef602fc437a22,
+archived as ordered-overlay-code-independent-disproof-2026-09-06.md. Twenty leaf
+cases in six new groups fail: missing/unlisted alias-owner and absent alias-natural
+lifecycle controls are skipped across declaration/primary/status/hint paths; a fresh
+alias bypasses a retired slug without reviewed rehome (also reproduced with actual
+retirement, rehome and DropAlias); stored ve/att/iga references borrow the current
+input's EP exception and accept missing/malformed stored episodes. All raw/events
+remain unchanged, so preservation alone does not prove correct resolution. Six new
+independent boundary groups and fresh policy adapters pass. Independent full suite
+before new tests passes66.020s store/16.467s resolve/29.382s daemon; complete final
+suite fails only the six disproof groups, store65.547s, log7d3bbfc0. No assertion or
+fixture was weakened; first source/logs retained. Root read the entire report and
+all378 new test lines, copied tests exactly and reproduced every failure. Room164.
+
+Separate corrected export /tmp/scry-ordered-overlay-correction-sep06.soHIfk keeps
+the rejected export immutable. Corrected manifest
+9e44b47b16aaf6ac31c88af1347205789bbe873001e463ed76c5696b38331463
+pins600 unchanged baseline files and39 additions. Only two implementations differ:
+controls40268dde validates every stored EP reference, even current-input IDs;
+lookup57c9b939 validates relevant claim owners before ordinary results and checks
+missing alias identities' controls/full FA references before fresh alias proposals.
+Existing explicit reviewed rehomes remain valid. Unresolved claims cannot become
+status/hint values without a valid natural route. Earlier stale self-claim deferral
+retains its reason and full unlisted witnesses. First correction passed all20
+independent failures but failed that old reason assertion; corrected source, not test.
+Root broader tests preserve20/24 initial malformed-claim failures, two dangling-FA
+alias failures, one missing stored-current-EP witness and four status/hint failures.
+Initial new-test pointer/key-signature compile errors are separately retained.
+
+All40 root+independent planner groups now PASS6.816s (logf0e13d70). Complete uncached
+no-CGO suite, including original14 design characterizations and new policy adapters,
+PASS66.861s store/17.476s resolve/29.141s daemon, log
+dcf8cf9744b1aa13c873cb8f9b778e6eff7e98835a18306eca9d81bcb729547f.
+Targeted vet PASS. A NEW fresh-context code grader is reviewing this exact successor;
+root success is not a grade. No overlay code has been integrated or activated.
+
+Fresh Mini102852 backup77,034,526bytes SHAd2a0426b restored twice, all249,190raw rows
+exact, digest03f2d832, en31476/FA82300/current74395/history7905/EP9486/pending34.
+Prior cf8f2454 note now ingested/absentpending, EP rawd80360cc; no retry. Root-only
+first-candidate replica probe initially chose lexical value names, failed expected
+birth counts but retained all raw/events. Only synthetic fixtures changed; corrected
+probe PASS16.681s before/after reopen and separate PRIVATE-replica adoption. All old
+rows preserved; adoption adds31477 anchors/marker; planner itself writes nothing.
+Probe14a20f82 MUST NEVER ship. Full initial report retained privately at
+/tmp/scry-ordered-overlay-contract-sep06.Hc7wdj/OVERLAY_REPLICA_EVIDENCE_102852.md.
+This passing canary does not override the independent NO-GO.
+
+Fresh Mini105609 backup77,018,148bytes SHA
+9aa54e517da5f9ee9f39406815ecb9d08086005ee675bf6a06ccaaf8a365bdfd
+restored twice, all249,361raw rows exact, digest585bd8c2; en31500/FA82353/current74448/
+history7905/EP9487/pending33. Corrected frozen source copied exactly into a separate
+root probe export; PASS first run16.133s, log4723cc9f, before/after reopen and explicit
+PRIVATE-replica adoption. All original249,361rows remain exact; adoption adds31501
+anchors/marker. Planner zero writes/events, two unmaterialized candidates, 2.63–2.73s
+single-call observations, not p95. Full exact evidence archived in
+memory-repairs/ordered-overlay-corrected-replica-evidence-2026-09-06.md.
+Probeae03ddad MUST NEVER ship. Untouched shared replicas remain preserved.
+
+New durable design note accepted once:
+acc0f2532a529a1d115a892f0f41ec764cc36ec593b60ce72b706fe5abc2f8ff,
+queued depth34, not yet verified ingested; NEVER retry. Live a06cd7b unchanged.
+No live adoption, deployment, repair or sweep. Full fact/support/ownership/lifecycle/
+Force, assertion-identity preservation, cleanup/recall and two full rounds remain.
+
+## 2026-09-06 11:21 UTC — second read-only overlay rejected, third frozen
+
+Fresh independent second review:
+`/tmp/scry-overlay-corrected-disproof.VyluEa/ORDERED_OVERLAY_CORRECTED_DISPROOF.md`,
+SHA9076e7ee0b905d37830921cd6673b3d80ff1571585a789e59c2c3ce65f3bfa62,
+archived byte-exact in memory-repairs/ordered-overlay-second-independent-disproof-
+2026-09-06.md. Root read all report/test/evidence lines. New test54dd58d5 reproduces
+three failing groups/four leaves: valid rt at the derived slug causes whole-plan
+refusal rather than local deferral, including a real synthetic retirement API path;
+type-upgrade-driven alias removal omits its consumed metadata producer. All600
+baseline and39 addition pins remain exact. Original supplied tests pass. Independent
+full contained-temp suite fails only those leaves, store65.871s, all other packages
+pass resolve16.531s/daemon27.061s; log062b4262. Earlier system-TMPDIR synthetic test
+placement was disclosed and final runs repeated inside the export. No real stores
+were opened by the grader, no assertions weakened. Room165, second version preserved.
+
+Root third export `/tmp/scry-ordered-overlay-third-sep06.AnfP5a` keeps second source
+immutable. Initial attempt selected the new code workdir before creating it and
+failed before execution; creation was retried from the real repository. All600
+baseline files and40 copied additions hash-verified before tests. Unchanged fresh
+independent failures reproduced in before-correction.log SHA4b7a695f. Added root
+test8e21ac9b failed on three further consequences: valid rs can mask malformed
+derived rt; alternate status literals can become unreviewed values; metadata/result
+traces omit latest consumed producers. Log960f3aad retains these failures. No new
+fixture compile/correction or expectation weakening occurred.
+
+Third manifest76808342886d78e364b6e3f38eb5e98e9d0a4f79bb099a64a42de5979f8cdea1
+pins600 unchanged e097fa6 files and41 additions. Only controls2fbc3d24,
+aliases35d10852 and declarations8f429a7f differ from second candidate:
+paired derived-slug rt validated before normal lifecycle deferrals; derived conflicts
+stay local typed deferrals; install records predecessor before step freeze and new
+producer on caller trace afterward; revalidation recognizes current actor before
+each alias evaluation. Strict registry and original lexical semantics unchanged.
+
+Selected tests/old characterizations/differential PASS7.492s store/2.318s resolve,
+log8173155a. Complete uncached `CGO_ENABLED=0 go test ./... -count=1` PASS66.858s
+store/16.931s resolve/30.059s daemon; full log
+1ec245b732c64f3597aae7710b93cf12476672c50e6bd1af78227fe914303c3e.
+Vet PASS and exact neutral-port157 declarations/248 symbols PASS. Root tests use
+contained TMPDIR. Fresh bounded independent review started on exact frozen source;
+review-input SHA68bdaf9aca7f50366b904cd53e5f356b05831af42453ec62b1ddddf6a6fc7cdb.
+No overlay source integration or production activation. Full goal remains active.
+
+Fresh111946 backup77,021,042bytes SHA0f4e9dec restores all249,362 raw rows exactly
+in two separate directories, digest373eda04. Root third replica probe sourcea4f9b2ca
+(MUST NEVER ship) PASS16.623s, logd5a623e5, before/after reopen and explicit private
+adoption. Planner zero writers/events; adoption adds31501 only, all original raw
+rows retained. Exact pins/counts/timing in memory-repairs/ordered-overlay-third-
+replica-evidence-2026-09-06.md. Third independent review remains running.
+Noteacc0f253 is present durably but PARKED after one fact conflict, not ingested,
+pending raw93179b24/errorf294fc67; no retry, unpark or overwrite. Live unchanged.

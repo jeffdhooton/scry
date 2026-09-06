@@ -1485,3 +1485,71 @@ never-staged candidates have Materialization=nil. No controller replacement deci
 or production approval yet. Exact current-triple sentence-loss reproduction remains.
 Full support/B/lifecycle/Force, assertion identity, cleanup/recall and two all-clause
 rounds are still required. Do not stop the unbounded goal at this checkpoint.
+
+### 2026-09-06 11:00 UTC — corrected ordered overlay remains private, under review
+
+Design33b764c9 and complete contracte56d63aa are archived in memory-repairs/ordered-
+overlay-*. First code manifest680539f6 received independent **NO-GO e42c9196**:
+twenty cases prove missing alias-owner/natural lifecycle validation, unreviewed
+retired-slug alias bypass, and stored EP evidence borrowing the current-input
+exception. Full report archived; root read all378 new test lines and reproduced
+failures. Original rejected export /tmp/scry-ordered-overlay-contract-sep06.Hc7wdj
+remains immutable. Room164. No private overlay/pure-policy source integrated yet.
+
+Corrected export /tmp/scry-ordered-overlay-correction-sep06.soHIfk, manifest
+9e44b47b16aaf6ac31c88af1347205789bbe873001e463ed76c5696b38331463:
+600 unchanged e097fa6 baseline files,39 additions. Only controls40268dde and
+lookup57c9b939 implementations differ from rejected source; all prior tests exact.
+All40 combined planner groups PASS6.816s; uncached full no-CGO PASS66.861s store/
+17.476s resolve/29.141s daemon, vet PASS. A fresh code grader is running; do not
+interpret root tests or read-only replica conservation as approval. All first
+failures, fixture-only corrections and stale-self-claim regression remain recorded.
+
+Fresh105609 backupSHA9aa54e51 restored all249,361raw rows exactly. Root corrected
+replica canary PASS16.133s before/after reopen and explicit PRIVATE-replica adoption,
+zero planner writes/events, all old rows preserved. Exact evidence in
+memory-repairs/ordered-overlay-corrected-replica-evidence-2026-09-06.md. Private
+probeae03ddad MUST NEVER ship. Initial102852 probe14a20f82 likewise never ship.
+Both shared-* replicas untouched; overlay-* replicas now hold private anchors and
+must not be mistaken for unmodified restores. Live a06cd7b remains unchanged.
+
+Prior cf8f2454 note verified ingested/absentpending in102852. New note
+acc0f2532a529a1d115a892f0f41ec764cc36ec593b60ce72b706fe5abc2f8ff
+accepted once/depth34, not yet verified; NEVER retry. Next: read the complete fresh
+review/tests, fix every proved defect while preserving failed versions, then only
+retain an exactly reviewed private unit. Production lexical deduplication, both FA
+phases/support/materialization/B/ownership/lifecycle/Force, current assertion loss,
+cleanup/recall and two all-clause rounds remain mandatory. Keep the goal active.
+
+### 2026-09-06 11:21 UTC — second overlay NO-GO; third candidate under review
+
+Full second report9076e7ee is archived in memory-repairs/ordered-overlay-second-
+independent-disproof-2026-09-06.md; root read it and all new tests54dd58d5. Four
+independent leaves fail on immutable second manifest9e44b47b: valid derived-slug
+retirement aborts unrelated work (including actual synthetic retirement), and
+type-driven alias removal omits its type-upgrade producer. Final independent
+contained-temp suite fails only those cases; supplied tests pass. Room165.
+
+Third private export /tmp/scry-ordered-overlay-third-sep06.AnfP5a, manifest
+76808342886d78e364b6e3f38eb5e98e9d0a4f79bb099a64a42de5979f8cdea1,
+keeps all600 baseline files exact and41 additions. Changed controls2fbc3d24,
+aliases35d10852, declarations8f429a7f preflight paired derived rt controls and
+record consumed/current metadata producers. Registry and all supplied tests exact.
+Root unchanged independent failures reproduced, then extra root tests8e21ac9b
+reproduced malformed-control masking, alternate status reinterpretation and missing
+metadata/result dependencies. All failures retained; no assertion weakening.
+
+Selected tests PASS7.492s store/2.318s resolve; uncached complete no-CGO suite
+PASS66.858s store/16.931s resolve/30.059s daemon, log1ec245b7. Vet and exact157/248
+policy tokens PASS. Fresh bounded grader ordered_overlay_third_disproof is running
+against frozen76808342, review-input68bdaf9a. Do not integrate before its verdict.
+New111946 backup77,021,042bytes SHA0f4e9dec copied and restoring separately for
+root replica proof/note closure. Live a06cd7b unchanged; no deployment or repair.
+
+111946 restore/probe completed: all249,362 initial raw rows exact, digest373eda04.
+Root probe PASS16.623s before/after reopen and explicit PRIVATE-replica adoption,
+zero planner writes/events; adoption adds31501 only, all original rows retained.
+Exact evidence memory-repairs/ordered-overlay-third-replica-evidence-2026-09-06.md.
+Private probea4f9b2ca MUST NEVER ship; overlay-111946 now privately adopted,
+shared-111946 untouched. Noteacc0f253 is durable but PARKED after one fact conflict,
+NOT ingested; no retry/unpark, pending raw93179b24. This is not ingestion success.

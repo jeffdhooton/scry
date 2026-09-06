@@ -3845,3 +3845,50 @@ preservation of the previous birth inventory. Supported descriptions do not prov
 an entity exists or is authorized. Keep this unit private and uncalled until a
 fixed admission finalizer proves those semantics and real Force/lifecycle behavior.
 Reserve both new record families against premature legacy adoption meanwhile.
+
+### A read-only result still needs complete identity and evidence validation
+
+**Decision, 2026-09-06.** Preserve full ordered provisional resolution without
+writing unsupported identities. The independent ordered-overlay design review
+permits that fixed private program, but its first code review proves why zero raw
+changes alone is not a correct-resolution certificate: a descriptive alias can
+still route around retirement, and stored classification can still borrow an
+unproven episode.
+
+Validate relevant indexed and natural identity controls before ordinary absence,
+conflict or value results can conceal malformed data. Validation is not selection
+of that owner or permission to repair its index. An existing validated explicit
+rehome may remain usable; a fresh inferred alias cannot manufacture a replacement
+rehome around a retired or already-referenced absent identity. Preserve unresolved
+claims as typed dependencies when no valid natural route exists, including status
+and hint paths. Keep stale self-claim reasons and their complete unlisted witnesses.
+
+Every episode reference read from stored value or alias-vote evidence requires an
+actual valid stored EP and an owned dependency witness, even when its ID equals the
+current input. Add the current in-memory proposed vote separately and deduplicate
+it; that proposal is not proof that a stored episode exists.
+
+Retain the first independent NO-GO and unchanged failing tests. The corrected
+private program must obtain a fresh exact-pin grade before retention or activation;
+root full-suite and restored-replica conservation results do not overrule disproof.
+No production caller, factual support, lifecycle adoption or full-goal clause is
+approved by these architectural decisions.
+
+### Derived spelling conflicts defer locally; proposals name consumed producers
+
+**Decision, 2026-09-06.** The second ordered-overlay disproof found that a valid
+retirement classification occupying a derived slug can be neither a new identity
+nor an exact-literal value classification. Preflight that required route before
+registration and retain a typed local deferral, preserving unrelated records.
+Validate the full paired control even when another valid control already supplies
+a normal deferral. Keep the registry's strict structural refusal unchanged.
+
+Every proposed metadata transition must identify the earlier actor projection it
+actually consumes. Type-driven alias removal depends on the type-upgrade proposal,
+and the final declaration result depends on its final metadata proposal. Ordered
+positions alone do not replace explicit producer dependencies. Record predecessors
+before freezing a step and add the new producer only to subsequent traces, avoiding
+self-edges. This is descriptive dependency accounting, not factual support.
+
+Retain both failed private versions and their independent tests. The third version
+requires its own exact-pin review; its full passing root suite is not approval.
