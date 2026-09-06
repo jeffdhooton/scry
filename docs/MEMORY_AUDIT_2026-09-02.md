@@ -3793,3 +3793,66 @@ Root's full no-CGO suite passes after exact shared-source integration too.
 Both running binaries remain24eafab/4a439109. This source has NOT been
 deployed. Retained older binaries and destructive Restore remain separate
 hazards; no migration or recovery is approved. Room123 records the review.
+
+### 2026-09-06 — two actual postguard sweeps independently reviewed
+
+Full first/second reports are archived as fact-guard-first-sweep-independent-
+review-2026-09-06.md and fact-guard-second-sweep-independent-review-2026-09-06.md,
+SHA c16ecbc716b8f5940c14d9203928bdb558e6d57a8d9d254915a62a77941ea008 and
+dc471fd246a52ec83dc7008fd9133604645fe2af3b0103595a62924f35120dfb.
+The pinned artifact manifest is also archived. Room124 records bounded PASS.
+
+Stored scans completed01:01:21.255638UTC (2378files,6episodes,0errors) and
+01:04:14.853735UTC (94files,0newepisodes,0errors). These are actual scans,
+not startup timestamps; their different report-host hashes are not assigned
+to machines without further evidence. Successful extraction continued from
+previously queued input after the second scan. Backups010309/010908 are fully
+copied, hashed and directly restored; secondSHA905421a42701e176d13ad17526e31215c38e7cd485b9d4283923c313deed8ed6,
+74478385bytes, fullrawaac22ac2914b1bddbd516aaca97a7dc2bfe8abe2246d8481f0a2c697438ff90a.
+Second snapshot:81146facts,9395episodes,30884entities,244833rawrecords.
+
+All81057base assertions and7845base historical payloads survive. Across the
+two intervals,89facts are added and exactly two old facts change: one gains
+InvalidAt only, one appends provenance only. Every old claim, episode,
+42repair markers and13previously parked payloads remains exact. Each interval
+has one old repository-reference eviction reproduced by unchanged AddRepoRef's
+six-entry cap; do not claim complete repository-metadata preservation.
+
+Once-submitted deploy notef1cb541f is independently proven ingested, absent
+from pending, source metadata matching its old queued input; raw episodeSHA
+9096d5e5df20a1b5e64b313d5de0bd2761549a8c31ac687ebc8c35224808c337.
+Another input parks after one ErrFactConflict attempt with its entire original
+input preserved. No committed episode/fact cites it. The reported occupied-key
+digest is absent from both compared snapshots, consistent with an in-transaction
+collision but not a reproduced diagnosis. This is a real guard refusal, not
+proof that this particular attempt protected a previously persisted key.
+
+Important inventory correction: all broad missing-claim rows are slug-only
+(3876→3881→3885), not listed names or aliases. PutEntity indexes Name+Aliases
+and exact slug lookup has a fallback. Proper listing sets are unchanged:
+0missing claims,504wrong-owner occurrences,29unlisted claims,462multiple-owner
+listings,27multi-type listings,0dangling owners. All46new entities and52actual
+names/aliases pass exact lookup. Broad missing counts must not be described as
+missing listed aliases. Existing wrong-owner/unlisted/collision defects remain.
+All other full structural sets remain unchanged:2441dangling endpoint
+occurrences,2851no-fact entities,2969no-current-fact entities,1099selfloops
+including93current. Exactly39canonical relations remain current. Contextual
+status/value validity of all new entities is NOT independently certified.
+
+Fifteen frozen before/first/second suite commands preserve hits51/29/7/45/47,
+complete misses and mean ranks, with zero over-cap responses. Second maximum
+13358bytes. These are bounded regression checks, not the original53/34floors,
+fresh50questions, complete hygiene no-op or two full fresh grading rounds.
+The final goal remains open despite two observed postguard scans.
+
+The source-only schema decision was remembered ONCE after integration at
+01:19:43UTC in359ms, queued ID
+065d17baa95af84a1d1b6c69c3e66ba5dd8e924f84f3b0c7d8245e042679d29e.
+No extraction proof yet at this entry; never retry. The deployed build remains
+24eafab. Source commit a078240 is independently reviewed but not deployed.
+
+The unapproved assertion-identity recovery draft and its independent disproof
+are archived separately. The review rejects a numeric schema bump/additive
+writer floor as sufficient protection and identifies exact-address, historical
+restatement, supersession, metadata and unsupported-raw-field obligations.
+No format change, historical recovery, credential cleanup or alias apply follows.
