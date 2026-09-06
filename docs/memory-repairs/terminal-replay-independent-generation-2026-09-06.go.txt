@@ -1,0 +1,93 @@
+package store
+
+import (
+	"bytes"
+	"testing"
+)
+
+// Synthetic actual rows only: these seed genuine canonical generations and
+// selected complete drafts. They are not evidence of a production materializer.
+func freshReplayGeneration(t *testing.T, st *Store, name, episode string, ordinal int) identityGenerationRecord {
+	t.Helper()
+	at := admissionTestTime(t, "1970-01-01")
+	birth := identityBirth{EpisodeID: episode, Occurrence: ordinal, Slug: Slugify(name), Name: name, Origin: "endpoint", CreatedAt: at}
+	record, raw, err := identityBirthRecord(birth)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutEpisode(Episode{ID: episode, OccurredAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	dpSet(t, st, identityGenerationPrefix+birth.Slug, raw)
+	return record
+}
+
+func TestFreshReplayExistingGenerationCannotChangeBehindStableEntity(t *testing.T) {
+	for _, mode := range []string{"same-generation-control", "mutable-metadata-control", "source-generation", "destination-generation", "hint-target-generation", "declaration-generation"} {
+		t.Run(mode, func(t *testing.T) {
+			st := openTemp(t)
+			at := admissionTestTime(t, "1970-01-01")
+			for _, name := range []string{"Atlas", "Borealis", "Cygnus"} {
+				if err := st.PutEntity(Entity{Slug: Slugify(name), Name: name, Type: "service", CreatedAt: at, LastSeen: at}); err != nil {
+					t.Fatal(err)
+				}
+				freshReplayGeneration(t, st, name, "original-birth-proof", 0)
+			}
+			r := overlayTestInput()
+			r.Facts = []observedFact{{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "accepted against existing generations", Confidence: .8}}
+			changedName := "Atlas"
+			if mode == "destination-generation" {
+				changedName = "Borealis"
+			}
+			if mode == "hint-target-generation" {
+				changedName = "Cygnus"
+				old := admissionBaseFact(t, "uses", "cygnus", "2026-08-01", "hint target against original generation")
+				old.Episodes = []string{"original-birth-proof"}
+				if err := st.PutFact(old); err != nil {
+					t.Fatal(err)
+				}
+				r.Facts[0].Supersedes = &observedSupersedes{Src: "Atlas", Relation: "uses", Dst: "Cygnus"}
+			}
+			if mode == "declaration-generation" {
+				r.Facts = []observedFact{}
+				r.Declarations = []observedDeclaration{{Name: "Atlas", Type: "service", Description: "accepted original metadata"}}
+			}
+			prior, err := admissionReplayDraft(t, st, r)
+			if err != nil || len(prior.Births) != 0 {
+				t.Fatal("original actual generation preparation", err)
+			}
+			if mode == "declaration-generation" {
+				if prior.Declarations[0].Kind != "committed" {
+					t.Fatal("declaration not terminal")
+				}
+			} else if prior.Assertions[0].Kind != "committed" || prior.Assertions[0].Resolution.Source.Kind != "generation" {
+				t.Fatal("assertion not terminal generation")
+			}
+			admissionSeedSelectedDraft(t, st, r, prior)
+			oldRaw := bytes.Clone(dpRows(t, st)[identityGenerationPrefix+Slugify(changedName)])
+			if mode == "mutable-metadata-control" {
+				entity, err := st.GetEntity("atlas")
+				if err != nil {
+					t.Fatal(err)
+				}
+				entity.Description = "later legitimate metadata"
+				dpSet(t, st, prefixEntity+"atlas", dpJSON(t, entity))
+			} else if mode != "same-generation-control" {
+				// The stable EN tuple is byte-identical, while the complete generation
+				// identity changes. A real repair would need explicit preserved lineage.
+				freshReplayGeneration(t, st, changedName, "replacement-birth-proof", 1)
+				if bytes.Equal(oldRaw, dpRows(t, st)[identityGenerationPrefix+Slugify(changedName)]) {
+					t.Fatal("generation did not actually change")
+				}
+			}
+			result, err := admissionReplayDraft(t, st, r)
+			if mode == "same-generation-control" || mode == "mutable-metadata-control" {
+				if err != nil || !bytes.Equal(dpJSON(t, result), dpJSON(t, prior)) {
+					t.Fatal("stable-generation terminal control failed", err)
+				}
+			} else if err == nil {
+				t.Fatalf("terminal replay accepted replaced existing generation at %s; old selector %s, actual selector %s; carried result unchanged=%t", Slugify(changedName), generationDigest(oldRaw), generationDigest(dpRows(t, st)[identityGenerationPrefix+Slugify(changedName)]), bytes.Equal(dpJSON(t, result), dpJSON(t, prior)))
+			}
+		})
+	}
+}

@@ -1,0 +1,250 @@
+package store
+
+import (
+	"bytes"
+	"encoding/json"
+	"testing"
+)
+
+func freshReplayRequireDraft(t *testing.T, st *Store, r identityInputRevision) admissionEpisodeResult {
+	t.Helper()
+	result, err := admissionReplayDraft(t, st, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func freshReplaySeedBirths(t *testing.T, st *Store, r identityInputRevision, result admissionEpisodeResult) {
+	t.Helper()
+	for _, birth := range result.Births {
+		if birth.Kind != "supported" {
+			continue
+		}
+		dpSet(t, st, prefixEntity+birth.Birth.Slug, dpJSON(t, birth.Entity))
+		dpSet(t, st, prefixAlias+Normalize(birth.Entity.Name), []byte(birth.Birth.Slug))
+		for _, alias := range birth.Entity.Aliases {
+			dpSet(t, st, prefixAlias+Normalize(alias), []byte(birth.Birth.Slug))
+		}
+		dpSet(t, st, identityGenerationPrefix+birth.Birth.Slug, dpJSON(t, birth.Generation))
+	}
+	// Required fixture order: PutFact validates actual endpoint EN rows.
+	// Seed supported identities before the supplied helper stages exact FAs.
+	admissionSeedSelectedDraft(t, st, r, result)
+	for _, declaration := range result.Declarations {
+		for _, action := range declaration.Actions {
+			if !action.VoteRetained {
+				continue
+			}
+			raw := dpRows(t, st)[identityGenerationPrefix+action.Proposal.Actor]
+			if raw == nil {
+				dpSet(t, st, prefixAttest+action.Proposal.Actor+":"+Normalize(action.ID.Alias), dpJSON(t, []string{r.EpisodeID}))
+				continue
+			}
+			g, err := decodeOverlayGeneration(action.Proposal.Actor, raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			vote := generationAttestation{Generation: g.ID, Alias: Normalize(action.ID.Alias), EpisodeID: r.EpisodeID}
+			dpSet(t, st, string(generationAttestationKey(vote)), dpJSON(t, vote))
+		}
+	}
+}
+
+func TestFreshReplayFrozenHintsAndOriginalRoles(t *testing.T) {
+	for _, mode := range []string{"nil", "empty", "no-target", "accepted-inverse"} {
+		t.Run(mode, func(t *testing.T) {
+			st := openTemp(t)
+			admissionSeed(t, st)
+			r := overlayTestInput()
+			f := observedFact{Src: "Cygnus", Relation: "used_by", Dst: "Borealis", Fact: "original inverse primary", Confidence: .8}
+			switch mode {
+			case "empty":
+				f.Supersedes = &observedSupersedes{}
+			case "no-target":
+				f.Supersedes = &observedSupersedes{Src: "Borealis", Relation: "used_by", Dst: "Atlas"}
+			case "accepted-inverse":
+				old := admissionBaseFact(t, "uses", "borealis", "2026-08-01", "first exact hinted target")
+				if err := st.PutFact(old); err != nil {
+					t.Fatal(err)
+				}
+				f.Supersedes = &observedSupersedes{Src: "Borealis", Relation: "used_by", Dst: "Atlas"}
+			}
+			r.Facts = []observedFact{f, {Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "independent deferred original", Confidence: .8, ValidFrom: "invalid-date"}}
+			prior := freshReplayRequireDraft(t, st, r)
+			if prior.Assertions[0].Kind != "committed" || prior.Assertions[0].Resolution.SourceSide != "dst" || prior.Assertions[1].Kind != "deferred" {
+				t.Fatal("fixture did not reach inverse terminal + deferred")
+			}
+			if mode == "accepted-inverse" && !prior.Assertions[0].Hint.Retained {
+				t.Fatal("fixture hint not retained")
+			}
+			admissionSeedSelectedDraft(t, st, r, prior)
+			// Two new eligible matches would either change no-target to ambiguity or
+			// let a incorrectly rerun committed hint acquire additional assertions.
+			for _, date := range []string{"2026-08-02", "2026-08-03"} {
+				old := admissionBaseFact(t, "uses", "borealis", date, "later eligible "+date)
+				if err := st.PutFact(old); err != nil {
+					t.Fatal(err)
+				}
+			}
+			result := freshReplayRequireDraft(t, st, r)
+			if !bytes.Equal(dpJSON(t, result.Assertions[0]), dpJSON(t, prior.Assertions[0])) {
+				t.Fatal("terminal hint/roles changed after new matches")
+			}
+			for _, effect := range result.Assertions[1].Effects {
+				t.Fatalf("deferred input gained effect %s", effect.Key)
+			}
+		})
+	}
+}
+
+func TestFreshReplayNonAssertionCannotDiscoverAfterClassificationChanges(t *testing.T) {
+	st := openTemp(t)
+	admissionSeed(t, st)
+	r := overlayTestInput()
+	r.Facts = []observedFact{{Src: "42", Relation: "uses", Dst: "99", Fact: "original two literal values", Confidence: .8, Supersedes: &observedSupersedes{}}, {Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "valid unrelated assertion", Confidence: .8}}
+	prior := freshReplayRequireDraft(t, st, r)
+	if prior.Assertions[0].Kind != "non-assertion" {
+		t.Fatal("fixture not a non-assertion")
+	}
+	admissionSeedSelectedDraft(t, st, r, prior)
+	for _, name := range []string{"42", "99"} {
+		at := admissionTestTime(t, "1970-01-01")
+		if err := st.PutEntity(Entity{Slug: name, Name: name, Type: "service", CreatedAt: at, LastSeen: at}); err != nil {
+			t.Fatal(err)
+		}
+		freshReplayGeneration(t, st, name, "later-numeric-proof", 0)
+	}
+	result := freshReplayRequireDraft(t, st, r)
+	if !bytes.Equal(dpJSON(t, result), dpJSON(t, prior)) {
+		t.Fatal("terminal non-assertion was rediscovered")
+	}
+}
+
+func TestFreshReplayRejectedDiscoveryKeepsOriginalSupportedBirth(t *testing.T) {
+	st := openTemp(t)
+	r := overlayTestInput()
+	r.Facts = []observedFact{{Src: "!!!", Relation: "uses", Dst: "Draco", Fact: "first rejected discovery", Confidence: .8}, {Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "independent retained support", Confidence: .8}}
+	prior := freshReplayRequireDraft(t, st, r)
+	if prior.Assertions[0].Kind != "deferred" || prior.Assertions[1].Kind != "committed" || len(prior.Births) != 2 {
+		t.Fatal("fixture not rejected discovery with support")
+	}
+	freshReplaySeedBirths(t, st, r, prior)
+	result := freshReplayRequireDraft(t, st, r)
+	if !bytes.Equal(dpJSON(t, result.Assertions[1]), dpJSON(t, prior.Assertions[1])) || !bytes.Equal(dpJSON(t, result.Births), dpJSON(t, prior.Births)) {
+		t.Fatal("terminal support/original discovery was replaced")
+	}
+}
+
+func TestFreshReplayUnsupportedDiscoveryCanGainLaterSupport(t *testing.T) {
+	st := openTemp(t)
+	admissionSeed(t, st)
+	r := overlayTestInput()
+	r.Facts = []observedFact{{Src: "!!!", Relation: "uses", Dst: "Draco", Fact: "first rejected discovery", Confidence: .8}, {Src: "Draco", Relation: "uses", Dst: "Cygnus", Fact: "retryable hint dependency", Confidence: .8, Supersedes: &observedSupersedes{Src: "LaterTarget", Relation: "uses", Dst: "Atlas"}}}
+	prior := freshReplayRequireDraft(t, st, r)
+	if prior.Assertions[1].Kind != "deferred" || len(prior.Births) != 1 || prior.Births[0].Kind != "unsupported" {
+		t.Fatal("fixture not unsupported deferred birth")
+	}
+	admissionSeedSelectedDraft(t, st, r, prior)
+	at := admissionTestTime(t, "1970-01-01")
+	if err := st.PutEntity(Entity{Slug: "latertarget", Name: "LaterTarget", Type: "service", CreatedAt: at, LastSeen: at}); err != nil {
+		t.Fatal(err)
+	}
+	freshReplayGeneration(t, st, "LaterTarget", "later-target-proof", 0)
+	result := freshReplayRequireDraft(t, st, r)
+	if result.Assertions[0].Kind != "deferred" || result.Assertions[1].Kind != "committed" || len(result.Births) != 1 || result.Births[0].Kind != "supported" || result.Births[0].Birth != prior.Births[0].Birth || !bytes.Equal(result.Births[0].First.Raw, prior.Births[0].First.Raw) {
+		t.Fatal("retry lost independent support or first discovery")
+	}
+}
+
+func TestFreshReplayActualCorruptRowsRefuse(t *testing.T) {
+	for _, mode := range []string{"input", "head", "result", "episode", "fact", "changed-input", "closed-end", "missing-fact"} {
+		t.Run(mode, func(t *testing.T) {
+			st, r, prior := admissionPreviousFixture(t, mode == "closed-end")
+			rows := dpRows(t, st)
+			switch mode {
+			case "input":
+				dpSet(t, st, prior.InputKey, []byte(`{"invalid":true}`))
+			case "head":
+				dpSet(t, st, episodeHeadKey(r.EpisodeID), []byte(`{"version":1,"version":1}`))
+			case "result":
+				var head episodeHead
+				if json.Unmarshal(rows[episodeHeadKey(r.EpisodeID)], &head) != nil {
+					t.Fatal("head fixture")
+				}
+				dpSet(t, st, head.ResultKey, []byte(`{"version":2}`))
+			case "episode":
+				dpSet(t, st, prefixEpisode+r.EpisodeID, []byte(`{"id":"overlay-input","occurred_at":1}`))
+			case "fact":
+				dpSet(t, st, prior.Assertions[0].Assertion.Key, []byte(`{"invalid":true}`))
+			case "changed-input":
+				r.Summary = "changed extraction revision"
+			case "closed-end":
+				f := *prior.Assertions[0].Materialization
+				end := admissionTestTime(t, "2026-08-20")
+				f.InvalidAt = &end
+				dpSet(t, st, prior.Assertions[0].Assertion.Key, dpJSON(t, f))
+			case "missing-fact":
+				dpSet(t, st, prior.Assertions[0].Assertion.Key, nil)
+			}
+			if _, err := admissionReplayDraft(t, st, r); err == nil {
+				t.Fatal("actual corrupt/stale selected proof accepted")
+			}
+		})
+	}
+}
+
+func TestFreshReplayCompletedDeclarationCurrentBindingAndIndependentRetry(t *testing.T) {
+	for _, mode := range []string{"removed", "changed-owner"} {
+		t.Run(mode, func(t *testing.T) {
+			st := openTemp(t)
+			admissionSeed(t, st)
+			atlas, err := st.GetEntity("atlas")
+			if err != nil {
+				t.Fatal(err)
+			}
+			atlas.Aliases = []string{"Atlas Ledger"}
+			if err := st.PutEntity(atlas); err != nil {
+				t.Fatal(err)
+			}
+			r := overlayTestInput()
+			r.Declarations = []observedDeclaration{{Name: "Atlas Ledger", Type: "service", Description: "accepted original metadata"}}
+			hint := &observedSupersedes{Src: "LaterTarget", Relation: "uses", Dst: "Atlas"}
+			r.Facts = []observedFact{{Src: "Atlas Ledger", Relation: "uses", Dst: "Borealis", Fact: "original route consumer", Confidence: .8, Supersedes: hint}, {Src: "Borealis", Relation: "depends_on", Dst: "Cygnus", Fact: "independent retry utility", Confidence: .8, Supersedes: hint}}
+			prior := freshReplayRequireDraft(t, st, r)
+			if prior.Declarations[0].Kind != "committed" || prior.Declarations[0].Resolution.Route.Slug != "atlas" || prior.Assertions[0].Kind != "deferred" || prior.Assertions[1].Kind != "deferred" {
+				t.Fatal("fixture did not establish terminal declaration and deferred consumers")
+			}
+			admissionSeedSelectedDraft(t, st, r, prior)
+			atlas, err = st.GetEntity("atlas")
+			if err != nil {
+				t.Fatal(err)
+			}
+			atlas.Aliases = nil
+			atlas.Description = ""
+			dpSet(t, st, prefixEntity+"atlas", dpJSON(t, atlas))
+			dpSet(t, st, prefixAlias+Normalize("Atlas Ledger"), nil)
+			if mode == "changed-owner" {
+				cygnus, err := st.GetEntity("cygnus")
+				if err != nil {
+					t.Fatal(err)
+				}
+				cygnus.Aliases = []string{"Atlas Ledger"}
+				dpSet(t, st, prefixEntity+"cygnus", dpJSON(t, cygnus))
+				dpSet(t, st, prefixAlias+Normalize("Atlas Ledger"), []byte("cygnus"))
+			}
+			at := admissionTestTime(t, "1970-01-01")
+			if err := st.PutEntity(Entity{Slug: "latertarget", Name: "LaterTarget", Type: "service", CreatedAt: at, LastSeen: at}); err != nil {
+				t.Fatal(err)
+			}
+			freshReplayGeneration(t, st, "LaterTarget", "later-target-proof", 0)
+			result := freshReplayRequireDraft(t, st, r)
+			if !bytes.Equal(dpJSON(t, result.Declarations[0]), dpJSON(t, prior.Declarations[0])) || result.Assertions[0].Kind != "deferred" || result.Assertions[0].Materialization != nil || result.Assertions[1].Kind != "committed" {
+				t.Fatal("lost declaration binding rerouted consumer or withheld independent retry")
+			}
+			if result.Assertions[1].Materialization.Src != "borealis" || result.Assertions[1].Materialization.Dst != "cygnus" {
+				t.Fatal("unrelated endpoints changed")
+			}
+		})
+	}
+}

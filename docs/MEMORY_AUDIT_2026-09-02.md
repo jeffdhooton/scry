@@ -5312,3 +5312,31 @@ No terminal replay, materializer, normal Apply/prevention, writer floor, actual
 replica/live change or full-goal round. Main production Go remains e097fa6; both
 live binaries remain a06cd7b. Note276f8621 still accepted once/unverified, never
 retry. Latest actual snapshot132039; prior059723bc already verified ingested.
+
+## Continuation — 2026-09-06, after16:06 UTC
+
+See memory-repairs/terminal-replay-progress-2026-09-06.md and its three exact
+independent report/test archives. Private6qYb7K now has26 admission files and four
+retained independent preparation/replay tests. Fixed read-only draft preparation
+carries completed assertions/hints and declarations before discovery; partial
+declarations still explicitly refuse pending granular action replay. Full evidence
+closure validates owned input/producer/witness/reference/prefix evidence. No actual
+materializer, normal Apply integration, writer floor or live adoption yet.
+
+Frozen khrGn1 review0482d10d is NO-GO: four actual-wrapper generation swaps passed
+with the same stable entity tuple. Root reproduced all four failures unchanged,
+then source5514b8e binds exact original ig/il/il-consumed presence and bytes. Root
+full uncached tests PASS97.698/20.890/33.036, log8aee261946e00d3f89faa337ca65cc473d2b337e561ea63a650e855ffeeef391;
+vet PASS. Both unchanged independent replay test files then PASS .947s, log
+af9df500cd39aa49aa51b32a9b2806ce6cc0628c5dd01a43bd89a0050add8f9d.
+Room178 records the bounded NO-GO and root correction, not correction approval.
+
+Fresh155247 Mini backup77,683,273bytes SHA57d933d5a260ea214d52cd2ab5cee334bb8a3d9d5af349be5986165bb2430552
+was copied exactly and restored into fresh shared-155247;250664 raw rows remain
+byte-exact, digestb321462374a9dad68e6304823c2d5206f3d88020305b29c3d45a1fd0f573cc52.
+No candidate code or adoption ran there. Note276f8621326d7dc947a3b9dc50b84ffaa07eedff54df4e9f2e7ce90ebb13ee26
+is now INGESTED, pendingfalse/parkedfalse/attempts0/no alias or fact conflict;
+EP SHA10d7caecfa78dffa181904b10956a603e639928a465f6b4e99901a5ca148c3dc.
+Never retried. This supersedes its earlier unverified status, not the p95 bar.
+Last actual candidate probe remains132039. Main production e097fa6 and both live
+a06cd7b binaries unchanged. Full goal remains active; no all-clause round passed.

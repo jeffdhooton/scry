@@ -1772,3 +1772,29 @@ normal Apply/policy deduplication and all-writer/schema floor. Existing receipt
 builders still refuse prior heads until actual replay is connected. No live changes,
 new actual backup, adoption or goal completion. Note276f8621 never retry;132039 remains
 latest actual snapshot and059723bc closure already done. Keep full goal active.
+
+## Continuation — 2026-09-06, after16:06 UTC
+
+Private6qYb7K now26 admission files plus four exact independent tests. Read
+memory-repairs/terminal-replay-progress-2026-09-06.md for full source/failure pins.
+Terminal replay is connected before discovery in the fixed read-only draft wrapper;
+completed declarations carry without refilling metadata/aliases/votes. Structural
+evidence closure is validated. Partial declarations still refuse before discovery:
+replace this WIP guard with granular original-action replay before normal Apply.
+Read private PARTIAL_DECLARATION_REPLAY_NOTES.md f2a37d80 before that implementation.
+
+Frozen terminal review0482d10d NO-GO proved four preexisting generation swaps with
+identical stable EN tuples. Root5514b8e now requires exact prior ig/il/il-consumed
+selectors including absence. Root full suite PASS97.698/20.890/33.036, log8aee2619;
+vet PASS. Both unchanged independent test files PASS .947s, logaf9df500. Room178
+records review and correction; correction not independently approved. Frozen
+khrGn1 source unchanged. No active reviewer remains.
+
+Newest actual backup155247 SHA57d933d5a260ea214d52cd2ab5cee334bb8a3d9d5af349be5986165bb2430552
+restored raw-exact250664 rows in shared-155247. Note276f8621 now verified INGESTED,
+not pending/parked, attempts0; never retry. This is restore/note evidence ONLY, not
+a candidate probe. Last candidate replica check remains132039. Main production
+e097fa6/both live a06cd7b unchanged. Next: partial action replay, full semantic
+result validation, durable conflict/result selection, actual materialization and
+fixed inventories, normal Apply/policy deduplication/all-writer/schema floor, then
+remaining original live cleanup and two full independent grading rounds. Keep active.
