@@ -1,0 +1,36 @@
+package store
+
+import (
+	"bytes"
+	"testing"
+)
+
+// Root supplied the missing-occupant lead. This independent extension does not
+// require a particular new field: any exact receipt evidence can distinguish
+// these different actual baseline assertions at the identical occupied address.
+func TestFreshCompleteDistinctOccupantsRequireDistinctReceiptEvidence(t *testing.T) {
+	var receipts [][]byte
+	for _, sentence := range []string{"first actual occupying assertion", "second different occupying assertion"} {
+		st := openTemp(t)
+		old := admissionBaseFact(t, "uses", "cygnus", "2026-08-01", sentence)
+		admissionSeed(t, st, old)
+		key := string(factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom))
+		r := overlayTestInput()
+		r.Facts = []observedFact{{Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "incoming distinct assertion", ValidFrom: "2026-08-01", Confidence: .9}, freshUtility()}
+		d := freshDraft(t, st, r)
+		blocked := d.Assertions[0]
+		if blocked.Kind != "deferred" || blocked.Materialization != nil || len(blocked.Effects) != 0 || d.Assertions[1].Kind != "committed" {
+			t.Fatal("fixture did not reach isolated occupied-address deferral plus useful assertion")
+		}
+		before := dpRows(t, st)[key]
+		witness, exists := blocked.Evidence.Witnesses[key]
+		t.Logf("actual FA digest=%s; receipt digest=%s; point witness present=%v; matching full assertion present=%v", generationDigest(before), generationDigest(dpJSON(t, blocked)), exists, blocked.Assertion.Before.Exists)
+		if !exists || !witness.Exists || !bytes.Equal(witness.Raw, before) {
+			t.Error("deferred occupied-address receipt omits actual exact point witness")
+		}
+		receipts = append(receipts, dpJSON(t, blocked))
+	}
+	if bytes.Equal(receipts[0], receipts[1]) {
+		t.Error("different actual occupying full assertions produced byte-identical complete deferred receipts")
+	}
+}

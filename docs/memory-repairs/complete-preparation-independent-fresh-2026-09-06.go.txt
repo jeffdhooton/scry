@@ -1,0 +1,330 @@
+package store
+
+import (
+	"bytes"
+	"encoding/json"
+	"reflect"
+	"slices"
+	"testing"
+)
+
+// Independent fixed sequence: canonical original input and actual EP enter the
+// genuine owner; no caller-selected route, support, proposal or witness is used.
+func freshComplete(t *testing.T, st *Store, input identityInputRevision, episode []byte) (admissionReceiptDraft, error) {
+	t.Helper()
+	before := dpRows(t, st)
+	raw, key, err := encodeIdentityInput(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events := 0
+	st.SetObserver(func(Event) { events++ })
+	var draft admissionReceiptDraft
+	report, err := runBirthRegistration(st, key, raw, func(r *birthRegistry) error {
+		context, err := pinAdmissionEpisode(r, episode)
+		if err != nil {
+			return err
+		}
+		o := newIdentityOverlay(r)
+		defer o.dispose()
+		if err := o.run(); err != nil {
+			return err
+		}
+		p, err := newAssertionAdmissionPlan(r, o)
+		if err != nil {
+			return err
+		}
+		if err := p.proposeAssertions(); err != nil {
+			return err
+		}
+		if err := p.planTemporal(map[string]bool{"status": true, "replaced_by": true}); err != nil {
+			return err
+		}
+		if err := p.planHints(); err != nil {
+			return err
+		}
+		if err := p.closeFactEffects(); err != nil {
+			return err
+		}
+		if err := p.closeIdentityOwnership(); err != nil {
+			return err
+		}
+		draft.Assertions, err = p.prepareAssertionReceipts(context)
+		if err != nil {
+			return err
+		}
+		draft.Declarations, draft.Births, err = p.prepareIdentityReceipts(context)
+		return err
+	})
+	if !reflect.DeepEqual(before, dpRows(t, st)) || events != 0 {
+		t.Fatal("preparation changed raw inventory or emitted events")
+	}
+	if len(report.Identities.History.Entries) != 0 || len(report.Facts.Mutations) != 0 {
+		t.Fatal("preparation recorded writer history")
+	}
+	if err != nil {
+		return admissionReceiptDraft{}, err
+	}
+	return draft, nil
+}
+
+func freshDraft(t *testing.T, st *Store, r identityInputRevision) admissionReceiptDraft {
+	t.Helper()
+	d, err := freshComplete(t, st, r, dpJSON(t, admissionInputEpisode(r)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return d
+}
+
+func freshUtility() observedFact {
+	return observedFact{Src: "Draco", Relation: "depends_on", Dst: "Equuleus", Fact: "independent utility", Confidence: .8}
+}
+
+func TestFreshCompleteExclusivePermutations(t *testing.T) {
+	orders := [][]int{{0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}}
+	for i, order := range orders {
+		t.Run(string(rune('A'+i)), func(t *testing.T) {
+			st := openTemp(t)
+			admissionSeed(t, st)
+			r := overlayTestInput()
+			r.OccurredAt = admissionTestTime(t, "2026-08-20")
+			facts := []observedFact{
+				{Src: "Atlas", Relation: "replaced_by", Dst: "Borealis", Fact: "same target first sentence", ValidFrom: "2026-08-01", Confidence: .7},
+				{Src: "Atlas", Relation: "replaced_by", Dst: "Borealis", Fact: "same target second sentence", ValidFrom: "2026-08-05", Confidence: .9},
+				{Src: "Atlas", Relation: "replaced_by", Dst: "Cygnus", Fact: "different target transition", ValidFrom: "2026-08-10", Confidence: .8},
+			}
+			for _, n := range order {
+				r.Facts = append(r.Facts, facts[n])
+			}
+			r.Facts = append(r.Facts, freshUtility())
+			d := freshDraft(t, st, r)
+			for n, receipt := range d.Assertions {
+				if receipt.Kind != "committed" || receipt.Materialization == nil {
+					t.Fatalf("ordinal %d lost utility: %s %s", n, receipt.Kind, receipt.Reason)
+				}
+				f := receipt.Materialization
+				if f.Dst == "borealis" && (f.InvalidAt == nil || !f.InvalidAt.Equal(admissionTestTime(t, "2026-08-10"))) {
+					t.Fatal("overlapping same target sentences lack exact transition")
+				}
+				if f.Dst != "borealis" && f.InvalidAt != nil {
+					t.Fatal("newer/unrelated state ended")
+				}
+			}
+		})
+	}
+}
+
+func TestFreshCompleteInheritedExclusiveDefectKeepsRepeatUtility(t *testing.T) {
+	st := openTemp(t)
+	old := admissionBaseFact(t, "replaced_by", "borealis", "2026-08-01", "old sentence")
+	conflict := admissionBaseFact(t, "replaced_by", "cygnus", "2026-08-05", "old incompatible state")
+	admissionSeed(t, st, old, conflict)
+	r := overlayTestInput()
+	r.Facts = []observedFact{
+		{Src: "Atlas", Relation: "replaced_by", Dst: "Borealis", Fact: old.Fact, ValidFrom: "2026-08-01", Confidence: .95},
+		{Src: "Atlas", Relation: "replaced_by", Dst: "Borealis", Fact: "new state cannot repair history", ValidFrom: "2026-08-10", Confidence: .8}, freshUtility(),
+	}
+	d := freshDraft(t, st, r)
+	if d.Assertions[0].Kind != "committed" || d.Assertions[0].Materialization.InvalidAt != nil || d.Assertions[0].Materialization.Confidence != .95 || d.Assertions[1].Kind != "deferred" || len(d.Assertions[1].Effects) != 0 || d.Assertions[2].Kind != "committed" {
+		t.Fatal("inherited defect changed or withheld independent exact repeat/utility")
+	}
+}
+
+func TestFreshCompleteCyclicAndEqualStartHints(t *testing.T) {
+	for _, equal := range []bool{false, true} {
+		t.Run(map[bool]string{false: "cyclic", true: "equal-event"}[equal], func(t *testing.T) {
+			st := openTemp(t)
+			admissionSeed(t, st)
+			r := overlayTestInput()
+			r.OccurredAt = admissionTestTime(t, "2026-08-20")
+			start := "2026-08-01"
+			if equal {
+				start = "2026-08-20"
+			}
+			r.Facts = []observedFact{
+				{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "left", ValidFrom: start, Confidence: .8, Supersedes: &observedSupersedes{Src: "Borealis", Relation: "uses", Dst: "Atlas"}},
+				{Src: "Borealis", Relation: "uses", Dst: "Atlas", Fact: "right", ValidFrom: start, Confidence: .8, Supersedes: &observedSupersedes{Src: "Atlas", Relation: "uses", Dst: "Borealis"}}, freshUtility(),
+			}
+			d := freshDraft(t, st, r)
+			for i := 0; i < 2; i++ {
+				a := d.Assertions[i]
+				if a.Kind != "committed" || a.Hint == nil {
+					t.Fatal("valid cycle/no-effect lost")
+				}
+				if equal {
+					if a.Materialization.InvalidAt != nil || a.Hint.Retained || len(a.Hint.Plan.Eligible) != 0 {
+						t.Fatal("equal start self-induced zero length")
+					}
+				} else {
+					if a.Materialization.InvalidAt == nil || !a.Materialization.InvalidAt.Equal(r.OccurredAt) || !a.Hint.Retained || !slices.Equal(a.Component, []int{0, 1}) {
+						t.Fatal("cycle did not preserve actual supported ends and dependencies")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestFreshCompleteOpaqueRewriteMatrix(t *testing.T) {
+	for _, route := range []string{"repeat", "exclusive", "hint"} {
+		for _, repr := range []string{"extension", "whitespace", "duplicate-confidence"} {
+			t.Run(route+"/"+repr, func(t *testing.T) {
+				st := openTemp(t)
+				relation := "uses"
+				if route == "exclusive" {
+					relation = "replaced_by"
+				}
+				old := admissionBaseFact(t, relation, "borealis", "2026-08-01", "old exact sentence")
+				admissionSeed(t, st, old)
+				key := string(factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom))
+				raw := dpJSON(t, old)
+				switch repr {
+				case "extension":
+					raw = append(bytes.Clone(raw[:len(raw)-1]), []byte(`,"future":{"retain":true}}`)...)
+				case "whitespace":
+					raw = append([]byte(" "), raw...)
+				case "duplicate-confidence":
+					raw = append(bytes.Clone(raw[:len(raw)-1]), []byte(`,"confidence":0.8}`)...)
+				}
+				overlayTestRaw(t, st, key, raw)
+				r := overlayTestInput()
+				f := observedFact{Src: "Atlas", Relation: relation, Dst: "Borealis", Fact: old.Fact, ValidFrom: "2026-08-01", Confidence: .95}
+				if route == "exclusive" {
+					f.Dst = "Cygnus"
+					f.Fact = "new target"
+					f.ValidFrom = "2026-08-10"
+				}
+				if route == "hint" {
+					f.Dst = "Cygnus"
+					f.Fact = "new fact"
+					f.ValidFrom = "2026-08-10"
+					f.Supersedes = &observedSupersedes{Src: "Atlas", Relation: relation, Dst: "Borealis"}
+				}
+				r.Facts = []observedFact{f, freshUtility()}
+				d, err := freshComplete(t, st, r, dpJSON(t, admissionInputEpisode(r)))
+				if repr == "duplicate-confidence" {
+					if err == nil {
+						t.Fatal("structurally duplicate raw accepted")
+					}
+					return
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				if d.Assertions[0].Kind != "deferred" || d.Assertions[0].Materialization != nil || len(d.Assertions[0].Effects) != 0 || d.Assertions[1].Kind != "committed" {
+					t.Fatal("opaque rewrite failed local preservation/utility")
+				}
+			})
+		}
+	}
+}
+
+func TestFreshCompleteRawRelationAndLiteralCollisions(t *testing.T) {
+	for _, mode := range []string{"raw-relation", "full-literal"} {
+		t.Run(mode, func(t *testing.T) {
+			st := openTemp(t)
+			admissionSeed(t, st)
+			r := overlayTestInput()
+			a := observedFact{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "same statement", Confidence: .8}
+			b := a
+			b.Relation = "utilizes"
+			if mode == "full-literal" {
+				a.Relation = "status"
+				a.Dst = "stage_ready"
+				b = a
+				b.Dst = "stage-ready"
+			}
+			r.Facts = []observedFact{a, b, freshUtility()}
+			d := freshDraft(t, st, r)
+			if d.Assertions[0].Kind != "deferred" || d.Assertions[1].Kind != "deferred" || d.Assertions[2].Kind != "committed" || d.Assertions[0].Assertion == nil || d.Assertions[1].Assertion == nil || d.Assertions[0].Assertion.Identity == d.Assertions[1].Assertion.Identity {
+				t.Fatal("full tuples collapsed or collision withheld unrelated utility")
+			}
+		})
+	}
+}
+
+func TestFreshCompleteOldEPIDCannotBorrowInputProof(t *testing.T) {
+	st := openTemp(t)
+	r := overlayTestInput()
+	old := admissionBaseFact(t, "uses", "borealis", "2026-08-01", "old missing provenance")
+	old.Episodes = []string{r.EpisodeID}
+	admissionSeed(t, st, old)
+	r.Facts = []observedFact{{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: old.Fact, ValidFrom: "2026-08-01", Confidence: .9}}
+	_, err := freshComplete(t, st, r, dpJSON(t, admissionInputEpisode(r)))
+	if err == nil {
+		t.Fatal("old FA provenance borrowed unpersisted input EP")
+	}
+}
+
+func TestFreshCompleteFutureValueSourceAndOwnedReceipt(t *testing.T) {
+	st := openTemp(t)
+	old := admissionBaseFact(t, "uses", "borealis", "1971-01-01", "eligible old")
+	admissionSeed(t, st, old)
+	r := overlayTestInput()
+	r.OccurredAt = admissionTestTime(t, "1980-01-01")
+	r.Facts = []observedFact{
+		{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "useful unique hint", Confidence: .8, Supersedes: &observedSupersedes{Src: "Atlas", Relation: "uses", Dst: "Borealis"}},
+		{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "future with unresolved hint", ValidFrom: "2002-01-01", Confidence: .8, Supersedes: &observedSupersedes{Src: "Missing", Relation: "uses", Dst: "Borealis"}},
+	}
+	d := freshDraft(t, st, r)
+	h := d.Assertions[0].Hint
+	if d.Assertions[0].Kind != "committed" || d.Assertions[1].Kind != "committed" || h == nil || !h.Retained || len(h.Candidates) != 2 || len(h.Plan.Eligible) != 1 || !slices.Equal(d.Assertions[0].Component, []int{0}) {
+		t.Fatal("future value-source no-effect withheld independent unique target")
+	}
+	if d.Assertions[1].Resolution.Hint.Value != "Missing" || d.Assertions[1].Hint.Plan.Kind != "no-effect" {
+		t.Fatal("inherited lexical value-source branch not reached")
+	}
+	saved := dpJSON(t, d)
+	for _, b := range d.Births {
+		if b.Entity != nil {
+			b.Entity.Name = "mutated"
+		}
+		for _, a := range b.Actions {
+			for _, w := range a.Evidence.Witnesses {
+				if len(w.Raw) > 0 {
+					w.Raw[0] ^= 1
+				}
+			}
+		}
+	}
+	for _, a := range d.Assertions {
+		if a.Materialization != nil {
+			a.Materialization.Episodes[0] = "mutated"
+		}
+		for _, w := range a.Evidence.Witnesses {
+			if len(w.Raw) > 0 {
+				w.Raw[0] ^= 1
+			}
+		}
+		for _, p := range a.Evidence.Prefixes {
+			if len(p.Keys) > 0 {
+				p.Keys[0] = "mutated"
+			}
+		}
+	}
+	if !json.Valid(saved) || !bytes.Equal(saved, dpJSON(t, freshDraft(t, st, r))) {
+		t.Fatal("returned receipt mutation changed later owned result")
+	}
+}
+
+func TestFreshCompleteFutureUnadoptedSupplier(t *testing.T) {
+	st := openTemp(t)
+	old := admissionBaseFact(t, "uses", "borealis", "1971-01-01", "eligible old")
+	admissionSeed(t, st, old)
+	// Same original name as the retained failed fixture; actual unadopted en:
+	// state, rather than an assumed lexical result, establishes deferral.
+	if err := st.PutEntity(Entity{Slug: "missing", Name: "Missing", Type: "service", CreatedAt: admissionTestTime(t, "1970-01-01"), LastSeen: admissionTestTime(t, "1970-01-01")}); err != nil {
+		t.Fatal(err)
+	}
+	r := overlayTestInput()
+	r.OccurredAt = admissionTestTime(t, "1980-01-01")
+	r.Facts = []observedFact{
+		{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "useful unique hint", Confidence: .8, Supersedes: &observedSupersedes{Src: "Atlas", Relation: "uses", Dst: "Borealis"}},
+		{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "future with unresolved hint", ValidFrom: "2002-01-01", Confidence: .8, Supersedes: &observedSupersedes{Src: "Missing", Relation: "uses", Dst: "Borealis"}},
+	}
+	d := freshDraft(t, st, r)
+	if d.Assertions[0].Kind != "committed" || d.Assertions[1].Kind != "deferred" || !d.Assertions[0].Hint.Retained || len(d.Assertions[0].Hint.Candidates) != 2 || !slices.Equal(d.Assertions[0].Component, []int{0}) {
+		t.Fatal("ineligible future component withheld eligible hint")
+	}
+}

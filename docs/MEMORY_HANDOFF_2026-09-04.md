@@ -1746,3 +1746,29 @@ writer floor and original full-goal bars. No fresh bounded helper review as deli
 New note276f8621326d7dc947a3b9dc50b84ffaa07eedff54df4e9f2e7ce90ebb13ee26
 accepted once depth38, not yet backup-verified; never retry. Latest actual snapshot
 remains132039, prior059723bc closure already verified. Live a06cd7b untouched.
+
+## Continuation — 2026-09-06, after15:28 UTC
+
+Private complete-admission6qYb7K now22 admission files plus exact retained fresh
+independent tests. See memory-repairs/admission-complete-result-progress-2026-09-06.md
+for complete source/failure pins. Frozen18 review c9f6b0b9 NO-GO (room177) proved
+deferred address collisions omitted actual occupant evidence. Root86798fee adds
+separate AddressBefore and genuine point witness; unchanged root/independent tests
+pass. No independent correction approval yet. Frozen DAf00M remains unchanged.
+
+Complete V2 envelope49eddcf9 and actual previous-reader0ff7d015 are private only.
+Four new result-validator corruption tests initially failed; first source/test/log
+preserved, source-only fix passes assertions. Prior reader first tests PASS.707s:
+actual head/result/input/EP binding, exact accepted FA/effect/provenance/closed-end
+proof, changed input cannot erase acceptance, old V1 is acceptance-unknown. Reader
+tests explicitly seed synthetic result rows, not an implemented writer.
+Full uncached no-CGO suite PASS store72.600s/resolve17.131s/daemon29.854s;
+log12f7c67c1e53fcb41de834088004899783ea22217cd3766be06315bbe652e51b; vet PASS.
+
+Next remains composed terminal replay BEFORE discovery, granular partial declaration
+action carry, complete evidence/action/lifecycle validation, durable changed-input
+conflict after successful transaction, exact materialization/fixed final inventories,
+normal Apply/policy deduplication and all-writer/schema floor. Existing receipt
+builders still refuse prior heads until actual replay is connected. No live changes,
+new actual backup, adoption or goal completion. Note276f8621 never retry;132039 remains
+latest actual snapshot and059723bc closure already done. Keep full goal active.

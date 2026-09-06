@@ -5285,3 +5285,30 @@ ec20343fca6d47b0f98b6ed16620170fc243b1d0f968e9a3b0f6e0631474b234;
 relevant vet PASS empty. No independent whole-program grade or actual live change.
 New note276f8621 queued once depth38, not yet backup-verified; never retry. Goal
 remains active with all original repair/recall/sweep/two-round bars unchanged.
+
+## 2026-09-06 after15:28 — complete result and actual prior reader
+
+Detailed source/failure pins: memory-repairs/admission-complete-result-progress-2026-09-06.md.
+Independent frozen18-file review c9f6b0b9 is bounded NO-GO: root-supplied missing
+occupied-address evidence independently proved by different FA occupants yielding
+identical deferred receipts. Full report and two fresh test sources archived exact;
+room177 records verdict. Frozen source unchanged. Root AddressBefore/point-read
+correction86798fee passes root and exact independent disproofs, not independently
+regraded. Other independent challenges preserve the initial lexical fixture error
+and same-name genuine-unadopted control without policy tuning.
+
+Private22-file admission implementation now includes complete declaration/action/
+birth receipts, V2 envelope and actual prior head/result/input/EP reader. Four new
+validator mutations initially failed (confidence limits/input floor and missing/
+contradictory address witness); original source/test/log4544def4 preserved. Source
+fix49eddcf9 passes unchanged assertions. Prior-reader tests first PASS.707s,
+logf910f67d: exact full FA/provenance/closed-end proof, changed revision retains old
+acceptance, V1 acceptance stays unknown rather than falsely all-deferred.
+These tests seed synthetic result rows; no claim of implemented durable writer.
+Full uncached no-CGO suite PASS72.600/17.131/29.854, completed log
+12f7c67c1e53fcb41de834088004899783ea22217cd3766be06315bbe652e51b; vet PASS.
+
+No terminal replay, materializer, normal Apply/prevention, writer floor, actual
+replica/live change or full-goal round. Main production Go remains e097fa6; both
+live binaries remain a06cd7b. Note276f8621 still accepted once/unverified, never
+retry. Latest actual snapshot132039; prior059723bc already verified ingested.
