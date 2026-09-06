@@ -3993,3 +3993,43 @@ aliases_index_to fallback with structural relation/raw-relation/destination
 assertions. This test-only change has no production hash delta; independent
 hash extension pending. No current-triple sentence-loss, general temporal
 identity, direct PutFact metadata, format/recovery or whole-goal PASS follows.
+
+### 2026-09-06 — independent actual schema rollout gate closed
+
+Actual reportSHAc3fde6b6071652ddeaf33e76794db8ab21527bf24feffe5f25873cb3c0afa4ba
+is archived as schema-refusal-actual-independent-review-2026-09-06.md;
+root's structured receipt is archived separately. Room129 records the verdict.
+Both installed/retained binaries and actual process starts are independently
+verified, four full pre/post backups restored, and every graph/raw record
+accounted. All81304facts/7855history/30956entities/9409episodes,52428claims,
+11066attestations,56091adjacencies,942value-evidence and42repair markers are
+byte-identical. No removed keys; only previously reported scanner/pending/
+metadata changes. Fifteen parked payloads and ten new complete pending inputs
+are preserved. The changed old1781-byte input retains all non-retry fields;
+its74-byte error hash1ac44e385cebdbc6ce1d38a5577fa921ee647f2c9513e498180f152e56f2444f
+has deadline-exceeded=true, context-canceled=false, connection-refused=false.
+No specific provider or restart cause is inferred.
+
+Twenty actual old/current artifact suite commands and all235individual ranks
+and payloads on EACH frozen post snapshot match. Shared51/29/7/45/47, cap0;
+maxima12112/13366/9962/11533/11533. This reproduces the root's live post maxima
+with the old binary too; do not attribute the6-byte strict/tuning increase to
+new scoring. Original floors and later sweeps remain outside this actual PASS.
+
+Root remembered the actual deployment ONCE at approximately02:14:53UTC,
+accepted in28ms with episode ID
+41fc642ba3b1f0726f842a3a30a2bd82e7e7e4cca5f69ddd8b95afefe09da7fb.
+No ingestion proof yet; never retry. This single acceptance is not p95.
+Two explicit installed-binary real sweeps subsequently completed (first before
+the note, second after it):02:14:01.927205 scanned2390files,2episodes,
+claude1/codex1,0errors;02:16:31.642506 scanned2390files,1codex episode,0errors.
+Complete021453/021707 backups are being restored and independently graded
+against actual020346 and later020913. Existing parked inputs grew15→20 during
+normal processing; no retries or guessed repairs are applied. Do not count
+scan completion as clean graph semantics or two final full grading rounds.
+
+Historical candidate test-only coverage extension independently passes:
+SHA60eda8c7ec4664d4bafef34912269358067164cf34d389c7ca36f9ac5d5abf5d.
+Production hashes remain unchanged; actual fallback fixture passes. Fresh
+full-replica historical compatibility review is running, with no integration
+or deployment at this entry.
