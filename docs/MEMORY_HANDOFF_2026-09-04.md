@@ -1113,3 +1113,28 @@ owns its full plan. Root targeted/full no-CGO tests pass; independent extension
 is running at /tmp/scry-identity-journal-fixed-grade.xiYvzO. Do not integrate it
 as admission prevention: generation ledger, structured evidence, complete caller
 coverage, cost proof and explicit legacy contract reconciliation are unfinished.
+
+### 2026-09-06 03:36 UTC — sweeps reviewed; generation primitive private
+
+Both explicit posthistorical sweeps are finished and independently reviewed:
+historical-address-two-sweeps-independent-review SHA
+3fc7d4dbee7426291f6c68d4e7ad9ca0e060fb0f2b2c107227b4f2f2fc93fd2a.
+Bounded old-record preservation PASS; whole goal FAIL. First completion03:04:10
+is pinned root CLI evidence (background sweep replaced persisted report);
+second03:08:23 has matching persisted completion. All six full restores pass.
+New zero-fact runbook persists despite aggregate hollows returning2854; all five
+scores remain51/29/7/45/47; dry hygiene still487 collision pairs and not no-op.
+Actual note243363ca is ingested03:09:13.687952 with15 citing facts, raw episode
+SHAa648c31778ef2ec1f314619c1ad0665f79dcefac0ca6117d8a7fbad8f7e21d0b.
+Never retry it. Installed artifacts remaina06cd7b unchanged; no new deploy/apply.
+
+Private corrected journal now independently bounded PASS, report81279f03;
+still UNINTEGRATED. Private generation primitive initial source3dca5a18 fails
+two independent UTF-8 serialization/reload tests; frozen reportc0e64ba1 is
+archived. Private fix source3c196ab9d3067c50d26fb839bb65fd7820e0d363da6818ef2a659f93df7680dc
+adds strict UTF-8 validation, unchanged reproducers pass; fresh corrected review
+is running. All code under/tmp/scry-unattached-evidence-sep06.db52ow/code remains
+uncalled, unintegrated, undeployed. Root full-support-scan baseline188–208ms and
+~146MB allocated per operation is too costly to treat as accepted hot-path proof.
+Continue controller/observation/support and explicit adoption/lifecycle design;
+do not infer that a primitive PASS prevents hollows or makes old writers safe.

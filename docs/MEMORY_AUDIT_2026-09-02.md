@@ -4179,3 +4179,55 @@ Fixed sourceSHAd961d53c2c5fcc69b110987788c01837e79534ac381548c655fe463e020e3a80;
 root targeted regressions and complete no-CGO suite pass. Independent fixed
 extension is running. No journal source or admission behavior is integrated
 or deployed. Existing baseline expectations remain unchanged.
+
+### 2026-09-06 03:36 UTC — historical two-sweep closure; private ledger correction
+
+Archived historical-address-two-sweeps-independent-review SHA
+3fc7d4dbee7426291f6c68d4e7ad9ca0e060fb0f2b2c107227b4f2f2fc93fd2a
+proves bounded original assertion/history/claim/marker/queue preservation,
+NOT whole-goal quality. All six complete backups independently restored; all
+81,514 original facts retain assertion/start/confidence/provenance and all7,863
+old historical rows remain raw-exact. Two old current rows acquire InvalidAt,
+one gains provenance; no original fact moves or disappears. All52,570 original
+claims and42 repair markers are exact. Laptop83,378 rows remain exact throughout.
+
+The explicit sweeps completed03:04:10 and03:08:23UTC. First2398-file invocation
+has a pinned root CLI receipt, but a different94-file background sweep replaced
+its persisted report at03:04:15; do not claim independent persisted proof of the
+first invocation. Second persisted completion matches03:08:23.320361. Background
+extraction continued, so interval changes are not solely attributable to sweeps.
+Actual deployment note243363ca0a562f795248a6c9a9dd15f491bd74ef32138cff8a80b6d1274a0c41
+is independently ingested03:09:13.687952, absent pending,15 citing facts, raw ep
+SHAa648c31778ef2ec1f314619c1ad0665f79dcefac0ca6117d8a7fbad8f7e21d0b.
+Never retry. Room136 records this verdict and the private ledger rejection.
+
+A new factless runbook persists: defectSHA47118b30769cbed94ac61058461ad6a14bc53cb1037180b3c2c1b70f2bff9120.
+Hollows2854→2855→2854 conceal it because a DIFFERENT old hollow gained facts.
+All705 responses remain under24KB, max13,370; suites remain51/29/7/45/47.
+Dry hygiene is not a no-op:487 collision pairs,305 entity changes,114 alias
+drops,295 splits,296 reattachments,93 self-loop invalidations,17 stub-claim
+drops,32 stub merges. No proposal applied. Alias-attestation provenance has18
+preexisting missing episode references, exact defect set unchanged; fact and
+value-evidence provenance closure remains clean. Complete details in report.
+
+The fixed private journal independently PASSES its bounded ten-test/full-suite
+review, SHA81279f030c14abeacb3cd5c808b6ff1533e134cb034fc2c903a4273329c489fb.
+It remains uncalled/unintegrated. New private generation-ledger source3dca5a18
+is independently REJECTED: distinct invalid-UTF-8 episode strings serialize
+identically, and a successfully committed birth cannot subsequently reload.
+Report identity-generation-initial-independent-rejection SHA
+c0e64ba1c628a4e1f4d106c48e6cea10b61b7b8cdf44935a1dfd2b286a9021a5
+retains both failed reproducers plus38 passing boundary subcases. Root private
+fix3c196ab9d3067c50d26fb839bb65fd7820e0d363da6818ef2a659f93df7680dc
+rejects invalid UTF-8 before encoding/staging; original reproducers pass locally.
+Additional input-boundary/valid-Unicode tests and fresh corrected review run
+separately. No production call path, schema, live record or daemon changes.
+
+Root-only cost experiment on complete restored031013 shared snapshot:
+AllFacts plus100 synthetic support candidates,15 operations in three5-iteration
+Go benchmarks:187.94–207.53ms/op,146.13–146.16MB allocated/op,about1.247million
+allocations/op. This is a baseline, not p95 or admission performance acceptance.
+Full246,690-row raw digest remains
+fd03634f550aca09bc7ba5c9fb62ab6c0e8321faad8e0102873d27662b8a9c92 afterward.
+Full admission controller, observations, support proof, lifecycle/adoption and
+all-writer compatibility remain open; private primitive tests close none of them.
