@@ -4778,3 +4778,72 @@ ingestion: it would couple graph scans to durable PutPending. Proposed separate
 graph lock coordinates public producers while the ordinary remember queue path
 retains progress; existing exclusive maintenance, raw writers, lifecycle policy
 and event ordering remain explicit separate concerns. Full objective still open.
+
+### 2026-09-06 07:47 UTC — narrow graph coordination reviewed and retained
+
+Private candidate /tmp/scry-serial-admission-sep06.wDNcu0 on4f1d1be now retained
+with exact reviewed source: store8093c39a9214e1dbe5546a8cdd5a8cd8c76836952bf2a8616630eeda3ba8f7b1,
+pendingf51c3dec4f7aef2a93e5195d229541ba7253e244606e806fe00d92541df6afb2,
+owner396389b06177ce1cd4af18f23412eea4e1f747696d93fc794d82025bfc89dac1.
+Contract91071f65, design dedcbb18, complete design review9ac136e5 and complete code
+reviewcc5b969782b03b8fdaf6411f2d691a2e1e8955e6c4d4899e8c0aafaec3cd657f
+archived under memory-repairs/serial-admission-*. Supplied68686ff2/4a176605 and
+independentbf566fa9 tests retained unchanged; no original regression changed.
+
+Root update/AtomicWrite graph writers take shared graph access; NEW private
+serialized owner takes exclusive graph access before its snapshot through commit.
+Maintenance then graph then Badger is the fixed lock order. Only fixed root
+PutPending/DeletePending bypass the graph lock; facade queue operations preserve
+owner freeze/poison/rollback. Both metadata setters remain coordinated. Existing
+exclusive maintenance and retirement revision refusal remain intact. Events publish
+after locks release. No normal production caller enables serialized admission.
+
+Independent code export /tmp/scry-serial-code-disproof-xzOvG2: six added groups,
+ten supplied groups and unchanged old phantom PASS7.145s; full noncached no-CGO
+PASS store48.070s/resolve15.139s/daemon28.290s, full log
+89f6f4182be4d4dff956dca53bee54db67f384ffd393344b7a33d6e6457ab950.
+Independent actual synthetic remember during body/finalizing PASS0.471s, complete
+queued input survives owner refusal and reopen; logfee714dd41d4dcd022a4a7b16bbb93ca08d0dbaa5a302c496e026cb3bbab95cc.
+Root first private full PASS51.563s/16.285s/30.496s, logdf2e8cf4;
+combined shared full noncached no-CGO PASS49.066s/15.118s/28.413s.
+
+Root's private tests had no failed runs. Design reviewer initially point-read the
+phantom key and correctly got a conflict; corrected only its new characterization
+to the intended prefix scan, retaining initial failure. Code reviewer corrected
+only its new fixture field Losers to Retire after compile failure and reran an
+invalid zsh integrity check with task-prefixed variables. Both histories remain
+in their complete reports; no candidate source or supplied assertion changed.
+
+NEVER integrate the private tagged bridge8219a560, daemon probeec15e21a or root-only
+replica cost test504ab800. They remain private and are absent from shared source.
+Coordinator excludes uncoordinated raw writers, captured-root synchronous writes,
+concurrent Close and post-verification accounting. It does not validate missing
+alias owners or generic identity-marker replacement. Existing raw/postverify
+counterexamples remain tests. Queue progress excludes pending exclusive maintenance;
+metadata-stamping enqueue RPC may wait, unlike ordinary remember. No live p95,
+fixed finalizer/lifecycle, deployment or whole-goal approval. Room156.
+
+Fresh Mini backup073526:76,426,853bytes, SHA
+794c5638fedf4a90b36e8e30f1760e207a66239a5f2fd00d4f1b6f6207f2ab0f,
+restored /tmp/scry-foundation-closure-sep06.8IEPu5/shared-073526. All248,345raw rows
+exact through direct load/Open/index/read, digest
+f3602b74247f1130980d4d3ef7eeb69c779fff69cee5c281adb0ca9fad39fcbb.
+31,356entities/82,072facts/74,179current/7,893historical/9,470episodes/30pending.
+Accepted-once note12e12912be75b432d48abbd8b1078d7e8d41df15719777602149191740092147
+now root-verified ingested/absent pending, EP raw95aa2533e9ce426cce5f26419fd1ebd7da7b35950aacdf1ab0c69374af2422a4.
+No retry. Mini status07:25: ready0/backoff0/parked30/workertrue, last extraction
+07:22:48.619396. Existing provider configuration unchanged; no model probe.
+
+Root-only no-op serialized scope on that own restored replica captured/verified
+complete identity and fact ledgers in2.511723s; all248,345raw rows unchanged,
+zero events,84,386identity/control rows, identity digest
+adc5893c806afb9f89e50298796db458a7f6cf0912bff4a32417b1ab5f6d55c0,
+fact digest a77766108c6fa929f5c056411b3a1b0f9bf17af3b4fe278d14719c4ab4f22de6.
+Logf4ba53a46dc08f9ef7d839adef212ab5cf7dbe61568a2bb5ffed4727e5e18bd4;
+measurement is not independent throughput or p95 evidence.
+
+Next private birth-registration design19474eeb at
+/tmp/scry-birth-registration-sep06.vZeC2U/BIRTH_REGISTRATION_DESIGN.md is under
+fresh-context DESIGN disproof only. No registration code, policy activation,
+live adoption/repair/deployment or two full-goal grading rounds. Installed
+a06cd7b remains unchanged and the complete objective remains active.

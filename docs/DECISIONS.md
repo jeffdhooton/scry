@@ -3784,3 +3784,22 @@ review demonstrated a public alias writer escaping the old snapshot. Coordinate
 producers before activating admission, and account separately for all subsequent
 undo/materialization writes. Preserve those counterexamples as evidence, rather
 than broadening a finite ledger verdict into a full memory-quality pass.
+
+### Coordinate graph admission without putting remember behind graph scans
+
+**Decision, 2026-09-06.** Use a separate graph-writer lock under the existing
+maintenance lock. Ordinary supported graph writers share it; the private admission
+coordinator takes it exclusively before opening its transaction. Fixed root pending
+queue operations bypass only the graph lock. Their transactional facades retain
+the same rollback, phase and poison guards as other writes.
+
+The actual remember handler can therefore durably queue input during a held graph
+scope, as independent synthetic handler/reopen tests demonstrate. Existing pending
+exclusive maintenance and storage pressure can still delay it; live p95 remains a
+separate gate. The measured real-replica accounting scope takes about2.51seconds,
+so holding maintenance exclusively for ingestion would couple it to slow graph work.
+
+This is cooperative isolation for one genuine Store, not a fixed ownership policy
+or raw-writer predicate lock. Keep serialized admission private and uncalled until
+complete birth/support/lifecycle and finalizer accounting are reviewed. Do not
+export or ship the private callback bridge used by cross-package evidence tests.

@@ -1401,3 +1401,26 @@ SHA dedcbb18 is under fresh-context design disproof. It proposes separate graph
 coordination because exclusive maintenanceMu would delay durable remember queue
 writes. Do not implement or claim production safety from an unreviewed design.
 Fixed finalizer/lifecycle, full cleanup/recall and two all-clause rounds still open.
+
+### 2026-09-06 07:47 UTC — private serialized boundary retained
+
+Coordinator source store8093c39a/pendingf51c3dec/owner396389b0 retained after complete
+design9ac136e5 and codecc5b9697 independent reviews. Reports/contracts archived in
+memory-repairs/serial-admission-*. All original tests unchanged, supplied68686ff2/
+4a176605 and independentbf566fa9 retained. Independent/combined full no-CGO PASS.
+New private entry coordinates graph producers, not production policy. Ordinary
+remember queue writes remain outside graph lock and synthetic real-handler tests
+prove durable progress in both phases. Private bridge/daemon/replica tests NEVER
+ship and remain absent from shared source. Raw writers/postverify/captured-root/
+concurrent-Close exclusions and old phantom tests remain; lifecycle still required.
+
+Fresh073526 backup SHA794c5638 restored all248,345raw unchanged. Latest note12e12912
+now ingested/absentpending; no retry. Root-only complete identity+fact no-op scope
+cost2.511723s with every raw row unchanged, not independent/live p95. Audit has pins.
+Room156, installeda06cd7b unchanged. No live adoption, cleanup or deployment.
+
+Next design19474eeb /tmp/scry-birth-registration-sep06.vZeC2U/BIRTH_REGISTRATION_DESIGN.md
+is under fresh design disproof. No implementation yet. Resolve capture timing,
+exact creation coverage and Force inventory requirements before implementing its
+smallest coherent scope. Full fixed finalizer, B, dependencies before both fact
+phases, lifecycle, cleanup/recall and two all-clause rounds still open.

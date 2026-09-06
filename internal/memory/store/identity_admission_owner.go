@@ -54,6 +54,19 @@ func (s *Store) nestedAdmissionWrite(fn func(*Store) error) (err error) {
 // resolver capability or a certificate that a supplied validator is complete.
 // Future production admission must bind a reviewed store-owned policy here.
 func runIdentityAdmission(st *Store, body, finalizer func(*Store) error) error {
+	return runIdentityAdmissionMode(st, body, finalizer, false)
+}
+
+// runSerializedIdentityAdmission is a PRIVATE, UNCALLED cooperative writer
+// boundary. It is not the fixed production admission policy. Callbacks must
+// use only their facade, never synchronously invoke a captured root writer.
+// Queue-only root writes remain independent; raw writers and concurrent Close
+// are outside the one-genuine-root contract. Finalizer accounting is separate.
+func runSerializedIdentityAdmission(st *Store, body, finalizer func(*Store) error) error {
+	return runIdentityAdmissionMode(st, body, finalizer, true)
+}
+
+func runIdentityAdmissionMode(st *Store, body, finalizer func(*Store) error, serialized bool) error {
 	if st == nil {
 		return errIdentityAdmissionScope
 	}
@@ -65,7 +78,7 @@ func runIdentityAdmission(st *Store, body, finalizer func(*Store) error) error {
 	if body == nil || finalizer == nil {
 		return errIdentityAdmissionScope
 	}
-	return st.AtomicWrite(func(tx *Store) error {
+	return st.rootAtomicWrite(func(tx *Store) error {
 		owner := &identityAdmissionOwner{phase: admissionBody}
 		tx.admissionOwner = owner
 		defer func() { owner.phase = admissionClosed }()
@@ -83,5 +96,5 @@ func runIdentityAdmission(st *Store, body, finalizer func(*Store) error) error {
 			return tx.poisonAdmission(err)
 		}
 		return tx.admissionFailure
-	})
+	}, serialized)
 }

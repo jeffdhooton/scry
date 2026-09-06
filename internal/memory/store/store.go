@@ -182,6 +182,11 @@ type Store struct {
 	// maintenanceMu lets backup-coupled maintenance hold an exclusive
 	// rollback boundary while ordinary store mutations take the shared side.
 	maintenanceMu sync.RWMutex
+	// graphWriteMu coordinates graph producers with private serialized
+	// admission. Lock order is maintenanceMu, graphWriteMu, then Badger.
+	// Root queue-only writes deliberately do not take this lock; facade
+	// writes reuse the outer transaction and never reacquire root locks.
+	graphWriteMu sync.RWMutex
 	// retirementRevision changes after each successful entity-retirement
 	// transaction. An AtomicWrite that was already waiting on that retirement
 	// must abort rather than reinterpret its now-retired endpoints as new stubs.
@@ -242,6 +247,10 @@ func (s *Store) update(fn func(*badger.Txn) error) error {
 		}
 		return err
 	}
+	// Root callers hold maintenanceMu shared. Keep this narrower lock out
+	// of observer callbacks, which run after update returns.
+	s.graphWriteMu.RLock()
+	defer s.graphWriteMu.RUnlock()
 	return s.db.Update(fn)
 }
 
@@ -261,12 +270,25 @@ func (s *Store) AtomicWrite(fn func(*Store) error) error {
 		}
 		return fn(s)
 	}
+	return s.rootAtomicWrite(fn, false)
+}
 
+// rootAtomicWrite is shared transaction machinery, not a public admission
+// capability. Callers validate that s is a root; only the private serialized
+// owner entry requests exclusiveGraph. No production entry currently does.
+func (s *Store) rootAtomicWrite(fn func(*Store) error, exclusiveGraph bool) error {
 	var events []Event
 	retirementRevision := s.retirementRevision.Load()
 	err := func() error {
 		s.maintenanceMu.RLock()
 		defer s.maintenanceMu.RUnlock()
+		if exclusiveGraph {
+			s.graphWriteMu.Lock()
+			defer s.graphWriteMu.Unlock()
+		} else {
+			s.graphWriteMu.RLock()
+			defer s.graphWriteMu.RUnlock()
+		}
 		if s.retirementRevision.Load() != retirementRevision {
 			return fmt.Errorf("memory: entity retirement completed while atomic write waited: %w", ErrNotFound)
 		}

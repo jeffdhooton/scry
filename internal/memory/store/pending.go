@@ -68,7 +68,7 @@ func (s *Store) PutPending(p PendingEpisode) error {
 	if err != nil {
 		return err
 	}
-	return s.update(func(txn *badger.Txn) error {
+	return s.updatePending(func(txn *badger.Txn) error {
 		return txn.Set([]byte(prefixPending+p.ID), b)
 	})
 }
@@ -111,9 +111,20 @@ func (s *Store) HasPending(id string) (bool, error) {
 func (s *Store) DeletePending(id string) error {
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
-	return s.update(func(txn *badger.Txn) error {
+	return s.updatePending(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(prefixPending + id))
 	})
+}
+
+// updatePending is exclusively for the two fixed pq: operations above.
+// Their root callers hold maintenanceMu shared but must not wait for graph
+// admission. Facades retain ordinary update's owner/phase/poison checks and
+// atomic rollback. Do not use this helper for metadata or graph mutations.
+func (s *Store) updatePending(fn func(*badger.Txn) error) error {
+	if s.txn != nil {
+		return s.update(fn)
+	}
+	return s.db.Update(fn)
 }
 
 // Pending returns queued episodes oldest-first by EnqueuedAt (ties by ID),
