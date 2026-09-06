@@ -3642,3 +3642,19 @@ and close operations in every phase, including after callback return. Independen
 tests proved those public methods otherwise escape the outer rollback boundary.
 Root-store maintenance remains unchanged. The private injected finalizer does not
 authorize arbitrary raw writes or constitute an implemented admission policy.
+
+### Raw references constrain preservation, not identity ownership
+
+**Decision, 2026-09-06.** Use validated raw fa: records as the correctness reference
+before provisional identity cleanup. A decoded Fact slice can select duplicate
+JSON endpoints; adjacency can omit a historical incoming edge. Validate complete
+key/body agreement, known-field ambiguity and lossless Unicode/time encoding,
+while preserving opaque unknown bytes and refusing uncertainty without writes.
+Existing dangling references prohibit guessed ownership by a newly matching slug.
+
+The uncalled read-only checker is a point-in-time measurement, not a durable
+certificate or cleanup operation. Likewise an absent generation-ledger prefix
+in a snapshot does not exclude a concurrent raw phantom. Eventual producers must
+coordinate through their selector/owner transaction protocol; another scan in
+the same snapshot cannot replace that obligation. No arbitrary raw-writer safety
+claim follows from the private provisional-vote mechanism.

@@ -1210,3 +1210,23 @@ fact-reference validator, provisional vote buffer, then separately reviewed
 controller/adoption/lifecycle and observable dispositions. Reference existence
 must not authorize assigning an old dangling fact to a newly matching slug.
 The complete goal still fails; these are not deployment or final grading passes.
+
+### 2026-09-06 04:42 UTC — raw-reference foundation; B remains private
+
+Shared owner06bcaf0 and corrected raw checker c28aed0f are uncalled foundations.
+Raw checker independent correction report46277181 passes unchanged failed
+regressions plus exhaustive Unicode/duplicate controls; shared full no-CGO suite
+passes. Restored031013 root scan81,634facts/793.575333ms/zero raw changes; no p95
+or independent actual-store certification. Original rejectiona2db1f0a retained.
+
+B private sourceea8b0967 in/tmp/scry-provisional-votes-sep06.3YJMlM has root
+targeted/full PASS but NOT unconditional independent PASS: report21314f8b proves
+a raw concurrent iga insertion can evade the snapshot prefix check. No normal
+producer demonstrated; seven independent tests pass, one unchanged phantom test
+fails. Keep private until complete cooperative selector/owner writer enforcement
+is reviewed. Do not remove or invert that failure. Frozen independent export
+/tmp/scry-provisional-independent.HfAbxl retains it and full failing output.
+
+ControllerV3 private designc43e0634 in/tmp/scry-controller-v3-sep06.yKRgWZ is under
+fresh design disproof, including partial/deferred assertion semantics and exact
+adoption lifecycle. No deployment/adoption/live write; daemons stilla06cd7b.

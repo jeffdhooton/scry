@@ -4349,3 +4349,50 @@ a06cd7b. These foundations neither prevent new hollows nor satisfy final grading
 Next private unit: strict raw fact-reference scan, not an ownership oracle or
 cleanup operation. Provisional vote buffering, complete controller integration,
 useful observation disposition and all-writer lifecycle/adoption remain open.
+
+### 2026-09-06 04:42 UTC — raw references reviewed; B writer boundary remains open
+
+Owner foundation committed06bcaf0, still uncalled. Corrected raw fact-reference
+checker c28aed0f is now source-integrated with all original independent safety
+regressions and expanded tests. Initial b8c6c626 failed eight cases: optional
+InvalidAt outside exact UnixNano range and unpaired Unicode surrogates in opaque
+extensions. Original rejection reporta2db1f0a and frozen export remain unchanged.
+Correction retains the contract, adds both checks without rewriting any bytes,
+and independently PASSES: report
+46277181c814d9b972031a22d132becdec4c24c7eee3e7f06b5d6c736bf7760c.
+Independent65,536 individual UTF-16 units,4,096 valid pair controls,20 opaque
+raw-store cases and30 all-known-field duplicate cases pass, as does the full
+noncached no-CGO suite. Shared combined CGO_ENABLED=0 go test ./... -count=1
+also PASSES (daemon32.043s, resolver18.654s, store27.203s).
+
+Root's corrected read-only scan of the restored031013 shared snapshot validates
+all81,634 facts in793.575333ms; all246,690 raw rows remain exact. Earlier initial
+source scan914.171875ms also changed zero bytes. Single timings are NOT p95 or
+throughput certification; reviewer did not independently repeat the real replica.
+This checker proves reference existence only, not ownership, provenance closure,
+cleanup or stable baseline/final comparison. Room142 records initial rejection.
+
+Private B votes/tmp/scry-provisional-votes-sep06.3YJMlM sourceea8b0967 has root
+targeted/full no-CGO PASS with corrected new fixtures e170dd81. Initial new tests
+incorrectly supplied space aliases instead of normalized hyphens; three failed.
+Root fixed those fixtures and added phase counters, without changing production
+sources or existing tests. Independent report
+21314f8bf43772a2bb67e6b30220ecd96f6ed31e1e24f7a879f7d774b914cbea
+finds an explicit boundary: a competing RAW iga: insertion after the owner's
+snapshot is a phantom, can survive materialization and become inherited evidence.
+No normal producer for that orphan was demonstrated. The existing generator
+stages/reads the selector and legitimate competing births conflict; Restore is
+excluded by maintenance coordination. Seven independent tests pass, including
+real ErrTxnTooBig after selector+first vote staging and actual selector conflict;
+the eighth phantom safety test remains FAIL unchanged, and augmented full suite
+fails solely there. Do not call this an unconditional B PASS or source-integrate
+it as production-ready. All ledger writers must obey selector/owner coordination
+before integration. Original frozen export/tmp/scry-provisional-independent.HfAbxl
+and failure remain. No live corruption from this synthetic test is claimed.
+
+New private ControllerV3 design/tmp/scry-controller-v3-sep06.yKRgWZ/CONTROLLER_V3.md
+SHAc43e0634e1ee14e8177ab505680e75725c7602abfaefcb7b84a2203c7b60d36c
+selects B, exact legacy inventory and separate immutable outcomes, and explicitly
+proposes mixed deferred-assertion semantics. Independent design disproof running;
+no composition/adoption approval. Both actual daemons remaina06cd7b. No deploy,
+live repair, schema change, provider probe or sweep during this work.
