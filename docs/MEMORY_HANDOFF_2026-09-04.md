@@ -1451,3 +1451,37 @@ canonical proposed outcome-link and declaration birth-reference order, and a
 strictly local head-counter read claim rather than proof of full history length.
 No selector implementation yet. Full admission/support/undo/B/lifecycle, cleanup,
 recall and two complete grading rounds remain active work.
+
+### 2026-09-06 09:13 UTC — structural episode selector retained
+
+Private selector9566d0d2/db8a01a1/e312424a/bcc2bc0c retained after full independent
+code review738af509 and design review3ee87a6b. Complete contract/design/reviews/root
+evidence archived in memory-repairs/episode-selection-*. Four supplied test files
+and independent28a60251 exact. Adopter67f1ddfd adds only two reserved-prefix refusals.
+Root combined shared full no-CGO PASS61.079s store/15.417s resolve/28.382s daemon;
+independent full PASS, tenth independent limitation test separately PASS. Initial
+reviewer nil-value fixture failures are preserved. No production caller or policy.
+
+Own complete original input/slots, exact expected head CAS, canonical proposed
+links/references, immutable current-lineage successor selection and bounded internal
+inspection now have executable contracts. STAGED is not committed, head validation
+is local not full-chain, supported descriptions are not actual ownership, and a
+fresh-only birth inventory can omit old births. These remain fixed-finalizer duties.
+
+Fresh084717 backupSHA9d3e5c50 restored all248,586old raw rows unchanged; prior note
+caaab1fa now ingested/absentpending, no retry. Root-only replica selector canary adds
+9 synthetic auxiliary rows, all old bytes/exact retry/reopen preserved. No graph
+mutation. Private probe063d68ec MUST NEVER ship; exact evidence in audit/root report.
+Room160, installeda06cd7b unchanged; no live adoption/repair/deploy/sweep.
+
+Next: read-only ordered identity-resolution overlay, conditional design review
+/tmp/scry-delayed-birth-disproof.ul0Moz/DELAYED_BIRTH_DESIGN_REVIEW.md SHAcb15ac10,
+fully read with all eight characterizations, room161. Freeze corrections before
+implementation: keep every provisional discovery through complete resolution;
+separate optional alias rejection from required canonical/endpoint deferral; own
+deterministic complete indices rather than elapsed-time global cache; preserve full
+alias/lifecycle relationship closure; virtual Phase A precedes Phase B dependencies;
+never-staged candidates have Materialization=nil. No controller replacement decision
+or production approval yet. Exact current-triple sentence-loss reproduction remains.
+Full support/B/lifecycle/Force, assertion identity, cleanup/recall and two all-clause
+rounds are still required. Do not stop the unbounded goal at this checkpoint.

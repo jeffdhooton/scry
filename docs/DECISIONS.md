@@ -3823,3 +3823,25 @@ The automatic finalizer verifies complete recorded creation history and both raw
 ledgers; report only after actual commit. These handles and reports are accounting,
 not factual support or ownership authority. Preserve that distinction until the
 fixed support/undo, lifecycle and current-result policies are independently proven.
+
+### Select a complete immutable episode result with exact current-head CAS
+
+**Decision, 2026-09-06.** Retain the private structural episode selector after
+independent design and code disproof. Bind every original declaration and assertion
+slot to the full pinned input, not only the outcomes a producer happened to emit.
+Canonicalize owned proposed observation-link and declaration-reference order before
+semantic comparison. Require the exact current head bytes even for a semantic no-op;
+only current selected lineages supply predecessors.
+
+Content-identical historical outcomes may deduplicate at their internally derived
+immutable keys. That does not make history a source of current authority. The head
+reader validates its selected result and immediate predecessor, not a recursively
+certified chain length. An internal writer returns staged description, never proof
+that its enclosing transaction committed. Public response-size and commit guarantees
+belong to a later fixed wrapper.
+
+Completeness of structural slots is not completeness of birth registration or
+preservation of the previous birth inventory. Supported descriptions do not prove
+an entity exists or is authorized. Keep this unit private and uncalled until a
+fixed admission finalizer proves those semantics and real Force/lifecycle behavior.
+Reserve both new record families against premature legacy adoption meanwhile.

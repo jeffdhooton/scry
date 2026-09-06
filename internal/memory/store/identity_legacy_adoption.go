@@ -123,7 +123,7 @@ func requireLegacyAbsent(txn *badger.Txn, key []byte) error {
 func preflightLegacyInventory(txn *badger.Txn, m legacyInventoryManifest) error {
 	it := txn.NewIterator(badger.DefaultIteratorOptions)
 	defer it.Close()
-	for _, family := range []string{"il:", "il-consumed:", "ig:", "iga:", "io:", "io-result:", "io-input:", "meta:identity_"} {
+	for _, family := range []string{"il:", "il-consumed:", "ig:", "iga:", "io:", "io-result:", "io-input:", "io-episode:", "io-head:", "meta:identity_"} {
 		prefix := []byte(family)
 		it.Seek(prefix)
 		if it.ValidForPrefix(prefix) {

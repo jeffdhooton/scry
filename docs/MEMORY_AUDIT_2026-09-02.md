@@ -4897,3 +4897,76 @@ mechanical accounting, not authorized production semantics. B/support/undo/depen
 closure, all-writer lifecycle, durable outcomes/Force/current selection and complete
 cleanup/recall/two all-clause rounds remain open. Next concrete episode-selection
 design3fd0d796 is under fresh design disproof, not implemented or approved.
+
+### 2026-09-06 09:13 UTC — private complete episode selection retained
+
+Retained exact four-source selector9566d0d2/db8a01a1/e312424a/bcc2bc0c,
+four supplied tests and independent ten-group test28a60251 after complete design
+review3ee87a6b and code review
+738af50974f4f6c982349d1c3e7ad08deae05e69d79bab824b2c6520eace7d7e.
+Root read both complete reports and the full independent test before integration.
+Complete contractb2b93548, original draft, both reviews and root evidence56982d00
+are archived under memory-repairs/episode-selection-*. The only old source change
+adds io-episode:/io-head: to adopter reserved-prefix refusal, source67f1ddfd.
+No production caller; no graph/entity/alias/attestation mutation or selector event.
+
+The selector checks complete original declaration/assertion slots, pinned inputs
+and EP-proven observations, exact outcome associations and birth descriptions.
+It canonicalizes owned proposed link/reference order, compares exact expected head
+bytes before even a no-op, preserves immutable results, and advances only the
+currently selected lineage. Historical content-identical outcome deduplication is
+allowed at its derived key, not searched as predecessor authority. The head reader
+checks current and immediate predecessor only, not full history length. Writer
+results describe STAGED state; an outer commit conflict can invalidate them.
+Internal tokens/chunks are bounded, not a complete public RPC-size certificate.
+
+Root 13 supplied groups PASS2.154s and full no-CGO PASS store51.402s/
+resolve16.377s/daemon30.998s. Independent nine new groups PASS9.062s, supplied13
+PASS2.330s, full no-CGO PASS59.207s/15.054s/29.338s; a tenth explicit supported-
+description/nonownership/fresh-only-inventory limitation test then PASS0.307s.
+The reviewer initially used a helper that deletes nil-valued synthetic rows;
+two reserved-prefix cases failed for absent rows. Only the new fixture changed
+to direct Set plus presence checks; initial sources/logs remain retained. No
+candidate correction or original-test weakening. Final independent source28a60251
+includes all ten groups; its first nine, not all ten, were in that independent
+full-suite run. Root combined shared full suite includes all ten and registration:
+CGO_ENABLED=0 go test ./... -count=1 PASS store61.079s/resolve15.417s/
+daemon28.382s, log
+adbada0d97d7d7177f6ae8949e83149ba9113f023215c45a6a5bcbda4a6f7def.
+Store vet and git diff --check PASS. All original source/tests otherwise unchanged.
+
+Fresh Mini084717 backup76,526,706bytes SHA
+9d3e5c501dab85a1a2378dc5f90bd6278013aa3b35e218b2c624fd997dcf5b1f
+restored separately as shared-084717 and selection-084717 under
+/tmp/scry-foundation-closure-sep06.8IEPu5. Both initially preserve all248,586raw
+rows through direct load/Open/index/read, digest
+3ae18eea90136dc6adb797f935ef5182f004fe741e3d7026251e3f654d06faa8.
+31,396entities/82,130facts/74,237current/7,893historical/9,475episodes/30pending.
+Accepted-once registration note
+caaab1fa6b21d0eee0e98a152395624aece5f21be31b57d16278c2eb8e58fa83
+now ingested/absentpending, EP raw
+3f1b81aba66e9f6cc364e2f58eaafa5da4ff62d96da77a0ba95242fb837aa64e.
+No retry. Root-only synthetic selector canary on its own restored replica preserves
+all248,586old rows and adds9auxiliary rows (EP1/input1/observation3/outcome2/
+result1/head1), added framed digest
+76dd81f385570e00ac56aecfa7db90570ac35fd20d2be5d652004f3a517d0cd4.
+Exact retry and close/reopen preserve every row. Selector-only465.458microseconds,
+events0, package1.340s, log
+98b014fa4f8fd1d6ecd1c85975d3042b5165c1ef2a36510373ebd4a61f38bdae.
+EP fixture insertion was separate, not production Apply atomicity or an all-events
+claim. NEVER integrate private_selection_replica_test.go063d68ec.
+
+Consensus skill was inspected because of new record families. Its prescribed
+Opus/Sonnet Agent interface is unavailable; no substitute multi-model verdict
+was claimed. The goal's independent fresh-context bounded review supplies the
+retention gate, not production safety. Room160 records its exact finite verdict.
+
+Supported counts can describe an identity that does not exist; a producer can omit
+old births and advance the selector. The fixed finalizer must still prove actual
+support, complete retained inventory, lifecycle and real Force semantics. Installed
+a06cd7b unchanged; no deployment, adoption, live repair or sweep. Full memory-quality
+objective remains active. Delayed-birth design reviewcb15ac10 (room161) conditionally
+permits a private ordered read-only overlay after corrections, not a replacement
+controller. Its complete provisional visibility, cache, dependency and old alias
+relationship requirements must be frozen before code; current-triple sentence loss
+is still reproduced and requires the separate assertion-identity repair.
