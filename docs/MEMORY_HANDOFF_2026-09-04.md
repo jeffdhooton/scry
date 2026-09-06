@@ -894,3 +894,26 @@ originals remain unverified. Fresh technical manifest and replica review
 must account for the new fourth rejection and any ingestion drift before
 live authorization. Global cleanliness, all-alias/Hermes reviews, original
 recall floors and two final fresh grading rounds remain open. Keep going.
+
+### 2026-09-06 00:07 UTC — actual stops-table gate closed
+
+Independent ACTUAL stops-table PASS is fully archived as
+child-stops-table-actual-independent-review-2026-09-05.md, SHA1d25de8e.
+Complete actual raw-map prediction, all facts/episodes/twelve queued inputs,
+existing marker decisions, real ingestion rejection, reopened second apply
+no-write and all ten benchmark controls pass. Room 114 records the verdict.
+One successful durable note queued as
+3be6deac923caf55d196a90eff0d29bbc4e8c5051c20bfc7177293872bcfce19;
+DO NOT retry. Prior 5c5ce0b2 also remains successful and must not be retried.
+
+Dev-client fixed-source technical grading is underway on private manifest
+0f1c0555 from post-stops 235134. This cannot approve the later live store,
+which has already ingested additional data (hygiene 30,759 entities / 486
+collisions). Refresh complete source closure, markers, and all collateral
+before any next live mutation. Three literals, two normalized keys, no rehome.
+
+A source-only exact tie-order fix is under test/review: lexical candidate
+ties end with Doc.Key and recall ties with existing hitKey. No weight,
+synonym, candidate limit or expected-answer change. Production binaries
+remain d1f0a95. Its independent grader must test true named-injection and
+nil-index paths as well as full restored benchmarks before promotion.

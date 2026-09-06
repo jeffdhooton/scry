@@ -1,0 +1,12 @@
+{
+  "status": "READ_ONLY_LATER_LIVE_HYGIENE_NOT_CLEAN",
+  "note": "A fresh direct CLI invocation succeeded after the earlier JSON-parsing wrapper failed. This later live store already has 30,759 entities, not the immediate repair snapshot's 30,725; do not attribute subsequent ingestion to the alias transaction. Reported drops/splits/reattachments/invalidations are dry-run proposals only and were not applied.",
+  "command": "scry memory hygiene",
+  "result": {
+    "chunk_id": "ab6cfc",
+    "wall_time_seconds": 0.000001167,
+    "exit_code": 0,
+    "original_token_count": 397,
+    "output": "memory hygiene (dry run)\n  entities scanned:       30759\n  entities changed:       302\n  aliases dropped:        114\n  aliases split:          292\n  facts reattached:       294\n  self-loops invalidated: 93\n  repo refs dropped:      0\n  cross-type collisions:  486\n\n  79 entities carry another entity's name as an alias — the same\n  thing recorded twice, or two things fused into one. Reported only:\n  merging or splitting is a judgement call about which facts belong\n  where, and no heuristic should make it silently.\n    450-customer-mergessql             fused with: db/migrations/0450_customer_merges.sql\n    agents-md                          fused with: AGENTS.md\n    api                                fused with: api/src/routes/driver.ts, api/src/routes/operations.ts\n    apisrcappts                        fused with: app.ts\n    apisrcreposcomms                   fused with: comms-repos\n    approval-reviewer                  fused with: approval-assessor\n    audit-enforcementtestts            fused with: api/test/db/audit-enforcement.test.ts\n    audit-entity-types                 fused with: AuditEntityType\n    audit-kernel                       fused with: audit-write-kernel\n    audit-routes                       fused with: api/src/routes/audit.ts\n    ... and 69 more\n\n  4 entities are themselves run artifacts (reported, not deleted;\n  their facts would be orphaned). Review before removing:\n    08:3a:88:27:d7:12\n    108.77.71.0/24\n    loom worktree sessions\n    setpoint worktree creation\n\nreview these changes and express them through explicit repair manifests\n"
+  }
+}

@@ -3580,3 +3580,40 @@ positive recipient. The full report is archived; technical manifest/replica
 and actual-live gates remain outstanding. Room 113 records both verdicts.
 Running binaries are still d1f0a95; standalone marker-unaware rollback is
 unsafe. Original recall floors, broader cleanup and final grading stay open.
+
+### 2026-09-06 00:07 UTC — actual stops-table independent PASS
+
+Full actual-live review child-stops-table-actual-independent-review-2026-09-05.md
+is archived, SHA1d25de8e39e9ba66f0c3f33d0b8ad8c0f0c36d65c592f527ef3e9fe712f94111.
+Independent actual PRE contains 243,703 pairs, one more than 23:48: a complete
+new queued CADFormats manual note, read fully and preserved unprocessed.
+Against 23:33 there are also the two already reviewed sweep metadata updates.
+No fact/entity/episode drift. Exact independent expected reconstruction and
+three-key prediction match the actual POST, preserving all 80,844 facts,
+9,371 episodes, twelve queued inputs, old three rejection keys and 19 rs/rt
+pairs. Full sorted structural defect lists match, including 2,441 dangling
+endpoint occurrences, 2,849 zero-fact entities and 1,099 historical/current
+self-loop rows. No clean-graph claim follows.
+
+Actual reopened second preview and backed second apply refuse with complete
+no-write proof. Two real resolver.Apply episodes retain exact new facts and
+episodes without recreating the alias; stale writers, claims, rehome, both
+merge directions and malformed markers fail closed. All ten independent
+before/after suite commands retain 51/29/7/45/47, identical full miss objects
+and mean answer ranks, maximum 13,370 bytes, zero over cap. Room 114 records
+this bounded actual PASS; origin/timing are rooted in root's Mini receipts,
+while the grader independently verified complete local backup bytes.
+
+A single durable note was queued at 00:06:49 as
+3be6deac923caf55d196a90eff0d29bbc4e8c5051c20bfc7177293872bcfce19.
+Never retry this successful note. The later direct read-only hygiene CLI
+completed successfully: 30,759 entities, 486 cross-type collisions, 302
+proposed changed entities, 93 proposed self-loop invalidations. This is
+subsequent ingestion, not the immediate apply snapshot. Full text receipt
+is child-stops-table-later-live-hygiene-2026-09-06.json; no proposal applied.
+
+Dev-client technical gate is evaluating ONLY the frozen 23:51:34 source and
+private manifest0f1c0555. The complete 30-match/204-companion/18-episode
+closure is physically identical to its semantic source. Actual stops-table
+markers are preserved. Later live state and the new note require separate
+freshness review before any next apply.
