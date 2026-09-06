@@ -3617,3 +3617,44 @@ private manifest0f1c0555. The complete 30-match/204-companion/18-episode
 closure is physically identical to its semantic source. Actual stops-table
 markers are preserved. Later live state and the new note require separate
 freshness review before any next apply.
+
+### 2026-09-06 00:26 UTC — source integrity failure blocks next alias apply
+
+Frozen dev-client technical PASS is archived as
+child-dev-client-independent-technical-review-2026-09-05.md SHA8e0ecbe8.
+Full fresh memory-20260906T001120Z.badger, 74,175,654 bytes, matches Mini/local
+SHA5b8e97894bea35a0ba2d1d63a1be01725845814051c8cb5c36273a0d4a5d1d6b.
+It contains 80,948 facts / 30,776 entities / 9,381 episodes; dev-client
+30-match/204-companion/18-episode closure remains physically identical.
+Nevertheless, the independent fresh gate BLOCKS: a historical CADFormats
+status assertion was replaced by a different current assertion at the same
+normalized key. The complete old sentence is absent from all fresh facts.
+Its source episode survives. This was intervening normal ingestion, not the
+verified stops-table alias transaction. No dev-client drop has been applied.
+Full key/hashes and private prevention proposal are in
+fact-key-collision-prevention-2026-09-06.md. Room 115 records the hold.
+
+Private occupied-key protection now independently PASSES: actual old-source
+replay proves baseline overwrite versus candidate ErrFactConflict, with full
+raw equality and zero stats/observer events. No-CGO whole suite, focused
+race, direct/atomic/historical/malformed/metadata/queue tests, restored backup
+and all five pinned benchmark controls pass. Full independent report SHA
+00c585210df9ea757995fd9614839d5d12e616a7b685cf893f9249e740f568ff.
+No source integration/deployment or historical recovery at this entry.
+Pre-PutFact current-triple coalescing and provenance-update policy remain open.
+
+The new source also contains a plaintext preview credential: explicit user
+password-change syntax passes unchanged through production Redact and into
+the exact episode projection. The redactor only covers PEM/Bearer/ghp_/sk-.
+Root's first complete-fact diagnostic unintentionally displayed the affected
+row; subsequent diagnostics suppress the sensitive record and use hash-only
+evidence. No credential value/derived spelling is archived in these reports;
+no credential use, rotation, deletion or history cleanup was performed.
+Existing credential/history remediation requires explicit authorization.
+
+The bounded tie-order change independently PASSES (report SHA849f12ab): full
+no-CGO/race tests, all five suites and all235 uncapped answer ranks unchanged,
+Sheets stable90/90 across3 rebuilds, whole raw no-write controls. Existing
+clipped-value hit-key collisions and unequal named-endpoint scoring remain
+separate proven defects; no universal determinism claim. Room116 records it.
+Both live binaries remain d1f0a95. Integrated artifact/deploy gates remain.

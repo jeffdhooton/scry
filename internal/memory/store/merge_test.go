@@ -1,11 +1,14 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dgraph-io/badger/v4"
 )
 
 func reviewedMerge(t *testing.T, st *Store, survivor string, retire ...string) EntityMergeRequest {
@@ -265,7 +268,16 @@ func TestMergeEntitiesRefusesSnapshotDriftAtomically(t *testing.T) {
 	}
 	req := reviewedMerge(t, st, "winner", "loser")
 	f.Fact = "text changed after review"
-	if err := st.PutFact(f); err != nil {
+	// Simulate legacy/corrupt drift below the ordinary writer. PutFact now
+	// rejects changing assertion text at an occupied key; the merge must
+	// still independently reject a snapshot altered by another writer.
+	b, err := json.Marshal(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.db.Update(func(txn *badger.Txn) error {
+		return txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b)
+	}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := st.MergeEntities(req); err == nil || !strings.Contains(err.Error(), "snapshot changed") {

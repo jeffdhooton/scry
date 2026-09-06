@@ -3503,3 +3503,27 @@ source identity still needs separate work. Unequal named-endpoint weights
 also select a score by map visitation before sorting. Neither preexisting
 issue is solved here, and no universal determinism or original-floor PASS
 is asserted. See memory-repairs/recall-exact-tie-independent-review-2026-09-06.md.
+
+### An occupied fact key is not permission to replace an assertion
+
+**Decision, 2026-09-06.** PutFact must compare any existing exact-key row's
+source, relation, destination, literal value, raw relation, sentence and
+start instant inside the write transaction. A different assertion returns
+ErrFactConflict before mutation, regardless of whether the old row is current
+or historical. Exact assertion metadata updates remain supported.
+
+**Why.** Independent live backup comparison found a historical in-progress
+status assertion overwritten by a different current in_progress assertion.
+Normalization made their storage keys equal, and the general PutFact writer
+had no occupied-key check. Actual-input replay against the full older backup
+proves the baseline overwrite and candidate atomic refusal. Normal queue
+processing already parks this error after one attempt with original input
+retained. A key hash identifies the conflict without leaking its contents.
+
+No schema migration or timestamp adjustment is needed for prevention.
+Recovering the already-lost assertion is a separate reviewed operation:
+both different assertions cannot occupy one old key. The guard also does
+not solve earlier current-triple coalescing or existing metadata/provenance
+update semantics. Those limitations must not be disguised as universal fact
+preservation. Rollback to the old writer reopens this proven overwrite hole.
+Full evidence: memory-repairs/fact-key-collision-independent-review-2026-09-06.md.

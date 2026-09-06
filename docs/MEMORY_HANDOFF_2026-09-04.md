@@ -917,3 +917,28 @@ ties end with Doc.Key and recall ties with existing hitKey. No weight,
 synonym, candidate limit or expected-answer change. Production binaries
 remain d1f0a95. Its independent grader must test true named-injection and
 nil-index paths as well as full restored benchmarks before promotion.
+
+### 2026-09-06 00:26 UTC — fact preservation takes priority
+
+Next dev-client apply is HELD. Its fixed235134 technical PASS is archived,
+but fresh001120 backup SHA5b8e9789 has a proven historical assertion overwrite
+at a normalized canonical-status key. All old fact text is absent from fresh
+facts; the source episode survives. Do not apply private0f1c0555 or02319c37
+manifests by merely updating hashes. Read the full source BLOCK report.
+
+Private /tmp/scry-fact-collision-fix-sep06.0MxCkU occupied-key guard now has
+independent PASS SHA00c58521 from actual old-store replay, no-CGO/race tests,
+full raw/backup/queue/benchmark controls. Integrate exact reviewed files,
+verify combined artifact and fresh restored backups before deployment.
+This does NOT recover the lost fact or fix current-triple coalescing.
+
+New source contains a plaintext preview credential from password-change
+prose; Redact fails to remove it. Never repeat its value/derived spelling or
+full sensitive projection. Hash-only evidence is sufficient. No credential
+use/rotation/removal occurred; stored-history cleanup requires permission.
+
+Tie-order source change independently passes its bounded scope; full report
+recall-exact-tie-independent-review-2026-09-06.md SHA849f12ab. It does not
+fix clipped-value identity collisions or unequal-endpoint scoring. Both
+production binaries remain d1f0a95. No new remember since successful3be6deac;
+do not retry it or5c5ce0b2. No global PASS or final grading. Continue.

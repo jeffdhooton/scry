@@ -72,8 +72,8 @@ var (
 	// ErrEntityRetired is returned when an ordinary write tries to recreate an
 	// entity that the reviewed retirement path permanently converted to values.
 	ErrEntityRetired = errors.New("memory: entity retired")
-	// ErrFactConflict preserves an episode for review when distinct fallback
-	// assertions cannot share a stored key, or a reference is ambiguous.
+	// ErrFactConflict preserves an episode for review when distinct assertions
+	// cannot share a stored key, or a reference is ambiguous.
 	ErrFactConflict = errors.New("memory: distinct fact assertions conflict")
 )
 
@@ -753,7 +753,20 @@ func (s *Store) putFactUnlocked(f Fact) error {
 		if err := validateFactEndpointsTxn(txn, f); err != nil {
 			return err
 		}
-		if err := txn.Set(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom), b); err != nil {
+		key := factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom)
+		item, err := txn.Get(key)
+		if err == nil {
+			var old Fact
+			if err := item.Value(func(v []byte) error { return json.Unmarshal(v, &old) }); err != nil {
+				return err
+			}
+			if old.Src != f.Src || old.Relation != f.Relation || old.Dst != f.Dst || old.Value != f.Value || old.RawRelation != f.RawRelation || old.Fact != f.Fact || !old.ValidFrom.Equal(f.ValidFrom) {
+				return fmt.Errorf("%w: occupied fact key sha256=%x; preserve the queued episode for exact assertion review", ErrFactConflict, sha256.Sum256(key))
+			}
+		} else if !errors.Is(err, badger.ErrKeyNotFound) {
+			return err
+		}
+		if err := txn.Set(key, b); err != nil {
 			return err
 		}
 		if f.Dst == "" {
