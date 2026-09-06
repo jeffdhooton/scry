@@ -3466,3 +3466,20 @@ executables are evidence/recovery artifacts, not safe standalone downgrades for
 this marker-bearing store. A later repair must preserve these decisions; any
 restore must explicitly reconcile subsequent ingestion. No automatic rejection
 backfill for earlier removals or marker inheritance across identity merges follows.
+
+### A corpus maximum is not a stable reason prior
+
+**Decision, 2026-09-05.** Reject the private replacement of the global reason
+bonus with `8 * lexicalScore / bestLexicalScore`. Do not deploy it or treat its
+one benchmark gain as restoration of the original recall floors.
+
+**Why.** A fresh independent fixture adds one irrelevant fictional-book fact.
+Its high lexical score reduces the valid explanation's bonus from 5.228 to
+2.529 and moves the explanation from first to second. On the identical final
+corpus, the old rule keeps it first; differing BM25 statistics cannot explain
+the old/new contrast. Boundedness and monotonicity with a fixed denominator
+do not make a score stable under unrelated corpus growth. The existing
+relation-only prior also remains vulnerable to misclassified explanations.
+Full evidence is in
+`memory-repairs/recall-relative-reason-independent-rejection-2026-09-05.md`.
+This rejects one design, not a license for benchmark-fitted weight sweeps.

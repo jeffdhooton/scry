@@ -3533,3 +3533,50 @@ Only review-status/receipt fields changed when root integrated the verdict;
 the report retains its exact pre-integration proposal hash. Forty reviewed
 records do not close the complete trio audit or subsequent drift. Room 110
 records this bounded verdict. Original floors and all final gates remain open.
+
+### 2026-09-05 23:59 UTC — actual stops-table apply; independent gate pending
+
+The refreshed 9f081e8f stops-table manifest passed complete independent
+23:33:53 source/replica review and immediate 23:48:00 freshness extension.
+The latter differs only in two fully reviewed sweep-metadata values; all
+other 243,700 raw pairs are unchanged. Full reports are archived as
+child-stops-table-sweep-gate and child-stops-table-freshness-234800.
+At 23:51:33 the exact committed manifest applied with one drop and zero
+refusals: Child aliases 40 to 39, with its fourth owner-specific rejection.
+No rehome or fact change was requested. Room 112 records the actual apply.
+
+Automatic complete PRE memory-20260905T235133Z.badger is 73,973,203 bytes,
+SHA 32de971aac86bdb228daf44d94667dff8511bea7a53a92d6dd09944f10019980.
+Immediate complete POST memory-20260905T235134Z.badger is 73,975,028 bytes,
+SHA 7680cdcff3563c4cc2d33577506fc4c4aad4931d8bae1016f90e617bd7ee863e.
+Mini and transferred local hashes agree; root restored both backups.
+All 80,844 facts (73,013 current / 7,831 historical) and 9,371 episodes
+have identical complete inventories. Child's 2,112 touching fact rows and
+canonical lookup output remain identical. The removed literal is not found;
+second live dry run refuses the now-stale manifest and proposes no mutation.
+Fresh independent ACTUAL whole-map/disproof grading is running, NOT yet PASS.
+
+Five immediate live suites retain 51/62, 29/66, 7/7, 45/50, 47/50, identical
+missed-question sets and mean answer ranks. Maximum response is 13,369 bytes;
+zero exceed 24 KB. Full before/after outputs and command receipts are in
+child-stops-table-actual-root-receipt-2026-09-05.json. A separate hygiene-output
+parser assumed JSON but the CLI emitted text; that wrapper failed and is
+not a successful hygiene measurement. Broad hygiene apply remains forbidden.
+No new durable note has been sent for this repair at this checkpoint.
+
+Independent relative reason-prior review FAILED a corpus-growth counterexample,
+despite one heldout-b gain (29 to 30). Full standalone report and rejection
+reason are archived; private variant was not promoted. Fourteen distinct
+questions regress in answer rank; both old and candidate exhibit a preexisting
+equal-score/equal-time tie-order nondeterminism. No expectation or fact edits.
+
+The independent dev-client semantic review supports only Child-specific
+removal/rejection of Expo dev client, dev-client and dev client, no rehome.
+All 204 companion facts, 18 episodes, 159 available expanded endpoint records,
+twelve exact original projections and the seed were read. Five originals
+remain missing; the affirmative available backend/client separation supports
+this narrow negative, not certification of all eighteen originals or any
+positive recipient. The full report is archived; technical manifest/replica
+and actual-live gates remain outstanding. Room 113 records both verdicts.
+Running binaries are still d1f0a95; standalone marker-unaware rollback is
+unsafe. Original recall floors, broader cleanup and final grading stay open.

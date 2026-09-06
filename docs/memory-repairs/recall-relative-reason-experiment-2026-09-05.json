@@ -1,5 +1,8 @@
 {
-  "status": "REPLICA_ONLY_INDEPENDENT_REVIEW_PENDING",
+  "status": "REJECTED_BY_INDEPENDENT_DESIGN_COUNTEREXAMPLE_NOT_DEPLOYED",
+  "independent_report": "docs/memory-repairs/recall-relative-reason-independent-rejection-2026-09-05.md",
+  "independent_report_sha256": "402ef9d667216f98f380331ed62a27e486a747b4cda1e49e32baaad1adbdaee6",
+  "rejection_reason": "An irrelevant lexically strong new fact controls bestLexical and suppresses the correct explanation bonus, displacing it 1 to 2; old scoring preserves rank 1 on the identical final corpus. One suite gain does not justify this corpus-growth regression. Fourteen distinct benchmark questions also regress in answer rank.",
   "proposal": "/tmp/scry-recall-scoring-sep05.EHNmnp/REASON_PRIOR_EXPERIMENT.md",
   "variant": "Replace only global relation-derived why bonus 8 with 8*lexicalScore/bestLexicalScore; clamp zero/max; all other scoring/candidate/question paths unchanged.",
   "candidate_sha256": "61e0024a33c55edb8ef93bcca4398f65f52994b833414baf5d80b8fdd6b3e0e5",

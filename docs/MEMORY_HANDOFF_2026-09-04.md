@@ -868,3 +868,29 @@ d1f0a95 with three rejection records and 19 retirements. No new remember was
 sent after combined note 5c5ce0b2; never retry that successful note.
 Both original recall floors, remaining aliases/global defects and final two
 fresh grading rounds remain open. Continue the active goal.
+
+### 2026-09-05 23:59 UTC — stops-table applied; finish actual proof next
+
+The 9f081e8f refreshed manifest passed full source/replica and 23:48 freshness
+review, then applied at 23:51:33. Child is now 39 aliases, with FOUR rejection
+keys; all 19 retirements remain. Complete automatic PRE 235133 SHA32de971a
+and immediate POST 235134 SHA7680cdcf are copied locally, hash-verified and
+root-restored. Child canonical 2,112 facts are identical; stops table no
+longer resolves; second dry run proposes no mutation. All five live suites,
+miss sets and mean ranks remain 51/29/7/45/47. Full receipt and reports are
+in memory-repairs/child-stops-table-*. Independent ACTUAL review is running;
+read its full report and reconcile any disproof before claiming actual PASS.
+No repair remember note yet; do not retry prior successful 5c5ce0b2 note.
+
+Relative reason normalization is independently REJECTED: one irrelevant
+lexically strong fact can suppress the correct explanation's bonus. Full
+report is archived; the private one-hit improvement is not being promoted.
+Production ranking and both d1f0a95 binaries remain unchanged.
+
+Expo dev client / dev-client / dev client now have a bounded independent
+semantic negative PASS for Child only, no rehome or fact correction. Twelve
+available originals establish backend/client separation; five missing
+originals remain unverified. Fresh technical manifest and replica review
+must account for the new fourth rejection and any ingestion drift before
+live authorization. Global cleanliness, all-alias/Hermes reviews, original
+recall floors and two final fresh grading rounds remain open. Keep going.
