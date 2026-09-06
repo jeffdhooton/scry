@@ -1798,3 +1798,29 @@ e097fa6/both live a06cd7b unchanged. Next: partial action replay, full semantic
 result validation, durable conflict/result selection, actual materialization and
 fixed inventories, normal Apply/policy deduplication/all-writer/schema floor, then
 remaining original live cleanup and two full independent grading rounds. Keep active.
+
+## Continuation — 2026-09-06, after16:38 UTC
+
+Private6qYb7K now has original partial action replay; temporary refusal guard is
+preserved as history and replaced by same-fixture exact no-op success. See
+memory-repairs/partial-action-replay-progress-2026-09-06.md for all source/log pins.
+Partial source9b017441 and replay2b0b9102 execute only original deferred actions;
+receipt merge6fa308b4 carries terminal actions byte-exact. Shared alias predicate/
+effect44741865 makes the second overlay successor file. Same-state retries, type
+already satisfied, duplicate aliases in both orders, exact old removal present/
+absent, later removal refusal and lost spelling across successor retries pass.
+Fixtures use synthetic selected rows, not an actual completed writer.
+
+Action validationdba1402e/resultb2da6362 reject twelve proven action-effect corruptions
+and three wrong-birth/component corruptions. Root full suite PASS70.257/16.888/29.735,
+log31184c34; vet PASS. No independent approval of these successor sources. New tests
+and failures preserved; two fixture corrections are fully disclosed in report.
+
+Next: compose actual materialization/result selection and fixed actual inventories
+in the same owner, including durable changed-revision conflicts returned AFTER a
+successful preservation transaction. Current input/EP/result readers are available;
+do not return conflict from inside a transaction that must preserve its new input.
+Need more retained-vote/deferred-effect tests, complete hint semantic coherence,
+normal Apply/policy deduplication/all-writer/schema floor and original live bars.
+No new actual backup/probe/live change/note. Latest155247 only restore/note closure,
+last actual candidate132039. Goal active; no final round passed.

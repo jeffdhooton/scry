@@ -5340,3 +5340,35 @@ EP SHA10d7caecfa78dffa181904b10956a603e639928a465f6b4e99901a5ca148c3dc.
 Never retried. This supersedes its earlier unverified status, not the p95 bar.
 Last actual candidate probe remains132039. Main production e097fa6 and both live
 a06cd7b binaries unchanged. Full goal remains active; no all-clause round passed.
+
+## Continuation — 2026-09-06, after16:38 UTC
+
+See memory-repairs/partial-action-replay-progress-2026-09-06.md for exact sources,
+first failures, preserved fixtures and corrections. Private partial declarations
+now retry only original deferred operation IDs before discovery; accepted/rejected
+actions remain byte-exact. No metadata refill, alias ordinal renumbering, later
+removal acquisition or original-actor rebinding. Same unchanged partial outcome
+retains exact result after its own accepted effects. Synthetic successor fixtures
+apply only new effects, not carried metadata. The old temporary refusal guard was
+preserved and replaced by an exact no-op requirement on the same original fixture.
+
+Two root fixture mistakes are disclosed: PutEntity did not perform the claimed
+missing-claim repair; frontend did not trigger the claimed retained-policy removal.
+Original sources/logs remain. Corrected tests assert explicit repair/removal
+preconditions, with no policy change. Partial successor suite PASS.812s; first full
+suite PASS76.462/16.964/27.596, log0341ae5b; vet PASS. These used OS-default test
+temporary directories; subsequent tests restore the private test-tmp setting.
+
+Twelve new action corruption failures6c509cba and three birth/component failures
+eef68adc are preserved; source-only corrections pass unchanged assertions. Action
+validator dba1402e binds full owned proposal/input and actual filtered effect delta,
+including exact claim ownership; result b2da6362 also binds original first birth
+discovery and reciprocal component membership. Selected suite PASS5.253s/loga36697cf.
+Full uncached no-CGO suite PASS70.257/16.888/29.735, completed log
+31184c34b674a92180e827b08e46457f992d2d8357e6c818c62d4feb2904008f; vet PASS.
+
+All implementation remains private. No complete actual writer/conflict/head selector,
+final actual inventory checks, normal Apply or all-writer floor yet. No fresh
+independent approval or actual candidate probe. Main production e097fa6/live a06cd7b,
+latest backup155247/note276f verified closure and last candidate probe132039 unchanged.
+Full original goal remains active, with no all-clause round passed.
