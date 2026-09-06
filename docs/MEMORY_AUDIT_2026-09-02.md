@@ -4626,3 +4626,46 @@ Accepted-once noteb2a40dabc86e8dbb05c006216cbb4f642b77a7b7f4e886dd069b31e7bc0588
 queued30 around05:49UTC remains ingestion-unverified; c51e3b8a likewise unverified.
 Never retry either. Deployed a06cd7b unchanged; no live adoption/repair/deployment.
 All remaining whole-goal clauses and two complete grading rounds still required.
+
+### 2026-09-06 06:28 UTC — identity writer reviewed; revision contracts corrected
+
+Retained uncalled identity_writer_history.go SHA25022d38ec62f80a4eb1ef1759938c2e651c0f8ed864e563ce40ad092eb2d148,
+supplied testsbc75a9fe and independent tests284e934c unchanged. Contract04599cdf
+and report5b8a969b01917f04c9bd3c4b6096352135a8398647295fc113e7927544c1cb2b
+are archived under memory-repairs/identity-writer-*. Private independent export
+/tmp/scry-identity-writer-review.NTLeBc, full log22669a607b29ecb02b410495a1c8215eddfb2356ecd245a6b4d06cd1bb1c2a89.
+900 modeled operations, exact actor/key/value bindings, opaque before-images,
+stale presence, foreign owners, actual commit conflict and all unchanged supplied
+refusal/rollback/error-privacy tests PASS. Independent full no-CGO noncached suite
+PASS (store37.282s/resolve15.699s/daemon30.219s). The writer records actual en:/al:
+operations and freezes owned exact history; it grants NO alias ownership, support,
+undo selection, complete relationship closure or production routing.
+
+Current episode design reviewa9722fcfad3e21980215dfda2e7ef599ae28216bd4a269dceb616dcf2e5845ce
+archived memory-repairs/current-episode-design-independent-review-2026-09-06.md.
+Two private baseline characterizations0d6732cb in/tmp/scry-current-design-review.5evFkK
+PASS: descriptive outcome v1 permits mixed input payload revisions at one ordinal;
+adding only Predecessor creates distinct keys. Neither exceeds that old primitive's
+bounded contract. New complete-result validation must match EVERY observation's
+full canonical payload to the pinned revision. Reuse unchanged outcome keys by
+semantic comparison before constructing successor history. Registration inventory
+must remain stable across identical Force and cover every original declaration;
+each original fact needs exactly one closed classification, including unresolved
+source/empty destination paths. Legacy episode-without-head is unknown, not done.
+Inspection must pin an immutable result across pages. Conditional GO only private
+structured input codec; current selection/controller/support still unimplemented.
+
+Fresh Mini backup061537:76,255,296bytes, SHAfd22b0c30ae32e51103141306348ee7764fd0532aa88b98502d865b7d318e6a5.
+Root restored into/tmp/scry-foundation-closure-sep06.8IEPu5/shared-061537;
+all247,951raw rows exact through direct load/Open/index/read, digest9e4a5b8df94b63ce875cf17a9378fcb71ee678a468ee302fb5cc6221daeb62b8.
+31,297entities/81,970facts/74,081current/7,889historical/9,460episodes/33pending.
+Root safe checks now confirm all three accepted-once notes ingested, absent pending:
+c51e3b8a EPraw36878b523e774e1396f495c233383510914c5e77971d0ed42f5a4e965b42c85e;
+b2a40dab EPraw39824e30cd0ad1374fdf10e2e964f70838b55da5f1a049edc9a39876a3a41914;
+c9c7295b EPrawa6febf782daddd8b2d15b2a934a72ace70dace7f4ea975188e1bb2dc3753e643.
+No retries, independent actual-store grade or p95 claim. Room151. Deployed a06cd7b
+unchanged; no live adoption, cleanup or deployment. Whole-goal failures remain.
+
+Combined shared full CGO_ENABLED=0 go test ./... -count=1 subsequently PASS:
+store36.754s/resolve15.702s/daemon28.686s. All copied source/report/test hashes
+match review pins; original regressions unchanged. User assessment remains untracked.

@@ -1327,3 +1327,24 @@ heads alone leave stale current counts. Full structured input/revision must not
 lose TypeFallback through extract.Result marshaling; no transcript retention.
 Note b2a40dab accepted ONCE queued30 around05:49UTC and priorc51e3b8a remain
 unverified; do not retry. Room149; installeda06cd7b unchanged, complete goal open.
+
+### 2026-09-06 06:28 UTC — identity writer retained; input revision next
+
+Uncalled identity writer25022d38, contract04599cdf, suppliedbc75a9fe and independent
+284e934c retained after review5b8a969b and independent full no-CGO PASS. Mechanical
+actor history only: no safe undo/relationship policy or normal callers. Reports
+under docs/memory-repairs/identity-writer-*. Complete lifecycle/controller still open.
+
+Current episode design39b32ab7 now has conditional reviewa9722fcf, archived under
+memory-repairs/current-episode-design-independent-review-2026-09-06.md. Read its
+complete six conditions before implementation: full observation/input revision
+matching, semantic outcome reuse before predecessor links, stable birth inventory
+on identical Force, total declaration/fact accounting, exact head CAS and pinned
+inspection. Next private structured-input codec can proceed without claiming any
+support/current result. Characterization tests0d6732cb stay private (bad baseline
+behavior is not a required new regression expectation).
+
+Root restored fresh061537 backupSHAfd22b0c3 with all247,951raw rows unchanged.
+c51e3b8a/b2a40dab/c9c7295b now independently of synthetic grading root-verified
+ingested and absent pending; exact hashes/counts in audit. Never retry. Room151,
+deployed a06cd7b unchanged. All remaining whole-goal gates and two rounds required.

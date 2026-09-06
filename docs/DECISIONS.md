@@ -3733,3 +3733,19 @@ deleting an owner can make an untouched alias dangling. The reviewed design
 requires complete affected listing/owner/lifecycle closure, including unlisted
 keys pointing to changed identities. Preserve an old defect only if its complete
 relationship is unchanged; never promote that preservation into ownership.
+
+### Current ingestion selection must bind a complete input revision
+
+**Decision, 2026-09-06.** Use one complete episode result, not independent ordinal
+heads that remain falsely current when a later extraction omits earlier inputs.
+Every linked observation must match the selected structured revision in full;
+episode ID and ordinal alone cannot reject mixed content revisions. Preserve
+TypeFallback and nil/empty distinctions explicitly without retaining transcripts.
+
+Semantic replay comparison precedes history construction: reuse unchanged outcome
+keys before comparing a complete result, excluding predecessor envelopes from
+semantic equality. Keep birth registration accounting stable on identical Force.
+Every declaration and original fact must be accounted for, including non-assertion
+resolver paths; missing legacy selection state is unknown rather than completed.
+These are reviewed implementation requirements, not current support authority or
+permission to deploy the uncalled codecs.
