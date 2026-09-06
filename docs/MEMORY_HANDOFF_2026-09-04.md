@@ -989,3 +989,50 @@ from the guard deployment. Child39aliases, ar4 and nineteen retirements are
 preserved. Global collisions/hollows/dangling endpoints, Hermes review,
 recall floors and final two fresh grading rounds remain open. No new durable
 deploy note yet; never retry3be6deac or5c5ce0b2. Continue the active goal.
+
+### 2026-09-06 02:10 UTC — startup safeguard deployed, goal active
+
+This supersedes the preceding deployment-state paragraph, not the original
+goal. Both machines now run exact a078240 / binary SHA
+7783216755045eb365e0e0cd281ead8e2842da1b8fb697dfb42158c232cbb7e7,
+installed/restarted02:03:32UTC. Laptop PID46487, Mini PID24189. Retained prior
+24eafab binaries at installed path plus .pre-a078240-20260906T0146Z each have
+SHA4a4391090531a7112956dfae99e82633ed49d4e8ca2eb26f0916b5eae55e6b27.
+All older rollback files remain. This change refuses incompatible/missing
+schema markers without wiping populated stores; schema stays1. Populated
+Restore and old numeric-schema rollback are still unsafe. No format change,
+historical recovery, private resolver experiment or live repair was deployed.
+
+Read the complete schema-refusal-artifact/fresh/immediate-predeploy reviews
+under memory-repairs. They independently verify exact build, full suite,
+all-record restores, old numeric999 wipe/new refusal, original five-suite
+parity and immediate015908 preservation. Actual020346 backups are complete,
+hashed and restored; root sees all81304facts/7855history and old graph records
+unchanged. Only scanner/cursor/retry metadata and new pending inputs differ.
+Live scores/misses/mean ranks remain51/29/7/45/47, cap0max13366. An independent
+fresh-context ACTUAL grader is running; root receipts are not its final PASS.
+Normal successful extraction continues. New020913/020914 backups capture
+later activity for subsequent sweep review. Do not mistake parked-input
+preservation for successful ingestion, or these scores for original floors.
+
+The previous24eafab actual deployment and two real subsequent scans now have
+independent bounded PASS reports archived; all final graph-quality clauses
+remain open. See the audit's correction separating slug-only missing-claim
+counts from real listed alias defects. Existing canonical backdating and
+six-reference truncation were observed again and are not newly approved.
+
+The broad restatement candidate is independently REJECTED (queue recovery
+and order-dependent admission failures). A narrower private exact historical
+address branch at /tmp/scry-historical-address-sep06.Mbi8Rn has full unchanged
+tests and independent source/rollback/supersession PASS; real-replica grading
+is now running. Reports and test-only fallback-coverage correction are archived
+under historical-address-*. It remains UNINTEGRATED and UNDEPLOYED. Existing
+current-triple sentence loss, general temporal identity, new fact addresses
+and recovery remain open. Credential parser prototypes are still unapproved;
+no historical credential cleanup is authorized.
+
+Source decision note065d17ba was submitted once and is proven ingested;
+previous actual fact-guard deployment notef1cb541f is independently ingested.
+No new a078240 actual-deploy note at this entry. Never retry those notes or
+the earlier IDs. Child dev-client alias apply stays held. Continue the active
+goal; no final completion or full two-round grading claim is made.

@@ -3925,3 +3925,71 @@ Root confirmed once-submitted source decision065d17baa95af84a1d1b6c69c3e66ba5dd8
 is ingested in013401, absent pending, episode raw SHA
 553c61e8f413806a4860e724101c052c169c943391e09b7b4eae7f7e38309e2c.
 No retry was sent; this is not an independent p95 or overall durability grade.
+
+### 2026-09-06 — schema refusal actual deployment, root receipt
+
+Independent full fresh extensionSHA40fed437ea5d463266fcf10457055a3133e9170662b9c94a59e040a5c124a797
+and immediate015908 gateSHA6846539058732fe58bc046fe4f147b9ffe28cef0c1fcf398d69d63e1464f99cd
+are archived under memory-repairs/schema-refusal-*. They account both earlier
+backdated assertions (same content/provenance, earlier start, higher confidence),
+four existing six-ref cap evictions, and later normal invalidations. Those
+preexisting policies remain unresolved; startup-only PASS does not authorize
+timestamp changes or call all normal metadata updates additive.
+
+At02:03:32UTC root atomically replaced the two installed binaries with exact
+a078240 / SHA7783216755045eb365e0e0cd281ead8e2842da1b8fb697dfb42158c232cbb7e7
+and restarted only gui501/com.jhoot.scryd and gui501/ai.jermes.scryd. Laptop
+PID46487 and Mini PID24189 run the expected installed scry start --foreground.
+Both retained .pre-a078240-20260906T0146Z binaries still equal24eafab /4a439109.
+No schema bump, format change, private resolver prototype, live repair,
+populated Restore, retry, configuration change or rollback cleanup occurred.
+Room127 records the predeploy gate and128 the actual root receipt.
+
+Full immediate backups at02:03:46UTC:
+
+- Shared74,921,236bytes SHA37187891a0bb081db2f35754df726432caba010e77fba5896c166c2ffa1b866e;
+  root directrestore245425records digest022b8739f013ed98e2b9e96df7a117959fa533335bb43f5b32bfbd047a593f28.
+- Laptop19,445,008bytes SHA6c19b215d0108dac99ad0f1781c7de0686b973c24044a984827a3ec3827c7027;
+  root directrestore83378records digest8efead71b3128363e95c7f39678e3ec9332ae4a7645af03454ccf4780f02c2c7.
+
+Both restore/Open/index/read comparisons retain every logical raw byte.
+Root actual015908→020346 shared comparison:10new pending inputs and2new
+cursors;2old cursors,1metadata value and1unparked retry payload change.
+Zero fact/entity/episode/claim/repair-marker changes or removals. All81304facts,
+7855historical facts and15old parked payloads are exact. The pending payload
+changes only attempts/last_error/next_attempt; its safe classification needs
+independent actual review. All laptop raw records are unchanged. Root actual
+live five-suite scores, full miss lists and mean ranks remain51/29/7/45/47,
+zero cap exceedances,max13366bytes. Strict/tuning maximum payloads increase
+11527→11533bytes; no claim of byte-identical live response payloads is made.
+An initial root display filter used the wrong payload field and could not
+iterate probes' null misses; the corrected five-suite run completed with
+max_payload_bytes and empty-list handling. Benchmark expectations unchanged.
+
+Fresh-context actual grader is running; these root results are not its PASS.
+No new deployment remember note has been submitted at this entry. The prior
+source-only note065d17ba remains once-submitted and proven ingested. Two real
+postdeployment sweeps and all final goal clauses remain open.
+
+### 2026-09-06 — narrower historical-address source experiment
+
+Initial independent scoped PASS reportSHA7d6712b1053556a4e613cfd8a911493d40d3e28399820ab928332c061c78e2d5
+and post-supersession extensionSHAe61342b24da1741cfc66b6aac70d4bd37295e135be5c12cc6461205fa0907e6f
+are archived under memory-repairs/historical-address-*. Candidate remains
+PRIVATE at /tmp/scry-historical-address-sep06.Mbi8Rn, not integrated/deployed.
+Exact occupied historical assertions retain start/InvalidAt, union provenance
+and max confidence; unsupported raw representations refuse locally. No history
+interval is inferred from sentence uniqueness and current coalescing stays
+unchanged. Full unchanged no-CGO suite and independent raw rollback/ingestion
+controls pass, unlike the rejected broad restatement candidate.
+
+The initial review reproduced an inherited same-input supersession hole:
+invalidate an earlier same-episode assertion, then reopen it with lower
+confidence. A third check after the hint closes this bounded path; independent
+canonical/status/true-fallback/exclusive tests and negative controls prove it.
+The reviewer also caught a root fixture label: measured on an empty store is
+a status attribute, not fallback. Root retained that test and added actual
+aliases_index_to fallback with structural relation/raw-relation/destination
+assertions. This test-only change has no production hash delta; independent
+hash extension pending. No current-triple sentence-loss, general temporal
+identity, direct PutFact metadata, format/recovery or whole-goal PASS follows.
