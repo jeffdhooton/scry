@@ -1824,3 +1824,21 @@ Need more retained-vote/deferred-effect tests, complete hint semantic coherence,
 normal Apply/policy deduplication/all-writer/schema floor and original live bars.
 No new actual backup/probe/live change/note. Latest155247 only restore/note closure,
 last actual candidate132039. Goal active; no final round passed.
+
+## Continuation — 2026-09-06, durable conflict branch
+
+Read memory-repairs/durable-revision-conflict-progress-2026-09-06.md. Private
+applyCompleteAdmission88ea5dc5 implements actual new-input+conflict-only transaction
+and returns typed conflict only AFTER successful commit; exact old graph/EP/head/
+raw/events conserved. Same request deduplicates through actual backup/restore/reopen.
+Storage refusal rolls back newly staged input and emits no success/payload. Zero-FA
+accepted metadata still blocks selection replacement. Previous-reader3809d162 fixes
+two retained V1 failures by preserving actual known input identity while acceptance
+stays unknown. Full PASS74.101/18.783/28.749 log2b932280; vet PASS. No independent grade.
+
+Normal materialization/no-head/same-input/prior-none-accepted paths currently refuse
+inside this SAME fixed private entry. Connect them next, never fall back to old
+Apply or ship that WIP restriction. Read private MATERIALIZATION_IMPLEMENTATION_NOTES.md:
+old generation helpers write IG outside the EN/AL ledger; complete fixed lifecycle
+accounting and final actual inventories must follow genuine support, not HasEpisode.
+No live/probe/backup/note changes. Keep full goal active.

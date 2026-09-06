@@ -5372,3 +5372,22 @@ final actual inventory checks, normal Apply or all-writer floor yet. No fresh
 independent approval or actual candidate probe. Main production e097fa6/live a06cd7b,
 latest backup155247/note276f verified closure and last candidate probe132039 unchanged.
 Full original goal remains active, with no all-clause round passed.
+
+## Continuation — 2026-09-06, durable conflict branch
+
+Private fixed applyCompleteAdmission88ea5dc5 now commits only new canonical input
+and immutable conflict evidence for actual changed-input/old-acceptance conflicts,
+then returns typed revision conflict AFTER commit. Exact full old snapshot/EP/head/
+graph and events are unchanged; repeat deduplicates. Normal materialization remains
+temporarily refused in that same entry, not deployed policy. See
+memory-repairs/durable-revision-conflict-progress-2026-09-06.md for full evidence.
+
+Actual synthetic backup/restore/reopen, corrupt conflict-row rollback/static errors,
+and zero-FA metadata acceptance tests pass. Two V1 failures ddfb2b4b are preserved:
+unknown acceptance had erased known original-input identity. Previous-reader3809d162
+now retains actual V1 input/key/raw/SameInput without assuming no acceptance.
+Source-only correction passes unchanged tests. Conflict suite PASS.683s/logef0023ea.
+Full uncached no-CGO suite PASS74.101/18.783/28.749, completed log
+2b932280ccd97da346545722661137c452425876865bf3e6d9bc50bb275ce8a1; vet PASS.
+No independent grade, actual memory replica probe, live write/deploy/adoption or
+new durable note. Main/live and latest155247/last candidate132039 remain unchanged.
