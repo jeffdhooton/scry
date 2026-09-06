@@ -3658,3 +3658,44 @@ Sheets stable90/90 across3 rebuilds, whole raw no-write controls. Existing
 clipped-value hit-key collisions and unequal named-endpoint scoring remain
 separate proven defects; no universal determinism claim. Room116 records it.
 Both live binaries remain d1f0a95. Integrated artifact/deploy gates remain.
+
+### 2026-09-06 00:48 UTC — integrated prospective guard gate
+
+The exact committed 24eafab code-only candidate independently rebuilds to
+SHA4a4391090531a7112956dfae99e82633ed49d4e8ca2eb26f0916b5eae55e6b27,
+with Go1.26.2, no CGO, trimpath and darwin/arm64. Full source suite passes.
+Independent combined report fact-guard-integrated-predeploy-review-2026-09-06.md
+SHA c35882f3e198e2d21dfe20287af49a42bf3d2c0f4332ae74fb225e6e90f5c389
+is CONDITIONAL PASS, not an actual deploy or graph-cleanliness verdict.
+Both complete fresh direct restores preserve every raw key through Open,
+index construction and recall. Actual historical collision replay refuses
+atomically; existing rejection/retirement markers survive. All five scores,
+complete miss/rank arrays and mean answer ranks remain 51/29/7/45/47.
+The shared 00:30:16 snapshot has 17 raw pending records: 12 parked plus five
+nonparked. The earlier shorthand queue12 must not mean total pending.
+
+Fresh root 00:42:09 backups are fully copied, hashed and restored:
+shared74318735 bytes SHA9f722b1dafd4e0c20984446f79ff02aba9adda0c843f6e8ad80918733ecbb365;
+laptop19445008 bytes SHAd4e86e0da75439e801c9698cf670cce1ec6e06a92f234b380e8011679f307ac7.
+Shared full raw digest6e1e10e8a95afd6a5ca63206a0645de188303c9738b1e79014b8e74245a0cffe:
+81057facts,30838entities,9388episodes,244498rawkeys,ar4,rs19,rt19,pq12.
+Laptop remains raw digest8efead71b3128363e95c7f39678e3ec9332ae4a7645af03454ccf4780f02c2c7.
+Root's complete hashed delta detects zero removed/replaced assertion identities;
+three previous facts invalidated and one changed provenance. Independent final
+source-drift review is pending. Five immediate live controls again match
+51/29/7/45/47, maximum13359bytes, no responses above cap.
+
+Both old d1f binaries are now retained at their existing executable path plus
+.pre-24eafab-20260906T0048Z; both hash290a14c04ef0cfa9618db3f1a848bc6f3a343ec28d9c197ea49720eedb30b553.
+The Mini staged candidate matches4a439109; neither installed executable nor
+running daemon has yet been replaced at this entry. Room118 records the gate.
+Actual deployment, full pre/post deltas and independent verification remain.
+
+The separate explicit-credential redaction prototype is NOT integrated into
+this artifact. Independent adversarial review has already found partial
+reference matching leaks and context-deleting JSON/newline matches. It must
+not ship as-is. Only fabricated credentials were used in these new fixtures.
+The already-stored credential and lost historical assertion remain unresolved;
+no historical cleanup, credential action or dev-client alias apply is authorized
+by this prospective code-only gate. Full fresh-source BLOCK is archived as
+child-dev-client-freshness-block-2026-09-06.md.
