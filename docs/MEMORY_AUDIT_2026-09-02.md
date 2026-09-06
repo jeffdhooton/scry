@@ -4231,3 +4231,38 @@ Full246,690-row raw digest remains
 fd03634f550aca09bc7ba5c9fb62ab6c0e8321faad8e0102873d27662b8a9c92 afterward.
 Full admission controller, observations, support proof, lifecycle/adoption and
 all-writer compatibility remain open; private primitive tests close none of them.
+
+### 2026-09-06 03:48 UTC — uncalled admission foundations source-integrated
+
+55063da retains exact reviewed journal source d961d53c and all ten regressions.
+7e33b74 retains exact reviewed generation source
+e07c6c50affce548b31a94dc2e94d665a49ccab1d246f9433f49277535619592
+plus all19 builder/independent tests, and records the bounded architectural
+decision. Full integrated CGO_ENABLED=0 go test ./... -count=1 PASSES without
+cached package outcomes; all previous test expectations remain unchanged.
+Production reference search finds only the primitive definitions, no callers.
+Neither schema nor normal ingestion behavior nor any installed binary changed.
+
+The intermediate UTF-8 correction was independently rejected for a different
+serialization hole: JSON loses timezone offset seconds, collapsing distinct
+creation instants. ReportSHAb18b1fc17920826c9b0e7af83556ed499d737f46c06fd7656c4571f1a9906dfd
+is archived alongside the first rejection. Root canonicalized only the new
+selector timestamp to UTC. Final independent report
+SHA43a5eefeba6913350fff44e05ebcff890cf633bfb841108dce62e07527c1a428
+PASSES all three unchanged reproducers,38 original boundary subcases,46 text
+cases and additional time/persistence/refusal cases, plus noncached full suite.
+Lossy preexisting Entity timestamps are refused unchanged, NOT repaired.
+
+Root streaming cost alternatives on the same exact031013 restored snapshot:
+full Fact without retaining the slice175.78–178.38ms/op,68.89–69.34MB allocated;
+endpoint projection143.83–158.35ms/op,35.84–35.87MB. Three5-operation runs each;
+not p95, complete malformed-fact support proof, or production throughput PASS.
+Full246,690-row digest fd03634f550aca09bc7ba5c9fb62ab6c0e8321faad8e0102873d27662b8a9c92
+remains exact afterward. No private cost harness was source-integrated.
+
+Private CONTROLLER_V2.md SHA
+b05d1e875bac6ad5c2ae59762eb7c7322a9bb7b530ae8fcdc3e0522b42f07014
+is under fresh independent design disproof. It makes outer-owned finalization,
+per-occurrence structured metadata, generation lifecycle, support proof and
+explicit adoption mandatory; its unresolved options are not implementation
+approval. Room137 records the primitive PASS and precise integration limits.

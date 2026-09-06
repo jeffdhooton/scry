@@ -1138,3 +1138,29 @@ uncalled, unintegrated, undeployed. Root full-support-scan baseline188–208ms a
 ~146MB allocated per operation is too costly to treat as accepted hot-path proof.
 Continue controller/observation/support and explicit adoption/lifecycle design;
 do not infer that a primitive PASS prevents hollows or makes old writers safe.
+
+### 2026-09-06 03:48 UTC — source foundations retained, still no admission
+
+Supersedes the prior wholly-private status:55063da source-integrates uncalled
+journal d961d53c;7e33b74 source-integrates uncalled generation e07c6c50 and all
+independent regressions. Both are exact reviewed sources, no production caller.
+Full integrated no-CGO suite PASSES noncached, existing expectations unchanged.
+No schema/adoption/default behavior/live write/deployment occurred; installed
+artifacts remaina06cd7b on both machines, prior binaries retained.
+
+Generation3c196ab9 was independently rejected for lossy second-offset timestamp
+encoding after its UTF-8 fix. Root's UTC exact-instant correctione07c6c50 now
+independently bounded PASS, final reportSHA
+43a5eefeba6913350fff44e05ebcff890cf633bfb841108dce62e07527c1a428.
+Both rejected versions/reports and all three failing reproducers are preserved.
+The correction never changes entity/fact timestamps; malformed legacy state
+refuses instead of being repaired. Room137 records this bounded result.
+
+Fresh /root/admission_controller_v2_disproof is reviewing private
+/tmp/scry-unattached-evidence-sep06.db52ow/CONTROLLER_V2.md,
+b05d1e875bac6ad5c2ae59762eb7c7322a9bb7b530ae8fcdc3e0522b42f07014.
+Early review tightens outermost-transaction finalization and malformed raw-fact
+support handling; final report pending. Next private unit likely immutable
+occurrence-observation storage, not production admission. Keep reviewing full
+controller/adoption/lifecycle and utility; overall goal still FAIL, never mark
+these foundation commits as prevention deployment or final grading rounds.
