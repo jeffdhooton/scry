@@ -3892,3 +3892,35 @@ self-edges. This is descriptive dependency accounting, not factual support.
 
 Retain both failed private versions and their independent tests. The third version
 requires its own exact-pin review; its full passing root suite is not approval.
+
+### Validate actual spelling relationships before consumer shortcuts
+
+**Decision, 2026-09-06.** Independent third/fourth overlay failures show that full
+owner lifecycle validation does not validate an alias's separate classification.
+Each metadata, alias-addition/removal and unlisted-claim consumer must retain and
+validate affected rt/paired rs and actual ar pairs. A natural-name listing may have
+a different normalized alias address; include that actual claim and its owner.
+Do not form unrelated owner-by-spelling combinations, globally reject opaque
+controls, or normalize a malformed raw index suffix into another control address.
+Validation grants neither a recipient nor permission to repair old listings.
+An in-memory released claim carries its release producer; absence is not timeless.
+
+Fifth private source requires fresh exact-pin review. All preceding failed exports,
+tests and verdicts remain evidence. No live adoption or production approval follows.
+
+### Assertion comparison cannot substitute for a complete temporal plan
+
+**Decision, 2026-09-06.** Reject the comparator-only assertion bridge68987a69 after
+independent semantic disproof86773de0. Keeping distinct sentences and starts exposes
+unsafe interval behavior previously hidden by dropping assertions. Do not restore
+that loss or rewrite incompatible tests merely to make them green.
+
+The next composed planner must choose effective-state versus observation-time rules
+explicitly, compare complete typed targets independently of normalized storage
+addresses, filter SupRef temporal eligibility before zero/one/many selection, and
+defer ambiguous dependent components before any identity metadata or interval write.
+Every raw row to be rewritten needs exact before-image and representation checks,
+including invalidation targets; guarding restatements alone still loses extensions.
+Malformed-date handling must retain parse status without globally withholding an
+unrelated valid assertion. Final identity support/ownership and durable partial
+outcomes must derive from the retained complete plan, not caller flags or EP presence.

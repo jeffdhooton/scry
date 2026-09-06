@@ -1553,3 +1553,50 @@ Exact evidence memory-repairs/ordered-overlay-third-replica-evidence-2026-09-06.
 Private probea4f9b2ca MUST NEVER ship; overlay-111946 now privately adopted,
 shared-111946 untouched. Noteacc0f253 is durable but PARKED after one fact conflict,
 NOT ingested; no retry/unpark, pending raw93179b24. This is not ingestion success.
+
+### 2026-09-06 12:13 UTC — fifth overlay under review; assertion bridge rejected
+
+Third independent NO-GO09ee6c30 and fourth NO-GO7994e1d0 are now archived in
+memory-repairs/ordered-overlay-{third,fourth}-independent-disproof-2026-09-06.md.
+Third found 19 leaves: malformed canonical retirement hidden by normal lifecycle
+deferral, incomplete relationship-owner validation and missing released-claim
+producer. Fourth corrected those but still skipped affected aliases' own rt rows
+in four consumers. Root reproduced all unchanged failures; rejected exports remain
+immutable. Rooms167/169. Fourth full root suite passed; independent disproof wins.
+
+Fifth private export /tmp/scry-ordered-overlay-fifth-sep06.WNftRz/code, manifest
+43a61c978988de72b28a238eef0681f71f5c34cf88d43fe4e65b0d1821d48b22,
+keeps 600 baseline e097fa6 files and 46 additions. Only lookupb965deec implementation
+changes from fourth: scoped worklist covers exact affected rt/rs and actual actor,
+claimant and listing ar pairs, including natural-listing counterpart claim addresses.
+No owner/spelling cross product or canonicalization of defective raw claim keys.
+Valid controls remain evidence, not automatic repair. New root testsbe3daeda retain
+all earlier failures and add empty/invalid-UTF8/whitespace exact-key controls.
+Selected tests PASS9.022s/2.380s; full uncached no-CGO PASS69.059s store/17.283s
+resolve/29.715s daemon, logdb1a6329. Vet and exact157/248 policy tokens PASS.
+Fresh bounded ordered_overlay_fifth_disproof is running; review input9e7fd0f0.
+No private overlay or neutral-policy source integrated. Do not mistake this for
+normal-write prevention, factual support or a full-goal grading round.
+
+Fresh114330 backup77,072,490bytes SHA6cf1d850 restored twice with all249,499 rows
+exact, digest036fac91. Root fifth replica probe9b22dee9 (NEVER SHIP), separate
+/tmp/scry-overlay-fifth-replica-sep06.z7Eq8b, PASS16.520s before/after reopen and
+explicit PRIVATE adoption. Zero planner writes/events; adoption adds31517 only,
+all original rows exact. overlay-114330 now privately adopted; shared-114330 remains
+untouched. Full replica evidence is archived separately. Live a06cd7b unchanged.
+
+Separate comparator-only current-assertion experiment remains PRIVATE REJECTED:
+experiment68987a69 and independent semantic NO-GO86773de0/testf265ef5b archived in
+memory-repairs/assertion-bridge-*. It fixes narrow full-assertion collapse but
+leaves contradictory exclusive targets, order/observation-time errors, arbitrary
+or ineligible SupRef targeting, and unknown-field loss on invalidation; global
+malformed-date refusal newly withholds unrelated utility. Original compatibility
+failures preserved, no test expectation rewriting. Room168. Next FA work must
+compose exact assertion identity, explicit temporal/ambiguity/date rules and
+component-level deferral before either metadata or interval mutation.
+
+Note bb92111e4194a567c5d7ac71a1d33fc3da784ef3842390723bd4a2f27152ae58 was accepted
+once at11:42:58; verified114330 durable pending, attempts0, not parked/not ingested,
+pending raw3cfac8fd. Verify later, never retry. acc0f253 remains closed as parked,
+not ingestion success. All cleanup/recall/production integration and two complete
+fresh-context rounds remain required; keep the unbounded goal active.

@@ -5109,3 +5109,50 @@ rows retained. Exact pins/counts/timing in memory-repairs/ordered-overlay-third-
 replica-evidence-2026-09-06.md. Third independent review remains running.
 Noteacc0f253 is present durably but PARKED after one fact conflict, not ingested,
 pending raw93179b24/errorf294fc67; no retry, unpark or overwrite. Live unchanged.
+
+### 2026-09-06 12:13 UTC — fourth disproof and fifth private correction
+
+Third report09ee6c30 and fourth report7994e1d0 archived in memory-repairs. Third
+independent full suite fails19 leaves, fourth fails4 leaves; all retained tests
+pass respectively. Neither root's passing suites nor raw-conserving replica probes
+overrule these NO-GOs. Fourth manifest2e1eaacb remains immutable. Room169 records
+affected-alias rt validation bypass; full testcc45df6c copied unchanged to fifth.
+
+Fifth export /tmp/scry-ordered-overlay-fifth-sep06.WNftRz has600 unchanged e097fa6
+baseline files/46 additions, manifest43a61c978988de72b28a238eef0681f71f5c34cf88d43fe4e65b0d1821d48b22.
+Only lookup implementation b965deecbf2c35889f2882a0b94a6cd918aa7245314c067ae0fc62462c59c62e
+changed from fourth. Scoped normalized/natural listing worklist validates actual
+spelling retirement pairs and actor/claimant/listing rejection pairs; no unrelated
+cross product, raw-key canonicalization, owner choice or automatic repair.
+
+Unchanged independent-before-correction.log7915e424:4FAIL/unrelatedPASS. New root
+before-correction ae939723:11 malformed-control leaves and valid-witness group FAIL,
+one existing rejection shortcut PASS. Natural-listing-before1061d753:3FAIL/unrelated
+pair PASS. Corrected selected runcc4aed66 PASS9.022s store/2.380s resolve. Expanded
+root tests8fa2b62a PASS1.207s, including9 defective raw-key cases. No expectation or
+fixture correction. Full uncached no-CGO suite PASS69.059s store/17.283s resolve/
+29.715s daemon; logdb1a6329b9f1672b71e36655aecc8fade35538001cb0310c97c151532eeee51d.
+Vet empty/PASS and exact neutral tokens16e360e7 PASS157/248. Root freeze script
+checks all original baseline SHA/git blobs and all prior source hashes. A read-only
+rg query with unsupported NUL pattern failed and was corrected; no source action.
+Fresh bounded grader started on review-input9e7fd0f0; no verdict assumed.
+
+114330 snapshot77,072,490bytes SHA6cf1d85067f2f1b4fc1fe9375ee128da98edd3f54fc280d3842a01aaeb8d9e85
+restores249499 rows/digest036fac913c741afd68ea0b6c97abb1d5b84fcc5ad647038c8ca978cf9bc9b17e
+twice. Root separate exact fifth export/probe9b22dee9 PASS16.520s; full counts,
+hashes and private-adoption/reopen observations archived in fifth replica evidence.
+Planner zero writes/events; private adoption adds31517, all original raw retained.
+overlay-114330 privately adopted, shared-114330 untouched. Probe MUST NEVER ship.
+
+Assertion bridge experiment68987a69 and independent semantic review86773de0/test
+f265ef5b archived unmodified. NO-GO: actual full-row counterexamples distinguish
+newly exposed exclusivity, inherited temporal/ambiguous SupRef/raw-metadata loss,
+and newly overbroad malformed-date refusal. Original8groups10leaves compatibility
+failures remain; no original tests edited. Full corrected independent eligibility
+fixture changes only future year2001→2002 after a pre-Apply sort precondition failure;
+both source/log versions preserved. No complete suite or production approval.
+
+bb92111e accepted once11:42:58;114330 verifies durable pending attempts0/not parked/
+not ingested, raw3cfac8fdaa399a0ff559d5c29c817871c25da0ffa6430f0235e1ca48f82dec82.
+Do not retry. Prioracc0f253 remains parked1attempt afterfactconflict. No live graph
+write/deploy/provider/config change; live a06cd7b remains exact on both machines.
