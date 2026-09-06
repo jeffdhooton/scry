@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -8,6 +9,38 @@ import (
 
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
+
+func TestSearchExactTiesUseDocumentKeyBeforeClipping(t *testing.T) {
+	at := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
+	for _, reverse := range []bool{false, true} {
+		ix := New()
+		for i := range 64 {
+			n := i
+			if reverse {
+				n = 63 - i
+			}
+			ix.Upsert(Doc{Kind: KindFact, Key: fmt.Sprintf("fa:lyrion-%02d", n), Text: "meridian evaluation", ValidFrom: at})
+		}
+		// The instant, not the timestamp's zone representation, defines a tie.
+		ix.Upsert(Doc{Kind: KindFact, Key: "fa:lyrion-00", Text: "meridian evaluation", ValidFrom: at.In(time.FixedZone("offset", -4*60*60))})
+		for run := range 50 {
+			hits := ix.Search("meridian evaluation", []string{KindFact}, nil, 7)
+			if len(hits) != 7 {
+				t.Fatalf("reverse=%v run=%d: %d hits", reverse, run, len(hits))
+			}
+			for i, hit := range hits {
+				if want := fmt.Sprintf("fa:lyrion-%02d", i); hit.Doc.Key != want {
+					t.Fatalf("reverse=%v run=%d hit=%d: %q, want %q", reverse, run, i, hit.Doc.Key, want)
+				}
+			}
+		}
+		// Existing newer-first ordering still beats the lexical key.
+		ix.Upsert(Doc{Kind: KindFact, Key: "fa:zyrion", Text: "meridian evaluation", ValidFrom: at.Add(time.Nanosecond)})
+		if hits := ix.Search("meridian evaluation", []string{KindFact}, nil, 1); len(hits) != 1 || hits[0].Doc.Key != "fa:zyrion" {
+			t.Fatalf("timestamp precedence changed: %+v", hits)
+		}
+	}
+}
 
 func TestFactKeyUsesUTCAndPreservesNanoseconds(t *testing.T) {
 	f := store.Fact{

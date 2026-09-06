@@ -3483,3 +3483,23 @@ relation-only prior also remains vulnerable to misclassified explanations.
 Full evidence is in
 `memory-repairs/recall-relative-reason-independent-rejection-2026-09-05.md`.
 This rejects one design, not a license for benchmark-fitted weight sweeps.
+
+### Exact ranking ties need a stable identity order
+
+**Decision, 2026-09-06.** Keep descending score and validity time, then use
+document identity for lexical candidate ties before cutoff and existing fact
+hit identity for final ties before diversity. Do not alter scoring weights
+or existing benchmark expectations to obtain repeatability.
+
+**Why.** Identical real queries alternated between equally scored, equally
+dated duplicate facts because maps supplied their input order. A fresh
+independent review reproduces baseline failure and candidate stability:
+90 equal complete Sheets results across three rebuilt indexes, unchanged
+five-suite results and all 235 answer ranks, full no-CGO and race tests green.
+
+**Limits.** Recall's existing hit key can collide after value clipping and
+delimiter concatenation. The stable rule applies when keys differ; full
+source identity still needs separate work. Unequal named-endpoint weights
+also select a score by map visitation before sorting. Neither preexisting
+issue is solved here, and no universal determinism or original-floor PASS
+is asserted. See memory-repairs/recall-exact-tie-independent-review-2026-09-06.md.

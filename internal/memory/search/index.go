@@ -438,7 +438,13 @@ func (ix *Index) Search(q string, kinds []string, asOf *time.Time, k int) []Hit 
 		if hits[i].Score != hits[j].Score {
 			return hits[i].Score > hits[j].Score
 		}
-		return hits[i].Doc.ValidFrom.After(hits[j].Doc.ValidFrom)
+		if !hits[i].Doc.ValidFrom.Equal(hits[j].Doc.ValidFrom) {
+			return hits[i].Doc.ValidFrom.After(hits[j].Doc.ValidFrom)
+		}
+		// Scores are accumulated through maps. A total order must precede
+		// clipping, or equally scored contemporaneous facts enter and leave
+		// the candidate set between identical queries.
+		return hits[i].Doc.Key < hits[j].Doc.Key
 	})
 	if len(hits) > k {
 		hits = hits[:k]

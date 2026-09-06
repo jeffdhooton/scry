@@ -12,6 +12,44 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/store"
 )
 
+func TestRecallExactTiesChooseStableDuplicateRepresentative(t *testing.T) {
+	at := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
+	st, err := store.Open(filepath.Join(t.TempDir(), "badger"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	for _, reverse := range []bool{false, true} {
+		ix := search.New()
+		for i := range 32 {
+			n := i
+			if reverse {
+				n = 31 - i
+			}
+			slug := fmt.Sprintf("lyrion-%02d", n)
+			if err := st.PutEntity(store.Entity{Slug: slug, Name: slug, Type: "project"}); err != nil {
+				t.Fatal(err)
+			}
+			f := store.Fact{Src: slug, Relation: "status", Value: "reviewed", Fact: "The meridian evaluation has been reviewed.", ValidFrom: at, Confidence: .9}
+			if err := st.PutFact(f); err != nil {
+				t.Fatal(err)
+			}
+			// Equal text makes lexical evidence exactly equal, independently
+			// of identifiers; no vector, source bonus or named entity is used.
+			ix.Upsert(search.Doc{Kind: search.KindFact, Key: search.FactKey(f), Text: "meridian evaluation", ValidFrom: at, Fact: f})
+		}
+		for run := range 50 {
+			res, err := Recall(st, ix, "meridian evaluation", nil, 20)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(res.Facts) == 0 || res.Facts[0].Src != "lyrion-00" {
+				t.Fatalf("reverse=%v run=%d: unstable representative %+v", reverse, run, res.Facts)
+			}
+		}
+	}
+}
+
 func seedRecall(t *testing.T) (*store.Store, *search.Index) {
 	t.Helper()
 	st, err := store.Open(filepath.Join(t.TempDir(), "badger"))

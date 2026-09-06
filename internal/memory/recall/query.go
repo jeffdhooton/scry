@@ -406,7 +406,12 @@ func Recall(st *store.Store, ix *search.Index, q string, asOf *time.Time, limit 
 		if scored[i].Score != scored[j].Score {
 			return scored[i].Score > scored[j].Score
 		}
-		return scored[i].ValidFrom.After(scored[j].ValidFrom)
+		if !scored[i].ValidFrom.Equal(scored[j].ValidFrom) {
+			return scored[i].ValidFrom.After(scored[j].ValidFrom)
+		}
+		// Named-entity injection also traverses maps. Resolve exact ties
+		// before diversity chooses one representative of a repeated fact.
+		return hitKey(scored[i]) < hitKey(scored[j])
 	})
 	scored = diversify(scored)
 	res.Total = len(scored)
