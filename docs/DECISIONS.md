@@ -3550,3 +3550,35 @@ this change, and no numeric schema bump or populated-store restore is approved.
 Future transitions require concrete legacy refusal and explicit activation,
 data preservation and rollback proofs. See the complete schema-startup-refusal
 review and comment-only hash extension under memory-repairs.
+
+### An exact historical restatement adds evidence, not a new current state
+
+**Decision, 2026-09-06.** Before ordinary current-fact matching and during
+both relevant Phase B boundaries, check the incoming exact legacy address.
+An occupied historical row must match the complete assertion and start.
+An exact restatement unions provenance, takes maximum confidence, and keeps
+the original start and InvalidAt. A supersession hint cannot reopen the same
+record by subsequently inserting lower-confidence metadata over it.
+
+Only an explicitly parsed valid date or an absent date's exact episode instant
+can identify that historical address. Do not infer a historical interval from
+sentence uniqueness. A touched unsupported/noncanonical raw historical payload
+refuses rather than losing unknown or duplicate fields during serialization.
+Unrelated inputs beside such a row retain their existing behavior.
+
+**Why.** The broader comparator experiment parked benign out-of-order inputs
+and broke queue recovery. The narrower branch preserves those unchanged tests
+and independently passes full raw rollback and supersession controls. Six
+literal historical replays on a full live replica change only intended evidence
+and synthetic episode markers. The old resolver reopens two histories and loses
+two prior provenance IDs; the replacement retains all original assertions,
+validity and provenance, including coexisting current records. All235 shared
+recall ranks and payload sizes remain identical.
+
+This does not redefine current-triple coalescing/backdating or all temporal
+identity. Existing attribute-to-edge reclassification can route a legacy replay
+away from the historical address identically in both versions; that boundary
+is explicitly excluded. Direct PutFact metadata replacement, general unsupported
+current-row rewriting, exact FactRef design, old loss recovery and schema/format
+transition remain separate work. See the complete historical-address source,
+supersession, coverage and full-replica independent reports under memory-repairs.

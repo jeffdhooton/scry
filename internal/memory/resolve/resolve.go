@@ -551,6 +551,14 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 	// invalidations run.
 	for i := range resolved {
 		rf := &resolved[i]
+		preserved, err := preserveHistoricalAddress(st, ep, *rf, stats)
+		if err != nil {
+			return err
+		}
+		if preserved {
+			rf.merged = true
+			continue
+		}
 		current, err := matchingFactForMerge(st, *rf)
 		if err != nil {
 			return err
@@ -567,6 +575,13 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 	// Phase B — Rules 5 & 6, in slice order.
 	for i := range resolved {
 		rf := &resolved[i]
+		if !rf.merged {
+			preserved, err := preserveHistoricalAddress(st, ep, *rf, stats)
+			if err != nil {
+				return err
+			}
+			rf.merged = preserved
+		}
 
 		// Rule 5: supersedes hint. Runs for every fact, merged or not — it
 		// targets its own (usually different) triple via an explicit ref,
@@ -575,6 +590,16 @@ func resolveFacts(st *store.Store, ep store.Episode, facts []extract.Fct, exclus
 			if err := applySupersedes(st, ep, *rf.fct.Supersedes, declared, resolvedEntities, stats); err != nil {
 				return err
 			}
+		}
+		// The hint can invalidate a same-episode assertion at this exact
+		// address after the earlier check. Preserve that newly closed row
+		// instead of reopening it with the incoming metadata.
+		if !rf.merged {
+			preserved, err := preserveHistoricalAddress(st, ep, *rf, stats)
+			if err != nil {
+				return err
+			}
+			rf.merged = preserved
 		}
 
 		if rf.merged {

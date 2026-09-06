@@ -4033,3 +4033,46 @@ SHA60eda8c7ec4664d4bafef34912269358067164cf34d389c7ca36f9ac5d5abf5d.
 Production hashes remain unchanged; actual fallback fixture passes. Fresh
 full-replica historical compatibility review is running, with no integration
 or deployment at this entry.
+
+### 2026-09-06 — historical-address source integrated after replica PASS
+
+Full independent replica report is archived as
+historical-address-replica-independent-review-2026-09-06.md,
+SHAdfca8888a0fcee42c7b27f2c417b3cb4c520befce75d39ef078a86d8264a0df3.
+Both complete020346 backups directly restore with all raw bytes equal through
+candidate startup/index/read. Six deterministic eligible actual histories
+(canonical/fallback/attribute, each with and without current coexistence)
+retain exact assertion/start/InvalidAt and all original provenance. Each replay
+changes only the selected fa evidence union/max confidence and adds a synthetic
+episode; all other81303facts and every old nonfact row remain byte-identical.
+Final original-map comparison:6oldfact evidence updates,245419other original
+records exact,0lost provenance/validity/content/start or lowered confidence.
+Baseline reopens two histories and loses two old provenance IDs. An initially
+ineligible legacy attribute now routes as an edge identically in both versions;
+that inherited limitation is explicitly reproduced, not hidden by selection.
+
+Full-replica post-hint rollback and touched/unrelated unknown-payload controls
+pass. Both five-suite comparisons remain51/29/7/45/47 on shared (originalfloors
+still fail), caps0. All235shared individual rank/payload outputs are identical,
+SHAe50f2e835bccd590f56c0241702323a57ee58897a636803615fcd15a64e0a822.
+Independent full no-CGO suite passes twice; root integrated the exact five
+source/test pins and its complete shared-checkout suite also passes.
+
+Integrated pins: resolve.go43efc6c16577062cfc497e7c03de8faced93a33ac45b5c9886f932780b2b2623;
+resolve/historical.go9749aef36ee99197b2b57464cb9b12c7ebd2752d1f8037b7fdade591a4bafb4f;
+resolve/historical_test.goc9e8d5d2ac411ad45e72fa42c63477b71cbfb347b22dcb346941bf204b5d696e;
+store/historical.go896ba4d7739eded14bf30df9d5f5afa23c6e2a85f86917f9e495af4dc14c7de6;
+store/historical_test.go04773bd70e86428d94419d28bbda6505a4ac47c0126508da2d2752dfdc285742.
+This is source integration only. Both deployed binaries remain a078240/77832167;
+the exact newly committed artifact, fresh predeploy/actual checks and reviewed
+backups are still required. No migration, historical recovery or alias apply.
+
+The independent later-sweep audit has already identified one new zero-fact
+runbook entity (safe slugSHA0391ee500b5c6f2f731a8be62e9121d26c7114470f9be2c3d8b35d5882a108c6),
+with retained description/repository metadata and a correct exact-name claim.
+It persists through021707. A separate new no-current-facts decision has one
+historical fact and is NOT a second hollow. Source can persist declared entities
+before resolving their facts; temporal/cwd correlation with a new episode is
+not causal tracing. This independently observed quality failure blocks final
+goal completion, not the already proven startup-only behavior. No facts are
+manufactured and no metadata is discarded to make a zero-hollow count.
