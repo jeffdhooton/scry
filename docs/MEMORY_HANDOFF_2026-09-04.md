@@ -1230,3 +1230,30 @@ is reviewed. Do not remove or invert that failure. Frozen independent export
 ControllerV3 private designc43e0634 in/tmp/scry-controller-v3-sep06.yKRgWZ is under
 fresh design disproof, including partial/deferred assertion semantics and exact
 adoption lifecycle. No deployment/adoption/live write; daemons stilla06cd7b.
+
+### 2026-09-06 05:09 UTC — outcome reviewed; next exact legacy anchor codec
+
+Corrected outcome7b40e318 is now copied uncalled into shared source with every
+independent regression; combined full no-CGO noncached suite passes. Review2cb328a6
+closes initialfc7f928b's real disk/memory storage-error input dump (initial8b75b94c).
+No current-outcome projection, Apply/CLI integration, support/owner authority or
+live effect. ControllerV3 review2521939a is archived: resolve primary/Supersedes
+dependencies BEFORE both fact phases; include InvalidateFact/DeleteFact; deferred
+assertions need no fabricated birth. Exact per-key journal attribution still open.
+
+B remains private at/tmp/scry-provisional-votes-sep06.3YJMlM. Root-only storage-error
+fixa493e99d passes new unchanged6fbec360 regression and earlier builder tests, NOT
+independently graded. Initialea8b0967 raw-ledger phantom failure is not fixed; keep
+the original frozen failing test/export. All-producer selector coordination remains.
+
+Latest root backup closure/tmp/scry-foundation-closure-sep06.8IEPu5/shared-044441:
+76,019,551-byte backupbef6d1b6 restored247,461rows exactly. Prior406c30f4 note now
+ingested/absentpending, rawEP64ecb7b9. New5b7c8402c70b7cef62322279a7de6033352e188b8fa0821aafa71a7c1a99d51b
+submitted ONCE04:44:41 queued32, still unverified. Never retry either accepted note.
+
+Next private workspace/tmp/scry-legacy-inventory-sep06.sbEk1E contains read-only
+sizing and forced-rollback capacity tests:31,227 named anchors fit one default
+transaction today (9,171,887 key/valuebytes, maxbatch10,066,329), with zero committed
+rows. ANCHOR_DESIGNd7e70022 and purecodec contract20591a73/source7a84b00d remain
+unapproved; source tests/review next. No actual adoption/anchor writer exists.
+Both daemons stilla06cd7b; no deployment/live repair or final grading pass.

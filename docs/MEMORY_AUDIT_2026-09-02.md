@@ -4396,3 +4396,66 @@ selects B, exact legacy inventory and separate immutable outcomes, and explicitl
 proposes mixed deferred-assertion semantics. Independent design disproof running;
 no composition/adoption approval. Both actual daemons remaina06cd7b. No deploy,
 live repair, schema change, provider probe or sweep during this work.
+
+### 2026-09-06 05:09 UTC — outcome foundation; backup closure; adoption sizing
+
+ControllerV3 review2521939a134271df7669e073ee836283dd9cbaecc0339fc4df817225f587de10
+is archived. GO private outcome codec with distinct registered-birth/deferred-
+assertion subjects; NO-GO controller/adoption. Baseline characterization proves
+Supersedes can invalidate a dangling target despite filtering deferred primaries,
+and Phase A already merges the retained primary before Phase B inspects the hint.
+Plan primary AND hint dependency closure before both phases; include InvalidateFact
+and DeleteFact, exact per-key writer/birth journal attribution, and Force current
+outcome projection. Room144 records this design verdict, not an implementation PASS.
+
+Private outcome initialfc7f928b independently FAILS on actual storage errors
+dumping canonical input. Both real memory-value and disk-value limit failures
+preserve rollback yet disclose a1KB hex/ASCII prefix in the returned error.
+Initial report8b75b94c08c8648e73de3186353ee46ebd0e22b7d00e782a07a36f53462c3d11
+and both unchanged failed regressions are retained. Corrected7b40e318 returns
+only static errors and allowlisted ErrTxnTooBig classification. Independent
+correction report2cb328a6e605b3a09bea795239c4805cf17908a421fee96261ad8c61515b42a2
+PASSES, including both original failures, real transaction-limit classification,
+later successful writes, >1MB successful outcomes and exact bounded chunk reads.
+
+Exact corrected outcome source and every builder/independent regression are now
+copied into shared source, uncalled. Full integrated CGO_ENABLED=0 go test ./...
+-count=1 PASSES (daemon27.648s, resolver13.124s, store26.427s). No Apply/CLI caller.
+The codec retains original input links, role/ordinal/provenance, opaque exact
+materialization bytes, separate no-birth assertions and immutable predecessors/
+branches. It does not select a current disposition, certify support/ownership or
+implement mixed-episode ingestion. Initial NEW staging fixture needed120KB, not
+190KB, because base64 expansion crossed the value-log threshold; that fixture-only
+failure and correction were disclosed to the independent reviewer.
+
+B remains private. Root reproduced analogous nonstatic storage error handling
+with unchanged new test6fbec3602cedb6b067f4a75926cc02597d082a29a7f857e21c2082b14e113761,
+then corrected both Set boundaries: sourcea493e99d49188e18b7c2262fb0348df33872bf65167f6fbc1f8d623026b6ab53.
+All root B tests pass; the additional reviewer task did not complete, so this
+correction is NOT independently certified. The original concurrent raw-ledger
+phantom remains unresolved, its test/export unchanged. No B source integration.
+
+Fresh backup044441 on Mini is76,019,551bytes,
+SHAbef6d1b66b793b11b4b52189dc7d923e7e4f5bff63ed42dd83456c7211f78e2d;
+root copy/restore/tmp/scry-foundation-closure-sep06.8IEPu5/shared-044441 proves all
+247,461rows raw-equal, digest529ef7cf8bc65a454e0edbcb7ed622ca012f06fcb4f89e9eaf7f93bcaa9c5c33.
+31,227entities/81,840facts/7,885history/9,450episodes/31pending. Root safe raw check
+finds prior406c30f4 source note ingested and absentpending, EPraw
+SHA64ecb7b98e13203c7a7470f18507d7078e9df694e94b5a7facf900393c9dc6ae.
+Clarification of room144: this closure is ROOT verification on a separate restored
+snapshot, not an independent grader verdict. New source note
+5b7c8402c70b7cef62322279a7de6033352e188b8fa0821aafa71a7c1a99d51b
+submitted ONCE04:44:41UTC acceptedqueued32; ingestion not yet checked, NEVERretry.
+
+Private legacy sizing/tmp/scry-legacy-inventory-sep06.sbEk1E (not adoption): all
+31,227 current en: records are canonical by ordinary full Entity roundtrip with
+no empty/invalid name, key mismatch or zero/out-of-range creation time. Named
+anchor key+value estimate9,171,887bytes versus compact6,516,307. BOTH formats
+actually staged31,227 rows under default MaxBatchSize10,066,329, then deliberately
+rolled back; all original bytes exact. Named355.299375ms/compact369.183417ms are
+single root measurements, not independent certification. No anchor/marker committed.
+Prefer named fields provisionally; any final fresh adoption must repeat exact
+staging including marker and refuse atomically if too large. ANCHOR_DESIGN.md
+SHAd7e7002207ad3524d329cf5a7de44a222dfa00c77d593fa504fc80a82d1fb5de;
+private strict codec7a84b00d now written, tests/review still pending. No production
+adoption, schema change, deployment or live repair; daemons remaina06cd7b.

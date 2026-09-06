@@ -3658,3 +3658,22 @@ in a snapshot does not exclude a concurrent raw phantom. Eventual producers must
 coordinate through their selector/owner transaction protocol; another scan in
 the same snapshot cannot replace that obligation. No arbitrary raw-writer safety
 claim follows from the private provisional-vote mechanism.
+
+### Outcomes can describe an assertion without inventing an identity
+
+**Decision, 2026-09-06.** Keep registered-birth outcomes distinct from assertion
+outcomes. A deferred Supersedes-only dependency can exist when neither primary
+endpoint is new; preservation must not fabricate a birth or generation. Keep
+exact original primary/hint roles and input revisions. An immutable successor
+does not itself select a current branch or resolve a deferred assertion.
+
+Large outcomes need lossless bounded inspection, not silent truncation: the
+uncalled codec provides key pagination and explicit byte chunks within24KB JSON
+envelopes. Materialization and resolution annotations remain descriptive until a
+reviewed owner proves them against the actual transaction. No transcript retention
+or new routing authority is implied.
+
+Storage failures are not necessarily safe diagnostics: real Badger value-limit
+errors include a dump of submitted bytes. Outcome writers return static errors
+and preserve only allowlisted static classifications; they must not wrap arbitrary
+storage errors. Independent unchanged disk/memory failures verify this boundary.
