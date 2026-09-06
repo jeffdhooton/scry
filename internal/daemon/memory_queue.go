@@ -304,6 +304,14 @@ func (d *Daemon) handleMemoryEnqueue(_ context.Context, raw json.RawMessage) (an
 // or already resolved. Text is redacted here as a backstop: every distiller
 // redacts too, but this is the one door into the store.
 func enqueueEpisode(st *memstore.Store, ep distill.RawEpisode, hints []string, now time.Time, force bool) (bool, error) {
+	if ep.Source == distill.CuratedSource {
+		if err := distill.ValidateCurated(ep); err != nil {
+			return false, err
+		}
+		if force {
+			return false, fmt.Errorf("curated constraints do not support force replay")
+		}
+	}
 	if !force {
 		if has, err := st.HasEpisode(ep.ID); err != nil || has {
 			return false, err

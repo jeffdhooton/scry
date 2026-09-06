@@ -203,6 +203,10 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 	if budgetChars <= 0 {
 		budgetChars = defaultOrientBudget
 	}
+	curated, excluded, err := curatedForOrient(st, cwd)
+	if err != nil {
+		return "", err
+	}
 
 	repoPath, repoEntities, err := repoEntitiesForCwd(st, cwd)
 	if err != nil {
@@ -222,9 +226,9 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 	if err != nil {
 		return "", err
 	}
-	repoBullets := make([]string, 0, len(ranked))
+	repoBullets := append([]string{}, curated...)
 	for _, e := range ranked {
-		texts, err := factTextsForRepo(st, e.Slug, maxRepoFacts, local)
+		texts, err := factTextsForRepo(st, e.Slug, maxRepoFacts, local, excluded)
 		if err != nil {
 			return "", err
 		}
@@ -256,7 +260,7 @@ func Orient(st *store.Store, cwd string, budgetChars int, now time.Time) (string
 
 	activeBullets := make([]string, 0, len(active))
 	for _, e := range active {
-		texts, err := recentFactTexts(st, e.Slug, 1)
+		texts, err := recentFactTexts(st, e.Slug, 1, excluded)
 		if err != nil {
 			return "", err
 		}
@@ -317,11 +321,12 @@ func citesLocal(f store.Fact, local map[string]bool) bool {
 
 // factTextsForRepo returns up to limit fact texts about slug, preferring
 // facts that came from a session in this repository, then the most recent.
-func factTextsForRepo(st *store.Store, slug string, limit int, local map[string]bool) ([]string, error) {
+func factTextsForRepo(st *store.Store, slug string, limit int, local, excluded map[string]bool) ([]string, error) {
 	facts, err := st.FactsAbout(slug, false)
 	if err != nil {
 		return nil, err
 	}
+	facts = withoutCuratedFacts(facts, excluded)
 	sort.SliceStable(facts, func(i, j int) bool {
 		li, lj := citesLocal(facts[i], local), citesLocal(facts[j], local)
 		if li != lj {
@@ -459,11 +464,12 @@ func rankForOrient(st *store.Store, entities []store.Entity, local map[string]bo
 
 // recentFactTexts returns up to limit current facts' Fact text about slug,
 // most-recent (by ValidFrom) first.
-func recentFactTexts(st *store.Store, slug string, limit int) ([]string, error) {
+func recentFactTexts(st *store.Store, slug string, limit int, excluded map[string]bool) ([]string, error) {
 	facts, err := st.FactsAbout(slug, false)
 	if err != nil {
 		return nil, err
 	}
+	facts = withoutCuratedFacts(facts, excluded)
 	sort.Slice(facts, func(i, j int) bool { return facts[i].ValidFrom.After(facts[j].ValidFrom) })
 	if len(facts) > limit {
 		facts = facts[:limit]

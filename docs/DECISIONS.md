@@ -9,6 +9,53 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-09-06 — One opt-in authored constraint reaches orientation through the queue
+
+**Decision.** The September 6 reset freezes the private admission prototype and
+supersedes its implementation backlog. Retain delivered safety work. Add only an
+explicit `memory ingest --source curated --repo <root> --path <file>` workflow.
+The selected file is `docs/memory/curated-constraint.txt`, expressing the existing
+no-CGO constraint. No sweep, home-directory discovery, hook or live-store change.
+
+A curated source is one short authored line. Its canonical file path, SHA-256 of
+the exact bytes, explicit canonical repository root and client-side `.git`
+attestation travel through `memory.enqueue`, `pq:`, the ordinary worker and the
+existing transactional resolver into `ep:`. Like a manual remember, its exact
+authored text is its summary; it becomes visible only after resolution commits.
+This retains the deliberately selected note, not session transcripts.
+
+Orientation puts the latest completed observation of each selected file first,
+with full source attribution, inside its existing 2000-byte default budget. It
+requires the exact mapped repository root and verifies the summary against its
+source hash. Curated-derived graph facts are excluded from generic orientation
+bullets, including the cross-project active section. All earlier source episodes
+and ordinary graph facts remain available; fact identity, merging and temporal
+invalidation are unchanged. In particular, a same-triple edit can leave the old
+wording in graph recall; orientation presents the authored source revision.
+
+**Why.** The dated September 4 assessment identifies curated coverage as a real
+workflow gap. Rewriting the normal resolver to preserve edited graph wording
+would expand this slice into the frozen identity/temporal project. The existing
+manual-summary and durable-queue paths can retain the authored rule exactly
+without changing those policies or bypassing resolution.
+
+Curated cursors add optional content-hash and episode-ID receipts under their
+own source/repository/file namespace. Unchanged bytes do nothing, even after an
+mtime-only save. The predecessor receipt gives A -> B -> A distinct observations
+and makes an enqueue-success/cursor-failure retry idempotent. A cursor advances
+only after complete queue acknowledgment. Imports of one file are serialized by
+the caller; this does not redesign the existing cursor concurrency contract.
+The versioned enqueue alias makes older daemons refuse this opt-in workflow.
+SchemaVersion remains 1; no migration or private admission activation is involved.
+
+**What would change our minds.** A separately authorized workflow requiring
+multi-file documents, concurrent editors, inherited rules below repository roots,
+automatic withdrawal or updated graph-level assertions needs its own contract.
+The current slice and its deterministic tests are documented in
+`docs/memory-repairs/curated-constraint-workflow-2026-09-06.md`.
+
+---
+
 ## 2026-08-19 — Watchers are bounded by a descriptor budget, not a directory cap
 
 **Decision:** The file watchers are bounded by a shared file-descriptor budget

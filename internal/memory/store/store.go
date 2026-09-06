@@ -164,6 +164,9 @@ type Cursor struct {
 	Size           int64     `json:"size"`
 	ModTime        time.Time `json:"mod_time"`
 	ProcessedBytes int64     `json:"processed_bytes"`
+	// Optional curated-source receipt. Other cursor formats are unchanged.
+	ContentHash string `json:"content_hash,omitempty"`
+	EpisodeID   string `json:"episode_id,omitempty"`
 }
 
 // Store is an open BadgerDB-backed handle on the global memory store.

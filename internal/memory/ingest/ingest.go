@@ -44,8 +44,9 @@ type Options struct {
 	// the daemon already holds, to repair ones resolved before a fix. The
 	// cursor is still advanced afterwards.
 	Force  bool
-	Source string // "claude" | "codex" | "kimi" | "opencode" | "loom" | "seed" (opencode paths are OpenCodeRefs)
+	Source string // "claude" | "codex" | "kimi" | "opencode" | "loom" | "seed" | "curated" (opencode paths are OpenCodeRefs)
 	Path   string
+	Repo   string // required explicit repository root for source "curated"
 	Daemon Daemon
 }
 
@@ -65,6 +66,8 @@ type offsetDistillFunc func(path string, offset int64) ([]distill.RawEpisode, in
 // failed enqueue leaves the cursor where it was and the next run retries.
 func File(ctx context.Context, o Options) (Summary, error) {
 	switch o.Source {
+	case "curated":
+		return ingestCurated(ctx, o)
 	case "claude":
 		return ingestOffset(ctx, o, distill.ClaudeSession)
 	case "codex":

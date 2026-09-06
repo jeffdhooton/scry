@@ -1,0 +1,1 @@
+Scry must build with CGO_ENABLED=0: no CGO, so the single binary can be cross-compiled freely.

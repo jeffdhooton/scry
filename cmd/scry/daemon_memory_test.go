@@ -10,8 +10,72 @@ import (
 	"testing"
 
 	"github.com/jeffdhooton/scry/internal/daemon"
+	"github.com/jeffdhooton/scry/internal/memory/distill"
+	"github.com/jeffdhooton/scry/internal/memory/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
+
+func TestCuratedCLIRequiresVersionedQueueAndExplicitRepo(t *testing.T) {
+	socket := shortSocketPath(t)
+	listener, err := net.Listen("unix", socket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	server := rpc.NewServer()
+	server.Register("memory.cursor.get", func(context.Context, json.RawMessage) (any, error) { return daemon.MemoryCursorGetResult{}, nil })
+	var cursors []store.Cursor
+	server.Register("memory.cursor.put", func(_ context.Context, raw json.RawMessage) (any, error) {
+		var c store.Cursor
+		if err := json.Unmarshal(raw, &c); err != nil {
+			return nil, err
+		}
+		cursors = append(cursors, c)
+		return map[string]bool{"ok": true}, nil
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = server.Serve(ctx, listener) }()
+	t.Setenv(memorySocketEnv, socket)
+	repo := t.TempDir()
+	if err := os.Mkdir(filepath.Join(repo, ".git"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(repo, "rule.txt")
+	if err := os.WriteFile(file, []byte("Scry builds without CGO.\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"--source", "curated", "--path", file, "--repo", repo}
+	cmd := memoryIngestCmd()
+	cmd.SetArgs(args)
+	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "method not found") {
+		t.Fatalf("old daemon was not refused: %v", err)
+	}
+	if len(cursors) != 0 {
+		t.Fatal("old daemon refusal advanced cursor")
+	}
+	var received []distill.RawEpisode
+	server.Register("memory.enqueue.curated.v1", func(_ context.Context, raw json.RawMessage) (any, error) {
+		var p daemon.MemoryEnqueueParams
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return nil, err
+		}
+		received = p.Episodes
+		return daemon.MemoryEnqueueResult{Queued: len(p.Episodes)}, nil
+	})
+	cmd = memoryIngestCmd()
+	cmd.SetArgs(args)
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	canonical, _ := filepath.EvalSymlinks(repo)
+	if len(received) != 1 || received[0].Cwd != canonical || !received[0].CwdIsRepo || distill.ValidateCurated(received[0]) != nil {
+		t.Fatalf("CLI lost explicit provenance: %+v", received)
+	}
+	if len(cursors) != 1 || cursors[0].EpisodeID != received[0].ID || cursors[0].ContentHash == "" {
+		t.Fatalf("missing accepted receipt: %+v", cursors)
+	}
+}
 
 func TestMemoryOrientResolvesCwdBeforeRemoteRPC(t *testing.T) {
 	socket := shortSocketPath(t)

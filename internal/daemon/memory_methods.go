@@ -45,6 +45,9 @@ func (d *Daemon) registerMemoryMethods() {
 	d.server.Register("memory.status", d.handleMemoryStatus)
 	d.server.Register("memory.export", d.handleMemoryExport)
 	d.server.Register("memory.enqueue", d.handleMemoryEnqueue)
+	// Versioned opt-in prevents an older worker silently paraphrasing the
+	// authored constraint instead of retaining its exact source summary.
+	d.server.Register("memory.enqueue.curated.v1", d.handleMemoryEnqueue)
 	d.server.Register("memory.queue", d.handleMemoryQueue)
 	d.server.Register("memory.queue.retry", d.handleMemoryQueueRetry)
 	d.server.Register("memory.queue.drop", d.handleMemoryQueueDrop)

@@ -386,7 +386,7 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 	defer cancel()
 
 	ep := distill.RawEpisode{ID: p.ID, Source: p.Source, SourceRef: p.SourceRef, Text: p.Text,
-		OccurredAt: p.OccurredAt, Cwd: p.Cwd}
+		OccurredAt: p.OccurredAt, Cwd: p.Cwd, CwdIsRepo: p.CwdIsRepo}
 	var glossary []string
 	if w.o.Glossary != nil {
 		glossary = w.o.Glossary()
@@ -405,7 +405,7 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 	}
 
 	summary := res.EpisodeSummary
-	if p.Source == "manual" {
+	if p.Source == "manual" || p.Source == distill.CuratedSource {
 		// A remembered fact is its own best summary. The model's paraphrase
 		// drops the specifics the agent chose to write down.
 		summary = p.Text

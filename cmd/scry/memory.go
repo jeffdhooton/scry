@@ -512,7 +512,13 @@ var _ ingest.Daemon = daemonClient{}
 
 func (c daemonClient) Enqueue(ctx context.Context, eps []distill.RawEpisode) (int, int, error) {
 	var result daemon.MemoryEnqueueResult
-	err := callMemoryDaemon(ctx, "memory.enqueue", &daemon.MemoryEnqueueParams{Episodes: eps, Force: c.force}, &result)
+	method := "memory.enqueue"
+	for _, ep := range eps {
+		if ep.Source == distill.CuratedSource {
+			method = "memory.enqueue.curated.v1"
+		}
+	}
+	err := callMemoryDaemon(ctx, method, &daemon.MemoryEnqueueParams{Episodes: eps, Force: c.force}, &result)
 	return result.Queued, result.Known, err
 }
 
@@ -572,11 +578,12 @@ func memoryIngestCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			source, _ := cmd.Flags().GetString("source")
 			switch source {
-			case "claude", "codex", "kimi", "opencode", "loom", "seed":
+			case "claude", "codex", "kimi", "opencode", "loom", "seed", "curated":
 			default:
-				return fmt.Errorf("--source must be one of claude|codex|kimi|opencode|loom|seed, got %q", source)
+				return fmt.Errorf("--source must be one of claude|codex|kimi|opencode|loom|seed|curated, got %q", source)
 			}
 			path, _ := cmd.Flags().GetString("path")
+			repo, _ := cmd.Flags().GetString("repo")
 			force, _ := cmd.Flags().GetBool("force")
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -586,6 +593,7 @@ func memoryIngestCmd() *cobra.Command {
 				Force:  force,
 				Source: source,
 				Path:   path,
+				Repo:   repo,
 				Daemon: daemonClient{force: force},
 			})
 			if err != nil {
@@ -595,7 +603,8 @@ func memoryIngestCmd() *cobra.Command {
 			return printJSON(sum, pretty)
 		},
 	}
-	cmd.Flags().String("source", "", "source type: claude|codex|kimi|opencode|loom|seed (required)")
+	cmd.Flags().String("source", "", "source type: claude|codex|kimi|opencode|loom|seed|curated (required)")
+	cmd.Flags().String("repo", "", "explicit repository root (required for curated; no automatic discovery)")
 	cmd.Flags().String("path", "", "path to the transcript file, run directory, or seed markdown file; for opencode, opencode:<db>:<session id> (required)")
 	cmd.Flags().Bool("force", false, "re-queue episodes the store already holds so they are re-applied under the current rules (repair)")
 	_ = cmd.MarkFlagRequired("source")
