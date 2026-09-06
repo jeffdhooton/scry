@@ -1,0 +1,627 @@
+{
+  "kind": "root actual deployment receipt; independent review pending",
+  "source_commit": "a06cd7b",
+  "deployed_utc": "2026-09-06T02:54:47Z/2026-09-06T02:54:48Z",
+  "candidate_sha256": "7938d05258bb3b08461441b7448a8da4a95374664f42a9b240f22c3327de55ef",
+  "retained_sha256": "7783216755045eb365e0e0cd281ead8e2842da1b8fb697dfb42158c232cbb7e7",
+  "retained_suffix": ".pre-a06cd7b-20260906T0250Z",
+  "pids": {
+    "laptop": 10158,
+    "mini": 12146
+  },
+  "room_seq": 133,
+  "deploy_command_receipt": {
+    "chunk_id": "d4cd4b",
+    "wall_time_seconds": 0.947571333,
+    "exit_code": 0,
+    "original_token_count": 175,
+    "output": "7938d05258bb3b08461441b7448a8da4a95374664f42a9b240f22c3327de55ef  /Users/jeff/go/bin/scry\n7783216755045eb365e0e0cd281ead8e2842da1b8fb697dfb42158c232cbb7e7  /Users/jeff/go/bin/scry.pre-a06cd7b-20260906T0250Z\nperl: warning: Setting locale failed.\nperl: warning: Please check that your locale settings:\n\tLC_ALL = \"C.UTF-8\",\n\tLC_CTYPE = \"C.UTF-8\",\n\tLANG = \"en_US.UTF-8\"\n    are supported and installed on your system.\nperl: warning: Falling back to a fallback locale (\"en_US.UTF-8\").\n7938d05258bb3b08461441b7448a8da4a95374664f42a9b240f22c3327de55ef  /Users/jclaw/.local/bin/scry\n7783216755045eb365e0e0cd281ead8e2842da1b8fb697dfb42158c232cbb7e7  /Users/jclaw/.local/bin/scry.pre-a06cd7b-20260906T0250Z\n"
+  },
+  "backups": [
+    {
+      "host": "shared",
+      "phase": "pre",
+      "path": "/tmp/scry-historical-deploy-sep06.INlBVW/memory-20260906T025332Z.badger",
+      "bytes": 75362914,
+      "sha256": "5e53e905c2b2eecb5cf7a985c22c88adbc449c28782146765c535723116ed81d"
+    },
+    {
+      "host": "laptop",
+      "phase": "pre",
+      "path": "/Users/jeff/.scry/backups/memory-20260906T025332Z.badger",
+      "bytes": 19445016,
+      "sha256": "0f3aec53bf5ce13e29ad757f3fa152ed4914ccd74990bffc8b8cb8809cf31aff"
+    },
+    {
+      "host": "shared",
+      "phase": "post",
+      "path": "/tmp/scry-historical-deploy-sep06.INlBVW/memory-20260906T025509Z.badger",
+      "bytes": 75362922,
+      "sha256": "2f60f448e8d3844e6fd2692aa69891a693e6cd41145e2c47fac336af8ed7743b"
+    },
+    {
+      "host": "laptop",
+      "phase": "post",
+      "path": "/Users/jeff/.scry/backups/memory-20260906T025509Z.badger",
+      "bytes": 19445024,
+      "sha256": "9a65e98f7a841cb90c17a2f8ba5026be32edf488846dc291e151d98da78655fa"
+    }
+  ],
+  "root_restores": {
+    "all_four_complete": true,
+    "pre_post_logical_digests_equal": true,
+    "shared": "e88e1d8a5fb5c922ecd028393e2a09ba2bcdb20eecc383f6c6d3ef750c5bf720",
+    "laptop": "8efead71b3128363e95c7f39678e3ec9332ae4a7645af03454ccf4780f02c2c7"
+  },
+  "live_before": [
+    {
+      "suite": "heldout-2026-09-03",
+      "total": 62,
+      "hits": 51,
+      "top_n": 20,
+      "mean_answer_rank": 4.862745098039215,
+      "mean_payload_bytes": 10545,
+      "max_payload_bytes": 12107,
+      "over_cap": 0,
+      "misses": [
+        {
+          "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+          "rank": -1
+        },
+        {
+          "question": "What are we paying per million output tokens for the top Anthropic model?",
+          "rank": -1
+        },
+        {
+          "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+          "rank": -1
+        },
+        {
+          "question": "What tailnet address does the Cell Saviors box answer on?",
+          "rank": -1
+        },
+        {
+          "question": "What does Hermes use for inference when the primary model is down?",
+          "rank": -1
+        },
+        {
+          "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+          "rank": -1
+        },
+        {
+          "question": "Is the DBA filing site actually online yet?",
+          "rank": -1
+        },
+        {
+          "question": "What did Jeff want done about two-factor auth on the demo site?",
+          "rank": -1
+        },
+        {
+          "question": "What interface is Ollama bound to these days?",
+          "rank": -1
+        },
+        {
+          "question": "A memory write disappeared without an error - what happened?",
+          "rank": -1
+        },
+        {
+          "question": "What network did Jeff join so the hotspot's admin page would come up?",
+          "rank": -1
+        }
+      ]
+    },
+    {
+      "suite": "heldout-b",
+      "total": 66,
+      "hits": 29,
+      "top_n": 20,
+      "mean_answer_rank": 5.068965517241379,
+      "mean_payload_bytes": 10630,
+      "max_payload_bytes": 13359,
+      "over_cap": 0,
+      "misses": [
+        {
+          "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+          "rank": -1
+        },
+        {
+          "question": "What happened to the DeepSeek worker container on the second box?",
+          "rank": -1
+        },
+        {
+          "question": "Where do the deep research agent's model calls actually go?",
+          "rank": -1
+        },
+        {
+          "question": "How often are the queue backups taken and how long do we keep them?",
+          "rank": -1
+        },
+        {
+          "question": "What address does the interview engine bind to so a real phone can hit it?",
+          "rank": -1
+        },
+        {
+          "question": "Why was the mobile app failing to reach the engine from its environment file?",
+          "rank": -1
+        },
+        {
+          "question": "What do we use to run unit tests in the mobile app?",
+          "rank": -1
+        },
+        {
+          "question": "What is holding up charging sales tax to customers?",
+          "rank": -1
+        },
+        {
+          "question": "What extra step does staging need after the server-rendered bundle changes?",
+          "rank": -1
+        },
+        {
+          "question": "How is a review supposed to be requested in a fleet room?",
+          "rank": -1
+        },
+        {
+          "question": "Which git operations are workers not allowed to run?",
+          "rank": -1
+        },
+        {
+          "question": "What was wrong with the dunning run endpoint when it got bad input?",
+          "rank": -1
+        },
+        {
+          "question": "Is there any migration number range nobody has claimed yet?",
+          "rank": -1
+        },
+        {
+          "question": "Is the messaging section of the office app actually built?",
+          "rank": -1
+        },
+        {
+          "question": "Why can nobody hit the customer portal endpoints?",
+          "rank": -1
+        },
+        {
+          "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+          "rank": -1
+        },
+        {
+          "question": "What caused duplicate dev servers to be launched?",
+          "rank": -1
+        },
+        {
+          "question": "What is risky about the way the sync loop touches the Claude config file?",
+          "rank": -1
+        },
+        {
+          "question": "Why does the orientation output list things that aren't projects?",
+          "rank": -1
+        },
+        {
+          "question": "How do I know whether an agent actually got launched into its pane?",
+          "rank": -1
+        },
+        {
+          "question": "Which newsletter layout do customers get unless we change something?",
+          "rank": -1
+        },
+        {
+          "question": "Why does the voice interview traffic take a detour instead of going direct?",
+          "rank": -1
+        },
+        {
+          "question": "What fields is the sign-up form allowed to have?",
+          "rank": -1
+        },
+        {
+          "question": "How does the demo box get new code?",
+          "rank": -1
+        },
+        {
+          "question": "What does the SEO data vendor charge per request?",
+          "rank": -1
+        },
+        {
+          "question": "Why was hunting for search terms with no existing player a dead end?",
+          "rank": -1
+        },
+        {
+          "question": "How are the different kinds of events categorized in that WordPress site?",
+          "rank": -1
+        },
+        {
+          "question": "Which model came out on top in the writing comparison?",
+          "rank": -1
+        },
+        {
+          "question": "What makes that page builder awkward for agents to edit?",
+          "rank": -1
+        },
+        {
+          "question": "What data survives from one month's report to the next?",
+          "rank": -1
+        },
+        {
+          "question": "How do we treat temporary errors coming back from Meta when publishing?",
+          "rank": -1
+        },
+        {
+          "question": "What is the minimum length the automated writing gate enforces?",
+          "rank": -1
+        },
+        {
+          "question": "What subject does Jeff say he cannot fake his way through?",
+          "rank": -1
+        },
+        {
+          "question": "Where do the Google OAuth tokens live for the assistant box?",
+          "rank": -1
+        },
+        {
+          "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+          "rank": -1
+        },
+        {
+          "question": "Which model is powering the visual design session and how fast is it going?",
+          "rank": -1
+        },
+        {
+          "question": "What URL do I open to see the battery pack layout tool locally?",
+          "rank": -1
+        }
+      ]
+    },
+    {
+      "suite": "probes",
+      "total": 7,
+      "hits": 7,
+      "top_n": 20,
+      "mean_answer_rank": 1,
+      "mean_payload_bytes": 9722,
+      "max_payload_bytes": 9972,
+      "over_cap": 0,
+      "misses": []
+    },
+    {
+      "suite": "tuning-strict",
+      "total": 50,
+      "hits": 45,
+      "top_n": 20,
+      "mean_answer_rank": 4.511111111111111,
+      "mean_payload_bytes": 10003,
+      "max_payload_bytes": 11542,
+      "over_cap": 0,
+      "misses": [
+        {
+          "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+          "rank": -1
+        },
+        {
+          "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+          "rank": -1
+        },
+        {
+          "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+          "rank": -1
+        },
+        {
+          "question": "Do we retain any recording of the child's voice from a live interview?",
+          "rank": -1
+        },
+        {
+          "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+          "rank": -1
+        }
+      ]
+    },
+    {
+      "suite": "tuning",
+      "total": 50,
+      "hits": 47,
+      "top_n": 20,
+      "mean_answer_rank": 3.9574468085106385,
+      "mean_payload_bytes": 10003,
+      "max_payload_bytes": 11542,
+      "over_cap": 0,
+      "misses": [
+        {
+          "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+          "rank": -1
+        },
+        {
+          "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+          "rank": -1
+        },
+        {
+          "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+          "rank": -1
+        }
+      ]
+    }
+  ],
+  "live_after": [
+    {
+      "suite": "heldout-2026-09-03",
+      "total": 62,
+      "hits": 51,
+      "top_n": 20,
+      "mean_answer_rank": 4.862745098039215,
+      "mean_payload_bytes": 10546,
+      "max_payload_bytes": 12111,
+      "over_cap": 0,
+      "misses": [
+        {
+          "question": "Why couldn't the money agent talk to a service running on localhost through the tunnel?",
+          "rank": -1
+        },
+        {
+          "question": "What are we paying per million output tokens for the top Anthropic model?",
+          "rank": -1
+        },
+        {
+          "question": "Why did running a query from a nested folder inside a repo report it as unindexed?",
+          "rank": -1
+        },
+        {
+          "question": "What tailnet address does the Cell Saviors box answer on?",
+          "rank": -1
+        },
+        {
+          "question": "What does Hermes use for inference when the primary model is down?",
+          "rank": -1
+        },
+        {
+          "question": "How many models will the AMD box hold in memory at the same time now, and why was that changed?",
+          "rank": -1
+        },
+        {
+          "question": "Is the DBA filing site actually online yet?",
+          "rank": -1
+        },
+        {
+          "question": "What did Jeff want done about two-factor auth on the demo site?",
+          "rank": -1
+        },
+        {
+          "question": "What interface is Ollama bound to these days?",
+          "rank": -1
+        },
+        {
+          "question": "A memory write disappeared without an error - what happened?",
+          "rank": -1
+        },
+        {
+          "question": "What network did Jeff join so the hotspot's admin page would come up?",
+          "rank": -1
+        }
+      ]
+    },
+    {
+      "suite": "heldout-b",
+      "total": 66,
+      "hits": 29,
+      "top_n": 20,
+      "mean_answer_rank": 5.103448275862069,
+      "mean_payload_bytes": 10630,
+      "max_payload_bytes": 13359,
+      "over_cap": 0,
+      "misses": [
+        {
+          "question": "What is serving the local model chat interface on the mac mini and how does it survive reboots?",
+          "rank": -1
+        },
+        {
+          "question": "What happened to the DeepSeek worker container on the second box?",
+          "rank": -1
+        },
+        {
+          "question": "Where do the deep research agent's model calls actually go?",
+          "rank": -1
+        },
+        {
+          "question": "How often are the queue backups taken and how long do we keep them?",
+          "rank": -1
+        },
+        {
+          "question": "What address does the interview engine bind to so a real phone can hit it?",
+          "rank": -1
+        },
+        {
+          "question": "Why was the mobile app failing to reach the engine from its environment file?",
+          "rank": -1
+        },
+        {
+          "question": "What do we use to run unit tests in the mobile app?",
+          "rank": -1
+        },
+        {
+          "question": "What is holding up charging sales tax to customers?",
+          "rank": -1
+        },
+        {
+          "question": "What extra step does staging need after the server-rendered bundle changes?",
+          "rank": -1
+        },
+        {
+          "question": "How is a review supposed to be requested in a fleet room?",
+          "rank": -1
+        },
+        {
+          "question": "Which git operations are workers not allowed to run?",
+          "rank": -1
+        },
+        {
+          "question": "What was wrong with the dunning run endpoint when it got bad input?",
+          "rank": -1
+        },
+        {
+          "question": "Is there any migration number range nobody has claimed yet?",
+          "rank": -1
+        },
+        {
+          "question": "Is the messaging section of the office app actually built?",
+          "rank": -1
+        },
+        {
+          "question": "Why can nobody hit the customer portal endpoints?",
+          "rank": -1
+        },
+        {
+          "question": "Why did the daemon keep behaving like the old code after I rebuilt it?",
+          "rank": -1
+        },
+        {
+          "question": "What caused duplicate dev servers to be launched?",
+          "rank": -1
+        },
+        {
+          "question": "What is risky about the way the sync loop touches the Claude config file?",
+          "rank": -1
+        },
+        {
+          "question": "Why does the orientation output list things that aren't projects?",
+          "rank": -1
+        },
+        {
+          "question": "How do I know whether an agent actually got launched into its pane?",
+          "rank": -1
+        },
+        {
+          "question": "Which newsletter layout do customers get unless we change something?",
+          "rank": -1
+        },
+        {
+          "question": "Why does the voice interview traffic take a detour instead of going direct?",
+          "rank": -1
+        },
+        {
+          "question": "What fields is the sign-up form allowed to have?",
+          "rank": -1
+        },
+        {
+          "question": "How does the demo box get new code?",
+          "rank": -1
+        },
+        {
+          "question": "What does the SEO data vendor charge per request?",
+          "rank": -1
+        },
+        {
+          "question": "Why was hunting for search terms with no existing player a dead end?",
+          "rank": -1
+        },
+        {
+          "question": "How are the different kinds of events categorized in that WordPress site?",
+          "rank": -1
+        },
+        {
+          "question": "Which model came out on top in the writing comparison?",
+          "rank": -1
+        },
+        {
+          "question": "What makes that page builder awkward for agents to edit?",
+          "rank": -1
+        },
+        {
+          "question": "What data survives from one month's report to the next?",
+          "rank": -1
+        },
+        {
+          "question": "How do we treat temporary errors coming back from Meta when publishing?",
+          "rank": -1
+        },
+        {
+          "question": "What is the minimum length the automated writing gate enforces?",
+          "rank": -1
+        },
+        {
+          "question": "What subject does Jeff say he cannot fake his way through?",
+          "rank": -1
+        },
+        {
+          "question": "Where do the Google OAuth tokens live for the assistant box?",
+          "rank": -1
+        },
+        {
+          "question": "What is Jeff still on the hook for before that agent template task can proceed?",
+          "rank": -1
+        },
+        {
+          "question": "Which model is powering the visual design session and how fast is it going?",
+          "rank": -1
+        },
+        {
+          "question": "What URL do I open to see the battery pack layout tool locally?",
+          "rank": -1
+        }
+      ]
+    },
+    {
+      "suite": "probes",
+      "total": 7,
+      "hits": 7,
+      "top_n": 20,
+      "mean_answer_rank": 1,
+      "mean_payload_bytes": 9725,
+      "max_payload_bytes": 9974,
+      "over_cap": 0,
+      "misses": []
+    },
+    {
+      "suite": "tuning-strict",
+      "total": 50,
+      "hits": 45,
+      "top_n": 20,
+      "mean_answer_rank": 4.511111111111111,
+      "mean_payload_bytes": 9996,
+      "max_payload_bytes": 11542,
+      "over_cap": 0,
+      "misses": [
+        {
+          "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+          "rank": -1
+        },
+        {
+          "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+          "rank": -1
+        },
+        {
+          "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+          "rank": -1
+        },
+        {
+          "question": "Do we retain any recording of the child's voice from a live interview?",
+          "rank": -1
+        },
+        {
+          "question": "Why were the fleet tool's commits being refused by a git hook that isn't in the project repo?",
+          "rank": -1
+        }
+      ]
+    },
+    {
+      "suite": "tuning",
+      "total": 50,
+      "hits": 47,
+      "top_n": 20,
+      "mean_answer_rank": 3.9574468085106385,
+      "mean_payload_bytes": 9996,
+      "max_payload_bytes": 11542,
+      "over_cap": 0,
+      "misses": [
+        {
+          "question": "What command does the scryd launch agent actually run, and will launchd restart it if it dies?",
+          "rank": -1
+        },
+        {
+          "question": "How is model cost split across scry's memory pipeline stages, i.e. which stage gets the cheap model and which gets thinking?",
+          "rank": -1
+        },
+        {
+          "question": "How are the databases and object store on the Mac mini being run, natively or in containers?",
+          "rank": -1
+        }
+      ]
+    }
+  ],
+  "limits": "Hits and complete miss sets unchanged. Heldout-b mean rank 5.068965517241379→5.103448275862069 also reproduced by old artifact on fresh frozen predeploy snapshot. Live payload means/maxima differ; no full live byte equality claim. Root receipts are not independent actual certification. No final quality PASS; 23 parked inputs,2854 hollows,heldout floors remain unmet."
+}

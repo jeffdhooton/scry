@@ -4126,3 +4126,56 @@ contains 246,169 rows, 81,504 facts (73,641 current), 31,064 entities,
 9,424 episodes and 24 pending inputs. Laptop digest remains
 8efead71b3128363e95c7f39678e3ec9332ae4a7645af03454ccf4780f02c2c7.
 These root checks are not substitutes for the candidate's independent gate.
+
+### 2026-09-06 — historical protection deployed and independently verified
+
+Both machines run exact a06cd7b, installed/restarted 02:54:47–48 UTC, SHA256
+7938d05258bb3b08461441b7448a8da4a95374664f42a9b240f22c3327de55ef.
+Previous a078240 / 7783216755045eb365e0e0cd281ead8e2842da1b8fb697dfb42158c232cbb7e7
+is retained at each installed path plus .pre-a06cd7b-20260906T0250Z. No older
+rollback file was removed. Exact source/artifact and fresh predeploy reviews
+are archived; actual report historical-address-actual-independent-review has
+SHA227f66914659b8007050c0cfa9656154b9b6f0d036a6638cd8f04edea708cdd6.
+All52 independent evidence hashes verify. Room133 records deployment;134
+records actual bounded PASS. Full root receipt is archived separately.
+
+Independent four complete025332/025509 restores prove every active logical
+record unchanged on both hosts: shared246219rows/81514facts/7863history/
+52570claims/42markers/23parked; laptop83378rows/21004facts/2509history.
+Both actual process starts/paths, launchd state and bounded startup logs pass.
+Twenty actual old/current CLI pairs and all235 individual full-response hashes
+on EACH frozen post store match, sharedSHAab42ced88db7a6a08f4a6ac52c1adccdae2077b5d9b91904fba8b3571122a2a1.
+Scores remain51/29/7/45/47, cap0, max13359. Live heldout-b meanrank shifts
+5.0689655→5.1034483; old binary on the frozen snapshot reproduces the latter,
+supporting index-refresh attribution rather than changed candidate scoring.
+No full live-payload equality is claimed. Whole goal still FAILS:2854hollows,
+2441dangling endpoints,504wrong-owner occurrences and heldout floors remain.
+
+Historical source note be14c4835407470abf98fcf385b85ec93377056a772657b3728657ec135e6f37
+is independently ingested by024704, raw episodeSHAd84c0ad7167375d01402796c6a34849531bf08e473dd2bc554dbd74d9126237e.
+Actual deployment note submitted ONCE03:06:20UTC:
+243363ca0a562f795248a6c9a9dd15f491bd74ef32138cff8a80b6d1274a0c41.
+Accepted queued; ingestion not yet proved. Never retry either note.
+First explicit installed-binary sweep ran03:02:43→03:04:10UTC:2398files,
+7ingested,11episodes(claude6/codex5),0errors. Full030543backup is captured;
+second explicit sweep started03:06:20. These are not two final quality rounds.
+
+### 2026-09-06 — admission design narrowed; journal bug caught privately
+
+Independent initial admission design and delayed-evidence correction are
+archived. The correctionSHAf1163529f695f7e991bfd0ba01b508b6f2ba268f1b89c205993384cf9b36212e
+proves transaction-local isolation is insufficient: old orphan attestations
+regain authority after a supported identity commits; capped old lists cannot
+retain fresh IDs. Persistent generation-bound evidence is required before any
+admission policy integration. No live metadata or old hollow is moved.
+
+A private, uncalled journal-only primitive was then tested. Initial independent
+rejectionSHA cfda42a189cb78e0d979771c61e43322d8dc86d3886267a7f7179341dd8290c5
+proves caller-owned undo-key buffers can be reused after restore and redirect
+Badger's eventual Set/Delete into a fact key. The frozen failure is retained.
+Root fixes this only in /tmp/scry-unattached-evidence-sep06.db52ow/code by
+cloning keys, expected values and old Set bytes into an owned preflight plan.
+Fixed sourceSHAd961d53c2c5fcc69b110987788c01837e79534ac381548c655fe463e020e3a80;
+root targeted regressions and complete no-CGO suite pass. Independent fixed
+extension is running. No journal source or admission behavior is integrated
+or deployed. Existing baseline expectations remain unchanged.

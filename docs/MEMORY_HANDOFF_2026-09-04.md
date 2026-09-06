@@ -1085,3 +1085,31 @@ Do not implement simple filtering, delete metadata, invent filler facts, or
 count hidden evidence as a completed repair. Keep this separate from a06cd7b.
 The user's untracked workflow assessment remains untouched. Its hook/install,
 old41group and other suggestions do not override the stricter active goal.
+
+### 2026-09-06 03:07 UTC — actual historical rollout PASS; private journal fix
+
+Supersedes the preceding NOT DEPLOYED status: both machines now run a06cd7b /
+7938d05258bb3b08461441b7448a8da4a95374664f42a9b240f22c3327de55ef,
+restarted02:54:47–48UTC. Previous a078240 is retained at installedpath plus
+.pre-a06cd7b-20260906T0250Z. LaptopPID10158, MiniPID12146. Actual independent
+reportSHA227f66914659b8007050c0cfa9656154b9b6f0d036a6638cd8f04edea708cdd6
+proves full logical equality across both pre/post pairs, actual process/hash
+verification, and old/current five-suite plus235full-response parity on each
+post replica. Whole goal remains FAIL; see audit for counts and exact limits.
+Room134 records this bounded verdict, not a whole-goal pass.
+
+Actual-deploy note243363ca0a562f795248a6c9a9dd15f491bd74ef32138cff8a80b6d1274a0c41
+was accepted ONCE03:06:20UTC; never retry. Source notebe14c483 is independently
+ingested by024704. First explicit postsweep03:02:43→03:04:10 completed11episodes,
+0errors; full030543pair captured. Second explicit sweep started03:06:20 and
+is still running at this entry. Do not count these as clean final rounds.
+
+Private admission design now requires durable generation-bound evidence;
+transaction-local orphan isolation alone was independently disproved. Journal
+only at /tmp/scry-unattached-evidence-sep06.db52ow/code is UNINTEGRATED. Its first
+version was rejected for caller-buffer reuse redirecting undo into fact keys;
+fixed source d961d53c2c5fcc69b110987788c01837e79534ac381548c655fe463e020e3a80
+owns its full plan. Root targeted/full no-CGO tests pass; independent extension
+is running at /tmp/scry-identity-journal-fixed-grade.xiYvzO. Do not integrate it
+as admission prevention: generation ledger, structured evidence, complete caller
+coverage, cost proof and explicit legacy contract reconciliation are unfinished.

@@ -3582,3 +3582,25 @@ is explicitly excluded. Direct PutFact metadata replacement, general unsupported
 current-row rewriting, exact FactRef design, old loss recovery and schema/format
 transition remain separate work. See the complete historical-address source,
 supersession, coverage and full-replica independent reports under memory-repairs.
+
+## 2026-09-06 — new identity evidence needs a persistent boundary
+
+Do not implement hollow prevention by deleting unsupported entities after
+ordinary resolution or merely ignoring orphan attestations during their birth
+transaction. Independent fixtures prove that old orphan evidence can route a
+real assertion before the filter runs, or regain authority in the next episode
+after a supported identity commits. Subtracting old IDs from a capped legacy
+list also starves fresh evidence once the old list has eight entries.
+
+The next admission design must preserve legacy bytes without granting them
+authority over a new identity, and retain fresh evidence with a durable binding
+to that identity's creation. This is a required design boundary, not approval
+of a new on-disk format, automatic migration, metadata quarantine, or a default
+behavior change. Begin with a private exact before-image journal and separately
+grade persistent admission-generation semantics. Keep the existing transactional
+resolution view; an incomplete overlay changes attribute-versus-edge meaning.
+Preserve per-occurrence metadata and expose unresolved observations rather than
+inventing facts or concealing hollows under another counter. The legacy test
+requiring a valid zero-fact endpoint stub is an explicit contract to reconcile,
+not an assertion to silently weaken. See the two unattached-admission independent
+reports and delayed-evidence correction under memory-repairs.
