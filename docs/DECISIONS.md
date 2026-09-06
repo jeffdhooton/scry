@@ -3604,3 +3604,25 @@ inventing facts or concealing hollows under another counter. The legacy test
 requiring a valid zero-fact endpoint stub is an explicit contract to reconcile,
 not an assertion to silently weaken. See the two unattached-admission independent
 reports and delayed-evidence correction under memory-repairs.
+
+### Admission foundations stay uncalled until a controller is reviewed
+
+**Decision, 2026-09-06.** Retain the independently corrected exact-key journal
+and generation-ledger primitives, with all original failing regressions, in
+the store package without connecting any production caller. This is source
+foundation work only: no active new key families, migration, schema bump,
+normal-write policy, cleanup or deployment is implied.
+
+The journal owns copied key/value buffers through transaction completion and
+preflights complete expected bytes before undo. The ledger never reuses legacy
+attestation capacity/authority for a newly selected generation. Accepted text
+must be valid UTF-8, and creation timestamps identify the exact instant encoded
+in UTC, not a timezone representation. Independent tests proved both invalid
+UTF-8 and second-offset time JSON could otherwise collapse distinct inputs.
+Only selector encoding normalizes UTC; no entity/fact timestamp is rewritten.
+
+These primitives are not an admission controller. An optional finish method
+cannot enforce fact support, complete metadata retention, all writers, Force,
+generation lifecycle or a safe legacy adoption/rollback boundary. Those remain
+required before wiring this into normal ingestion. See the journal fixed and
+generation initial/time rejection/fixed independent reports under memory-repairs.
