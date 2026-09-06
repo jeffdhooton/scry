@@ -3626,3 +3626,19 @@ cannot enforce fact support, complete metadata retention, all writers, Force,
 generation lifecycle or a safe legacy adoption/rollback boundary. Those remain
 required before wiring this into normal ingestion. See the journal fixed and
 generation initial/time rejection/fixed independent reports under memory-repairs.
+
+### Immutable input is separate from outcome; finalization owns the transaction
+
+**Decision, 2026-09-06.** Retain the independently corrected observation codec
+and outer transaction-owner harness as uncalled foundations. Observation identity
+covers complete parsed input, not a mutable materialization result. A force replay
+with changed input retains another revision; changing support alone must not invent
+another input. Raw episode identity must be unambiguous; unknown unrelated episode
+fields remain byte-for-byte untouched. User-visible disposition is still required.
+
+Finalization belongs after the whole outer callback and before commit. An owned
+facade must refuse independent merge, retirement, alias repair, backup, restore
+and close operations in every phase, including after callback return. Independent
+tests proved those public methods otherwise escape the outer rollback boundary.
+Root-store maintenance remains unchanged. The private injected finalizer does not
+authorize arbitrary raw writes or constitute an implemented admission policy.

@@ -140,6 +140,9 @@ func (s *Store) RetireEntityChecked(req EntityRetirementRequest, postcondition f
 // RetireEntitiesChecked commits a reviewed manifest as one transaction. A
 // drift or failed postcondition in any group aborts every group.
 func (s *Store) RetireEntitiesChecked(reqs []EntityRetirementRequest, postcondition func([]Entity, []Fact) error) ([]EntityRetirementPreview, error) {
+	if err := s.refuseAdmissionMaintenance(); err != nil {
+		return nil, err
+	}
 	// Retirement deletes entity keys, so ordinary writers must not share its
 	// maintenance window. In particular, a PutFact that began during analysis
 	// must observe the retired endpoint after commit and refuse it, rather than
@@ -173,6 +176,9 @@ type durableBackupWriter interface {
 // and closed before any write. Ordinary writers cannot land a change between
 // that verified rollback point and apply.
 func (s *Store) BackupAndRetireEntities(w durableBackupWriter, reqs []EntityRetirementRequest) (uint64, []EntityRetirementPreview, error) {
+	if err := s.refuseAdmissionMaintenance(); err != nil {
+		return 0, nil, err
+	}
 	var n uint64
 	var previews []EntityRetirementPreview
 	var events []Event

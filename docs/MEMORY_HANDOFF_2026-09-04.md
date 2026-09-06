@@ -1195,3 +1195,18 @@ remainactuala06cd7b, no new live apply. New source-only remember note
 was accepted ONCE~03:48UTC(depth28); ingestion not checked. NEVERretry. Room139
 records private rejections/corrections. Continue the active full goal; no final
 quality pass or deployment authority follows from either private-unit verdict.
+
+### 2026-09-06 04:22 UTC — corrected foundations source-integrated
+
+Observation83a39c03 was retained uncalled in cef41bd after corrected independent
+PASS b20e0a01. Owner14821246/store9491d689 plus maintenance guards and all safety
+regressions are now retained uncalled after corrected independent PASS fce8aec7.
+Full integrated no-CGO noncached suite passes. The owner has no production caller;
+normal root maintenance remains functional. Room141 and the audit contain the
+exact report pins and measured scope. Both initial rejected reports remain.
+
+Actual binaries remain a06cd7b; no live change. Continue with a private raw
+fact-reference validator, provisional vote buffer, then separately reviewed
+controller/adoption/lifecycle and observable dispositions. Reference existence
+must not authorize assigning an old dangling fact to a newly matching slug.
+The complete goal still fails; these are not deployment or final grading passes.

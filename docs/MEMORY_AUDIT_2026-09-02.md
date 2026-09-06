@@ -4318,3 +4318,34 @@ daemons still runa06cd7b. No live repair, schema/adoption or production behavior
 changed. Foundation source note submitted ONCE approximately03:48UTC is
 406c30f42de41e6b023473390a0e17b6f4eb87347cd91797c35fda46f0a6495c,
 accepted queued(depth28); ingestion not yet verified. Never retry it.
+
+### 2026-09-06 04:22 UTC — observation and owner retained, still inactive
+
+Supersedes the prior private-only status. Observation source83a39c03 is
+source-integrated at cef41bd with unchanged independent regressions. Corrected
+independent report b20e0a01a08a836b2588c50e5e806825ba872ba9d1e019690198208d9af5dec0
+passes its bounded immutable-input/provenance contract, not controller policy.
+It preserves distinct parsed revisions and validates raw episode identity without
+rewriting unknown fields. Materialization/disposition remains separate work.
+
+Corrected owner independently PASSES its bounded contract, report
+fce8aec72fce1680097f7d6a44e072a48876553bf527441ee2b8da24ea6685a7.
+The two unchanged failed merge-bypass safety tests now pass. Forty independent
+valid maintenance requests are refused across four owned phases, with zero DB,
+I/O, observer or callback effects; ten matching root-store positive controls
+actually perform their operations. Real staging failure and Badger commit
+conflict are covered. Both rejected reports/exports remain intact.
+
+Exact owner14821246/store9491d689 and guarded merge/retire/unalias sources plus
+all builder/independent safety tests are now copied into the shared checkout.
+All eleven copied file hashes match the independent report. The unsafe-behavior
+characterization remains only in the rejected export. Only the function definition
+references runIdentityAdmission outside tests: no production caller enables it.
+Combined journal/generation/observation/owner CGO_ENABLED=0 go test ./... -count=1
+PASSES (daemon33.827s, resolver18.897s, store31.203s). Room141 records the verdict.
+
+No deployment, live repair, schema or adoption change. Installed binaries remain
+a06cd7b. These foundations neither prevent new hollows nor satisfy final grading.
+Next private unit: strict raw fact-reference scan, not an ownership oracle or
+cleanup operation. Provisional vote buffering, complete controller integration,
+useful observation disposition and all-writer lifecycle/adoption remain open.

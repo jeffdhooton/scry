@@ -176,6 +176,9 @@ type Store struct {
 	// pendingEvents belongs to the same facade. Observers must never see a
 	// write that the surrounding transaction later rolls back.
 	pendingEvents *[]Event
+	// Private owner-harness experiment only; no production entry enables it.
+	admissionOwner   *identityAdmissionOwner
+	admissionFailure error
 	// maintenanceMu lets backup-coupled maintenance hold an exclusive
 	// rollback boundary while ordinary store mutations take the shared side.
 	maintenanceMu sync.RWMutex
@@ -207,7 +210,12 @@ func Open(dir string) (*Store, error) {
 }
 
 // Close closes the underlying database.
-func (s *Store) Close() error { return s.db.Close() }
+func (s *Store) Close() error {
+	if err := s.refuseAdmissionMaintenance(); err != nil {
+		return err
+	}
+	return s.db.Close()
+}
 
 // view runs fn in the active transaction, when this is an AtomicWrite
 // facade, or in an ordinary read transaction otherwise.
@@ -222,7 +230,17 @@ func (s *Store) view(fn func(*badger.Txn) error) error {
 // facade, or in an ordinary write transaction otherwise.
 func (s *Store) update(fn func(*badger.Txn) error) error {
 	if s.txn != nil {
-		return fn(s.txn)
+		if s.admissionOwner != nil && s.admissionOwner.phase != admissionBody {
+			return s.poisonAdmission(errIdentityAdmissionScope)
+		}
+		if s.admissionFailure != nil {
+			return s.admissionFailure
+		}
+		err := fn(s.txn)
+		if s.admissionOwner != nil && err != nil {
+			return s.poisonAdmission(err)
+		}
+		return err
 	}
 	return s.db.Update(fn)
 }
@@ -235,6 +253,12 @@ func (s *Store) update(fn func(*badger.Txn) error) error {
 // The facade is valid only for the duration of fn and must not escape it.
 func (s *Store) AtomicWrite(fn func(*Store) error) error {
 	if s.txn != nil {
+		if s.admissionFailure != nil {
+			return s.admissionFailure
+		}
+		if s.admissionOwner != nil {
+			return s.nestedAdmissionWrite(fn)
+		}
 		return fn(s)
 	}
 
@@ -249,7 +273,10 @@ func (s *Store) AtomicWrite(fn func(*Store) error) error {
 		return s.db.Update(func(txn *badger.Txn) error {
 			events = events[:0]
 			transactional := &Store{db: s.db, txn: txn, pendingEvents: &events}
-			return fn(transactional)
+			if err := fn(transactional); err != nil {
+				return err
+			}
+			return transactional.admissionFailure
 		})
 	}()
 	if err != nil {
@@ -1112,6 +1139,9 @@ func validEntitySlug(slug string) bool {
 // returns the number of bytes written. It runs against the live database,
 // so the daemon can take one before a migration without stopping.
 func (s *Store) Backup(w io.Writer) (uint64, error) {
+	if err := s.refuseAdmissionMaintenance(); err != nil {
+		return 0, err
+	}
 	s.maintenanceMu.RLock()
 	defer s.maintenanceMu.RUnlock()
 	return s.backupUnlocked(w)
@@ -1158,6 +1188,9 @@ func (c *countingWriter) Write(p []byte) (int, error) {
 // schema marker is re-checked afterwards so a restored store from the same
 // schema version opens cleanly.
 func (s *Store) Restore(r io.Reader) error {
+	if err := s.refuseAdmissionMaintenance(); err != nil {
+		return err
+	}
 	s.maintenanceMu.Lock()
 	defer s.maintenanceMu.Unlock()
 	if err := s.db.DropAll(); err != nil {

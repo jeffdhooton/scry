@@ -238,6 +238,9 @@ func (s *Store) PreviewAliasRepair(req AliasRepairRequest) (AliasRepairPreview, 
 // Every row is checked against one original snapshot before any row writes;
 // the complete batch then commits atomically. No entity is created or retired.
 func (s *Store) BackupAndRepairAliases(w durableBackupWriter, req AliasRepairRequest) (uint64, AliasRepairPreview, error) {
+	if err := s.refuseAdmissionMaintenance(); err != nil {
+		return 0, AliasRepairPreview{}, err
+	}
 	var n uint64
 	var preview AliasRepairPreview
 	err := func() error {

@@ -123,6 +123,9 @@ func (s *Store) MergeEntities(req EntityMergeRequest) (EntityMergePreview, error
 // read-your-writes entity/fact snapshot. An error aborts the merge before any
 // write becomes durable.
 func (s *Store) MergeEntitiesChecked(req EntityMergeRequest, postcondition func([]Entity, []Fact) error) (EntityMergePreview, error) {
+	if err := s.refuseAdmissionMaintenance(); err != nil {
+		return EntityMergePreview{}, err
+	}
 	var analysis entityMergeAnalysis
 	err := func() error {
 		// Serialize marker-only reviewed maintenance too: iterator reads must
