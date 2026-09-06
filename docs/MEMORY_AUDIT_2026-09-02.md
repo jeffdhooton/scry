@@ -5262,3 +5262,26 @@ log3b73539e6979b082cd5a541cf7513067889ca692ce049db33a3f47e25c1154bf.
 Subsequent ownership/dependency implementation is private WIP and is not covered
 by that earlier full-suite result. No actual stores/writers/receipts/Force replay/
 normal Apply/prevention deployment changed. Original goal remains active.
+
+## 2026-09-06 after14:38 — private ownership and receipt preparation
+
+Detailed root evidence and full source/failure pins are archived in
+memory-repairs/admission-ownership-and-receipts-2026-09-06.md. Complete-admission
+6qYb7K now16 source/test files, still one private composed implementation.
+Ownership tests first hit an already-effective early alias veto; corrected test
+names/checks record that branch, not a supposed late proposal. A separate two-order
+test then proved a real dependent-removal bug (log8a473552); source-only fix
+c608c2d9 passes unchanged tests and preserves unrelated metadata/facts. Full
+ownership/routes suite PASS71.571/17.042/27.833, loga0d46617.
+
+Actual immutable EP pinning first tests PASS.843s, log1cfe2b2b, no corrections.
+Prospective V2 assertion receipt first tests PASS.622s, logc0a33cb1, no corrections.
+Exact resolved endpoints remain truthful on FA/address deferral, baseline presence
+is separate from accepted materialization, and exact hint/effect/provenance witnesses
+stay owned. These are drafts only; no public committed result, durable V2 receipt,
+materialization, terminal replay or normal Apply integration exists yet.
+Full sixteen-file uncached no-CGO suite PASS72.784/17.215/27.893, final log
+ec20343fca6d47b0f98b6ed16620170fc243b1d0f968e9a3b0f6e0631474b234;
+relevant vet PASS empty. No independent whole-program grade or actual live change.
+New note276f8621 queued once depth38, not yet backup-verified; never retry. Goal
+remains active with all original repair/recall/sweep/two-round bars unchanged.

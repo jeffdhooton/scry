@@ -1713,3 +1713,36 @@ Root is now implementing full identity relationship comparison and monotonic
 proposal/support closure inside that same private program. No actual writer,
 receipt/replay or normal Apply adapter yet. Live source/binaries/graph unchanged;
 newest backup and durable-note closure remain132039/059723bc. Keep goal active.
+
+## Continuation — 2026-09-06, after14:38 UTC
+
+Private complete-admission6qYb7K now has16 source/test files. Full detailed evidence
+and failure lineage: memory-repairs/admission-ownership-and-receipts-2026-09-06.md.
+Ownership2ee642fe compares full listing/natural/index-target identity relationships;
+only exactly unchanged defects survive. Projectionc608c2d9 fixes a genuine two-order
+type-removal dependency failure without test weakening. Routesad0657c1 refuses
+original declaration alias bindings removed before final projection, covering
+primary/inverse/hint/value-source-flip and preserving unrelated utility. Full
+ownership/routes suite PASS71.571/17.042/27.833, loga0d46617.
+
+Episode pinningb7213c75 keeps actual original EP bytes and rejects changed source/
+time/repository identity; first tests PASS.843s, log1cfe2b2b. Prospective assertion
+receipts784aa087 independently encode FA disposition and resolved endpoint state,
+full identity/address, explicit accepted materialization versus baseline presence,
+frozen hint candidates/target/end, combined effects/suppliers and owned transitive
+evidence. First tests PASS.622s, logc0a33cb1. No writers or durable V2 results yet;
+existing heads/carried occurrences deliberately refuse until replay is connected.
+Full16-file uncached suite PASS72.784/17.215/27.893, logec20343f; vet PASS.
+
+Read private REPLAY_IMPLEMENTATION_NOTES.md f9d6f2be before implementing the next
+phase. Accepted primary/hint programs must be skipped before identity discovery,
+not merely filtered at the writer. Granular accepted metadata/type/alias/vote
+actions must not refill or re-evaluate later reviewed changes; partially accepted
+declarations cannot be relabeled all-deferred to replace revisions. Need actual
+complete V2 result/head decoder, declaration/birth records, terminal Force carry,
+durable unselected conflicts, exact materialization/finalizer/normal Apply, then
+writer floor and original full-goal bars. No fresh bounded helper review as delivery.
+
+New note276f8621326d7dc947a3b9dc50b84ffaa07eedff54df4e9f2e7ce90ebb13ee26
+accepted once depth38, not yet backup-verified; never retry. Latest actual snapshot
+remains132039, prior059723bc closure already verified. Live a06cd7b untouched.
