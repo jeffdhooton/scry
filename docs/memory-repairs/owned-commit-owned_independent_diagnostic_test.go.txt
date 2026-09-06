@@ -1,0 +1,50 @@
+package store
+
+import (
+	"bytes"
+	"encoding/json"
+	"reflect"
+	"testing"
+)
+
+func TestOwnedIndependentBirthReplayDeltaDiagnostic(t *testing.T) {
+	for _, mode := range []string{"one-declaration", "two-declarations", "no-declarations", "no-deferred"} {
+		t.Run(mode, func(t *testing.T) {
+			st := openTemp(t)
+			r := overlayTestInput()
+			r.Declarations = []observedDeclaration{{Name: "Draco", Type: "service", Description: "first metadata", Aliases: []string{"Lunar Handbook", "Lunar Handbook"}}, {Name: "Draco", Type: "service", Description: "second metadata"}}
+			r.Facts = []observedFact{{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "unsupported first discovery", ValidFrom: "bad-date", Confidence: .8}, {Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "independent later support", Confidence: .8}}
+			switch mode {
+			case "one-declaration":
+				r.Declarations = r.Declarations[:1]
+			case "no-declarations":
+				r.Declarations = nil
+			case "no-deferred":
+				r.Facts = r.Facts[1:]
+			}
+			first, prior := independentCommit(t, st, r)
+			before := dpRows(t, st)
+			second, next := independentCommit(t, st, r)
+			after := dpRows(t, st)
+			for k, v := range after {
+				if !bytes.Equal(before[k], v) {
+					t.Logf("changed key=%s before_len=%d after_len=%d", k, len(before[k]), len(v))
+				}
+			}
+			p := map[string]json.RawMessage{}
+			n := map[string]json.RawMessage{}
+			_ = json.Unmarshal(dpJSON(t, prior), &p)
+			_ = json.Unmarshal(dpJSON(t, next), &n)
+			for k, v := range p {
+				if !bytes.Equal(v, n[k]) {
+					t.Logf("CHANGED %s\nBEFORE %s\nAFTER %s", k, v, n[k])
+				}
+			}
+			third, _ := independentCommit(t, st, r)
+			t.Logf("second stable on third=%v", reflect.DeepEqual(second, third))
+			if !reflect.DeepEqual(first, second) || !admissionExactRows(before, after) {
+				t.Fatal("unchanged retry advanced exact selected result")
+			}
+		})
+	}
+}

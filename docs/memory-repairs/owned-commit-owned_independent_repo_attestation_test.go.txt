@@ -1,0 +1,57 @@
+package store
+
+import (
+	"encoding/json"
+	"slices"
+	"testing"
+)
+
+// Source episode cwd is context. Only the immutable affirmative repository
+// attestation may promote that contextual path to entity repository ownership.
+// The existing queue enforces this by giving old Apply a blank repo cwd when
+// CwdIsRepo is false, while retaining the original path in the stored episode.
+func TestOwnedIndependentRepoAttestation(t *testing.T) {
+	for _, existing := range []bool{false, true} {
+		for _, attested := range []bool{false, true} {
+			t.Run(map[bool]string{false: "birth", true: "existing"}[existing]+map[bool]string{false: "/unattested", true: "/attested"}[attested], func(t *testing.T) {
+				st := openTemp(t)
+				name, dst := "Draco", "Equuleus"
+				if existing {
+					admissionSeed(t, st)
+					name, dst = "Atlas", "Borealis"
+				}
+				r := overlayTestInput()
+				r.Cwd = "/Users/test/Herd/unattested-source-directory"
+				r.Declarations = []observedDeclaration{{Name: name, Type: "service", Description: "legitimate description"}}
+				r.Facts = []observedFact{{Src: name, Relation: "uses", Dst: dst, Fact: "legitimate supported assertion", Confidence: .8}}
+				ep := admissionInputEpisode(r)
+				ep.CwdIsRepo = attested
+				raw, key, err := encodeIdentityInput(r)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := applyCompleteAdmission(st, key, raw, dpJSON(t, ep))
+				if err != nil {
+					t.Fatal(err)
+				}
+				rows := dpRows(t, st)
+				var stored Episode
+				if json.Unmarshal(rows[prefixEpisode+r.EpisodeID], &stored) != nil || stored.CwdIsRepo != attested || stored.Cwd != r.Cwd {
+					t.Fatal("immutable source attestation changed")
+				}
+				result, err := decodeAdmissionEpisodeResult(got.SelectedResultKey, rows[got.SelectedResultKey], r.EpisodeID)
+				if err != nil || result.Assertions[0].Kind != "committed" {
+					t.Fatal("useful assertion not committed", err)
+				}
+				entity, err := st.GetEntity(Slugify(name))
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Logf("actual EP CwdIsRepo=%v Cwd=%q actual entity RepoRefs=%q", stored.CwdIsRepo, stored.Cwd, entity.RepoRefs)
+				if slices.Contains(entity.RepoRefs, r.Cwd) != attested {
+					t.Fatal("contextual source path became repository ownership without affirmative attestation")
+				}
+			})
+		}
+	}
+}

@@ -1,0 +1,232 @@
+package store
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"reflect"
+	"strings"
+	"sync"
+	"testing"
+)
+
+func TestOwnedIndependentOptionalOwnershipAndRealProgress(t *testing.T) {
+	st := openTemp(t)
+	admissionSeed(t, st)
+	e, err := st.GetEntity("atlas")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.Type = "concept"
+	e.Aliases = []string{"Atlas Handbook"}
+	if err := st.PutEntity(e); err != nil {
+		t.Fatal(err)
+	}
+	aliasKey := prefixAlias + Normalize("Atlas Handbook")
+	dpSet(t, st, aliasKey, nil)
+	r := overlayTestInput()
+	r.Declarations = []observedDeclaration{{Name: "Atlas", Type: "service", Description: "coalesced metadata", Aliases: []string{"Lunar Handbook", "Lunar Handbook"}}, {Name: "Atlas", Type: "service", Description: "later metadata"}}
+	r.Facts = []observedFact{{Src: "Borealis", Relation: "uses", Dst: "Cygnus", Fact: "independent existing-actor utility", Confidence: .8}}
+	got, prior := independentCommit(t, st, r)
+	actual, err := st.GetEntity("atlas")
+	if err != nil || actual.Type != "concept" || actual.Description != "coalesced metadata" {
+		t.Fatal("partial type failure lost independent actual metadata", err)
+	}
+	if _, exists := dpRows(t, st)[aliasKey]; exists {
+		t.Fatal("silently repaired old ownership hole")
+	}
+	if prior.Assertions[0].Kind != "committed" {
+		t.Fatal("independent utility lost")
+	}
+	var votes []string
+	if json.Unmarshal(dpRows(t, st)[prefixAttest+"atlas:"+Normalize("Lunar Handbook")], &votes) != nil || len(votes) != 1 {
+		t.Fatal("legacy duplicate vote was not one actual EP")
+	}
+	independentNoop(t, st, r, got)
+	// Later explicitly synthetic identity repair makes only the pending type operation possible.
+	actual.Description = ""
+	if err := st.PutEntity(actual); err != nil {
+		t.Fatal(err)
+	}
+	dpSet(t, st, aliasKey, []byte("atlas"))
+	progressed, next := independentCommit(t, st, r)
+	if progressed.SelectedResultKey == got.SelectedResultKey || next.Predecessor != got.SelectedResultKey {
+		t.Fatal("new actual progress did not select successor")
+	}
+	actual, err = st.GetEntity("atlas")
+	if err != nil || actual.Type != "service" || actual.Description != "" {
+		t.Fatal("pending type reran accepted description", err)
+	}
+	if !reflect.DeepEqual(prior.Assertions[0], next.Assertions[0]) {
+		t.Fatal("progress regenerated terminal assertion")
+	}
+	independentNoop(t, st, r, progressed)
+}
+
+func TestOwnedIndependentLateSelectionRollbackAndRecovery(t *testing.T) {
+	st := openTemp(t)
+	r := overlayTestInput()
+	r.Declarations = []observedDeclaration{{Name: "Draco", Type: "service", Aliases: []string{"Lunar Handbook"}}}
+	r.Facts = []observedFact{{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "late rollback new supported identity and vote", Confidence: .8}}
+	raw, key, err := encodeIdentityInput(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	episode := dpJSON(t, admissionInputEpisode(r))
+	draft, err := prepareCompleteAdmission(st, key, raw, episode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, resultKey, err := encodeAdmissionEpisodeResult(draft)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dpSet(t, st, resultKey, []byte("independent-sensitive-corrupt-result"))
+	before := dpRows(t, st)
+	events := 0
+	st.SetObserver(func(Event) { events++ })
+	got, err := applyCompleteAdmission(st, key, raw, episode)
+	if err == nil || got.Kind != "" || strings.Contains(err.Error(), "independent-sensitive") || !admissionExactRows(before, dpRows(t, st)) || events != 0 {
+		t.Fatal("late result failure leaked rows/events/sensitive payload")
+	}
+	dpSet(t, st, resultKey, nil)
+	independentCommit(t, st, r)
+}
+
+func TestOwnedIndependentNoAcceptanceAndImmutableEpisode(t *testing.T) {
+	st := openTemp(t)
+	r := overlayTestInput()
+	r.Facts = []observedFact{{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "all deferred before revision change", ValidFrom: "not a date", Confidence: .8}}
+	first, prior := independentCommit(t, st, r)
+	if admissionResultAccepted(prior) {
+		t.Fatal("unsupported identities counted as acceptance")
+	}
+	before := dpRows(t, st)
+	r.Summary = "updated extraction"
+	r.Facts[0].ValidFrom = "2026-08-01"
+	raw, key, err := encodeIdentityInput(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	altered := admissionInputEpisode(r)
+	altered.SourceRef = "different witness"
+	if got, err := applyCompleteAdmission(st, key, raw, dpJSON(t, altered)); err == nil || got.Kind != "" || !admissionExactRows(before, dpRows(t, st)) {
+		t.Fatal("zero acceptance permitted changed original episode")
+	}
+	second, next := independentCommit(t, st, r)
+	after := dpRows(t, st)
+	if second.SelectedResultKey == first.SelectedResultKey || next.Predecessor != first.SelectedResultKey || next.Assertions[0].Kind != "committed" {
+		t.Fatal("proven zero acceptance did not permit useful new revision")
+	}
+	for _, k := range []string{first.InputKey, first.SelectedResultKey, prefixEpisode + r.EpisodeID} {
+		if !bytes.Equal(before[k], after[k]) {
+			t.Fatal("revision change rewrote immutable original history")
+		}
+	}
+}
+
+func TestOwnedIndependentHintEligibleSetAndLocalRefusal(t *testing.T) {
+	for _, mode := range []string{"future", "ambiguous", "closed", "self-loop"} {
+		t.Run(mode, func(t *testing.T) {
+			st := openTemp(t)
+			old := admissionBaseFact(t, "uses", "borealis", "1971-01-01", "eligible ancient assertion")
+			second := admissionBaseFact(t, "uses", "borealis", "2002-01-01", "future assertion")
+			if mode == "ambiguous" {
+				second.ValidFrom = admissionTestTime(t, "1972-01-01")
+			}
+			if mode == "closed" {
+				end := admissionTestTime(t, "1990-01-01")
+				old.InvalidAt = &end
+			}
+			admissionSeed(t, st, old, second)
+			r := overlayTestInput()
+			r.OccurredAt = admissionTestTime(t, "1980-01-01")
+			primary := observedFact{Src: "Borealis", Relation: "uses", Dst: "Cygnus", Fact: "historical event carrier", Confidence: .8, Supersedes: &observedSupersedes{Src: "Atlas", Relation: "uses", Dst: "Borealis"}}
+			if mode == "self-loop" {
+				primary.Dst = "Borealis"
+			}
+			r.Facts = []observedFact{primary, {Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "unrelated local utility", Confidence: .8}}
+			before := dpRows(t, st)
+			got, result := independentCommit(t, st, r)
+			after := dpRows(t, st)
+			if result.Assertions[1].Kind != "committed" {
+				t.Fatal("local refusal lost unrelated utility")
+			}
+			if mode == "future" {
+				h := result.Assertions[0].Hint
+				if result.Assertions[0].Kind != "committed" || h == nil || len(h.Plan.Universe) != 2 || len(h.Plan.Eligible) != 1 || !h.Retained {
+					t.Fatal("future target blocked eligible unique SupRef")
+				}
+				key := string(factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom))
+				f, err := decodeIdentityReference([]byte(key), after[key])
+				if err != nil || f.InvalidAt == nil || !f.InvalidAt.Equal(r.OccurredAt) {
+					t.Fatal("SupRef exact historical event not materialized")
+				}
+			} else {
+				if result.Assertions[0].Kind != "deferred" {
+					t.Fatal("invalid primary/hint accepted")
+				}
+				for _, f := range []Fact{old, second} {
+					key := string(factKey(f.Src, f.Relation, f.KeyDst(), f.ValidFrom))
+					if !bytes.Equal(before[key], after[key]) {
+						t.Fatal("deferred component altered baseline target")
+					}
+				}
+			}
+			independentNoop(t, st, r, got)
+		})
+	}
+}
+
+func TestOwnedIndependentConcurrentSelectionsUseOneHead(t *testing.T) {
+	st := openTemp(t)
+	admissionSeed(t, st)
+	base := overlayTestInput()
+	a := base
+	b := base
+	a.Facts = []observedFact{{Src: "Atlas", Relation: "uses", Dst: "Borealis", Fact: "concurrent revision A", Confidence: .8}}
+	b.Facts = []observedFact{{Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "concurrent revision B", Confidence: .8}}
+	type answer struct {
+		result admissionCommitResult
+		err    error
+	}
+	answers := make(chan answer, 2)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for _, r := range []identityInputRevision{a, b} {
+		raw, key, err := encodeIdentityInput(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		episode := dpJSON(t, admissionInputEpisode(r))
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			got, err := applyCompleteAdmission(st, key, raw, episode)
+			answers <- answer{got, err}
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(answers)
+	selected, conflicts := 0, 0
+	head := ""
+	for a := range answers {
+		if a.err == nil && a.result.Kind == "selected" {
+			selected++
+			head = a.result.SelectedResultKey
+		} else if errors.Is(a.err, errAdmissionRevisionConflict) && a.result.Kind == "revision-conflict" {
+			conflicts++
+		} else {
+			t.Fatal("unexpected concurrent transaction result", a.err)
+		}
+	}
+	if selected != 1 || conflicts != 1 {
+		t.Fatal("concurrent complete revisions both selected or neither retained conflict")
+	}
+	var current episodeHead
+	if json.Unmarshal(dpRows(t, st)[episodeHeadKey(base.EpisodeID)], &current) != nil || current.ResultKey != head || current.Revision != 1 {
+		t.Fatal("concurrent head lost ownership/selection")
+	}
+}

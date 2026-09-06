@@ -1,0 +1,292 @@
+package store
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"path/filepath"
+	"reflect"
+	"slices"
+	"strings"
+	"testing"
+)
+
+func independentCommit(t *testing.T, st *Store, r identityInputRevision) (admissionCommitResult, admissionEpisodeResult) {
+	t.Helper()
+	raw, key, err := encodeIdentityInput(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := applyCompleteAdmission(st, key, raw, dpJSON(t, admissionInputEpisode(r)))
+	if err != nil {
+		t.Fatalf("real commit: %v", err)
+	}
+	rows := dpRows(t, st)
+	var h episodeHead
+	if json.Unmarshal(rows[episodeHeadKey(r.EpisodeID)], &h) != nil || h.ResultKey != got.SelectedResultKey {
+		t.Fatal("head does not select returned result")
+	}
+	result, err := decodeAdmissionEpisodeResult(h.ResultKey, rows[h.ResultKey], r.EpisodeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateAdmissionResultInput(result, raw); err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range result.Assertions {
+		if a.Kind == "deferred" && a.Materialization != nil {
+			t.Fatalf("deferred %d has materialization", a.Ordinal)
+		}
+		if a.Kind != "committed" {
+			continue
+		}
+		if a.Materialization == nil || a.Assertion == nil {
+			t.Fatal("committed assertion has no exact materialization")
+		}
+		f, err := decodeIdentityReference([]byte(a.Assertion.Key), rows[a.Assertion.Key])
+		if err != nil || assertionIdentity(f) != assertionIdentity(*a.Materialization) {
+			t.Fatal("committed receipt not materialized")
+		}
+		for _, effect := range a.Effects {
+			if !bytes.Equal(rows[effect.Key], effect.After.Raw) {
+				t.Fatal("effect receipt differs from actual FA")
+			}
+		}
+	}
+	return got, result
+}
+
+func independentNoop(t *testing.T, st *Store, r identityInputRevision, old admissionCommitResult) {
+	t.Helper()
+	before := dpRows(t, st)
+	events := 0
+	st.SetObserver(func(Event) { events++ })
+	got, _ := independentCommit(t, st, r)
+	if !reflect.DeepEqual(got, old) || !admissionExactRows(before, dpRows(t, st)) || events != 0 {
+		t.Fatalf("same input changed exact rows/result or events=%d", events)
+	}
+}
+
+func TestOwnedIndependentPreservationRewriteRoutes(t *testing.T) {
+	for _, route := range []string{"historical-repeat", "current-repeat", "exclusive", "hint"} {
+		for _, opaque := range []bool{false, true} {
+			t.Run(route+map[bool]string{false: "/canonical", true: "/opaque"}[opaque], func(t *testing.T) {
+				st := openTemp(t)
+				rel := "uses"
+				if route == "exclusive" {
+					rel = "replaced_by"
+				}
+				old := admissionBaseFact(t, rel, "borealis", "2026-08-01", "preserved exact sentence")
+				if route == "historical-repeat" {
+					end := admissionTestTime(t, "2026-08-03")
+					old.InvalidAt = &end
+				}
+				admissionSeed(t, st, old)
+				key := string(factKey(old.Src, old.Relation, old.KeyDst(), old.ValidFrom))
+				adj := string(adjKey(old.Dst, old.Src, old.Relation, old.ValidFrom))
+				raw := dpJSON(t, old)
+				if opaque {
+					raw = append(bytes.TrimSuffix(raw, []byte("}")), []byte(",\"future_extension\":{\"n\":9007199254740993}}")...)
+					dpSet(t, st, key, raw)
+				}
+				// Existing stale mirror is an explicitly preserved defect, even for approved rewrites.
+				dpSet(t, st, adj, []byte("opaque-existing-adjacency"))
+				before := dpRows(t, st)
+				r := overlayTestInput()
+				r.OccurredAt = admissionTestTime(t, "2026-08-10")
+				primary := observedFact{Src: "Atlas", Relation: rel, Dst: "Borealis", Fact: old.Fact, ValidFrom: "2026-08-01", Confidence: .95}
+				if route == "exclusive" {
+					primary.Dst = "Cygnus"
+					primary.Fact = "genuine new state"
+					primary.ValidFrom = "2026-08-05"
+				}
+				if route == "hint" {
+					primary = observedFact{Src: "Borealis", Relation: "uses", Dst: "Cygnus", Fact: "hint carrier", Confidence: .8, Supersedes: &observedSupersedes{Src: "Atlas", Relation: rel, Dst: "Borealis"}}
+				}
+				r.Facts = []observedFact{primary, {Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "independent supported utility", Confidence: .8}}
+				got, result := independentCommit(t, st, r)
+				after := dpRows(t, st)
+				if result.Assertions[1].Kind != "committed" {
+					t.Fatal("lost unrelated valid utility")
+				}
+				if !bytes.Equal(before[adj], after[adj]) {
+					t.Fatal("rewrote pre-existing opaque adjacency")
+				}
+				if opaque {
+					if result.Assertions[0].Kind != "deferred" || !bytes.Equal(before[key], after[key]) {
+						t.Fatal("opaque FA was rewritten or accepted")
+					}
+				} else {
+					if result.Assertions[0].Kind != "committed" {
+						t.Fatalf("valid route deferred: %s", result.Assertions[0].Reason)
+					}
+					f, err := decodeIdentityReference([]byte(key), after[key])
+					if err != nil {
+						t.Fatal(err)
+					}
+					if f.Fact != old.Fact || !f.ValidFrom.Equal(old.ValidFrom) || !slices.Contains(f.Episodes, "old-proof") {
+						t.Fatal("rewrite changed identity/provenance")
+					}
+					if route == "historical-repeat" && !f.InvalidAt.Equal(*old.InvalidAt) {
+						t.Fatal("history reactivated")
+					}
+					if route == "exclusive" && (f.InvalidAt == nil || !f.InvalidAt.Equal(admissionTestTime(t, "2026-08-05"))) {
+						t.Fatal("exclusive used observation time")
+					}
+					if route == "hint" && (f.InvalidAt == nil || !f.InvalidAt.Equal(r.OccurredAt)) {
+						t.Fatal("hint not applied")
+					}
+				}
+				independentNoop(t, st, r, got)
+			})
+		}
+	}
+}
+
+func TestOwnedIndependentTemporalAndAddressComponents(t *testing.T) {
+	for _, mode := range []string{"ordered", "equal-start", "same-address", "same-target", "duplicates"} {
+		for _, reverse := range []bool{false, true} {
+			t.Run(mode+map[bool]string{false: "/forward", true: "/reverse"}[reverse], func(t *testing.T) {
+				st := openTemp(t)
+				admissionSeed(t, st)
+				r := overlayTestInput()
+				r.OccurredAt = admissionTestTime(t, "2026-08-20")
+				r.Facts = []observedFact{{Src: "Atlas", Relation: "replaced_by", Dst: "Borealis", Fact: "state one", ValidFrom: "2026-08-01", Confidence: .95}, {Src: "Atlas", Relation: "replaced_by", Dst: "Cygnus", Fact: "state two", ValidFrom: "2026-08-05", Confidence: .2}}
+				switch mode {
+				case "equal-start":
+					r.Facts[1].ValidFrom = r.Facts[0].ValidFrom
+				case "same-address":
+					r.Facts[1].Dst = "Borealis"
+					r.Facts[1].ValidFrom = r.Facts[0].ValidFrom
+				case "same-target":
+					r.Facts[1].Dst = "Borealis"
+				case "duplicates":
+					r.Facts[1] = r.Facts[0]
+					r.Facts[1].Confidence = .2
+				}
+				if reverse {
+					slices.Reverse(r.Facts)
+				}
+				r.Facts = append(r.Facts, observedFact{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "local unrelated utility", Confidence: .8})
+				got, result := independentCommit(t, st, r)
+				if result.Assertions[2].Kind != "committed" {
+					t.Fatal("unrelated utility lost")
+				}
+				deferred := mode == "equal-start" || mode == "same-address"
+				for _, a := range result.Assertions[:2] {
+					if (a.Kind == "deferred") != deferred {
+						t.Fatalf("wrong component disposition: %s %s", a.Kind, a.Reason)
+					}
+					if deferred {
+						continue
+					}
+					f := a.Materialization
+					if mode == "duplicates" && f.Confidence != .95 {
+						t.Fatal("duplicate lowered maximum confidence")
+					}
+					if mode == "same-target" && f.InvalidAt != nil {
+						t.Fatal("same-target sentence ended another same target")
+					}
+					if mode == "ordered" && f.Dst == "borealis" && (f.InvalidAt == nil || !f.InvalidAt.Equal(admissionTestTime(t, "2026-08-05"))) {
+						t.Fatal("ordered state interval incorrect")
+					}
+				}
+				independentNoop(t, st, r, got)
+			})
+		}
+	}
+}
+
+func TestOwnedIndependentHintReplayBackupAndConflict(t *testing.T) {
+	st := openTemp(t)
+	old := admissionBaseFact(t, "uses", "borealis", "2026-08-01", "original target")
+	admissionSeed(t, st, old)
+	r := overlayTestInput()
+	r.OccurredAt = admissionTestTime(t, "2026-08-10")
+	r.Facts = []observedFact{{Src: "Borealis", Relation: "uses", Dst: "Cygnus", Fact: "original hint carrier", Confidence: .8, Supersedes: &observedSupersedes{Src: "Atlas", Relation: "uses", Dst: "Borealis"}}, {Src: "Atlas", Relation: "uses", Dst: "Cygnus", Fact: "retryable malformed explicit date", ValidFrom: "bad-date", Confidence: .8}}
+	got, prior := independentCommit(t, st, r)
+	if !prior.Assertions[0].Hint.Retained || prior.Assertions[1].Kind != "deferred" {
+		t.Fatal("fixture lacked hint and partial selection")
+	}
+	later := admissionBaseFact(t, "uses", "borealis", "2026-08-05", "later arriving eligible target")
+	if err := st.PutFact(later); err != nil {
+		t.Fatal(err)
+	}
+	before := dpRows(t, st)
+	independentNoop(t, st, r, got)
+	var backup bytes.Buffer
+	if _, err := st.Backup(&backup); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(t.TempDir(), "real-reopened-backup")
+	replica, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := replica.Restore(bytes.NewReader(backup.Bytes())); err != nil {
+		t.Fatal(err)
+	}
+	if err := replica.Close(); err != nil {
+		t.Fatal(err)
+	}
+	replica, err = Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer replica.Close()
+	if !admissionExactRows(before, dpRows(t, replica)) {
+		t.Fatal("reopened backup changed exact rows")
+	}
+	independentNoop(t, replica, r, got)
+	changed := r
+	changed.Summary = "changed extraction"
+	changed.Facts = slices.Clone(r.Facts)
+	changed.Facts[1].ValidFrom = "2026-08-07"
+	raw, key, err := encodeIdentityInput(changed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conflict, err := applyCompleteAdmission(replica, key, raw, dpJSON(t, admissionInputEpisode(changed)))
+	if !errors.Is(err, errAdmissionRevisionConflict) || conflict.SelectedResultKey != got.SelectedResultKey {
+		t.Fatal("accepted hint allowed changed revision selection", err)
+	}
+	after := dpRows(t, replica)
+	for k, v := range before {
+		if !bytes.Equal(v, after[k]) {
+			t.Fatalf("conflict changed old row %s", k)
+		}
+	}
+	if !bytes.Equal(after[key], raw) || len(after[conflict.ConflictKey]) == 0 || len(after) != len(before)+2 {
+		t.Fatal("conflict not durably preserved")
+	}
+}
+
+func TestOwnedIndependentNewBirthProducerAndTerminalVotes(t *testing.T) {
+	st := openTemp(t)
+	r := overlayTestInput()
+	r.Declarations = []observedDeclaration{{Name: "Draco", Type: "service", Description: "first metadata", Aliases: []string{"Lunar Handbook", "Lunar Handbook"}}, {Name: "Draco", Type: "service", Description: "second metadata"}}
+	r.Facts = []observedFact{{Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "unsupported first discovery", ValidFrom: "bad-date", Confidence: .8}, {Src: "Draco", Relation: "uses", Dst: "Equuleus", Fact: "independent later support", Confidence: .8}}
+	got, result := independentCommit(t, st, r)
+	if result.Assertions[0].Kind != "deferred" || result.Assertions[1].Kind != "committed" {
+		t.Fatal("discovery validity leaked into support")
+	}
+	rows := dpRows(t, st)
+	votes := 0
+	for k := range rows {
+		if strings.HasPrefix(k, identityGenerationAttestPrefix) {
+			votes++
+		}
+		if strings.HasPrefix(k, prefixAttest) {
+			t.Fatal("new birth wrote legacy vote")
+		}
+	}
+	if votes != 1 {
+		t.Fatalf("duplicate vote count=%d", votes)
+	}
+	for _, b := range result.Births {
+		if b.Kind != "supported" || len(rows[identityGenerationPrefix+b.Birth.Slug]) == 0 || len(b.Supports) == 0 {
+			t.Fatal("actual supported birth missing generation/proof")
+		}
+	}
+	independentNoop(t, st, r, got)
+}

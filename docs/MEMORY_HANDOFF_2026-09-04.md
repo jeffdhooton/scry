@@ -1861,3 +1861,17 @@ No independent verdict yet. Root working export adds post-freeze reopen test
 testing actual temporal/hint/historical behavior and then close reviewer findings.
 No normal Apply adapter, public V2 status or all-writer/schema floor yet. No live,
 actual replica, backup or durable note change. Full goal remains active.
+
+## Continuation — 2026-09-06, owned-commit NO-GO and correction
+
+Owned reviewer is complete: NO-GO998fd588 + addendumf99d802c, exactly archived with
+four independent tests in memory-repairs. See owned-commit-corrections-2026-09-06.md.
+Root source-only fixes actual own-birth no-op replay (full actual IG/stable EN proof)
+and unattested Cwd leaking into RepoRefs (separate pinned-EP-derived metadata cwd).
+All four unchanged independent files PASS1.960/170b621c; no successor approval.
+Root own-birth-only full PASS71.785/17.074/27.536 aeb1c081; complete latest full suite
+running in private6qYb7K/owned-corrected-composed-full-tests.log, vet PASS. Read its
+completion before claiming success. Frozen xfHydo remains immutable. No actual
+replica/live/note change. Continue actual integration and remaining full-goal gates.
+
+Latest full run now complete: PASS79.082/19.743/30.526 log63ad549e; vet PASS.

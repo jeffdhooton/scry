@@ -5409,3 +5409,21 @@ no verdict yet. Additional root synthetic backup/restore/reopen test493c0c70 pas
 declarations. This new test is outside the immutable review freeze. No actual
 memory replica/live operation or new note. Normal Apply, all-writer/schema floor,
 actual-backup review and all original live/two-round acceptance bars remain open.
+
+## Continuation — 2026-09-06, owned-commit independent NO-GO
+
+Exact independent report998fd588 and addendumf99d802c prove two actual fixed-entry
+defects: own supported births make unchanged deferred replay advance the head, and
+false repository attestation still yields RepoRefs. Archived reports/tests remain
+unchanged; room seq179 posted17:40:04 UTC. See owned-commit-corrections-2026-09-06.md
+under memory-repairs for full source/log pins and root fixture correction disclosure.
+
+Root replay7a79014c equates only fully actual-verified original supported birth's
+candidate-to-generation route. Full PASS71.785/17.074/27.536 aeb1c081; vet PASS.
+Separate metadata path now derives repositoryCwd from pinned EP attestation without
+changing original input/observations. All four unchanged independent files pass
+1.960s/log170b621c on root corrections. Fresh successor source is not independently
+approved. Full composed suite running. No actual replica/live/note changes.
+
+Latest composed run completed PASS79.082/19.743/30.526, final log
+63ad549edb3b2134f6719508b23839502ac95d4a4d183885c357e1c414719865; vet PASS.
