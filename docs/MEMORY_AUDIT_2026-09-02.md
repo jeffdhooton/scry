@@ -3699,3 +3699,52 @@ The already-stored credential and lost historical assertion remain unresolved;
 no historical cleanup, credential action or dev-client alias apply is authorized
 by this prospective code-only gate. Full fresh-source BLOCK is archived as
 child-dev-client-freshness-block-2026-09-06.md.
+
+### 2026-09-06 00:52 UTC — actual prospective guard deployed
+
+Timing correction: the preceding 00:48 entry describes checks completed
+around00:46. The retained binary suffix0048Z is a unique label, not an exact
+retention timestamp. Actual executable replacements and both new foreground
+process starts are00:49:06UTC, independently checkable through process state.
+
+The final independent004209 source extension PASSES for code-only deployment:
+fact-guard-immediate-predeploy-freshness-2026-09-06.md SHA810bdca3d8c382fa08b4c1d00050dadaec627f5a33c1d180dff0a861f9d384e8.
+It proves complete fact/provenance preservation, five pending-to-episode
+closures, all twelve parked payloads and forty-two protected markers exact.
+One concept type/refinement and one new manual episode are explicitly
+accounted for, not semantically endorsed. No alias repair inherited this gate.
+
+Both installed executables now equal reviewed24eafab artifactSHA4a439109.
+Laptop PID93994 and Mini PID98265 run the existing expected foreground paths;
+both previous290a14 binaries remain retained. No provider/config/hook/retention
+or schema changes, no queue retry or identity/alias manifest were included.
+Room120 announces the operation and121 records root immediate measurements.
+
+Immediate post backups004916 are fully copied/hashed/direct-restored:
+shared74321534bytes SHA584a956d26ecd458002097789d8c9fcac88212113f56a2f0b8767ea4e8919640;
+laptop19445016bytes SHA314f3ad31ec04af10530342aefc2f68ad14e19bfdf7b34d26f17e240ac5ffcac.
+Root complete actual delta: Mini adds exactly one pending record, all244498
+preexisting keys and values unchanged, rawpost328f583187168ee78779febd9bdc5351f391bcead7443135a1faa5e1b21fda5d.
+Laptop preserves all83378keys and values, raw8efead71 unchanged. Candidate
+Open/index/read changes neither restored map. All81057shared facts,9388episodes,
+30838entities and every claim/history/repair marker remain byte-identical.
+
+Five immediate LIVE post suites retain51/29/7/45/47 with identical complete
+miss question/rank arrays and zero responses above24576bytes, maximum13373.
+Live mean answer rank differs slightly: A4.862745098→4.843137255 and
+B5.103448275→5.068965517, while three other means match. These are modest
+improvements, not proof of identical successful-question rankings. A separate
+fresh-context actual grader is checking the fixed-source and pre/post evidence.
+The root receipt is fact-guard-actual-deploy-root-receipt-2026-09-06.json;
+its pending-review status is intentional at this entry.
+
+The Mini remains worker-running with one ready input and twelve parked;
+laptop remains dormant. Restart resets the adaptive in-flight ceiling to6
+in the unchanged queue constructor, not a configuration mutation. Subsequent
+successful ingestion, actual sweeps and full-goal grading remain unproved.
+No new durable deploy note has yet been submitted.
+
+Private redaction rejection is archived as
+credential-redaction-independent-rejection-2026-09-06.md (room119). A separate
+private syntax-parser design exists but no replacement is implemented or
+approved. Historical credential remediation and assertion recovery remain open.
