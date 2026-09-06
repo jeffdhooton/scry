@@ -3705,3 +3705,16 @@ Root maintenance-lock coordination prevents ordinary producer races during the
 operation; it does not install policy afterward or confer arbitrary raw-writer
 immunity. Do not expose live adoption until all lifecycle writers are integrated,
 including generic metadata setters that could otherwise replace reserved markers.
+
+### Full reference inventory is necessary, not sufficient
+
+**Decision, 2026-09-06.** Baseline admission measurement must cover every actual
+raw fact endpoint, current and historical, and fingerprint exact ordered bytes.
+Requested-slug scans cannot establish a complete baseline for births registered
+later. Keep opaque fact extensions in the digest, and fail closed globally on
+ambiguous data. Do not retain a full raw graph merely to compute this inventory.
+
+Counts cannot certify who wrote supporting assertions. The next private mutation
+ledger must account for actual same-transaction changes before a fixed finalizer
+can use the inventory for support selection. No reference count grants ownership
+of an old dangling endpoint.

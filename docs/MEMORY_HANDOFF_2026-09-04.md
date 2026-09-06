@@ -1291,3 +1291,16 @@ metadata setters protecting reserved markers; no legacy timestamp-nudge helper.
 Private next ledger workspace /tmp/scry-fact-ledger-sep06.aWw65K initially empty.
 Source notec51e3b8a accepted ONCE queued30 around05:28UTC remains unverified;
 never retry. Room147, deployeda06cd7b unchanged, full objective still open.
+
+### 2026-09-06 05:48 UTC — complete reference inventory reviewed
+
+Uncalled d80563bb full raw endpoint-count/digest scan retained with unchanged
+suppliede356d5cc/independent54ef0948 tests. Review13e0b68b and final independent
+plus combined shared full no-CGO suites PASS. Original strict checker unchanged.
+Root actual051519 scan81,892facts/29,388endpointslugs/digeste1c6b989/825.392584ms,
+all247,638originalrows unchanged. No independent actual/p95/support certificate.
+Room148; report/contract under docs/memory-repairs/reference-inventory-*.
+
+Continue private /tmp/scry-fact-ledger-sep06.aWw65K: FACT_LEDGER_CONTRACT.md now
+written, source/tests next. No actual ledger, attribution policy or controller yet.
+Prior prototype/review failures and remaining whole-goal gates still apply.

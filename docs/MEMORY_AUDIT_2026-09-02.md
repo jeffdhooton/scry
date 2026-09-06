@@ -4537,3 +4537,34 @@ certificate. Generic PutMetaJSON/PutMetaTime must also protect reserved lifecycl
 marker keys during all-writer integration; taking the maintenance lock alone does
 not prevent a caller replacing a marker afterward. Existing RelocateFact's
 collision timestamp-nudge path must not be used by the new admission policy.
+
+### 2026-09-06 05:48 UTC — complete raw reference inventory retained
+
+Source d80563bb046ef9721bf42ba2199d6207f38f7629b2c9196a129accefa24877d4,
+contractfb1ca6fd, supplied testse356d5cc, independent tests54ef0948 now uncalled
+in shared. Report memory-repairs/reference-inventory-independent-review-2026-09-06.md
+SHA13e0b68b55443f2f9ddd0c496a34f7b3df92962477fce6ffc9c88f14ca3af9c3;
+frozen independent export /tmp/scry-reference-inventory-disproof.5q0TdQ.
+Strict decoder c28aed0f and original requested-slug checker unchanged. New scan
+returns all source/destination current/history counts and a domain-separated,
+length-framed SHA256 of exact ordered fa:key/value bytes, no retained raw map.
+No values-as-endpoints, no partial malformed-row reports, no writes/events.
+
+Independent123-row matrix, own framing, all-known-field casefold duplicates,
+opaque/whitespace changes, original checker parity, owned maps, successful and
+aborted transactions and closed scopes PASS. Final independent full no-CGO suite
+PASS (store27.198s/resolve14.742s/daemon27.655s). Combined shared full no-CGO
+noncached suite PASS (store32.591s/resolve15.465s/daemon28.826s). No old test changes.
+
+Root separately measured restored051519:81,892facts,29,388 distinct endpointslugs,
+fact digest e1c6b989ddcd38ee433a59cff3092d39ff8c08702031a5a203edcdd320b6b4f6,
+825.392584ms;247,638original rows unchanged. Reviewer did NOT measure real data;
+this is neither p95 nor support/owner certification. Room148 records that limit.
+
+Next private /tmp/scry-fact-ledger-sep06.aWw65K/FACT_LEDGER_CONTRACT.md defines
+actual same-owner fa: writers with exact touched-key before/after and occurrence
+attribution. Reconstruct the baseline digest from final rows plus touched-key
+before-images to detect unattributed final changes without retaining all rawfacts.
+That ledger is not yet implemented/reviewed and cannot certify parsed semantics.
+Identity/alias writer history, pre-PhaseA dependency closure, current Force outcomes,
+all-writer lifecycle/maintenance remain. No deployment, live adoption or cleanup.
