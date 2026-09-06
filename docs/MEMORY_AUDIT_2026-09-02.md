@@ -4459,3 +4459,36 @@ staging including marker and refuse atomically if too large. ANCHOR_DESIGN.md
 SHAd7e7002207ad3524d329cf5a7de44a222dfa00c77d593fa504fc80a82d1fb5de;
 private strict codec7a84b00d now written, tests/review still pending. No production
 adoption, schema change, deployment or live repair; daemons remaina06cd7b.
+
+### 2026-09-06 05:27 UTC — exact legacy codec review and backup closure
+
+Independent pure-codec report
+`memory-repairs/legacy-anchor-codec-independent-review-2026-09-06.md`, SHA
+6d2ed4d31924acb2dc00aec43f455dc0ffb26d0f57410aae0e674bb677c49809,
+passes source7a84b00d46977c2d8ce97c5b29f35763fa347bcd61f967d7178ef42a399a7de7,
+supplied tests2558b0a4 and independent tests64fad216. Frozen export
+/tmp/scry-anchor-codec-disproof-sep06.amW4kV retains full independent evidence.
+Five supplied/five independent groups and final full no-CGO noncached suite pass.
+Copied these exact three files uncalled into shared source; combined full suite
+also passes (daemon28.051s, resolve15.120s, store27.407s). No regressions weakened.
+Canonical source key/bytes, full framed fingerprint, exact stable name/slug/time,
+mutable metadata controls and proposed consumption encoding are covered. This is
+NOT adoption, immutable persistence, lifecycle authorization or consumed-reader
+enforcement. No Store caller or live effect exists. Room146 records the verdict.
+
+Root separately downloaded and restored the complete Mini051519 backup:
+76,112,807 bytes, SHA193f19b3491c74782d7556e3059714cbb7ba65005603ce38f84d70efcf52c256.
+Replica /tmp/scry-foundation-closure-sep06.8IEPu5/shared-051519 preserves all247,638
+raw rows through direct load, Open/index/read; digest
+9b6626fca05561b56a035237fc8a1f5fa36237584a91339810fadd77bf63f81d.
+31,247entities/81,892facts/74,006current/7,886history/9,453episodes/32pending.
+Safe root check finds accepted-once5b7c8402 note ingested and absentpending,
+rawEP SHAfd0298194b3693b9ad8fdd4ba79c1faee37c79dc057edaa9ddae2f517daad608.
+No note was retried. These are root closure measurements, not independent graph
+quality/recall grading. Both deployed binaries remaina06cd7b; no live repair.
+
+Next private implementation /tmp/scry-legacy-adoption-sep06.cdtdmm: exact full
+inventory adoption and active-anchor recognition, before complete controller and
+all-producer lifecycle enforcement. No startup adoption or automatic ownership
+inference is authorized. Original goal remains open, including benchmark floors,
+whole-graph defects, remaining reviewed repairs and two complete grading rounds.

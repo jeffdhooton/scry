@@ -1257,3 +1257,19 @@ transaction today (9,171,887 key/valuebytes, maxbatch10,066,329), with zero comm
 rows. ANCHOR_DESIGNd7e70022 and purecodec contract20591a73/source7a84b00d remain
 unapproved; source tests/review next. No actual adoption/anchor writer exists.
 Both daemons stilla06cd7b; no deployment/live repair or final grading pass.
+
+### 2026-09-06 05:27 UTC — legacy codec integrated uncalled
+
+Pure anchor codec7a84b00d plus supplied2558b0a4 and independent64fad216 tests
+survive independent review6d2ed4d3 and combined full no-CGO noncached suite.
+Report archived under docs/memory-repairs/legacy-anchor-codec-independent-review-2026-09-06.md.
+Stable legacy name/slug/time and full original raw fingerprint are encoded;
+proposed consumption records preserve the anchor. No adoption, owner authority,
+persistent tombstones or consumed-reader enforcement yet. Private next workspace
+/tmp/scry-legacy-adoption-sep06.cdtdmm is for exact adoption/reader implementation.
+
+Backup051519 SHA193f19b3 (76,112,807bytes) restored at
+/tmp/scry-foundation-closure-sep06.8IEPu5/shared-051519:247,638raw rows exact,
+digest9b6626fc. Root now verifies5b7c8402 note ingested/absentpending, rawEPfd029819.
+Do not retry it. Room146 records bounded review and root-only closure. Deployed
+a06cd7b unchanged; B still private/ungraded correction/raw-phantom caveat unchanged.

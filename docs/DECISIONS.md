@@ -3677,3 +3677,18 @@ Storage failures are not necessarily safe diagnostics: real Badger value-limit
 errors include a dump of submitted bytes. Outcome writers return static errors
 and preserve only allowlisted static classifications; they must not wrap arbitrary
 storage errors. Independent unchanged disk/memory failures verify this boundary.
+
+### Legacy anchors record exact identity, not metadata policy
+
+**Decision, 2026-09-06.** Bind an explicitly inventoried legacy identity to its
+exact existing slug, name and creation instant, retaining a framed fingerprint of
+the complete original entity bytes. Do not recompute its slug from its name:
+reviewed legacy identities can legitimately have divergent names and slugs.
+Metadata changes alone do not change identity; independent alias and type guards
+still apply. Strict source decoding refuses unknown/ambiguous/lossy records.
+
+The independently reviewed pure codec does not adopt a store or grant authority.
+A proposed consumption record keeps the complete anchor, but persistence,
+consumed-reader refusal and reviewed maintenance authorization remain separate
+implementation obligations. No absence-based automatic legacy classification,
+startup adoption or unconsume API is implied.
