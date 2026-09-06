@@ -3856,3 +3856,38 @@ are archived separately. The review rejects a numeric schema bump/additive
 writer floor as sufficient protection and identifies exact-address, historical
 restatement, supersession, metadata and unsupported-raw-field obligations.
 No format change, historical recovery, credential cleanup or alias apply follows.
+
+### 2026-09-06 — restatement bridge rejected before integration
+
+Fresh-context disproof of the private ac2e166-based resolver experiment is
+archived in memory-repairs/restatement-bridge-independent-rejection-2026-09-06.md,
+SHA 9f18141611b0850106b0de4dcf98692e724cc4c4c9d3dfbf4d53f9f737bc3b55.
+Identical undated assertions arriving out of order deterministically refuse;
+the unchanged queue-recovery test parks two inputs independently (root saw
+three, scheduling-dependent). Six unchanged resolver tests fail across seven
+leaf cases; the corresponding baseline cases pass. Supersession admission
+also depends on slice order and whether the first assertion was pre-seeded.
+Malformed explicit dates inherit episode time; a unique undated historical
+match can consume a possible recurrence. The passing historical fixtures and
+late-conflict atomic rollback do not override these failures. No integration
+or deployment follows. Room125 records the rejection.
+
+A narrower exact-occupied-historical-address preservation branch will be
+evaluated separately, without changing global current-triple coalescing or
+inferring an interval from sentence uniqueness. Unknown raw fields must be
+preserved or explicitly refused. General canonical sentence loss, exact
+supersession identity, interval policy and historical recovery remain open.
+
+Separately, the exact a078240 schema-refusal deployment artifact SHA
+7783216755045eb365e0e0cd281ead8e2842da1b8fb697dfb42158c232cbb7e7
+is undergoing fresh-context predeployment review. Root directly restored
+shared backup memory-20260906T013401Z.badger (74,611,705 bytes, SHA
+4045ad6ebf4b632907c361ddf530bbe5355bb5236eb01a7f474b549f43e886b7)
+and laptop backup memory-20260906T013402Z.badger (19,445,000 bytes, SHA
+5a5e7c22851b55b0e150d2ffaa9f22846c2f28644b45020e8ce830fe36aa4cd1).
+All logical records remain identical through candidate startup/index/read:
+shared244942 digest29c3983bd20aefc168129d05cb6de777219b8fda6d3fdb7c213c1e210947006d;
+laptop83378 digest8efead71b3128363e95c7f39678e3ec9332ae4a7645af03454ccf4780f02c2c7.
+The source-only decision note065d17ba is not retried. Both deployed binaries
+remain24eafab; no schema migration, recovery or live repair is authorized by
+these root measurements alone.
