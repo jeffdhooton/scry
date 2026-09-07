@@ -1,0 +1,20 @@
+{
+  "base_revision": "64c0cde718fb23f5a1ae3f1b87e006d379995741",
+  "sha256": {
+    "README.md": "f7df1a402989bcaf8ff1bb9f9ba183f59cb96bedf781f25436cc51bcbf130e3f",
+    "cmd/scry/friction.go": "251603527eacca57abbb6908e21c98d3346160098c17eb3eec677767a8aea509",
+    "cmd/scry/main.go": "001bc1bd5a2c9d135e5f0f3ef90530e295b78d65119d069e735152aa17da76ec",
+    "docs/DECISIONS.md": "e1d5049a1dfa81adf8761e5121ae0a62944168b0ed1e13fcbe65c28765ad432d",
+    "docs/friction-journal.md": "07703ff581542fb99a2d141052b3884f3f4d7cee3ab2dd9cbcf0d5c2507ed33e",
+    "internal/daemon/daemon.go": "01b41b63c11ef84926859aa9bfb701b25d6c7dbb62648c56e3f72f96ce6689c1",
+    "internal/daemon/friction_methods.go": "f749aa0d2822b231d7ccbdc567c7ff03416d4b543237fb95e688cf70551594bf",
+    "internal/daemon/friction_test.go": "fcb77ee85a7b3fb8bdb2a0221f786ab45d9705027b8d512893dc061b4cce98c5",
+    "internal/friction/event.go": "3fc4d93f0b688dc70c01611a7fe60b1ab72bdb800d0a973aabc0056e17f388e9",
+    "internal/friction/review.go": "8b6d74040d2d5202a2cfd68e59bf61b4876fd0f6459cef48402a181858fbb2ef",
+    "internal/friction/store.go": "f38306c226b9d029e2bde979c38c97acc0ef8c19bb47cfdb23d9e1b02465d12c",
+    "internal/friction/store_test.go": "bbaba9b28fc30cce49d49aff1f5fc01ce6a13b49f89f2b7d7f449142f71afa05",
+    "internal/mcp/friction_tools.go": "ca9997c5093d7b7fe38c21dce0c69228443963caaf10feb5b1a4f96701fcff07",
+    "internal/mcp/friction_tools_test.go": "9792840c815febe39c5042d1e2731af617c38f779d9b56e74eaf4a46c1200038",
+    "internal/mcp/server.go": "67c6730f5a47cda573dd0c91b882ae5b74ceeec3c2c5ce5f17c313724ef523fc"
+  }
+}

@@ -1,0 +1,37 @@
+// Independent storage compatibility probe; creates only a temporary journal.
+package main
+
+import (
+ "bytes"
+ "context"
+ "encoding/json"
+ "fmt"
+ "os"
+ "path/filepath"
+ "github.com/dgraph-io/badger/v4"
+ "github.com/jeffdhooton/scry/internal/friction"
+)
+
+func must(err error) {if err != nil {panic(err)}}
+func main() {
+ dir:=filepath.Join(os.Args[1],"schema-probe")
+ st,err:=friction.Open(dir);must(err)
+ e:=friction.Event{EventID:"independent-schema",RunID:"independent",Repository:"/synthetic",RecordedAt:"2026-09-06T00:00:00Z",Signature:"schema",Observed:"schema compatibility test",Resolution:"unresolved",ResolutionState:"unresolved",Evidence:[]string{"synthetic:independent-verifier"}}
+ _,err=st.Record(e);must(err)
+ ctx,cancel:=context.WithCancel(context.Background());cancel()
+ _,err=st.List(ctx,friction.Filter{Repository:e.Repository});if err!=context.Canceled {panic(fmt.Sprint("cancellation: ",err))}
+ must(st.Close())
+ opts:=badger.DefaultOptions(dir).WithLogger(nil).WithCompression(0).WithSyncWrites(true)
+ db,err:=badger.Open(opts);must(err)
+ must(db.Update(func(tx *badger.Txn) error{return tx.Set([]byte("schema"),[]byte("future-independent"))}));must(db.Close())
+ st,err=friction.Open(dir);if err==nil {st.Close();panic("opened unsupported schema")}
+ fmt.Println("unsupported schema refused:",err)
+ db,err=badger.Open(opts);must(err);defer db.Close()
+ must(db.View(func(tx *badger.Txn) error{
+  for key,want:=range map[string][]byte{"schema":[]byte("future-independent"),"event:"+e.EventID:mustJSON(e)} {
+   it,err:=tx.Get([]byte(key));if err!=nil{return err};err=it.Value(func(got []byte)error{if !bytes.Equal(got,want){return fmt.Errorf("changed %s",key)};return nil});if err!=nil{return err}
+  };return nil
+ }))
+ fmt.Println("PASS: cancelled list, unsupported schema rejected, exact schema and event bytes preserved")
+}
+func mustJSON(v any) []byte {b,err:=json.Marshal(v);must(err);return b}

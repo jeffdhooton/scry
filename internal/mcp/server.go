@@ -38,6 +38,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -375,6 +376,7 @@ func (s *Server) handleToolsList(req request) {
 	all = append(all, graphToolDefinitions...)
 	all = append(all, memoryToolDefinitions...)
 	all = append(all, roomToolDefinitions...)
+	all = append(all, frictionToolDefinitions...)
 
 	selected := make([]tool, 0, len(all))
 	for _, td := range all {
@@ -430,6 +432,8 @@ func (s *Server) handleToolsCall(ctx context.Context, req request) {
 	// Dispatch by tool name. Each branch dials the daemon, issues one
 	// JSON-RPC call, and formats the response as a text content block.
 	switch p.Name {
+	case "scry_friction_record", "scry_friction_get", "scry_friction_list", "scry_friction_review":
+		s.callFriction(ctx, req.ID, strings.TrimPrefix(p.Name, "scry_friction_"), p.Arguments)
 	case "scry_refs":
 		s.callSymbolQuery(ctx, req.ID, "refs", p.Arguments)
 	case "scry_defs":

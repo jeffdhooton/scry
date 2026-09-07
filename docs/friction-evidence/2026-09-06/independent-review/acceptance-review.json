@@ -1,0 +1,178 @@
+{
+  "repository": "/Users/jeff/workspace/context-stack/scry",
+  "event_count": 4,
+  "groups": [
+    {
+      "signature": "instructions.skill-policy-conflict",
+      "run_ids": [
+        "INDEPENDENT-synthetic-run-2",
+        "SFW-20260906-01"
+      ],
+      "distinct_runs": 2,
+      "recurring": true,
+      "events": [
+        {
+          "event_id": "INDEPENDENT-second",
+          "run_id": "INDEPENDENT-synthetic-run-2",
+          "repository": "/Users/jeff/workspace/context-stack/scry",
+          "recorded_at": "2026-09-07T00:48:21.576316+00:00",
+          "signature": "instructions.skill-policy-conflict",
+          "observed": "Synthetic verifier recurrence, not a real incident.",
+          "resolution": "Exact article was read from the user-provided local file; the shared instruction conflict remains unresolved.",
+          "resolution_state": "workaround_only",
+          "evidence": [
+            "/Users/jeff/.agents/skills/get-tweet/SKILL.md",
+            "/Users/jeff/.agents/skills/external-product-research/references/policy.md",
+            "/tmp/get-tweet-2096128417108287566-vuu305c1/run-card.json",
+            "/Users/jeff/Personal/Content/sources/x/2026-09-05-polydao-300-agents-one-graph-and-a-loop-that-edits-the-loop.md"
+          ],
+          "evidence_sha256": {
+            "/Users/jeff/.agents/skills/external-product-research/references/policy.md": "9874745bba1491a2f7602f85aa603eaf40dd5f6947a3fe806c88e00b8041abdf",
+            "/Users/jeff/.agents/skills/get-tweet/SKILL.md": "fca53b55a008d2e22152c071d6e538f61f4675191dd873a05da5c8ab7301f985",
+            "/Users/jeff/Personal/Content/sources/x/2026-09-05-polydao-300-agents-one-graph-and-a-loop-that-edits-the-loop.md": "279b7bf0c11de3b9cacbb13e08f780b3470fdb94312d64007a6fe7c97451bef3",
+            "/tmp/get-tweet-2096128417108287566-vuu305c1/run-card.json": "6c7d683a96ce5e35849fe03a26cebbe1737d3b815ab90930fa644916c8ff8cf0"
+          },
+          "cause_status": "directly_verified",
+          "cause": "Contradictory shared skill instructions made the documented fetch workflow unable to complete under the mandatory policy.",
+          "proposed_change": "Make get-tweet state the governing policy and documented permitted retrieval path; resolving any policy exception requires a separate explicit decision.",
+          "priority": "medium",
+          "occurrences_observed_this_run": 1,
+          "distinct_prior_runs_verified": 0,
+          "measured_user_time_cost_seconds": null,
+          "change_approved": false
+        },
+        {
+          "event_id": "SFW-20260906-01-02",
+          "run_id": "SFW-20260906-01",
+          "repository": "/Users/jeff/workspace/context-stack/scry",
+          "recorded_at": "2026-09-07T00:48:21.576316+00:00",
+          "signature": "instructions.skill-policy-conflict",
+          "observed": "The requested get-tweet fetch stopped at fxtwitter robots.txt. get-tweet instructed ignoreRobots:true while the mandatory research policy prohibited robots bypass. The user subsequently supplied a locally saved article.",
+          "resolution": "Exact article was read from the user-provided local file; the shared instruction conflict remains unresolved.",
+          "resolution_state": "workaround_only",
+          "evidence": [
+            "/Users/jeff/.agents/skills/get-tweet/SKILL.md",
+            "/Users/jeff/.agents/skills/external-product-research/references/policy.md",
+            "/tmp/get-tweet-2096128417108287566-vuu305c1/run-card.json",
+            "/Users/jeff/Personal/Content/sources/x/2026-09-05-polydao-300-agents-one-graph-and-a-loop-that-edits-the-loop.md"
+          ],
+          "evidence_sha256": {
+            "/Users/jeff/.agents/skills/external-product-research/references/policy.md": "9874745bba1491a2f7602f85aa603eaf40dd5f6947a3fe806c88e00b8041abdf",
+            "/Users/jeff/.agents/skills/get-tweet/SKILL.md": "fca53b55a008d2e22152c071d6e538f61f4675191dd873a05da5c8ab7301f985",
+            "/Users/jeff/Personal/Content/sources/x/2026-09-05-polydao-300-agents-one-graph-and-a-loop-that-edits-the-loop.md": "279b7bf0c11de3b9cacbb13e08f780b3470fdb94312d64007a6fe7c97451bef3",
+            "/tmp/get-tweet-2096128417108287566-vuu305c1/run-card.json": "6c7d683a96ce5e35849fe03a26cebbe1737d3b815ab90930fa644916c8ff8cf0"
+          },
+          "cause_status": "directly_verified",
+          "cause": "Contradictory shared skill instructions made the documented fetch workflow unable to complete under the mandatory policy.",
+          "proposed_change": "Make get-tweet state the governing policy and documented permitted retrieval path; resolving any policy exception requires a separate explicit decision.",
+          "priority": "medium",
+          "occurrences_observed_this_run": 1,
+          "distinct_prior_runs_verified": 0,
+          "measured_user_time_cost_seconds": null,
+          "change_approved": false
+        }
+      ],
+      "measured_events": 0,
+      "measured_user_time_cost_seconds": null,
+      "proposals": [
+        {
+          "event_id": "INDEPENDENT-second",
+          "change": "Make get-tweet state the governing policy and documented permitted retrieval path; resolving any policy exception requires a separate explicit decision."
+        },
+        {
+          "event_id": "SFW-20260906-01-02",
+          "change": "Make get-tweet state the governing policy and documented permitted retrieval path; resolving any policy exception requires a separate explicit decision."
+        }
+      ]
+    },
+    {
+      "signature": "integration.rpc-parameter-contract",
+      "run_ids": [
+        "SFW-20260906-01"
+      ],
+      "distinct_runs": 1,
+      "recurring": false,
+      "events": [
+        {
+          "event_id": "SFW-20260906-01-01",
+          "run_id": "SFW-20260906-01",
+          "repository": "/Users/jeff/workspace/context-stack/scry",
+          "recorded_at": "2026-09-07T00:48:21.576316+00:00",
+          "signature": "integration.rpc-parameter-contract",
+          "observed": "The first graph fixture harness sent symbol where the ordinary code query API requires name; RPC rejected the request.",
+          "resolution": "Corrected the harness to name before reproducing the graph defect; the failing attempt was retained.",
+          "resolution_state": "corrected_in_run",
+          "evidence": [
+            "docs/code-graph-evidence/2026-09-06/harness-invalid-query-param.log.txt",
+            "internal/daemon/methods.go"
+          ],
+          "evidence_sha256": {
+            "docs/code-graph-evidence/2026-09-06/harness-invalid-query-param.log.txt": "953a18b43d3e4a2db8e6fa5cb00874af04af7dcac0341dff43c823852daf2339",
+            "internal/daemon/methods.go": "0c188b4c274f1257b11f8424a01a1adb9db303dd55e3737852c739ee70bff546"
+          },
+          "cause_status": "directly_verified",
+          "cause": "Test harness used the wrong request field.",
+          "proposed_change": "For new API integration tests, use the existing request type rather than reproducing its field names.",
+          "priority": "low",
+          "occurrences_observed_this_run": 1,
+          "distinct_prior_runs_verified": 0,
+          "measured_user_time_cost_seconds": null,
+          "change_approved": false
+        }
+      ],
+      "measured_events": 0,
+      "measured_user_time_cost_seconds": null,
+      "proposals": [
+        {
+          "event_id": "SFW-20260906-01-01",
+          "change": "For new API integration tests, use the existing request type rather than reproducing its field names."
+        }
+      ]
+    },
+    {
+      "signature": "verification.builder-is-sole-completion-judge",
+      "run_ids": [
+        "SFW-20260906-01"
+      ],
+      "distinct_runs": 1,
+      "recurring": false,
+      "events": [
+        {
+          "event_id": "SFW-20260906-01-03",
+          "run_id": "SFW-20260906-01",
+          "repository": "/Users/jeff/workspace/context-stack/scry",
+          "recorded_at": "2026-09-07T00:48:21.576316+00:00",
+          "signature": "verification.builder-is-sole-completion-judge",
+          "observed": "The graph builder agent authored the implementation, tests and completion audit; no fresh independent verifier had examined the delivered change when completion was declared.",
+          "resolution": "User approved one fresh-verifier pilot; independent review is now running.",
+          "resolution_state": "pilot_in_progress",
+          "evidence": [
+            "docs/code-graph-evidence/2026-09-06/README.md",
+            "docs/code-graph-evidence/2026-09-06/delivery-hashes.json"
+          ],
+          "evidence_sha256": {
+            "docs/code-graph-evidence/2026-09-06/README.md": "a9c55828fe60a721ac7a433b8d3671ef6a48f381545f20575e903ae1e73cf99b",
+            "docs/code-graph-evidence/2026-09-06/delivery-hashes.json": "e5b49ea473e1fa05b6d6a7b6c6711ed452092f25c9801ea7522e51a0259ece99"
+          },
+          "cause_status": "directly_observed_in_session",
+          "cause": "The selected run did not include a separately authorized final verifier.",
+          "proposed_change": "For substantial runs, authorize a fresh final verifier against the original acceptance criteria and exact delivered revision; retain any disagreements.",
+          "priority": "medium",
+          "occurrences_observed_this_run": 1,
+          "distinct_prior_runs_verified": 0,
+          "measured_user_time_cost_seconds": null,
+          "change_approved": false
+        }
+      ],
+      "measured_events": 0,
+      "measured_user_time_cost_seconds": null,
+      "proposals": [
+        {
+          "event_id": "SFW-20260906-01-03",
+          "change": "For substantial runs, authorize a fresh final verifier against the original acceptance criteria and exact delivered revision; retain any disagreements."
+        }
+      ]
+    }
+  ],
+  "recommendations_only": true
+}

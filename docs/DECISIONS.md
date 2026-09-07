@@ -9,6 +9,29 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-09-06 — Explicit friction observations have an independent journal
+
+**Decision.** Following the one-run workflow pilot, add an opt-in friction journal
+with immutable caller event IDs, exact get/list, and a deterministic review grouped
+by signature and distinct run IDs. Store it separately in the owning daemon's
+`friction` directory with synchronous transaction acknowledgments. Expose CLI,
+RPC and local/all MCP tools. Reject changed content under an existing ID and fail
+oversized reviews rather than silently reporting incomplete recurrence counts.
+
+**Why.** Memory episode retrieval follows extracted fact provenance; zero-fact
+observations must still be directly retrievable. The pilot needs durable evidence
+and repeatable review without changing memory identity, admission or extraction.
+Authored corrections remain proposals with citations. No automatic collection,
+policy/skill edits, scheduling or shared-memory routing is introduced.
+
+**What would change our minds.** Evidence from the next three real tasks can justify
+another workflow step. Cross-machine placement, richer resolution history, larger
+review windows and automatic capture require their own concrete scope. This slice
+is specified in [friction-journal.md](friction-journal.md); its local implementation
+and isolated tests do not deploy or load events into the production journal.
+
+---
+
 ## 2026-09-06 — One opt-in authored constraint reaches orientation through the queue
 
 **Decision.** The September 6 reset freezes the private admission prototype and

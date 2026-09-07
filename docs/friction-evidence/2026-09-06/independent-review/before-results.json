@@ -1,0 +1,186 @@
+[
+  {
+    "check": "Original fixture has exactly three observations",
+    "pass": true
+  },
+  {
+    "check": "All pilot records created",
+    "pass": true
+  },
+  {
+    "check": "Exact post-restart event SFW-20260906-01-01",
+    "pass": true
+  },
+  {
+    "check": "Idempotent receipt SFW-20260906-01-01",
+    "pass": true
+  },
+  {
+    "check": "Exact post-restart event SFW-20260906-01-02",
+    "pass": true
+  },
+  {
+    "check": "Idempotent receipt SFW-20260906-01-02",
+    "pass": true
+  },
+  {
+    "check": "Exact post-restart event SFW-20260906-01-03",
+    "pass": true
+  },
+  {
+    "check": "Idempotent receipt SFW-20260906-01-03",
+    "pass": true
+  },
+  {
+    "check": "CLI list exact three and no cursor",
+    "pass": true
+  },
+  {
+    "check": "Initial review no inferred recurrence or costs",
+    "pass": true
+  },
+  {
+    "check": "Second run record acknowledged",
+    "pass": true
+  },
+  {
+    "check": "Acknowledged event survives process kill",
+    "pass": true
+  },
+  {
+    "check": "Exactly two distinct runs",
+    "pass": true
+  },
+  {
+    "check": "Original unresolved outcome and full evidence preserved",
+    "pass": true
+  },
+  {
+    "check": "Proposals cited and recommendations only",
+    "pass": true
+  },
+  {
+    "check": "MCP profile all",
+    "pass": true
+  },
+  {
+    "check": "MCP profile local",
+    "pass": true
+  },
+  {
+    "check": "MCP profile memory",
+    "pass": true
+  },
+  {
+    "check": "Memory profile refuses journal call",
+    "pass": true
+  },
+  {
+    "check": "MCP exact get",
+    "pass": true
+  },
+  {
+    "check": "MCP retry record",
+    "pass": true
+  },
+  {
+    "check": "MCP list exact",
+    "pass": true
+  },
+  {
+    "check": "MCP review exact",
+    "pass": true
+  },
+  {
+    "check": "Conflict rejects overwrite",
+    "pass": true
+  },
+  {
+    "check": "Missing returns -32004",
+    "pass": true
+  },
+  {
+    "check": "RPC rejects authorization",
+    "pass": true
+  },
+  {
+    "check": "RPC rejects unknown",
+    "pass": true
+  },
+  {
+    "check": "RPC rejects oversize",
+    "pass": true
+  },
+  {
+    "check": "RPC rejects path",
+    "pass": true
+  },
+  {
+    "check": "MCP rejects unknown fields",
+    "pass": true
+  },
+  {
+    "check": "CLI rejects repo rewrite",
+    "pass": true
+  },
+  {
+    "check": "32 concurrent retries insert exactly once",
+    "pass": true
+  },
+  {
+    "check": "Same-run agents and asserted counts never create recurrence",
+    "pass": true
+  },
+  {
+    "check": "Pagination returns 101 distinct ordered IDs",
+    "pass": true
+  },
+  {
+    "check": "Review refuses 101 records",
+    "pass": true
+  },
+  {
+    "check": "List refuses limit 101",
+    "pass": true
+  },
+  {
+    "check": "Review refuses cursor",
+    "pass": true
+  },
+  {
+    "check": "Until exclusive",
+    "pass": true
+  },
+  {
+    "check": "Since inclusive",
+    "pass": true
+  },
+  {
+    "check": "Finite extreme cost accepted 0",
+    "pass": true
+  },
+  {
+    "check": "Finite extreme cost accepted 1",
+    "pass": true
+  },
+  {
+    "check": "Finite cost aggregation review serializes",
+    "pass": false,
+    "response": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "error": {
+        "code": -32603,
+        "message": "marshal result: json: unsupported value: +Inf"
+      }
+    }
+  },
+  {
+    "check": "No memory store created",
+    "pass": true
+  },
+  {
+    "check": "Original pilot still exactly preserved after probes",
+    "pass": true
+  }
+]

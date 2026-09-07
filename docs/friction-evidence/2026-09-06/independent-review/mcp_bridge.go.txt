@@ -1,0 +1,15 @@
+// Independent verification adapter: production MCP server, explicit test socket.
+package main
+
+import (
+ "context"
+ "os"
+ "github.com/jeffdhooton/scry/internal/mcp"
+ "github.com/jeffdhooton/scry/internal/rpc"
+)
+
+func main() {
+ profile, err := mcp.ParseToolProfile(os.Args[2]); if err != nil { panic(err) }
+ server := mcp.NewWithProfile(func() (mcp.Dialer,error) {return rpc.Dial(os.Args[1])},profile)
+ if err := server.Serve(context.Background(),os.Stdin,os.Stdout); err != nil {panic(err)}
+}

@@ -1,0 +1,19 @@
+{
+  "checks": [
+    {
+      "command": "CGO_ENABLED=0 go test ./...",
+      "exit_code": 0,
+      "log": "test.log.txt",
+      "sha256": "4245266a1cbfd208dbc96c3ad6f4bad56cbc3873a4c7ccdd253dc4d08d637171",
+      "note": "Go cache reused for unchanged packages; changed friction/daemon packages reran after overflow fix."
+    },
+    {
+      "command": "CGO_ENABLED=0 go vet ./...",
+      "exit_code": 0,
+      "log": "vet.log.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "isolation": "Journal integration uses separate subprocess service/CLI and temporary homes/sockets. No production journal import, deployment, daemon restart or configuration change.",
+  "prior_graph_delivery_hashes": "All hashes in docs/code-graph-evidence/2026-09-06/delivery-hashes.json still match."
+}

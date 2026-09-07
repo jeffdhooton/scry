@@ -6,6 +6,14 @@
 
 ---
 
+## Workflow friction
+
+Explicitly retain a correction or blocker with its run ID and evidence using
+`scry friction record event.json`. Retrieve it with `friction get <event-id>`,
+list a run with `friction list --run-id <run-id>`, and review recurring signatures
+with `friction review`. Events survive without memory extraction; reviews return
+cited proposals. See [the journal contract and examples](docs/friction-journal.md).
+
 ## Setup
 
 **The whole thing, if you already know what you're doing:**

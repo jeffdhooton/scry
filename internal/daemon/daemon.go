@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/jeffdhooton/scry/internal/config"
+	"github.com/jeffdhooton/scry/internal/friction"
 	"github.com/jeffdhooton/scry/internal/git"
 	scryhttp "github.com/jeffdhooton/scry/internal/http"
 	httpstore "github.com/jeffdhooton/scry/internal/http/store"
@@ -95,6 +96,10 @@ type Daemon struct {
 	roomOnce sync.Once
 	roomSt   *roomstore.Store
 	roomErr  error
+
+	frictionMu     sync.Mutex
+	frictionSt     *friction.Store
+	frictionClosed bool
 }
 
 // memoryStore lazily opens the global memory store on first use, guarded by
@@ -175,6 +180,7 @@ func New(layout Layout) *Daemon {
 	d.registerHTTPMethods()
 	d.registerGraphMethods()
 	d.registerRoomMethods()
+	d.registerFrictionMethods()
 	return d
 }
 
@@ -243,6 +249,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	defer d.graphRegistry.CloseAll()
 	defer d.closeHTTP()
 	defer d.closeRooms()
+	defer d.closeFriction()
 	defer d.closeMemory()
 	defer d.closeMemoryUI()
 	defer d.watcher.Close()

@@ -1,0 +1,47 @@
+ok  	github.com/jeffdhooton/scry/cmd/scry	(cached)
+?   	github.com/jeffdhooton/scry/docs/friction-evidence/2026-09-06/independent-review	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/config	(cached)
+ok  	github.com/jeffdhooton/scry/internal/daemon	35.446s
+ok  	github.com/jeffdhooton/scry/internal/doctor	(cached)
+ok  	github.com/jeffdhooton/scry/internal/friction	0.981s
+?   	github.com/jeffdhooton/scry/internal/git	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/git/index	(cached)
+?   	github.com/jeffdhooton/scry/internal/git/store	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/graph	(cached)
+?   	github.com/jeffdhooton/scry/internal/graph/store	[no test files]
+?   	github.com/jeffdhooton/scry/internal/http	[no test files]
+?   	github.com/jeffdhooton/scry/internal/http/store	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/index	(cached)
+ok  	github.com/jeffdhooton/scry/internal/install	(cached)
+ok  	github.com/jeffdhooton/scry/internal/logrotate	(cached)
+ok  	github.com/jeffdhooton/scry/internal/mcp	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/browse	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/distill	1.221s
+ok  	github.com/jeffdhooton/scry/internal/memory/embed	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/extract	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/ingest	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/migrate	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/queue	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/recall	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/resolve	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/search	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/store	(cached)
+ok  	github.com/jeffdhooton/scry/internal/memory/sweep	1.558s
+?   	github.com/jeffdhooton/scry/internal/query	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/room/store	(cached)
+?   	github.com/jeffdhooton/scry/internal/rpc	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema/index	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema/sources/mysql	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema/sources/postgres	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema/store	[no test files]
+?   	github.com/jeffdhooton/scry/internal/setup	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/sources/coverage	(cached)
+ok  	github.com/jeffdhooton/scry/internal/sources/exec	(cached)
+?   	github.com/jeffdhooton/scry/internal/sources/golang	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/sources/php	(cached)
+?   	github.com/jeffdhooton/scry/internal/sources/python	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/sources/scip	(cached)
+?   	github.com/jeffdhooton/scry/internal/sources/typescript	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/store	(cached)
+?   	github.com/jeffdhooton/scry/internal/upgrade	[no test files]
