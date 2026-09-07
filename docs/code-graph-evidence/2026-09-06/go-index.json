@@ -1,0 +1,192 @@
+{
+  "metadata": {
+    "tool_info": {
+      "name": "scip-go",
+      "version": "0.1.26"
+    },
+    "project_root": "file:///tmp/scry-code-graph-ewoxls9t/go",
+    "text_document_encoding": 1
+  },
+  "documents": [
+    {
+      "language": "go",
+      "relative_path": "fixture.go",
+      "occurrences": [
+        {
+          "range": [
+            0,
+            8,
+            20
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            2,
+            5,
+            12
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            3,
+            1,
+            6
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak.",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            6,
+            5,
+            12
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            8,
+            6,
+            13
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+          "symbol_roles": 8
+        },
+        {
+          "range": [
+            8,
+            15,
+            20
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#Speak().",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            10,
+            5,
+            11
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Invoke().",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            10,
+            12,
+            13
+          ],
+          "symbol": "local 0",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            10,
+            14,
+            21
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "symbol_roles": 8
+        },
+        {
+          "range": [
+            10,
+            39,
+            40
+          ],
+          "symbol": "local 0",
+          "symbol_roles": 8
+        },
+        {
+          "range": [
+            10,
+            41,
+            46
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak.",
+          "symbol_roles": 8
+        },
+        {
+          "range": [
+            12,
+            5,
+            14
+          ],
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Unrelated().",
+          "symbol_roles": 1
+        }
+      ],
+      "symbols": [
+        {
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Invoke().",
+          "documentation": [
+            "```go\nfunc Invoke(s Speaker) string\n```"
+          ]
+        },
+        {
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Unrelated().",
+          "documentation": [
+            "```go\nfunc Unrelated() int\n```"
+          ]
+        },
+        {
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/",
+          "documentation": [
+            "package graphfixture"
+          ]
+        },
+        {
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "documentation": [
+            "```go\ntype Speaker interface\n```",
+            "```go\ninterface {\n    Speak() string\n}\n```"
+          ]
+        },
+        {
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak.",
+          "documentation": [
+            "```go\nfunc (Speaker).Speak() string\n```"
+          ]
+        },
+        {
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+          "documentation": [
+            "```go\ntype Greeter struct\n```",
+            "```go\nstruct{}\n```"
+          ],
+          "relationships": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+              "is_implementation": true
+            }
+          ]
+        },
+        {
+          "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#Speak().",
+          "documentation": [
+            "```go\nfunc (Greeter).Speak() string\n```"
+          ],
+          "relationships": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak.",
+              "is_implementation": true
+            }
+          ]
+        },
+        {
+          "symbol": "local 0",
+          "display_name": "s",
+          "signature_documentation": {
+            "language": "go",
+            "text": "var s example.com/graphfixture.Speaker"
+          }
+        }
+      ]
+    }
+  ]
+}

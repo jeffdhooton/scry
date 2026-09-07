@@ -1,0 +1,217 @@
+{
+  "metadata": {
+    "tool_info": {
+      "name": "scip-typescript",
+      "version": "0.4.0"
+    },
+    "project_root": "file:///tmp/scry-code-graph-ewoxls9t/typescript",
+    "text_document_encoding": 1
+  },
+  "documents": [
+    {
+      "relative_path": "fixture.ts",
+      "occurrences": [
+        {
+          "range": [
+            0,
+            0,
+            0
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/",
+          "symbol_roles": 1,
+          "enclosing_range": [
+            0,
+            0,
+            11,
+            0
+          ]
+        },
+        {
+          "range": [
+            0,
+            17,
+            24
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "symbol_roles": 1,
+          "enclosing_range": [
+            0,
+            0,
+            2,
+            1
+          ]
+        },
+        {
+          "range": [
+            1,
+            2,
+            7
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            4,
+            13,
+            20
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+          "symbol_roles": 1,
+          "enclosing_range": [
+            4,
+            0,
+            6,
+            1
+          ]
+        },
+        {
+          "range": [
+            4,
+            32,
+            39
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#"
+        },
+        {
+          "range": [
+            5,
+            2,
+            7
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#speak().",
+          "symbol_roles": 1,
+          "enclosing_range": [
+            5,
+            2,
+            37
+          ]
+        },
+        {
+          "range": [
+            8,
+            16,
+            22
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+          "symbol_roles": 1,
+          "enclosing_range": [
+            8,
+            0,
+            64
+          ]
+        },
+        {
+          "range": [
+            8,
+            23,
+            24
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().(s)",
+          "symbol_roles": 1
+        },
+        {
+          "range": [
+            8,
+            26,
+            33
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#"
+        },
+        {
+          "range": [
+            8,
+            52,
+            53
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().(s)"
+        },
+        {
+          "range": [
+            8,
+            54,
+            59
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak()."
+        },
+        {
+          "range": [
+            10,
+            16,
+            25
+          ],
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/unrelated().",
+          "symbol_roles": 1,
+          "enclosing_range": [
+            10,
+            0,
+            49
+          ]
+        }
+      ],
+      "symbols": [
+        {
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/",
+          "documentation": [
+            "```ts\nmodule \"fixture.ts\"\n```"
+          ]
+        },
+        {
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "documentation": [
+            "```ts\ninterface Speaker\n```"
+          ]
+        },
+        {
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().",
+          "documentation": [
+            "```ts\n(method) speak() =\u003e string\n```"
+          ]
+        },
+        {
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+          "documentation": [
+            "```ts\nclass Greeter\n```"
+          ],
+          "relationships": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "is_implementation": true
+            }
+          ]
+        },
+        {
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#speak().",
+          "documentation": [
+            "```ts\n(method) speak(): string\n```"
+          ],
+          "relationships": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().",
+              "is_reference": true,
+              "is_implementation": true
+            }
+          ]
+        },
+        {
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+          "documentation": [
+            "```ts\nfunction invoke(s: Speaker): string\n```"
+          ]
+        },
+        {
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().(s)",
+          "documentation": [
+            "```ts\n(parameter) s: Speaker\n```"
+          ]
+        },
+        {
+          "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/unrelated().",
+          "documentation": [
+            "```ts\nfunction unrelated(): number\n```"
+          ]
+        }
+      ]
+    }
+  ]
+}

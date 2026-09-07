@@ -1,0 +1,10 @@
+{
+  "/Users/jeff/Library/Application Support/Herd/config/nvm/versions/node/v24.15.0/lib/node_modules/@sourcegraph/scip-typescript/package.json": {
+    "sha256": "6a3c6dcc7afd60030d1d8955e1efdc25086561d657d2399224b83d258781ef16",
+    "version": "0.4.0"
+  },
+  "/Users/jeff/Library/Application Support/Herd/config/nvm/versions/node/v24.15.0/lib/node_modules/@sourcegraph/scip-typescript/node_modules/typescript/package.json": {
+    "sha256": "822ef7ca6452205657b6288b066481ecf508bfbf43455d715cf7d3ec457561e6",
+    "version": "5.9.3"
+  }
+}

@@ -1,10 +1,6 @@
 package graph
 
-import (
-	"strings"
-
-	graphstore "github.com/jeffdhooton/scry/internal/graph/store"
-)
+import graphstore "github.com/jeffdhooton/scry/internal/graph/store"
 
 type PathResult struct {
 	From     string   `json:"from"`
@@ -13,11 +9,16 @@ type PathResult struct {
 	Edges    []string `json:"edges"`
 	Distance int      `json:"distance"`
 	Found    bool     `json:"found"`
+	// Nodes attribute the display path to exact symbol IDs and definition sites.
+	// Relationships retain stored direction even when BFS traverses in reverse.
+	Nodes         []graphstore.NodeRecord `json:"nodes,omitempty"`
+	Relationships []graphstore.EdgeRecord `json:"relationships,omitempty"`
 }
 
-// FindPath performs BFS to find the shortest path between two nodes.
-// fromQuery and toQuery are searched by name substring across all node types.
+// FindPath searches names and walks stored relationships, undirected, for at
+// most nine hops. Labels come from actual edges, never guessed from node types.
 func FindPath(st *graphstore.Store, fromQuery, toQuery string) (*PathResult, error) {
+	result := &PathResult{From: fromQuery, To: toQuery}
 	fromNodes, err := st.SearchNodes(fromQuery)
 	if err != nil {
 		return nil, err
@@ -26,114 +27,87 @@ func FindPath(st *graphstore.Store, fromQuery, toQuery string) (*PathResult, err
 	if err != nil {
 		return nil, err
 	}
-
 	if len(fromNodes) == 0 || len(toNodes) == 0 {
-		return &PathResult{From: fromQuery, To: toQuery, Found: false}, nil
+		return result, nil
 	}
-
-	// Build target set
 	targetKeys := map[string]bool{}
 	for _, n := range toNodes {
 		targetKeys[n.Key()] = true
 	}
-
-	// BFS from all source nodes
-	type bfsEntry struct {
-		key  string
-		prev string
+	// The store returns edges in key order, giving deterministic tie breaking.
+	edges, err := st.AllEdges()
+	if err != nil {
+		return nil, err
 	}
-	visited := map[string]string{} // key -> previous key (for path reconstruction)
-	var queue []bfsEntry
-
+	type step struct {
+		key  string
+		edge graphstore.EdgeRecord
+	}
+	adjacent := map[string][]step{}
+	for _, e := range edges {
+		adjacent[e.SrcKey] = append(adjacent[e.SrcKey], step{e.DstKey, e})
+		adjacent[e.DstKey] = append(adjacent[e.DstKey], step{e.SrcKey, e})
+	}
+	visited := map[string]string{}
+	via := map[string]graphstore.EdgeRecord{}
+	var queue []string
 	for _, n := range fromNodes {
 		k := n.Key()
 		visited[k] = ""
-		queue = append(queue, bfsEntry{k, ""})
+		queue = append(queue, k)
 	}
-
-	var foundTarget string
-	maxDepth := 10
-
-	for depth := 0; depth < maxDepth && len(queue) > 0; depth++ {
-		var nextQueue []bfsEntry
-		for _, entry := range queue {
-			if targetKeys[entry.key] {
-				foundTarget = entry.key
+	var target string
+	for depth := 0; depth < 10 && len(queue) > 0; depth++ {
+		var next []string
+		for _, key := range queue {
+			if targetKeys[key] {
+				target = key
 				goto done
 			}
-			neighbors, err := st.GetNeighbors(entry.key)
-			if err != nil {
-				continue
-			}
-			for _, nb := range neighbors {
-				if _, seen := visited[nb]; !seen {
-					visited[nb] = entry.key
-					nextQueue = append(nextQueue, bfsEntry{nb, entry.key})
+			for _, nb := range adjacent[key] {
+				if _, seen := visited[nb.key]; seen {
+					continue
 				}
+				// Do not return paths with dangling, unattributable endpoints.
+				node, err := st.GetNode(nb.key)
+				if err != nil {
+					return nil, err
+				}
+				if node == nil {
+					continue
+				}
+				visited[nb.key] = key
+				via[nb.key] = nb.edge
+				next = append(next, nb.key)
 			}
 		}
-		queue = nextQueue
+		queue = next
 	}
-
 done:
-	if foundTarget == "" {
-		return &PathResult{From: fromQuery, To: toQuery, Found: false}, nil
+	if target == "" {
+		return result, nil
 	}
-
-	// Reconstruct path
-	var path []string
-	for cur := foundTarget; cur != ""; cur = visited[cur] {
-		path = append(path, cur)
+	var keys []string
+	for cur := target; cur != ""; cur = visited[cur] {
+		keys = append(keys, cur)
 	}
-	// Reverse
-	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
-		path[i], path[j] = path[j], path[i]
+	for i, j := 0, len(keys)-1; i < j; i, j = i+1, j-1 {
+		keys[i], keys[j] = keys[j], keys[i]
 	}
-
-	// Resolve node names for display
-	var displayPath []string
-	for _, key := range path {
-		node, _ := st.GetNode(key)
-		if node != nil {
-			displayPath = append(displayPath, node.Name+" ("+node.Type+")")
-		} else {
-			displayPath = append(displayPath, key)
+	for i, key := range keys {
+		node, err := st.GetNode(key)
+		if err != nil {
+			return nil, err
+		}
+		result.Nodes = append(result.Nodes, *node)
+		result.Path = append(result.Path, node.Name+" ("+node.Type+")")
+		if i > 0 {
+			e := via[key]
+			result.Edges = append(result.Edges, e.Type)
+			result.Relationships = append(result.Relationships, e)
 		}
 	}
-
-	// Infer edge types between consecutive nodes
-	var edgeTypes []string
-	for i := 0; i < len(path)-1; i++ {
-		edgeType := inferEdgeType(path[i], path[i+1])
-		edgeTypes = append(edgeTypes, edgeType)
-	}
-
-	return &PathResult{
-		From:     fromQuery,
-		To:       toQuery,
-		Path:     displayPath,
-		Edges:    edgeTypes,
-		Distance: len(path) - 1,
-		Found:    true,
-	}, nil
-}
-
-func inferEdgeType(srcKey, dstKey string) string {
-	srcType := strings.SplitN(srcKey, ":", 2)[0]
-	dstType := strings.SplitN(dstKey, ":", 2)[0]
-
-	switch {
-	case srcType == "function" && dstType == "function":
-		return "calls"
-	case srcType == "class" && dstType == "interface":
-		return "implements"
-	case srcType == "table" && dstType == "table":
-		return "fk"
-	case srcType == "file" && dstType == "file":
-		return "changed_with"
-	case srcType == "function" && dstType == "table":
-		return "queries"
-	default:
-		return "connected"
-	}
+	result.Found = true
+	result.Distance = len(keys) - 1
+	return result, nil
 }

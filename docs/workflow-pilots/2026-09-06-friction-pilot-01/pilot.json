@@ -1,0 +1,21 @@
+{
+  "run_id": "SFW-20260906-01",
+  "recorded_at": "2026-09-07T00:48:21.576316+00:00",
+  "authorization": "User asked whether Scry should retain running friction and agreed to pilot one run.",
+  "target": "Completed local unified code graph delivery",
+  "scope": [
+    "One independent fresh-context verification pass",
+    "Three attributed observations from this session",
+    "Retain a concise record through existing Scry memory API and check retrieval",
+    "Propose workflow changes for review"
+  ],
+  "stop": "After verifier result and one friction review; no recurring schedule or autonomous policy edits.",
+  "decision_boundary": "This is a pilot of an observation/review workflow, not authorization for the frozen memory admission or identity backlog.",
+  "recurrence_rule": "Only exact event IDs and distinct run IDs count; graph fact counts are not recurrence counts. One run cannot prove a recurring pattern.",
+  "success_checks": [
+    "Verifier reads original criteria and actual artifacts",
+    "At least one actionable issue or explicit no-issue result retained",
+    "Scry queue acknowledgment and resolved retrieval reported separately",
+    "No unapproved changes to shared skills/policies/production"
+  ]
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "check": "baseline full suite",
+    "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go test ./...",
+    "log": "baseline-test.log.txt",
+    "exit_code": 0,
+    "log_sha256": "b748e4a785240b3f8f4561f81d05d894def6998de114f2503ae08b17e21dfdf9"
+  },
+  {
+    "check": "baseline vet",
+    "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go vet ./...",
+    "log": "baseline-vet.log.txt",
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "check": "baseline defect",
+    "command": "CGO_ENABLED=0 GOPROXY=off go test ./internal/daemon -run ^TestIndexedCodeGraphFixture$ -count=1 -v",
+    "log": "baseline-fixture.log.txt",
+    "exit_code": 1,
+    "log_sha256": "def84dd2f5bd94cd7a70d1cedc6183cf54bd4a507f1cb67ba64f282353b3c6d4"
+  },
+  {
+    "check": "focused acceptance",
+    "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go test ./internal/graph ./internal/sources/scip ./internal/daemon -run 'TestClassifySymbol|TestCodeGraph|TestGraphGitSchema|TestKindFromSymbol|TestParseKind|TestParseExternalKinds|TestIndexedCodeGraphFixture|TestGraphRegistry' -count=1 -v",
+    "log": "focused-final.log.txt",
+    "exit_code": 0,
+    "log_sha256": "19cccfe6cecb591723ee28a1b6b763f521bda100865b9c24bb6c79b2c2de6aeb"
+  },
+  {
+    "check": "uncached final suite",
+    "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go test -count=1 ./...",
+    "log": "final-test.log.txt",
+    "exit_code": 0,
+    "log_sha256": "022d1be92d8c0e5401190e39c725cac1d8d99bf4f71fa0a7305408ba8ee24e56"
+  },
+  {
+    "check": "final vet",
+    "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go vet ./...",
+    "log": "final-vet.log.txt",
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "check": "baseline reversal from fresh export",
+    "command": "go test ./internal/daemon -run ^TestIndexedCodeGraphFixture$ -count=1 -v",
+    "log": "reversal-baseline.log.txt",
+    "exit_code": 1,
+    "log_sha256": "a277b5b049a018cc8bc3c1eb0effe4dded7b6ada2fcc5adf4edbf847d8b7471a"
+  },
+  {
+    "check": "delivered files suite",
+    "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go test ./...",
+    "log": "final-current-test.log.txt",
+    "exit_code": 0,
+    "log_sha256": "8a340e955717563deb402a60b8e93eff86eff05e9b01eb55b7635aa3c4ed778d"
+  },
+  {
+    "check": "delivered files vet",
+    "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go vet ./...",
+    "log": "final-current-vet.log.txt",
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

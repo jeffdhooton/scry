@@ -1,0 +1,100 @@
+{
+  "index_sha256": "66e1b5cb0efd36abee184e99e2e1eac360cf15925e346e8714ef25b28b1f063f",
+  "nodes": [
+    {
+      "type": "module",
+      "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/",
+      "name": "fixture.ts",
+      "file": "fixture.ts",
+      "line": 1
+    },
+    {
+      "type": "type",
+      "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+      "name": "Speaker",
+      "file": "fixture.ts",
+      "line": 1
+    },
+    {
+      "type": "type",
+      "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+      "name": "Greeter",
+      "file": "fixture.ts",
+      "line": 5
+    },
+    {
+      "type": "function",
+      "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().",
+      "name": "speak",
+      "file": "fixture.ts",
+      "line": 2
+    },
+    {
+      "type": "function",
+      "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#speak().",
+      "name": "speak",
+      "file": "fixture.ts",
+      "line": 6
+    },
+    {
+      "type": "function",
+      "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+      "name": "invoke",
+      "file": "fixture.ts",
+      "line": 9
+    },
+    {
+      "type": "function",
+      "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/unrelated().",
+      "name": "unrelated",
+      "file": "fixture.ts",
+      "line": 11
+    }
+  ],
+  "edges": [
+    {
+      "type": "implements",
+      "src": "function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#speak().",
+      "dst": "function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().",
+      "confidence": 1,
+      "source_domain": "code"
+    },
+    {
+      "type": "calls",
+      "src": "function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+      "dst": "function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().",
+      "confidence": 1,
+      "source_domain": "code"
+    },
+    {
+      "type": "references",
+      "src": "function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+      "dst": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+      "confidence": 1,
+      "source_domain": "code"
+    },
+    {
+      "type": "implements",
+      "src": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+      "dst": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+      "confidence": 1,
+      "source_domain": "code"
+    },
+    {
+      "type": "references",
+      "src": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+      "dst": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+      "confidence": 1,
+      "source_domain": "code"
+    }
+  ],
+  "query": "Speaker",
+  "to": "Speaker",
+  "unrelated": "unrelated",
+  "from": "Greeter",
+  "source_sha256": {
+    "package.json": "3675c85c7bca594c0019b5f115e48fd3d5df6d5e822d7399dc2b7924e990fdd4",
+    "tsconfig.json": "a49b46d6b4a7835b2e25a7edb6152de314ee294bb4ab31da3e378c560b9bc492",
+    "fixture.ts": "d81629224b071cfee2fe330a4c1ce945d8227f98a368498d5b0ad048ac5216a8"
+  }
+}

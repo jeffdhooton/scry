@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "go",
+    "test",
+    "./internal/daemon",
+    "./internal/sources/scip",
+    "./internal/graph",
+    "-run",
+    "TestVerifier|TestIndexedCodeGraphFixture|TestKindFromSymbol|TestParseKind|TestParseExternalKinds|TestGraphRegistry",
+    "-count=1",
+    "-v"
+  ],
+  "cwd": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/scry-graph-verifier-gjwy2x4b",
+  "environment_overrides": {
+    "CGO_ENABLED": "0",
+    "GOPROXY": "off",
+    "GOTOOLCHAIN": "local",
+    "GOSUMDB": "off"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 9.992326974868774
+}

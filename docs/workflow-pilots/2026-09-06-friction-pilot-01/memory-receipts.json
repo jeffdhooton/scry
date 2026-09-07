@@ -1,0 +1,33 @@
+{
+  "initial_record": {
+    "episode_id": "bca75a60776c4f8d74975a6534d4e81df125f2fbfbe196abf1f94ffcee976a4b",
+    "queued": true,
+    "queue_depth": 74,
+    "dormant": false
+  },
+  "retrieval_attempts": [
+    {
+      "method": "scry_episodes",
+      "entity": "Scry workflow friction pilot",
+      "result": "memory: not found",
+      "interpretation": "No resolved episode discoverable through this entity yet; successful queue acknowledgment was not retried."
+    },
+    {
+      "method": "scry_episodes",
+      "entity": "Scry workflow friction pilot",
+      "result": "exact episode retrieved",
+      "observed_at": "2026-09-07T00:53:26.393257+00:00",
+      "episode_id": "bca75a60776c4f8d74975a6534d4e81df125f2fbfbe196abf1f94ffcee976a4b",
+      "exact_summary_match": true,
+      "summary_sha256": "4bbfc6e784583fd0839e3eedd9c52e130c5283dbe5e28d2183a0d1117d0b7f44",
+      "artifact": "retrieved-episode.json"
+    }
+  ],
+  "closeout_record": {
+    "episode_id": "840dcc2b70b1863ab46d0c92f32baf583ea47da520ebb20f0cd942a0e327102f",
+    "queued": true,
+    "queue_depth": 74,
+    "dormant": false,
+    "resolved_retrieval_verified": false
+  }
+}

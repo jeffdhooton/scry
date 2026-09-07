@@ -1,0 +1,75 @@
+=== RUN   TestIndexedCodeGraphFixture
+=== RUN   TestIndexedCodeGraphFixture/go
+    graph_fixture_test.go:170: parser stats={Documents:1 Symbols:7 Definitions:7 References:3 CallEdges:0 Implementations:2}
+    graph_fixture_test.go:176: RPC graph.build params={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturego2200134970/002"} result={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturego2200134970/002","status":"ready","node_count":0,"edge_count":0,"communities":0,"elapsed_ms":129} client_elapsed=184.470625ms
+    graph_fixture_test.go:196: node_types=map[] edge_relations=map[]
+    graph_fixture_test.go:206: RPC graph.query params={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturego2200134970/002","query":"Speaker"} result={"matches":[],"query":"Speaker","total":0} client_elapsed=44.9895ms
+    graph_fixture_test.go:208: RPC graph.path params={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturego2200134970/002","from":"Greeter","to":"Speaker"} result={"from":"Greeter","to":"Speaker","path":null,"edges":null,"distance":0,"found":false} client_elapsed=9.589459ms
+    graph_fixture_test.go:210: RPC graph.path params={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturego2200134970/002","from":"Greeter","to":"Unrelated"} result={"from":"Greeter","to":"Unrelated","path":null,"edges":null,"distance":0,"found":false} client_elapsed=9.759291ms
+    graph_fixture_test.go:213: nodes=0 want 7
+    graph_fixture_test.go:222: node module:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:module ID:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/ Name:graphfixture File:fixture.go Line:1 Metadata:map[]}
+    graph_fixture_test.go:222: node type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:type ID:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker# Name:Speaker File:fixture.go Line:3 Metadata:map[]}
+    graph_fixture_test.go:222: node type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:type ID:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter# Name:Greeter File:fixture.go Line:7 Metadata:map[]}
+    graph_fixture_test.go:222: node term:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak.: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:term ID:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak. Name:Speak File:fixture.go Line:4 Metadata:map[]}
+    graph_fixture_test.go:222: node function:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#Speak().: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:function ID:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#Speak(). Name:Speak File:fixture.go Line:9 Metadata:map[]}
+    graph_fixture_test.go:222: node function:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Invoke().: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:function ID:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Invoke(). Name:Invoke File:fixture.go Line:11 Metadata:map[]}
+    graph_fixture_test.go:222: node function:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Unrelated().: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:function ID:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Unrelated(). Name:Unrelated File:fixture.go Line:13 Metadata:map[]}
+    graph_fixture_test.go:226: edges=[] want [{Type:implements SrcKey:function:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#Speak(). DstKey:term:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak. Confidence:1 SourceDomain:code} {Type:implements SrcKey:type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter# DstKey:type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker# Confidence:1 SourceDomain:code}]
+    graph_fixture_test.go:229: named query={Matches:[] Total:0}
+    graph_fixture_test.go:232: implementation path={From:Greeter To:Speaker Path:[] Edges:[] Distance:0 Found:false}
+    graph_fixture_test.go:244: defs: exit status 2: --- FAIL: TestGraphFixtureClientProcess (0.00s)
+        panic: rpc error -32602: repo and name are required [recovered, repanicked]
+        
+        goroutine 8 [running]:
+        testing.tRunner.func1.2({0x104441bc0, 0x525d10f9c2a0})
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/testing/testing.go:1974 +0x1a0
+        testing.tRunner.func1()
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/testing/testing.go:1977 +0x318
+        panic({0x104441bc0?, 0x525d10f9c2a0?})
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/runtime/panic.go:860 +0x12c
+        github.com/jeffdhooton/scry/internal/daemon.TestGraphFixtureClientProcess(0x525d10d3db08)
+        	/Users/jeff/workspace/context-stack/scry/internal/daemon/graph_fixture_test.go:53 +0x1bc
+        testing.tRunner(0x525d10d3db08, 0x1046b7b10)
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/testing/testing.go:2036 +0xc4
+        created by testing.(*T).Run in goroutine 1
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/testing/testing.go:2101 +0x3a8
+=== RUN   TestIndexedCodeGraphFixture/typescript
+    graph_fixture_test.go:170: parser stats={Documents:1 Symbols:8 Definitions:8 References:4 CallEdges:4 Implementations:2}
+    graph_fixture_test.go:176: RPC graph.build params={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescript2816548185/002"} result={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescript2816548185/002","status":"ready","node_count":0,"edge_count":0,"communities":0,"elapsed_ms":570} client_elapsed=1.070303792s
+    graph_fixture_test.go:196: node_types=map[] edge_relations=map[]
+    graph_fixture_test.go:206: RPC graph.query params={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescript2816548185/002","query":"Speaker"} result={"matches":[],"query":"Speaker","total":0} client_elapsed=66.737083ms
+    graph_fixture_test.go:208: RPC graph.path params={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescript2816548185/002","from":"Greeter","to":"Speaker"} result={"from":"Greeter","to":"Speaker","path":null,"edges":null,"distance":0,"found":false} client_elapsed=12.949417ms
+    graph_fixture_test.go:210: RPC graph.path params={"repo":"/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescript2816548185/002","from":"Greeter","to":"unrelated"} result={"from":"Greeter","to":"unrelated","path":null,"edges":null,"distance":0,"found":false} client_elapsed=11.32125ms
+    graph_fixture_test.go:213: nodes=0 want 7
+    graph_fixture_test.go:222: node module:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:module ID:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/ Name:fixture.ts File:fixture.ts Line:1 Metadata:map[]}
+    graph_fixture_test.go:222: node type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:type ID:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker# Name:Speaker File:fixture.ts Line:1 Metadata:map[]}
+    graph_fixture_test.go:222: node type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:type ID:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter# Name:Greeter File:fixture.ts Line:5 Metadata:map[]}
+    graph_fixture_test.go:222: node function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:function ID:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak(). Name:speak File:fixture.ts Line:2 Metadata:map[]}
+    graph_fixture_test.go:222: node function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#speak().: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:function ID:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#speak(). Name:speak File:fixture.ts Line:6 Metadata:map[]}
+    graph_fixture_test.go:222: node function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:function ID:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke(). Name:invoke File:fixture.ts Line:9 Metadata:map[]}
+    graph_fixture_test.go:222: node function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/unrelated().: got {Type: ID: Name: File: Line:0 Metadata:map[]} want {Type:function ID:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/unrelated(). Name:unrelated File:fixture.ts Line:11 Metadata:map[]}
+    graph_fixture_test.go:226: edges=[] want [{Type:implements SrcKey:function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#speak(). DstKey:function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak(). Confidence:1 SourceDomain:code} {Type:calls SrcKey:function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke(). DstKey:function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak(). Confidence:1 SourceDomain:code} {Type:references SrcKey:function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke(). DstKey:type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker# Confidence:1 SourceDomain:code} {Type:implements SrcKey:type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter# DstKey:type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker# Confidence:1 SourceDomain:code} {Type:references SrcKey:type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter# DstKey:type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker# Confidence:1 SourceDomain:code}]
+    graph_fixture_test.go:229: named query={Matches:[] Total:0}
+    graph_fixture_test.go:232: implementation path={From:Greeter To:Speaker Path:[] Edges:[] Distance:0 Found:false}
+    graph_fixture_test.go:244: defs: exit status 2: --- FAIL: TestGraphFixtureClientProcess (0.00s)
+        panic: rpc error -32602: repo and name are required [recovered, repanicked]
+        
+        goroutine 8 [running]:
+        testing.tRunner.func1.2({0x1021c9bc0, 0x57f25e1e02d0})
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/testing/testing.go:1974 +0x1a0
+        testing.tRunner.func1()
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/testing/testing.go:1977 +0x318
+        panic({0x1021c9bc0?, 0x57f25e1e02d0?})
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/runtime/panic.go:860 +0x12c
+        github.com/jeffdhooton/scry/internal/daemon.TestGraphFixtureClientProcess(0x57f25df81b08)
+        	/Users/jeff/workspace/context-stack/scry/internal/daemon/graph_fixture_test.go:53 +0x1bc
+        testing.tRunner(0x57f25df81b08, 0x10243fb10)
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/testing/testing.go:2036 +0xc4
+        created by testing.(*T).Run in goroutine 1
+        	/opt/homebrew/Cellar/go/1.26.2/libexec/src/testing/testing.go:2101 +0x3a8
+--- FAIL: TestIndexedCodeGraphFixture (3.19s)
+    --- FAIL: TestIndexedCodeGraphFixture/go (0.44s)
+    --- FAIL: TestIndexedCodeGraphFixture/typescript (2.74s)
+FAIL
+FAIL	github.com/jeffdhooton/scry/internal/daemon	3.573s
+FAIL

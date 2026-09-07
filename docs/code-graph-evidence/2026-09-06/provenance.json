@@ -1,0 +1,50 @@
+{
+  "revision": "df598c49bca0784983d136f92c732e2cdacc4561",
+  "commands": {
+    "go": [
+      "/Users/jeff/.scry/bin/scip-go",
+      "--project-root=/tmp/scry-code-graph-ewoxls9t/go",
+      "--module-root=/tmp/scry-code-graph-ewoxls9t/go",
+      "--repository-root=/tmp/scry-code-graph-ewoxls9t/go",
+      "--repository-remote=example.com/graphfixture",
+      "--module-version=fixture-v1",
+      "--output=/tmp/scry-code-graph-ewoxls9t/go/index.scip",
+      "./..."
+    ],
+    "typescript": [
+      "/Users/jeff/Library/Application Support/Herd/config/nvm/versions/node/v24.15.0/bin/scip-typescript",
+      "index",
+      "--cwd",
+      "/tmp/scry-code-graph-ewoxls9t/typescript",
+      "--output",
+      "/tmp/scry-code-graph-ewoxls9t/typescript/index.scip",
+      "--no-progress-bar"
+    ]
+  },
+  "environment": {
+    "GOPROXY": "off",
+    "GOSUMDB": "off",
+    "GOTOOLCHAIN": "local",
+    "CGO_ENABLED": "0",
+    "XDG_CACHE_HOME": "/tmp/scry-code-graph-ewoxls9t/cache"
+  },
+  "versions": {
+    "scip-go": "0.1.26",
+    "scip-typescript": "0.4.0",
+    "node": "v24.15.0",
+    "go": "go version go1.26.2 darwin/arm64"
+  },
+  "sha256": {
+    "internal/sources/scip/testdata/go/fixture.go": "53c97f7cae9e88db0886a70b783e43db99422ce9c2d7755d322660dd75e01b85",
+    "internal/sources/scip/testdata/go/go.mod": "2c88ad12aa0e16e8dc327287ff609b4063f63e2d344ac0912b428fd1d1fa8b6f",
+    "internal/sources/scip/testdata/go/index.scip": "a6d7b9503172071d8d348a955e198e9da2e659ee4037e02d51d3c19f9457cbf7",
+    "internal/sources/scip/testdata/typescript/fixture.ts": "d81629224b071cfee2fe330a4c1ce945d8227f98a368498d5b0ad048ac5216a8",
+    "internal/sources/scip/testdata/typescript/index.scip": "66e1b5cb0efd36abee184e99e2e1eac360cf15925e346e8714ef25b28b1f063f",
+    "internal/sources/scip/testdata/typescript/package.json": "3675c85c7bca594c0019b5f115e48fd3d5df6d5e822d7399dc2b7924e990fdd4",
+    "internal/sources/scip/testdata/typescript/tsconfig.json": "a49b46d6b4a7835b2e25a7edb6152de314ee294bb4ab31da3e378c560b9bc492"
+  },
+  "producer_sha256": {
+    "/Users/jeff/.scry/bin/scip-go": "cad11d9a7311d2e8ff3dc6175838b61bda25bec4d208e6ed4537ffdd040a5821",
+    "/Users/jeff/Library/Application Support/Herd/config/nvm/versions/node/v24.15.0/bin/scip-typescript": "22104bf4323e7667ff0d6f38606937c467af2d6e1fda171203c2065d9b757979"
+  }
+}

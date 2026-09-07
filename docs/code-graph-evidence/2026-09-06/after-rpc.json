@@ -1,0 +1,1498 @@
+[
+  {
+    "scenario": "go/parsed",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002",
+      "status": "ready",
+      "node_count": 7,
+      "edge_count": 2,
+      "communities": 2,
+      "elapsed_ms": 105
+    },
+    "client_elapsed": "166.410791ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "graph.query",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002",
+      "query": "Speaker"
+    },
+    "result": {
+      "matches": [
+        {
+          "type": "type",
+          "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "name": "Speaker",
+          "file": "fixture.go",
+          "line": 3,
+          "metadata": {
+            "kind": "Type"
+          },
+          "neighbors": [
+            "type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#"
+          ],
+          "degree": 1
+        }
+      ],
+      "query": "Speaker",
+      "total": 1
+    },
+    "client_elapsed": "63.141375ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002",
+      "from": "Greeter",
+      "to": "Speaker"
+    },
+    "result": {
+      "from": "Greeter",
+      "to": "Speaker",
+      "path": [
+        "Greeter (type)",
+        "Speaker (type)"
+      ],
+      "edges": [
+        "implements"
+      ],
+      "distance": 1,
+      "found": true,
+      "nodes": [
+        {
+          "type": "type",
+          "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+          "name": "Greeter",
+          "file": "fixture.go",
+          "line": 7,
+          "metadata": {
+            "kind": "Type"
+          }
+        },
+        {
+          "type": "type",
+          "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "name": "Speaker",
+          "file": "fixture.go",
+          "line": 3,
+          "metadata": {
+            "kind": "Type"
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "type": "implements",
+          "src": "type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+          "dst": "type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "confidence": 1,
+          "source_domain": "code"
+        }
+      ]
+    },
+    "client_elapsed": "13.293375ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002",
+      "from": "Greeter",
+      "to": "Unrelated"
+    },
+    "result": {
+      "from": "Greeter",
+      "to": "Unrelated",
+      "path": null,
+      "edges": null,
+      "distance": 0,
+      "found": false
+    },
+    "client_elapsed": "12.764625ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "defs",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "Type",
+          "occurrences": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+              "file": "fixture.go",
+              "line": 3,
+              "column": 6,
+              "end_line": 3,
+              "end_column": 13,
+              "context": "type Speaker interface {",
+              "is_definition": true
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "440.235833ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "refs",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "Type",
+          "occurrences": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+              "file": "fixture.go",
+              "line": 11,
+              "column": 15,
+              "end_line": 11,
+              "end_column": 22,
+              "context": "func Invoke(s Speaker) string { return s.Speak() }"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "8.9985ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "callers",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "Type",
+          "occurrences": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+              "file": "fixture.go",
+              "line": 11,
+              "column": 15,
+              "end_line": 11,
+              "end_column": 22,
+              "context": "func Invoke(s Speaker) string { return s.Speak() }"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.7735ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "impls",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "Type",
+          "occurrences": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+              "file": "fixture.go",
+              "line": 7,
+              "column": 6,
+              "end_line": 0,
+              "end_column": 0,
+              "context": "type Greeter struct{}",
+              "containing_symbol": "Greeter"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.766917ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "callees",
+    "params": {
+      "name": "Unrelated",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002"
+    },
+    "result": {
+      "symbol": "Unrelated",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Unrelated().",
+          "display_name": "Unrelated",
+          "kind": "Method",
+          "occurrences": []
+        }
+      ],
+      "total": 0,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.566541ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "callees",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002",
+      "name": "Invoke"
+    },
+    "result": {
+      "symbol": "Invoke",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Invoke().",
+          "display_name": "Invoke",
+          "kind": "Method",
+          "occurrences": []
+        }
+      ],
+      "total": 0,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.526167ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002",
+      "from": "Invoke",
+      "to": "Speaker"
+    },
+    "result": {
+      "from": "Invoke",
+      "to": "Speaker",
+      "path": null,
+      "edges": null,
+      "distance": 0,
+      "found": false
+    },
+    "client_elapsed": "7.202ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/002",
+      "status": "ready",
+      "node_count": 7,
+      "edge_count": 2,
+      "communities": 2,
+      "elapsed_ms": 1244
+    },
+    "client_elapsed": "1.413244917s"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/004"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/004",
+      "status": "ready",
+      "node_count": 0,
+      "edge_count": 0,
+      "communities": 0,
+      "elapsed_ms": 118
+    },
+    "client_elapsed": "143.85275ms"
+  },
+  {
+    "scenario": "go/parsed",
+    "method": "graph.query",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegoparsed916988995/004",
+      "query": "Speaker"
+    },
+    "result": {
+      "matches": [],
+      "query": "Speaker",
+      "total": 0
+    },
+    "client_elapsed": "8.877833ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002",
+      "status": "ready",
+      "node_count": 7,
+      "edge_count": 5,
+      "communities": 2,
+      "elapsed_ms": 97
+    },
+    "client_elapsed": "155.171791ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "graph.query",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002",
+      "query": "Speaker"
+    },
+    "result": {
+      "matches": [
+        {
+          "type": "type",
+          "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "name": "Speaker",
+          "file": "fixture.ts",
+          "line": 1,
+          "metadata": {
+            "kind": "Type"
+          },
+          "neighbors": [
+            "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+            "function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+            "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#"
+          ],
+          "degree": 3
+        }
+      ],
+      "query": "Speaker",
+      "total": 1
+    },
+    "client_elapsed": "25.940583ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002",
+      "from": "Greeter",
+      "to": "Speaker"
+    },
+    "result": {
+      "from": "Greeter",
+      "to": "Speaker",
+      "path": [
+        "Greeter (type)",
+        "Speaker (type)"
+      ],
+      "edges": [
+        "implements"
+      ],
+      "distance": 1,
+      "found": true,
+      "nodes": [
+        {
+          "type": "type",
+          "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+          "name": "Greeter",
+          "file": "fixture.ts",
+          "line": 5,
+          "metadata": {
+            "kind": "Type"
+          }
+        },
+        {
+          "type": "type",
+          "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "name": "Speaker",
+          "file": "fixture.ts",
+          "line": 1,
+          "metadata": {
+            "kind": "Type"
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "type": "implements",
+          "src": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+          "dst": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "confidence": 1,
+          "source_domain": "code"
+        }
+      ]
+    },
+    "client_elapsed": "8.851916ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002",
+      "from": "Greeter",
+      "to": "unrelated"
+    },
+    "result": {
+      "from": "Greeter",
+      "to": "unrelated",
+      "path": null,
+      "edges": null,
+      "distance": 0,
+      "found": false
+    },
+    "client_elapsed": "7.95775ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "defs",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "Type",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 1,
+              "column": 18,
+              "end_line": 1,
+              "end_column": 25,
+              "context": "export interface Speaker {",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/",
+              "is_definition": true
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "24.400416ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "refs",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "Type",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 5,
+              "column": 33,
+              "end_line": 5,
+              "end_column": 40,
+              "context": "export class Greeter implements Speaker {",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#"
+            },
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 27,
+              "end_line": 9,
+              "end_column": 34,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            }
+          ]
+        }
+      ],
+      "total": 2,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "9.059916ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "callers",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "Type",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 5,
+              "column": 33,
+              "end_line": 5,
+              "end_column": 40,
+              "context": "export class Greeter implements Speaker {",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#"
+            },
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 27,
+              "end_line": 9,
+              "end_column": 34,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            }
+          ]
+        }
+      ],
+      "total": 2,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "8.183875ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "impls",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "Type",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+              "file": "fixture.ts",
+              "line": 5,
+              "column": 14,
+              "end_line": 0,
+              "end_column": 0,
+              "context": "export class Greeter implements Speaker {",
+              "containing_symbol": "Greeter"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.850709ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "callees",
+    "params": {
+      "name": "unrelated",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002"
+    },
+    "result": {
+      "symbol": "unrelated",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/unrelated().",
+          "display_name": "unrelated",
+          "kind": "Method",
+          "occurrences": []
+        }
+      ],
+      "total": 0,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.502625ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "callees",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002",
+      "name": "invoke"
+    },
+    "result": {
+      "symbol": "invoke",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+          "display_name": "invoke",
+          "kind": "Method",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 27,
+              "end_line": 9,
+              "end_column": 34,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            },
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().(s)",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 53,
+              "end_line": 9,
+              "end_column": 54,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            },
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 55,
+              "end_line": 9,
+              "end_column": 60,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            }
+          ]
+        }
+      ],
+      "total": 3,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.941833ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/002",
+      "status": "ready",
+      "node_count": 7,
+      "edge_count": 5,
+      "communities": 2,
+      "elapsed_ms": 42
+    },
+    "client_elapsed": "78.571375ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/004"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/004",
+      "status": "ready",
+      "node_count": 0,
+      "edge_count": 0,
+      "communities": 0,
+      "elapsed_ms": 59
+    },
+    "client_elapsed": "89.33725ms"
+  },
+  {
+    "scenario": "typescript/parsed",
+    "method": "graph.query",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptparsed374407746/004",
+      "query": "Speaker"
+    },
+    "result": {
+      "matches": [],
+      "query": "Speaker",
+      "total": 0
+    },
+    "client_elapsed": "9.281208ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002",
+      "status": "ready",
+      "node_count": 7,
+      "edge_count": 2,
+      "communities": 2,
+      "elapsed_ms": 73
+    },
+    "client_elapsed": "111.061917ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "graph.query",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002",
+      "query": "Speaker"
+    },
+    "result": {
+      "matches": [
+        {
+          "type": "type",
+          "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "name": "Speaker",
+          "file": "fixture.go",
+          "line": 3,
+          "metadata": {
+            "kind": "UnspecifiedKind"
+          },
+          "neighbors": [
+            "type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#"
+          ],
+          "degree": 1
+        }
+      ],
+      "query": "Speaker",
+      "total": 1
+    },
+    "client_elapsed": "28.767042ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002",
+      "from": "Greeter",
+      "to": "Speaker"
+    },
+    "result": {
+      "from": "Greeter",
+      "to": "Speaker",
+      "path": [
+        "Greeter (type)",
+        "Speaker (type)"
+      ],
+      "edges": [
+        "implements"
+      ],
+      "distance": 1,
+      "found": true,
+      "nodes": [
+        {
+          "type": "type",
+          "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+          "name": "Greeter",
+          "file": "fixture.go",
+          "line": 7,
+          "metadata": {
+            "kind": "UnspecifiedKind"
+          }
+        },
+        {
+          "type": "type",
+          "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "name": "Speaker",
+          "file": "fixture.go",
+          "line": 3,
+          "metadata": {
+            "kind": "UnspecifiedKind"
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "type": "implements",
+          "src": "type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+          "dst": "type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "confidence": 1,
+          "source_domain": "code"
+        }
+      ]
+    },
+    "client_elapsed": "8.575792ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002",
+      "from": "Greeter",
+      "to": "Unrelated"
+    },
+    "result": {
+      "from": "Greeter",
+      "to": "Unrelated",
+      "path": null,
+      "edges": null,
+      "distance": 0,
+      "found": false
+    },
+    "client_elapsed": "8.214375ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "defs",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+              "file": "fixture.go",
+              "line": 3,
+              "column": 6,
+              "end_line": 3,
+              "end_column": 13,
+              "context": "type Speaker interface {",
+              "is_definition": true
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "23.353375ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "refs",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+              "file": "fixture.go",
+              "line": 11,
+              "column": 15,
+              "end_line": 11,
+              "end_column": 22,
+              "context": "func Invoke(s Speaker) string { return s.Speak() }"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "8.550334ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "callers",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+              "file": "fixture.go",
+              "line": 11,
+              "column": 15,
+              "end_line": 11,
+              "end_column": 22,
+              "context": "func Invoke(s Speaker) string { return s.Speak() }"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.617625ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "impls",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+              "file": "fixture.go",
+              "line": 7,
+              "column": 6,
+              "end_line": 0,
+              "end_column": 0,
+              "context": "type Greeter struct{}",
+              "containing_symbol": "Greeter"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.769958ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "callees",
+    "params": {
+      "name": "Unrelated",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002"
+    },
+    "result": {
+      "symbol": "Unrelated",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Unrelated().",
+          "display_name": "Unrelated",
+          "kind": "UnspecifiedKind",
+          "occurrences": []
+        }
+      ],
+      "total": 0,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.395167ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "callees",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002",
+      "name": "Invoke"
+    },
+    "result": {
+      "symbol": "Invoke",
+      "matches": [
+        {
+          "symbol_id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Invoke().",
+          "display_name": "Invoke",
+          "kind": "UnspecifiedKind",
+          "occurrences": []
+        }
+      ],
+      "total": 0,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.414208ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002",
+      "from": "Invoke",
+      "to": "Speaker"
+    },
+    "result": {
+      "from": "Invoke",
+      "to": "Speaker",
+      "path": null,
+      "edges": null,
+      "distance": 0,
+      "found": false
+    },
+    "client_elapsed": "8.229459ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/002",
+      "status": "ready",
+      "node_count": 7,
+      "edge_count": 2,
+      "communities": 2,
+      "elapsed_ms": 54
+    },
+    "client_elapsed": "96.634708ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/004"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/004",
+      "status": "ready",
+      "node_count": 0,
+      "edge_count": 0,
+      "communities": 0,
+      "elapsed_ms": 71
+    },
+    "client_elapsed": "98.091083ms"
+  },
+  {
+    "scenario": "go/legacy-kinds",
+    "method": "graph.query",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturegolegacy-kinds1820619351/004",
+      "query": "Speaker"
+    },
+    "result": {
+      "matches": [],
+      "query": "Speaker",
+      "total": 0
+    },
+    "client_elapsed": "9.422667ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002",
+      "status": "ready",
+      "node_count": 7,
+      "edge_count": 5,
+      "communities": 2,
+      "elapsed_ms": 80
+    },
+    "client_elapsed": "124.077542ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "graph.query",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002",
+      "query": "Speaker"
+    },
+    "result": {
+      "matches": [
+        {
+          "type": "type",
+          "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "name": "Speaker",
+          "file": "fixture.ts",
+          "line": 1,
+          "metadata": {
+            "kind": "UnspecifiedKind"
+          },
+          "neighbors": [
+            "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+            "function:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+            "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#"
+          ],
+          "degree": 3
+        }
+      ],
+      "query": "Speaker",
+      "total": 1
+    },
+    "client_elapsed": "28.070958ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002",
+      "from": "Greeter",
+      "to": "Speaker"
+    },
+    "result": {
+      "from": "Greeter",
+      "to": "Speaker",
+      "path": [
+        "Greeter (type)",
+        "Speaker (type)"
+      ],
+      "edges": [
+        "implements"
+      ],
+      "distance": 1,
+      "found": true,
+      "nodes": [
+        {
+          "type": "type",
+          "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+          "name": "Greeter",
+          "file": "fixture.ts",
+          "line": 5,
+          "metadata": {
+            "kind": "UnspecifiedKind"
+          }
+        },
+        {
+          "type": "type",
+          "id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "name": "Speaker",
+          "file": "fixture.ts",
+          "line": 1,
+          "metadata": {
+            "kind": "UnspecifiedKind"
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "type": "implements",
+          "src": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+          "dst": "type:scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "confidence": 1,
+          "source_domain": "code"
+        }
+      ]
+    },
+    "client_elapsed": "9.065542ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "graph.path",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002",
+      "from": "Greeter",
+      "to": "unrelated"
+    },
+    "result": {
+      "from": "Greeter",
+      "to": "unrelated",
+      "path": null,
+      "edges": null,
+      "distance": 0,
+      "found": false
+    },
+    "client_elapsed": "8.543834ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "defs",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 1,
+              "column": 18,
+              "end_line": 1,
+              "end_column": 25,
+              "context": "export interface Speaker {",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/",
+              "is_definition": true
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "25.044708ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "refs",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 5,
+              "column": 33,
+              "end_line": 5,
+              "end_column": 40,
+              "context": "export class Greeter implements Speaker {",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#"
+            },
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 27,
+              "end_line": 9,
+              "end_column": 34,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            }
+          ]
+        }
+      ],
+      "total": 2,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "8.773833ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "callers",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 5,
+              "column": 33,
+              "end_line": 5,
+              "end_column": 40,
+              "context": "export class Greeter implements Speaker {",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#"
+            },
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 27,
+              "end_line": 9,
+              "end_column": 34,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            }
+          ]
+        }
+      ],
+      "total": 2,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.892292ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "impls",
+    "params": {
+      "name": "Speaker",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002"
+    },
+    "result": {
+      "symbol": "Speaker",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+          "display_name": "Speaker",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Greeter#",
+              "file": "fixture.ts",
+              "line": 5,
+              "column": 14,
+              "end_line": 0,
+              "end_column": 0,
+              "context": "export class Greeter implements Speaker {",
+              "containing_symbol": "Greeter"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.464833ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "callees",
+    "params": {
+      "name": "unrelated",
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002"
+    },
+    "result": {
+      "symbol": "unrelated",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/unrelated().",
+          "display_name": "unrelated",
+          "kind": "UnspecifiedKind",
+          "occurrences": []
+        }
+      ],
+      "total": 0,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "7.720458ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "callees",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002",
+      "name": "invoke"
+    },
+    "result": {
+      "symbol": "invoke",
+      "matches": [
+        {
+          "symbol_id": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().",
+          "display_name": "invoke",
+          "kind": "UnspecifiedKind",
+          "occurrences": [
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 27,
+              "end_line": 9,
+              "end_column": 34,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            },
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke().(s)",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 53,
+              "end_line": 9,
+              "end_column": 54,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            },
+            {
+              "symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/Speaker#speak().",
+              "file": "fixture.ts",
+              "line": 9,
+              "column": 55,
+              "end_line": 9,
+              "end_column": 60,
+              "context": "export function invoke(s: Speaker): string { return s.speak(); }",
+              "containing_symbol": "scip-typescript npm graph-fixture 1.0.0 `fixture.ts`/invoke()."
+            }
+          ]
+        }
+      ],
+      "total": 3,
+      "elapsed_ms": 0
+    },
+    "client_elapsed": "8.017917ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/002",
+      "status": "ready",
+      "node_count": 7,
+      "edge_count": 5,
+      "communities": 2,
+      "elapsed_ms": 62
+    },
+    "client_elapsed": "103.929958ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "graph.build",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/004"
+    },
+    "result": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/004",
+      "status": "ready",
+      "node_count": 0,
+      "edge_count": 0,
+      "communities": 0,
+      "elapsed_ms": 76
+    },
+    "client_elapsed": "106.493625ms"
+  },
+  {
+    "scenario": "typescript/legacy-kinds",
+    "method": "graph.query",
+    "params": {
+      "repo": "/var/folders/p2/2x5hjv3j63d9m1b1t5y7typw0000gn/T/TestIndexedCodeGraphFixturetypescriptlegacy-kinds1651576183/004",
+      "query": "Speaker"
+    },
+    "result": {
+      "matches": [],
+      "query": "Speaker",
+      "total": 0
+    },
+    "client_elapsed": "9.579584ms"
+  }
+]

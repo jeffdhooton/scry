@@ -41,8 +41,13 @@ func Parse(ctx context.Context, scipPath string, st *store.Store) (Stats, error)
 	// seenSymbols tracks every symbol id we've already PutSymbol'd for in this
 	// indexing run. We use it to (a) avoid re-writing duplicate SymbolRecords
 	// across documents and (b) decide whether an occurrence-only symbol needs
-	// a synthesized SymbolRecord at the end of processing.
-	seenSymbols := map[string]bool{}
+	// a synthesized SymbolRecord. Higher-priority metadata may replace an
+	// earlier synthesis or unspecified declaration without recounting the ID.
+	seenSymbols := map[string]symbolPriority{}
+	// External metadata may arrive before or after documents in a protobuf.
+	// Retain explicit kinds until references are known; never index an entire
+	// unreferenced dependency just because its metadata appears in the index.
+	var externalKinds []*scipbindings.SymbolInformation
 
 	visitor := &scipbindings.IndexVisitor{
 		VisitMetadata: func(_ context.Context, m *scipbindings.Metadata) error {
@@ -52,12 +57,28 @@ func Parse(ctx context.Context, scipPath string, st *store.Store) (Stats, error)
 			}
 			return nil
 		},
+		VisitExternalSymbol: func(_ context.Context, si *scipbindings.SymbolInformation) error {
+			if si.GetKind() != scipbindings.SymbolInformation_UnspecifiedKind && !isLocalSymbol(si.GetSymbol()) {
+				externalKinds = append(externalKinds, si)
+			}
+			return nil
+		},
 		VisitDocument: func(_ context.Context, d *scipbindings.Document) error {
 			return processDocument(d, projectRoot, w, &stats, seenSymbols)
 		},
 	}
 	if err := visitor.ParseStreaming(ctx, f); err != nil {
 		return stats, fmt.Errorf("parse scip stream: %w", err)
+	}
+	for _, si := range externalKinds {
+		priority := seenSymbols[si.GetSymbol()]
+		if priority == 0 || priority >= authoritativeSymbol {
+			continue
+		}
+		if err := w.PutSymbol(&store.SymbolRecord{Symbol: si.GetSymbol(), DisplayName: displayName(si), Kind: si.GetKind().String(), Documentation: strings.Join(si.GetDocumentation(), "\n")}); err != nil {
+			return stats, err
+		}
+		seenSymbols[si.GetSymbol()] = authoritativeSymbol
 	}
 	if err := w.Flush(); err != nil {
 		return stats, fmt.Errorf("flush writer: %w", err)
@@ -107,7 +128,7 @@ func (s scope) area() int {
 	return (s.endLine-s.startLine)*1_000_000 + (s.endCol - s.startCol)
 }
 
-func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writer, stats *Stats, seenSymbols map[string]bool) error {
+func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writer, stats *Stats, seenSymbols map[string]symbolPriority) error {
 	stats.Documents++
 
 	// Read source file once so we can attach a context line to every occurrence.
@@ -127,18 +148,24 @@ func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writ
 		if isLocalSymbol(si.GetSymbol()) {
 			continue
 		}
-		if !seenSymbols[si.GetSymbol()] {
+		priority := descriptorSymbol
+		if si.GetKind() != scipbindings.SymbolInformation_UnspecifiedKind {
+			priority = authoritativeSymbol
+		}
+		if seenSymbols[si.GetSymbol()] < priority {
 			rec := &store.SymbolRecord{
 				Symbol:        si.GetSymbol(),
 				DisplayName:   displayName(si),
-				Kind:          si.GetKind().String(),
+				Kind:          symbolKind(si),
 				Documentation: strings.Join(si.GetDocumentation(), "\n"),
 			}
 			if err := w.PutSymbol(rec); err != nil {
 				return err
 			}
-			seenSymbols[si.GetSymbol()] = true
-			stats.Symbols++
+			if seenSymbols[si.GetSymbol()] == 0 {
+				stats.Symbols++
+			}
+			seenSymbols[si.GetSymbol()] = priority
 		}
 		if err := w.PutFileSymbol(d.GetRelativePath(), si.GetSymbol()); err != nil {
 			return err
@@ -201,7 +228,7 @@ func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writ
 		// references thousands of external symbols. Without this synthesis
 		// `scry refs DB` would return zero even though every Laravel app calls
 		// it constantly.
-		if !seenSymbols[occ.GetSymbol()] {
+		if seenSymbols[occ.GetSymbol()] == 0 {
 			rec := &store.SymbolRecord{
 				Symbol:      occ.GetSymbol(),
 				DisplayName: deriveDisplayName(occ.GetSymbol()),
@@ -210,7 +237,7 @@ func processDocument(d *scipbindings.Document, projectRoot string, w *store.Writ
 			if err := w.PutSymbol(rec); err != nil {
 				return err
 			}
-			seenSymbols[occ.GetSymbol()] = true
+			seenSymbols[occ.GetSymbol()] = synthesizedSymbol
 			stats.Symbols++
 		}
 		startLine, startCol, endLine, endCol := decodeRange(occ.GetRange())

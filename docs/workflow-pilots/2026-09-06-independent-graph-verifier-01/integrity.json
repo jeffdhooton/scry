@@ -1,0 +1,163 @@
+{
+  "delivery": {
+    "internal/daemon/graph_fixture_test.go": {
+      "expected": "4893757cfb2bee5c6edbcaa047f8d5c2ee01d81afbd49923f92f74a6e001f9f7",
+      "actual": "4893757cfb2bee5c6edbcaa047f8d5c2ee01d81afbd49923f92f74a6e001f9f7",
+      "match": true
+    },
+    "internal/graph/builder.go": {
+      "expected": "ace22a5b62753bc4426fd92efe346d46e59b7a605c9cfe3e4b44acac55c6562c",
+      "actual": "ace22a5b62753bc4426fd92efe346d46e59b7a605c9cfe3e4b44acac55c6562c",
+      "match": true
+    },
+    "internal/graph/builder_test.go": {
+      "expected": "0277d19fb8d6f2ec0f5525f12eae1f3c5f272ac80f304dc5343539a7fe66533f",
+      "actual": "0277d19fb8d6f2ec0f5525f12eae1f3c5f272ac80f304dc5343539a7fe66533f",
+      "match": true
+    },
+    "internal/graph/query.go": {
+      "expected": "64540d783a0c16230dc663441eb150c322c94105593d7b11bdb12ae734a2cd72",
+      "actual": "64540d783a0c16230dc663441eb150c322c94105593d7b11bdb12ae734a2cd72",
+      "match": true
+    },
+    "internal/sources/scip/kind.go": {
+      "expected": "3b612e2953cf26dd039747df6cd6de65c4888bf68c1baa295acce6180a4c957b",
+      "actual": "3b612e2953cf26dd039747df6cd6de65c4888bf68c1baa295acce6180a4c957b",
+      "match": true
+    },
+    "internal/sources/scip/kind_test.go": {
+      "expected": "160567e6069384ddec984888b5d1c6dd5860328518dee2c4f784e56be6dc9b7a",
+      "actual": "160567e6069384ddec984888b5d1c6dd5860328518dee2c4f784e56be6dc9b7a",
+      "match": true
+    },
+    "internal/sources/scip/parse.go": {
+      "expected": "4eb078d58b3c9595c6a8cfdb8cc5e06ec78ef9a8d68c1768786dc02c08097b79",
+      "actual": "4eb078d58b3c9595c6a8cfdb8cc5e06ec78ef9a8d68c1768786dc02c08097b79",
+      "match": true
+    },
+    "internal/sources/scip/testdata/go/expected.json": {
+      "expected": "ab60b5e50125e1a88ac6050f076a0131e3abcb4b27ef306e491104160edcba2c",
+      "actual": "ab60b5e50125e1a88ac6050f076a0131e3abcb4b27ef306e491104160edcba2c",
+      "match": true
+    },
+    "internal/sources/scip/testdata/go/fixture.go": {
+      "expected": "53c97f7cae9e88db0886a70b783e43db99422ce9c2d7755d322660dd75e01b85",
+      "actual": "53c97f7cae9e88db0886a70b783e43db99422ce9c2d7755d322660dd75e01b85",
+      "match": true
+    },
+    "internal/sources/scip/testdata/go/go.mod": {
+      "expected": "2c88ad12aa0e16e8dc327287ff609b4063f63e2d344ac0912b428fd1d1fa8b6f",
+      "actual": "2c88ad12aa0e16e8dc327287ff609b4063f63e2d344ac0912b428fd1d1fa8b6f",
+      "match": true
+    },
+    "internal/sources/scip/testdata/go/index.scip": {
+      "expected": "a6d7b9503172071d8d348a955e198e9da2e659ee4037e02d51d3c19f9457cbf7",
+      "actual": "a6d7b9503172071d8d348a955e198e9da2e659ee4037e02d51d3c19f9457cbf7",
+      "match": true
+    },
+    "internal/sources/scip/testdata/inspect.go": {
+      "expected": "e07d6d3eb43311ecce8ebd25437bfb1a58ce96e4634b8f358579b5241522313b",
+      "actual": "e07d6d3eb43311ecce8ebd25437bfb1a58ce96e4634b8f358579b5241522313b",
+      "match": true
+    },
+    "internal/sources/scip/testdata/typescript/expected.json": {
+      "expected": "c9ab69a54d00648a75ad82895114463c48377b28915bf6999882378b83960b14",
+      "actual": "c9ab69a54d00648a75ad82895114463c48377b28915bf6999882378b83960b14",
+      "match": true
+    },
+    "internal/sources/scip/testdata/typescript/fixture.ts": {
+      "expected": "d81629224b071cfee2fe330a4c1ce945d8227f98a368498d5b0ad048ac5216a8",
+      "actual": "d81629224b071cfee2fe330a4c1ce945d8227f98a368498d5b0ad048ac5216a8",
+      "match": true
+    },
+    "internal/sources/scip/testdata/typescript/index.scip": {
+      "expected": "66e1b5cb0efd36abee184e99e2e1eac360cf15925e346e8714ef25b28b1f063f",
+      "actual": "66e1b5cb0efd36abee184e99e2e1eac360cf15925e346e8714ef25b28b1f063f",
+      "match": true
+    },
+    "internal/sources/scip/testdata/typescript/package.json": {
+      "expected": "3675c85c7bca594c0019b5f115e48fd3d5df6d5e822d7399dc2b7924e990fdd4",
+      "actual": "3675c85c7bca594c0019b5f115e48fd3d5df6d5e822d7399dc2b7924e990fdd4",
+      "match": true
+    },
+    "internal/sources/scip/testdata/typescript/tsconfig.json": {
+      "expected": "a49b46d6b4a7835b2e25a7edb6152de314ee294bb4ab31da3e378c560b9bc492",
+      "actual": "a49b46d6b4a7835b2e25a7edb6152de314ee294bb4ab31da3e378c560b9bc492",
+      "match": true
+    }
+  },
+  "checks": [
+    {
+      "check": "baseline full suite",
+      "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go test ./...",
+      "log": "baseline-test.log.txt",
+      "exit_code": 0,
+      "log_sha256": "b748e4a785240b3f8f4561f81d05d894def6998de114f2503ae08b17e21dfdf9",
+      "verified_log_hash": true
+    },
+    {
+      "check": "baseline vet",
+      "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go vet ./...",
+      "log": "baseline-vet.log.txt",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verified_log_hash": true
+    },
+    {
+      "check": "baseline defect",
+      "command": "CGO_ENABLED=0 GOPROXY=off go test ./internal/daemon -run ^TestIndexedCodeGraphFixture$ -count=1 -v",
+      "log": "baseline-fixture.log.txt",
+      "exit_code": 1,
+      "log_sha256": "def84dd2f5bd94cd7a70d1cedc6183cf54bd4a507f1cb67ba64f282353b3c6d4",
+      "verified_log_hash": true
+    },
+    {
+      "check": "focused acceptance",
+      "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go test ./internal/graph ./internal/sources/scip ./internal/daemon -run 'TestClassifySymbol|TestCodeGraph|TestGraphGitSchema|TestKindFromSymbol|TestParseKind|TestParseExternalKinds|TestIndexedCodeGraphFixture|TestGraphRegistry' -count=1 -v",
+      "log": "focused-final.log.txt",
+      "exit_code": 0,
+      "log_sha256": "19cccfe6cecb591723ee28a1b6b763f521bda100865b9c24bb6c79b2c2de6aeb",
+      "verified_log_hash": true
+    },
+    {
+      "check": "uncached final suite",
+      "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go test -count=1 ./...",
+      "log": "final-test.log.txt",
+      "exit_code": 0,
+      "log_sha256": "022d1be92d8c0e5401190e39c725cac1d8d99bf4f71fa0a7305408ba8ee24e56",
+      "verified_log_hash": true
+    },
+    {
+      "check": "final vet",
+      "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go vet ./...",
+      "log": "final-vet.log.txt",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verified_log_hash": true
+    },
+    {
+      "check": "baseline reversal from fresh export",
+      "command": "go test ./internal/daemon -run ^TestIndexedCodeGraphFixture$ -count=1 -v",
+      "log": "reversal-baseline.log.txt",
+      "exit_code": 1,
+      "log_sha256": "a277b5b049a018cc8bc3c1eb0effe4dded7b6ada2fcc5adf4edbf847d8b7471a",
+      "verified_log_hash": true
+    },
+    {
+      "check": "delivered files suite",
+      "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go test ./...",
+      "log": "final-current-test.log.txt",
+      "exit_code": 0,
+      "log_sha256": "8a340e955717563deb402a60b8e93eff86eff05e9b01eb55b7635aa3c4ed778d",
+      "verified_log_hash": true
+    },
+    {
+      "check": "delivered files vet",
+      "command": "CGO_ENABLED=0 GOPROXY=off GOTOOLCHAIN=local go vet ./...",
+      "log": "final-current-vet.log.txt",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verified_log_hash": true
+    }
+  ]
+}

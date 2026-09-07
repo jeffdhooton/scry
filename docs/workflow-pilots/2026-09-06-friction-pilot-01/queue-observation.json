@@ -1,0 +1,11 @@
+{
+  "observed_at": "2026-09-07T00:49:54.487514+00:00",
+  "counts": {
+    "ready": 2,
+    "backoff": 0,
+    "parked": 72
+  },
+  "matching_items": [],
+  "listing_limit": 50,
+  "note": "Absence from capped listing does not prove resolution."
+}

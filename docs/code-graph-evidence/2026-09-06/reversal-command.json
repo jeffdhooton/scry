@@ -1,0 +1,14 @@
+{
+  "revision": "df598c49bca0784983d136f92c732e2cdacc4561",
+  "cwd": "/tmp/scry-graph-reversal-k5srebmx",
+  "command": [
+    "go",
+    "test",
+    "./internal/daemon",
+    "-run",
+    "^TestIndexedCodeGraphFixture$",
+    "-count=1",
+    "-v"
+  ],
+  "exit_code": 1
+}

@@ -1,0 +1,45 @@
+ok  	github.com/jeffdhooton/scry/cmd/scry	1.721s
+ok  	github.com/jeffdhooton/scry/internal/config	1.813s
+ok  	github.com/jeffdhooton/scry/internal/daemon	61.258s
+ok  	github.com/jeffdhooton/scry/internal/doctor	12.358s
+?   	github.com/jeffdhooton/scry/internal/git	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/git/index	7.154s
+?   	github.com/jeffdhooton/scry/internal/git/store	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/graph	5.909s
+?   	github.com/jeffdhooton/scry/internal/graph/store	[no test files]
+?   	github.com/jeffdhooton/scry/internal/http	[no test files]
+?   	github.com/jeffdhooton/scry/internal/http/store	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/index	30.831s
+ok  	github.com/jeffdhooton/scry/internal/install	1.927s
+ok  	github.com/jeffdhooton/scry/internal/logrotate	3.823s
+ok  	github.com/jeffdhooton/scry/internal/mcp	2.228s
+ok  	github.com/jeffdhooton/scry/internal/memory/browse	3.865s
+ok  	github.com/jeffdhooton/scry/internal/memory/distill	2.941s
+ok  	github.com/jeffdhooton/scry/internal/memory/embed	1.274s
+ok  	github.com/jeffdhooton/scry/internal/memory/extract	0.498s
+ok  	github.com/jeffdhooton/scry/internal/memory/ingest	2.414s
+ok  	github.com/jeffdhooton/scry/internal/memory/migrate	1.694s
+ok  	github.com/jeffdhooton/scry/internal/memory/queue	13.172s
+ok  	github.com/jeffdhooton/scry/internal/memory/recall	8.865s
+ok  	github.com/jeffdhooton/scry/internal/memory/resolve	34.349s
+ok  	github.com/jeffdhooton/scry/internal/memory/search	5.120s
+ok  	github.com/jeffdhooton/scry/internal/memory/store	174.173s
+ok  	github.com/jeffdhooton/scry/internal/memory/sweep	7.987s
+?   	github.com/jeffdhooton/scry/internal/query	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/room/store	8.415s
+?   	github.com/jeffdhooton/scry/internal/rpc	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema/index	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema/sources/mysql	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema/sources/postgres	[no test files]
+?   	github.com/jeffdhooton/scry/internal/schema/store	[no test files]
+?   	github.com/jeffdhooton/scry/internal/setup	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/sources/coverage	4.422s
+ok  	github.com/jeffdhooton/scry/internal/sources/exec	4.216s
+?   	github.com/jeffdhooton/scry/internal/sources/golang	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/sources/php	4.205s
+?   	github.com/jeffdhooton/scry/internal/sources/python	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/sources/scip	4.398s
+?   	github.com/jeffdhooton/scry/internal/sources/typescript	[no test files]
+ok  	github.com/jeffdhooton/scry/internal/store	3.946s
+?   	github.com/jeffdhooton/scry/internal/upgrade	[no test files]

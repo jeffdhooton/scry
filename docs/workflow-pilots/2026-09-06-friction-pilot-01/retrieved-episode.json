@@ -1,0 +1,8 @@
+{
+  "id": "bca75a60776c4f8d74975a6534d4e81df125f2fbfbe196abf1f94ffcee976a4b",
+  "source": "manual",
+  "source_ref": "manual",
+  "summary": "Scry workflow friction pilot SFW-20260906-01 was approved by Jeff on 2026-09-06 for one run: independently verify the local unified code graph delivery and review this session's friction. Evidence is /Users/jeff/workspace/context-stack/scry/docs/workflow-pilots/2026-09-06-friction-pilot-01/friction-events.jsonl. Three observed events, each from this single run, are SFW-20260906-01-01: the graph test harness used the wrong RPC field, corrected before the defect baseline; SFW-20260906-01-02: get-tweet requests robots bypass while the mandatory research policy prohibits it, so fetching stopped and the user provided a saved article; SFW-20260906-01-03: the builder was the sole completion judge, and a fresh verification pilot is now underway. Prior recurrence is unverified. Retain these as observations with evidence, not standing rules or proof of repeated failures. Shared policy changes and any automatic recurring review remain proposals, not approved changes.",
+  "occurred_at": "2026-09-06T20:48:21.649794-04:00",
+  "ingested_at": "2026-09-06T20:50:17.057376-04:00"
+}

@@ -1,0 +1,78 @@
+{
+  "index_sha256": "a6d7b9503172071d8d348a955e198e9da2e659ee4037e02d51d3c19f9457cbf7",
+  "nodes": [
+    {
+      "type": "module",
+      "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/",
+      "name": "example.com/graphfixture",
+      "file": "fixture.go",
+      "line": 1
+    },
+    {
+      "type": "type",
+      "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+      "name": "Speaker",
+      "file": "fixture.go",
+      "line": 3
+    },
+    {
+      "type": "type",
+      "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+      "name": "Greeter",
+      "file": "fixture.go",
+      "line": 7
+    },
+    {
+      "type": "term",
+      "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak.",
+      "name": "Speak",
+      "file": "fixture.go",
+      "line": 4
+    },
+    {
+      "type": "function",
+      "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#Speak().",
+      "name": "Speak",
+      "file": "fixture.go",
+      "line": 9
+    },
+    {
+      "type": "function",
+      "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Invoke().",
+      "name": "Invoke",
+      "file": "fixture.go",
+      "line": 11
+    },
+    {
+      "type": "function",
+      "id": "scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Unrelated().",
+      "name": "Unrelated",
+      "file": "fixture.go",
+      "line": 13
+    }
+  ],
+  "edges": [
+    {
+      "type": "implements",
+      "src": "function:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#Speak().",
+      "dst": "term:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#Speak.",
+      "confidence": 1,
+      "source_domain": "code"
+    },
+    {
+      "type": "implements",
+      "src": "type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Greeter#",
+      "dst": "type:scip-go gomod example.com/graphfixture fixture-v1 `example.com/graphfixture`/Speaker#",
+      "confidence": 1,
+      "source_domain": "code"
+    }
+  ],
+  "query": "Speaker",
+  "to": "Speaker",
+  "unrelated": "Unrelated",
+  "from": "Greeter",
+  "source_sha256": {
+    "go.mod": "2c88ad12aa0e16e8dc327287ff609b4063f63e2d344ac0912b428fd1d1fa8b6f",
+    "fixture.go": "53c97f7cae9e88db0886a70b783e43db99422ce9c2d7755d322660dd75e01b85"
+  }
+}

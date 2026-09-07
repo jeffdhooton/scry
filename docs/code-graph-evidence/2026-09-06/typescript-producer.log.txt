@@ -1,0 +1,2 @@
++ /tmp/scry-code-graph-ewoxls9t/typescript (11ms)
+done /tmp/scry-code-graph-ewoxls9t/typescript/index.scip

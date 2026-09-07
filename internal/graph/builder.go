@@ -18,6 +18,7 @@ import (
 	httpstore "github.com/jeffdhooton/scry/internal/http/store"
 	"github.com/jeffdhooton/scry/internal/schema"
 	schemastore "github.com/jeffdhooton/scry/internal/schema/store"
+	scipparse "github.com/jeffdhooton/scry/internal/sources/scip"
 	codestore "github.com/jeffdhooton/scry/internal/store"
 )
 
@@ -180,7 +181,7 @@ func Build(scryHome, repoPath string, src Sources) (*Manifest, error) {
 
 func extractCodeNodes(s *codestore.Store, w *graphstore.Writer, nodeSet map[string]bool) error {
 	return s.IterateAllSymbols(func(sym *codestore.SymbolRecord) error {
-		nodeType := classifySymbolKind(sym.Kind)
+		nodeType := classifySymbol(sym)
 		if nodeType == "" {
 			return nil
 		}
@@ -209,7 +210,7 @@ func extractCodeNodes(s *codestore.Store, w *graphstore.Writer, nodeSet map[stri
 
 func extractCallEdges(s *codestore.Store, w *graphstore.Writer, nodeSet map[string]bool) error {
 	return s.IterateAllSymbols(func(sym *codestore.SymbolRecord) error {
-		callerKey := classifySymbolKind(sym.Kind) + ":" + sym.Symbol
+		callerKey := classifySymbol(sym) + ":" + sym.Symbol
 		if !nodeSet[callerKey] {
 			return nil
 		}
@@ -218,7 +219,7 @@ func extractCallEdges(s *codestore.Store, w *graphstore.Writer, nodeSet map[stri
 			if calleeSym == nil {
 				return nil
 			}
-			calleeType := classifySymbolKind(calleeSym.Kind)
+			calleeType := classifySymbol(calleeSym)
 			if calleeType == "" {
 				return nil
 			}
@@ -226,8 +227,15 @@ func extractCallEdges(s *codestore.Store, w *graphstore.Writer, nodeSet map[stri
 			if !nodeSet[calleeKey] {
 				return nil
 			}
+			// The code store contains enclosing-scope references, including
+			// type annotations and implements clauses. Only callable pairs
+			// retain the legacy "calls" label (potential calls, not AST proof).
+			relation := "references"
+			if classifySymbol(sym) == "function" && calleeType == "function" {
+				relation = "calls"
+			}
 			return w.PutEdge(&graphstore.EdgeRecord{
-				Type:         "calls",
+				Type:         relation,
 				SrcKey:       callerKey,
 				DstKey:       calleeKey,
 				Confidence:   1.0,
@@ -239,7 +247,7 @@ func extractCallEdges(s *codestore.Store, w *graphstore.Writer, nodeSet map[stri
 
 func extractImplEdges(s *codestore.Store, w *graphstore.Writer, nodeSet map[string]bool) error {
 	return s.IterateAllSymbols(func(sym *codestore.SymbolRecord) error {
-		baseType := classifySymbolKind(sym.Kind)
+		baseType := classifySymbol(sym)
 		if baseType == "" {
 			return nil
 		}
@@ -256,7 +264,7 @@ func extractImplEdges(s *codestore.Store, w *graphstore.Writer, nodeSet map[stri
 			if implSym == nil {
 				continue
 			}
-			implType := classifySymbolKind(implSym.Kind)
+			implType := classifySymbol(implSym)
 			if implType == "" {
 				continue
 			}
@@ -458,11 +466,29 @@ func isUUID(s string) bool {
 	return s[8] == '-' && s[13] == '-' && s[18] == '-' && s[23] == '-'
 }
 
+// Use the same classification for node keys and every relationship endpoint.
+// Fallback at build time also supports stores parsed by older Scry versions.
+func classifySymbol(sym *codestore.SymbolRecord) string {
+	if strings.HasPrefix(sym.Symbol, "local ") {
+		return ""
+	}
+	kind := sym.Kind
+	switch strings.ToLower(kind) {
+	case "", "unspecifiedkind", "external":
+		kind = scipparse.KindFromSymbol(sym.Symbol)
+	}
+	return classifySymbolKind(kind)
+}
+
 func classifySymbolKind(kind string) string {
 	switch strings.ToLower(kind) {
 	case "function", "method":
 		return "function"
-	case "class", "struct", "type":
+	case "type":
+		return "type"
+	case "term":
+		return "term"
+	case "class", "struct":
 		return "class"
 	case "interface", "trait", "protocol":
 		return "interface"

@@ -1,0 +1,53 @@
+package daemon
+
+import (
+ "context"
+ "os"
+ "path/filepath"
+ "testing"
+ "github.com/jeffdhooton/scry/internal/graph"
+ graphstore "github.com/jeffdhooton/scry/internal/graph/store"
+ "github.com/jeffdhooton/scry/internal/index"
+ scipparse "github.com/jeffdhooton/scry/internal/sources/scip"
+ "github.com/jeffdhooton/scry/internal/store"
+ scip "github.com/scip-code/scip/bindings/go/scip"
+ "google.golang.org/protobuf/proto"
+)
+
+// Synthetic adversarial index, not claimed to be indexer-produced.
+func TestVerifierNonCallReference(t *testing.T) {
+ home,repo:=t.TempDir(),t.TempDir()
+ const prefix="scip-typescript npm probe 1 `fixture.ts`/"
+ source:="export function target() { return 1; }\nexport function holder() { return target; }\n"
+ if err:=os.WriteFile(filepath.Join(repo,"fixture.ts"),[]byte(source),0600); err!=nil {t.Fatal(err)}
+ idx:=&scip.Index{Metadata:&scip.Metadata{ProjectRoot:"file://"+repo}, Documents:[]*scip.Document{{RelativePath:"fixture.ts", Symbols:[]*scip.SymbolInformation{{Symbol:prefix+"target()."},{Symbol:prefix+"holder()."}}, Occurrences:[]*scip.Occurrence{
+ {Symbol:prefix+"target().",SymbolRoles:1,Range:[]int32{0,16,22},EnclosingRange:[]int32{0,0,37}},
+ {Symbol:prefix+"holder().",SymbolRoles:1,Range:[]int32{1,16,22},EnclosingRange:[]int32{1,0,42}},
+ {Symbol:prefix+"target().",Range:[]int32{1,34,40}},
+ }}}}
+ b,err:=proto.Marshal(idx); if err!=nil {t.Fatal(err)}
+ p:=filepath.Join(t.TempDir(),"index.scip"); if err=os.WriteFile(p,b,0600);err!=nil {t.Fatal(err)}
+ cs,err:=store.Open(index.Layout(home,repo).BadgerDir);if err!=nil {t.Fatal(err)}
+ if _,err=scipparse.Parse(context.Background(),p,cs);err!=nil {t.Fatal(err)}; if err=cs.Close();err!=nil {t.Fatal(err)}
+ _,socket,closeServer:=startGraphFixtureServer(t,home)
+ var build GraphBuildResult; graphFixtureCall(t,socket,"graph.build",GraphBuildParams{Repo:repo},&build);closeServer()
+ _,socket,closeServer=startGraphFixtureServer(t,home);defer closeServer()
+ var path graph.PathResult; graphFixtureCall(t,socket,"graph.path",GraphPathParams{Repo:repo,From:"holder",To:"target"},&path)
+ if !path.Found || len(path.Relationships)!=1 {t.Fatalf("missing actual reference: %+v",path)}
+ t.Logf("NONCALL CHARACTERIZATION source=%q edge=%+v",source,path.Relationships[0])
+}
+
+func TestVerifierPathStoredLabelsAndDangling(t *testing.T) {
+ st,err:=graphstore.Open(filepath.Join(t.TempDir(),"graph"));if err!=nil {t.Fatal(err)};defer st.Close()
+ w:=st.NewWriter()
+ for _,name:=range []string{"A","B","C"} {if err=w.PutNode(&graphstore.NodeRecord{Type:"function",ID:name,Name:name});err!=nil {t.Fatal(err)}}
+ for _,e:=range []graphstore.EdgeRecord{
+ {Type:"references",SrcKey:"function:B",DstKey:"function:A",SourceDomain:"code"},
+ {Type:"implements",SrcKey:"function:C",DstKey:"function:B",SourceDomain:"code"},
+ {Type:"calls",SrcKey:"function:A",DstKey:"function:missing",SourceDomain:"code"},
+ } {if err=w.PutEdge(&e);err!=nil {t.Fatal(err)}}
+ if err=w.Flush();err!=nil {t.Fatal(err)}
+ path,err:=graph.FindPath(st,"A","C");if err!=nil {t.Fatal(err)}
+ if !path.Found || path.Distance!=2 || len(path.Relationships)!=2 || path.Edges[0]!="references" || path.Edges[1]!="implements" || path.Relationships[0].SrcKey!="function:B" || path.Relationships[1].SrcKey!="function:C" {t.Fatalf("wrong attribution %+v",path)}
+ t.Logf("reverse multi-hop attributed path=%+v",path)
+}
