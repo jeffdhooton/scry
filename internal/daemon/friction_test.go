@@ -106,22 +106,18 @@ func startFrictionProcess(t *testing.T, home string) (string, func(bool)) {
 	return filepath.Join(home, "journal.sock"), stop
 }
 
-func TestFrictionPilotThroughRestartedServiceAndCLI(t *testing.T) {
-	// Short paths fit macOS's sockaddr_un. The literal pilot repo is metadata,
-	// never opened; every actual database and process home is under this temp dir.
-	home, err := os.MkdirTemp("/tmp", "sf-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(home) })
-	socket, stop := startFrictionProcess(t, home)
+// frictionCLI builds the real command-line tool once and returns a runner bound
+// to one service socket. Capturing the socket by value is safe across a restart:
+// startFrictionProcess derives it from home, so the path is stable.
+func frictionCLI(t *testing.T, home, socket string) func(input []byte, out any, args ...string) []byte {
+	t.Helper()
 	bin := filepath.Join(home, "scry-test")
 	build := exec.Command("go", "build", "-o", bin, "../../cmd/scry")
 	build.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if b, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build CLI: %v %s", err, b)
 	}
-	cli := func(input []byte, out any, args ...string) []byte {
+	return func(input []byte, out any, args ...string) []byte {
 		t.Helper()
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -140,6 +136,18 @@ func TestFrictionPilotThroughRestartedServiceAndCLI(t *testing.T) {
 		}
 		return b
 	}
+}
+
+func TestFrictionPilotThroughRestartedServiceAndCLI(t *testing.T) {
+	// Short paths fit macOS's sockaddr_un. The literal pilot repo is metadata,
+	// never opened; every actual database and process home is under this temp dir.
+	home, err := os.MkdirTemp("/tmp", "sf-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(home) })
+	socket, stop := startFrictionProcess(t, home)
+	cli := frictionCLI(t, home, socket)
 	raw, err := os.ReadFile("../../docs/workflow-pilots/2026-09-06-friction-pilot-01/friction-events.jsonl")
 	if err != nil {
 		t.Fatal(err)
@@ -259,5 +267,75 @@ func TestFrictionRPCValidationAndClosedStore(t *testing.T) {
 	_, err = d.handleFriction(context.Background(), "get", json.RawMessage(`{"event_id":"event"}`))
 	if err == nil || !strings.Contains(err.Error(), "closed") {
 		t.Fatalf("late request reopened store: %v", err)
+	}
+}
+
+func TestRoutingVerdictReachesReviewThroughCLI(t *testing.T) {
+	home, err := os.MkdirTemp("/tmp", "sr-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(home) })
+	socket, stop := startFrictionProcess(t, home)
+	defer stop(false)
+	cli := frictionCLI(t, home, socket)
+
+	repo := "/fixture/routing"
+	record := func(id, run, kind string) {
+		t.Helper()
+		e := friction.Event{
+			EventID: id, RunID: run, Repository: repo,
+			RecordedAt: "2026-09-10T12:00:00Z", Signature: "routing.ladder",
+			Observed: "The same correction was needed again.", Resolution: "Corrected in run.",
+			ResolutionState: "corrected_in_run", Evidence: []string{"session:" + id},
+			DestinationKind: kind,
+		}
+		b, err := json.Marshal(e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var receipt friction.Receipt
+		cli(b, &receipt, "record", "-")
+		if !receipt.Created {
+			t.Fatalf("record %s: %+v", id, receipt)
+		}
+	}
+	record("r-1", "run-1", "fact")
+	record("r-2", "run-2", "fact")
+
+	var review friction.Review
+	cli(nil, &review, "review", "--repo", repo)
+	if len(review.Groups) != 1 {
+		t.Fatalf("groups: %+v", review)
+	}
+	got := review.Groups[0].Routing
+	if got.Status != "outgrown" || got.CurrentKind != "fact" || got.SuggestedKind != "decision" {
+		t.Fatalf("routing did not survive the daemon and CLI: %+v", got)
+	}
+	if got.RunsAtCurrent != 2 || got.Rationale == "" {
+		t.Fatalf("%+v", got)
+	}
+
+	// An unknown kind is refused by the daemon, not silently coerced. The shared
+	// cli helper fails the test on a nonzero exit, so run the binary directly here.
+	bad := friction.Event{
+		EventID: "r-3", RunID: "run-3", Repository: repo,
+		RecordedAt: "2026-09-10T12:00:00Z", Signature: "routing.ladder",
+		Observed: "x", Resolution: "y", ResolutionState: "unresolved",
+		Evidence: []string{"session:r-3"}, DestinationKind: "rule",
+	}
+	encoded, err := json.Marshal(bad)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reject := exec.Command(filepath.Join(home, "scry-test"), "friction", "--socket", socket, "record", "-")
+	reject.Env = []string{"HOME=" + home, "SCRY_MEMORY_SOCKET=/no-shared-memory"}
+	reject.Stdin = bytes.NewReader(encoded)
+	combined, err := reject.CombinedOutput()
+	if err == nil {
+		t.Fatalf("unknown destination_kind accepted: %s", combined)
+	}
+	if !bytes.Contains(combined, []byte("destination_kind")) {
+		t.Fatalf("rejection did not name the field: %s", combined)
 	}
 }
