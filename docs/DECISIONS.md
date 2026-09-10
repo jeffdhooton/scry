@@ -9,6 +9,32 @@ calibration findings live in `docs/PHP_CALIBRATION.md`.
 
 ---
 
+## 2026-09-10 — Correction routing is an enforcement ladder counted at the rung
+
+**Decision.** Friction events may name an optional `destination_kind` from a closed,
+ordered vocabulary — `fact`, `decision`, `policy`, `skill`, `worker`, `gate` — and review
+reports a per-signature `routing` verdict. Recurrence is counted among distinct runs at
+the group's highest named rung, not across the whole group. Two runs at a rung mark it
+`outgrown` and name the next rung; `gate` is `terminal`. The field carries `omitempty`
+so existing stored bytes and issued receipts are unchanged. No new verb, RPC, MCP tool,
+store, or write outside scry.
+
+**Why.** The journal could show that a correction recurred but not that its destination
+was the wrong one. Repetition is evidence the current rung failed, and the counts needed
+to say so were already stored. Counting across the group instead of at the rung would
+demand a further promotion the moment one was acknowledged, so the loop would never
+settle. The kind is authored rather than inferred, because store-scale rules over
+sentences were already measured wrong in bulk.
+
+**What would change our minds.** Evidence from real routed events could justify surfacing
+outgrown routings in orientation, a per-repository kind-to-path map, or per-kind
+thresholds. Each needs its own scope. Adoption — teaching agents to author the field —
+is deliberately not part of this slice. This change is specified in
+[the routing design](superpowers/specs/2026-09-10-friction-correction-routing-design.md)
+and documented in [friction-journal.md](friction-journal.md).
+
+---
+
 ## 2026-09-06 — Explicit friction observations have an independent journal
 
 **Decision.** Following the one-run workflow pilot, add an opt-in friction journal

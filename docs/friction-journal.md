@@ -78,6 +78,38 @@ Unknown fields fail explicitly. Optional fields also include `evidence_sha256`
 not zero. Record measured costs only, without overlapping the same cost in several
 events; the review sums known event costs and reports how many events were measured.
 
+## Routing a correction
+
+An event may name `destination_kind`: exactly one of `fact`, `decision`,
+`policy`, `skill`, `worker` or `gate`. The vocabulary is closed and the order is
+meaningful — it runs from what an agent might read to what it cannot violate.
+Omit the field when the destination is unknown. Nothing infers it from the
+authored text, and an unrecognized value is rejected rather than coerced.
+
+Review reports a `routing` block for each signature group. It reads the highest
+rung any event in the group named, then counts the distinct run IDs recorded at
+that rung:
+
+| Status | Meaning |
+|---|---|
+| `unrouted` | no event named a destination |
+| `holding` | one distinct run at the current rung |
+| `outgrown` | two or more distinct runs at the current rung; the next rung is suggested |
+| `terminal` | two or more distinct runs at `gate`; no stronger destination exists |
+
+Runs are counted at the rung rather than across the group, so acknowledging a
+promotion — a separately identified event at the higher rung, citing the prior
+event — does not itself read as another failure. The ladder climbs one rung per
+proven failure.
+
+Events that named no destination never count toward a rung, so an unrouted
+observation cannot look like evidence that the rung held. A group whose events
+name different kinds keeps the highest as current and lists them all in
+`kinds_observed`, so inconsistent authoring stays visible.
+
+The verdict is a recommendation with citations. It does not edit an
+instruction, approve a change, or write anything outside this journal.
+
 ## Review and bounds
 
 List is ordered lexically by event ID, not by time. It returns at most 100 events

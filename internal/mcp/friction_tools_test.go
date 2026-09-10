@@ -85,3 +85,37 @@ func TestFrictionToolDialFailureIsError(t *testing.T) {
 		t.Fatalf("hidden failure: %s", out.String())
 	}
 }
+
+func TestRecordSchemaOffersDestinationKindAsOptional(t *testing.T) {
+	var record tool
+	for _, td := range frictionToolDefinitions {
+		if td.Name == "scry_friction_record" {
+			record = td
+		}
+	}
+	if record.Name == "" {
+		t.Fatal("record tool missing")
+	}
+	var schema struct {
+		Properties map[string]json.RawMessage `json:"properties"`
+		Required   []string                   `json:"required"`
+	}
+	if err := json.Unmarshal(record.InputSchema, &schema); err != nil {
+		t.Fatal(err)
+	}
+	desc, ok := schema.Properties["destination_kind"]
+	if !ok {
+		t.Fatal("destination_kind missing from the record schema")
+	}
+	// The description is the only place a calling agent learns the vocabulary.
+	for _, kind := range []string{"fact", "decision", "policy", "skill", "worker", "gate"} {
+		if !strings.Contains(string(desc), kind) {
+			t.Fatalf("description omits %q: %s", kind, desc)
+		}
+	}
+	for _, r := range schema.Required {
+		if r == "destination_kind" {
+			t.Fatal("destination_kind must stay optional")
+		}
+	}
+}

@@ -44,6 +44,7 @@ type Event struct {
 	ProposedOwner               string            `json:"proposed_owner,omitempty"`
 	ProposedFile                string            `json:"proposed_file,omitempty"`
 	ProposedVerification        string            `json:"proposed_verification,omitempty"`
+	DestinationKind             string            `json:"destination_kind,omitempty"`
 	Priority                    string            `json:"priority,omitempty"`
 	OccurrencesObservedThisRun  int               `json:"occurrences_observed_this_run"`
 	DistinctPriorRunsVerified   int               `json:"distinct_prior_runs_verified"`
@@ -52,6 +53,22 @@ type Event struct {
 }
 
 var identifier = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$`)
+
+// destinationLadder orders correction destinations by enforcement strength: a
+// fact may be read, a gate cannot be violated. Closed, like the relation
+// vocabulary — an open set drifts, and the ladder's ordering is undefined over
+// tokens it does not know.
+var destinationLadder = []string{"fact", "decision", "policy", "skill", "worker", "gate"}
+
+// destinationRung reports a kind's ladder position and whether it is known.
+func destinationRung(kind string) (int, bool) {
+	for i, k := range destinationLadder {
+		if k == kind {
+			return i, true
+		}
+	}
+	return 0, false
+}
 
 func invalid(format string, args ...any) error {
 	return fmt.Errorf("%w: %s", ErrInvalid, fmt.Sprintf(format, args...))
@@ -125,6 +142,11 @@ func (e Event) Validate() error {
 	}
 	if e.OccurrencesObservedThisRun < 0 || e.DistinctPriorRunsVerified < 0 {
 		return invalid("observation counts cannot be negative")
+	}
+	if e.DestinationKind != "" {
+		if _, ok := destinationRung(e.DestinationKind); !ok {
+			return invalid("destination_kind must be one of %s, or omitted", strings.Join(destinationLadder, ", "))
+		}
 	}
 	if e.ChangeApproved {
 		return invalid("change_approved must be false; this journal records proposals, not authorization")
