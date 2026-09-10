@@ -157,13 +157,20 @@ with citations, never an instruction, and never an authorization.
 
 ## Surface
 
-No new verb, RPC, or MCP tool.
+No new verb, RPC, or MCP tool, and no CLI or daemon change.
 
 - `destination_kind` joins the `scry_friction_record` field list
-  (`internal/mcp/friction_tools.go:23`) with a description stating the closed vocabulary and
-  that omission is permitted.
-- `scry friction review` prints the routing line per group.
-- `record` already reads JSON from a file or stdin, so the CLI needs no new flag.
+  (`internal/mcp/friction_tools.go:18-37`) with a description stating the closed vocabulary and
+  that omission is permitted. It needs its own entry rather than the generic `proposed_*` loop,
+  because its description must name the vocabulary.
+- The daemon decodes straight into `friction.Event`
+  (`internal/daemon/friction_methods.go:30-37`), so the struct field is the whole daemon change.
+- `runFriction` decodes the daemon's reply into `json.RawMessage` and re-encodes it
+  (`cmd/scry/friction.go:103-122`), so `scry friction review` emits the routing block with no
+  CLI change. `record` already reads JSON from a file or stdin and needs no new flag.
+
+The MCP bridge forwards the whole object unnormalized (`friction_tools.go:61-76`), so the
+schema entry is documentation for the calling agent; the daemon remains the validator.
 
 ## Testing
 
@@ -176,8 +183,9 @@ No new verb, RPC, or MCP tool.
 - **Promotion sequence:** record at `fact` in two runs, assert `outgrown` suggesting
   `decision`; record the acknowledgement at `decision`; assert `holding`; record a second
   `decision` run; assert `outgrown` suggesting `policy`.
-- **MCP round-trip** through the real bridge, and the CLI review printer, following the
-  existing `internal/daemon/friction_test.go` pattern.
+- **End-to-end pass-through** following the existing `internal/daemon/friction_test.go`
+  pattern: record a routed event through the real MCP bridge, then assert the routing block
+  reaches `scry friction review` stdout unchanged.
 
 ```bash
 CGO_ENABLED=0 go test ./internal/friction ./internal/daemon ./internal/mcp ./cmd/scry
@@ -193,8 +201,8 @@ CGO_ENABLED=0 go vet ./...
 | `internal/friction/review.go` | `Routing` struct and computation |
 | `internal/friction/routing_test.go` | new — ladder and promotion tables |
 | `internal/friction/store_test.go` | byte-identity regression |
+| `internal/daemon/friction_test.go` | end-to-end pass-through |
 | `internal/mcp/friction_tools.go` | record schema field |
-| `cmd/scry` | review printer |
 | `docs/friction-journal.md` | document the field, the ladder, the verdict |
 | `docs/DECISIONS.md` | new entry in house format |
 
