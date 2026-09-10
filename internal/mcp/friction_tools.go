@@ -28,6 +28,9 @@ func buildFrictionTools() []tool {
 		"evidence_sha256":                 map[string]any{"type": "object", "additionalProperties": map[string]any{"type": "string"}, "description": "Optional map of evidence reference to caller-verified SHA-256 hex digest."},
 		"measured_user_time_cost_seconds": map[string]any{"type": []string{"number", "null"}, "minimum": 0, "description": "Measured cost only; omit or null for unknown. Never invent an estimate."},
 		"change_approved":                 map[string]any{"type": "boolean", "enum": []bool{false}, "description": "Must be false. This journal cannot authorize changes."},
+		// Its own entry rather than the generic optional loop below, because the
+		// description has to name the closed vocabulary the daemon enforces.
+		"destination_kind": stringField("Optional destination for this correction, exactly one of fact, decision, policy, skill, worker, gate — ordered by how mechanically the correction is enforced. Omit when unknown; never guess. Review reports when a destination keeps failing across distinct runs."),
 	}
 	for _, field := range []string{"cause_status", "cause", "proposed_change", "proposed_owner", "proposed_file", "proposed_verification", "priority"} {
 		fields[field] = stringField("Optional authored " + strings.ReplaceAll(field, "_", " ") + "; retained verbatim and attributed to this event.")
