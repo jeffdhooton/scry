@@ -56,7 +56,7 @@ Laptop (from the repo, on `main`):
 
 ```sh
 sha=$(git rev-parse --short HEAD)
-go build -trimpath -ldflags "-X main.version=scry-$sha" -o /tmp/scry.new ./cmd/scry
+go build -trimpath -ldflags "-X main.Version=scry-$sha" -o /tmp/scry.new ./cmd/scry
 cp ~/go/bin/scry ~/go/bin/scry.pre-$sha
 mv /tmp/scry.new ~/go/bin/scry
 launchctl kickstart -k gui/$(id -u)/com.jhoot.scryd
@@ -68,7 +68,7 @@ Mini (it builds scry itself):
 ```sh
 ssh mini 'cd ~/workspace/context-stack/scry && git pull --ff-only && \
   sha=$(git rev-parse --short HEAD) && \
-  go build -trimpath -ldflags "-X main.version=scry-$sha" -o /tmp/scry.new ./cmd/scry && \
+  go build -trimpath -ldflags "-X main.Version=scry-$sha" -o /tmp/scry.new ./cmd/scry && \
   cp ~/.local/bin/scry ~/.local/bin/scry.pre-$sha && mv /tmp/scry.new ~/.local/bin/scry && \
   launchctl kickstart -k gui/$(id -u)/ai.jermes.scryd && sleep 2 && ~/.local/bin/scry version'
 ```
