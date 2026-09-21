@@ -16,7 +16,7 @@ cited proposals. See [the journal contract and examples](docs/friction-journal.m
 
 ## Setup
 
-**The whole thing, if you already know what you're doing:**
+**Quick setup for code intelligence** (optional AI memory setup follows below):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jeffdhooton/scry/main/scripts/install.sh | sh
@@ -31,18 +31,22 @@ Everything below is the long version. If you're an agent doing this on someone's
 
 ### 1. Prerequisites
 
-scry itself is a single static Go binary with no runtime dependencies. Prerequisites are per-domain and only matter for the domains you actually use.
+The installed Scry daemon is a Go binary; it does not bundle an AI model. Code, git, schema and HTTP queries do not require an AI API key. Language indexing uses external tools, and **turning transcripts into memories requires an accessible generative AI model**. Optional Jev assessment uses a second model service. Install the dependencies for the domains you actually use.
 
 | You want | You need | Notes |
 |---|---|---|
-| Go code indexing | nothing | `scip-go` auto-downloads to `~/.scry/bin/` (pinned, SHA256-verified) |
+| Go code indexing | the project’s Go toolchain and dependencies | `scip-go` auto-downloads to `~/.scry/bin/` (pinned, SHA256-verified) |
 | PHP / Laravel indexing | `php` 8.1+ on PATH | `scip-php` is embedded in the binary, extracted on first use |
-| TypeScript / JS indexing | `npm` on PATH | `scry install typescript` installs and verifies the global npm package |
+| TypeScript / JS indexing | Node.js + `npm` on PATH, project dependencies installed | `scry install typescript` installs and verifies the global npm package |
 | Python indexing | `python3` (3.10–3.13) + `npm` on PATH | `scry install python`; Node >=16; see the Python gotcha below |
 | Git intelligence | `git` on PATH | already there if it's a repo |
 | Schema introspection | a reachable MySQL/PostgreSQL DSN | read from `--dsn` or a `.env` file |
 | Claude Code integration | the `claude` CLI on PATH | `scry setup` shells out to `claude mcp add` |
-| Memory domain | a DeepSeek (or Anthropic-compatible) API key | fully optional; dormant without one |
+| Memory extraction | a generative model with a Messages-API-compatible endpoint, model access/credit, and its API key | Optional; the store-owning daemon needs the key and outbound HTTPS. Default configured in code: DeepSeek `deepseek-v4-flash`. |
+| Jev shadow assessment | a working extraction pipeline plus TypeSafe access to `jev-1.13.0` and `TYPESAFE_API_KEY` | Separately optional and off by default; Jev assesses proposed facts, it does not extract them. |
+| Local memory storage and retrieval | writable `~/.scry/` and sufficient disk space | Badger and local retrieval/embedding code are compiled in; no separate database server, vector service, GPU, or local model download is required. Existing memories remain queryable without provider keys. |
+| Shared memory on another machine | a reachable Unix socket, usually through an SSH tunnel | Put model configuration and credentials on the machine owning the store. |
+| Unattended transcript ingestion | readable supported transcript files and a sweep scheduler | Configure launchd/cron separately; installing the binary does not schedule sweeps. |
 
 **Python gotcha:** `scip-python` 0.6.6's bundled Pyright only recognizes Python 3.10–3.13. If your default `python3` is 3.14+ (common on bleeding-edge Homebrew), scry automatically shims `scip-python` to the first compatible interpreter on PATH (`python3.13`, `python3.12`, `python3.11`, then `python3.10`). If none exists, install one.
 
@@ -60,7 +64,7 @@ Drops the binary at `~/.local/bin/scry` after verifying its SHA256 against the r
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc   # or ~/.bashrc
 ```
 
-**From source** (requires Go 1.23+):
+**From source** (this checkout declares Go **1.26.2** in [`go.mod`](go.mod); use that toolchain or a compatible newer one):
 
 ```bash
 go install github.com/jeffdhooton/scry/cmd/scry@latest
@@ -116,7 +120,7 @@ The memory domain is a *global* (not per-repo) episodic graph built from your pa
 To turn it on, export a key where the daemon runs:
 
 ```bash
-export SCRY_MEMORY_API_KEY=sk-…      # DeepSeek key by default
+export SCRY_MEMORY_API_KEY='YOUR_DEEPSEEK_API_KEY'  # placeholder; see secure persistent setup below
 ```
 
 | Env var | Default | Meaning |
@@ -126,6 +130,7 @@ export SCRY_MEMORY_API_KEY=sk-…      # DeepSeek key by default
 | `SCRY_MEMORY_BASE_URL` | `https://api.deepseek.com/anthropic` | Any Messages-API-compatible endpoint. |
 | `SCRY_MEMORY_UI_ADDR` | `127.0.0.1:7279` | Live memory UI address; `off` disables it. Loopback is forced. |
 | `SCRY_MEMORY_SOCKET` | local daemon | Unix socket for a shared memory daemon. Memory CLI verbs and the `memory` MCP profile use it; other domains stay local. |
+| `TYPESAFE_API_KEY` | — | Separate TypeSafe credential, used only by Jev assessment; never substitutes for the extraction key. |
 
 **Model chain (`~/.scry/config.yaml`).** A cheap model sometimes returns nothing usable — an empty reply, or an entity type it invented — and with a single model that episode is dead-lettered on the spot. `memory.models` is an ordered fallback chain: the first entry handles every episode, each later one only runs when the previous failed. When present it replaces `SCRY_MEMORY_MODEL` / `SCRY_MEMORY_BASE_URL` entirely (the daemon logs that it's ignoring them). Keys stay in the environment: `api_key_env` names the variable, defaulting to `SCRY_MEMORY_API_KEY` / `DEEPSEEK_API_KEY`.
 
@@ -142,7 +147,54 @@ memory:
 
 `scry memory status` lists the live chain under `models`; each fallback is logged in `~/.scry/scryd.log` as `extraction on <a> failed (…) — falling back to <b>`. Restart the daemon after editing the file. A malformed file makes extraction dormant (loudly, in the log) rather than crashing the daemon.
 
-Extraction defaults to DeepSeek, not Anthropic, on purpose: the sweep runs unattended over every transcript on the machine, so the default has to be the cheap provider. `ANTHROPIC_API_KEY` is deliberately **not** consulted — reaching Anthropic requires naming it in `SCRY_MEMORY_BASE_URL` (and then `SCRY_MEMORY_MODEL` is mandatory). The Message Batches API (50% discount, used by `backfill`) is Anthropic-only; against any other endpoint backfill silently falls back to serial extraction.
+**What Scry looks for.** With no `memory.models` entries, it reads `SCRY_MEMORY_API_KEY`, then `DEEPSEEK_API_KEY` if the first is empty. It uses `SCRY_MEMORY_MODEL` and `SCRY_MEMORY_BASE_URL`, defaulting to `deepseek-v4-flash` at `https://api.deepseek.com/anthropic`. An explicit base URL requires an explicit model ID; the endpoint must support the Messages API, not merely OpenAI-style chat completions.
+
+With a configured chain, every entry requires `model`; an omitted `base_url` still means DeepSeek. An explicit `api_key_env` reads **only that named variable**, without falling back to another provider’s key. Without `api_key_env`, the usual `SCRY_MEMORY_API_KEY` → `DEEPSEEK_API_KEY` lookup applies. A missing primary key makes extraction dormant; a missing fallback key or invalid chain also prevents the worker from starting. All configured models need usable accounts and access, not just nonempty key strings.
+
+`ANTHROPIC_API_KEY` alone never activates extraction. To use Anthropic, explicitly configure its endpoint and model, with `api_key_env: ANTHROPIC_API_KEY`, or supply the Anthropic key as `SCRY_MEMORY_API_KEY` together with the environment model/base URL overrides. Jev reads **only `TYPESAFE_API_KEY`**. It calls `https://api.typesafe.ai/v1/systemone`; its model pin is independent of the extraction chain. The [TypeSafe HTTP reference](https://docs.typesafe.ai/api) documents Bearer authentication.
+
+#### Where to put API keys
+
+Scry reads **process environment variables at startup**. It does not automatically load the repository’s `.env`, `~/.scry/.env`, shell profiles, a credentials file, or a password manager. Reading `.env` for schema DSN discovery is a different feature. Never place key values in `~/.scry/config.yaml`; `api_key_env` is a variable name, not a secret.
+
+For a new installation, one convenient convention is a private environment file on the **store machine**:
+
+```sh
+mkdir -p "$HOME/.config/scry"
+chmod 700 "$HOME/.config/scry"
+touch "$HOME/.config/scry/credentials.env"
+chmod 600 "$HOME/.config/scry/credentials.env"
+# Edit this file privately; do not paste real keys into a command history or chat.
+${EDITOR:-vi} "$HOME/.config/scry/credentials.env"
+```
+
+Its contents can be:
+
+```sh
+SCRY_MEMORY_API_KEY='YOUR_DEEPSEEK_API_KEY'
+# Include only if enabling Jev assessment:
+TYPESAFE_API_KEY='YOUR_TYPESAFE_API_KEY'
+# Add any variables explicitly named by memory.models[].api_key_env.
+```
+
+Replace placeholders with real credentials. That file path is a **launcher convention**, not an auto-discovered Scry path. Start the daemon with the file explicitly loaded:
+
+```sh
+set -a
+. "$HOME/.config/scry/credentials.env"
+set +a
+scry start --foreground
+```
+
+Use this in a terminal for a foreground daemon, or have your supervisor execute the equivalent. If a daemon already runs, update its launcher and restart that service; a second `scry start` does not update its environment.
+
+- **macOS launchd:** use a wrapper or `ProgramArguments` that runs `/bin/sh -c 'set -a; . /Users/YOU/.config/scry/credentials.env; set +a; exec /Users/YOU/.local/bin/scry start --foreground'`. Use real absolute paths. Exporting a key in an unrelated terminal does not change launchd’s daemon environment. Reload the job if its plist changed, then restart it.
+- **Linux systemd:** set `EnvironmentFile=/home/YOU/.config/scry/credentials.env` and `ExecStart=/home/YOU/.local/bin/scry start --foreground` in the service; reload the unit after edits and restart it. Use simple `NAME=value` entries, not shell scripts, with `EnvironmentFile`.
+- **Existing installations:** preserve their credential-loading convention instead of creating a competing one. This workspace’s Mini launcher explicitly sources `/Users/jclaw/.hermes/.env`; extraction keys and `TYPESAFE_API_KEY` belong there. The laptop’s shell environment does not configure the Mini. See [memory operations](docs/MEMORY_OPS.md) for service labels, binary paths and rollback.
+
+**Client-side exception:** `memory backfill` loads the calling machine’s model config and environment and makes paid extraction calls there. It needs its own matching keys even when storing results remotely. Batching is supported only for Anthropic; other endpoints use serial extraction. Ordinary queued sweep/ingest work uses the store daemon’s extractor.
+
+After any model, config or credential change, restart the **store-owning daemon** and verify its status. A boolean `key_available: true` confirms Jev saw a nonempty key; only a successful request confirms provider acceptance. Do not print credentials to diagnose either case.
 
 ```bash
 scry memory sweep --dry-run   # what would be queued, without touching the daemon
@@ -157,6 +209,35 @@ scry memory migrate           # dry-run the resolver rules over the whole store;
 scry memory bench --file docs/memory-bench/probes.json   # is the answering fact in the top N?
 scry memory repair-repos      # re-attach repository refs from the transcripts (no model calls)
 ```
+
+#### Optional: Jev shadow assessment
+
+Jev is an additional assessor after extraction. Each candidate fact becomes a separate background job; one request asks whether the fact is supported, durable, and established/planned/hypothetical/denied/unclear. Source text and eligible history go to TypeSafe after redaction. Results are stored separately in `~/.scry/memory-assess/` and never decide memory admission, deletion or recall ranking.
+
+Once extraction works and sending this evidence is authorized, merge this block into the store daemon’s existing `memory` configuration (do not replace `models` or create a second `memory:` key):
+
+```yaml
+memory:
+  assessment:
+    mode: shadow             # absent configuration defaults to off
+    model: jev-1.13.0
+    target_input_tokens: 20000
+    concurrency: 1
+    timeout: 15s
+```
+
+Supply `TYPESAFE_API_KEY` to that daemon and restart it. The 20k target is approximate and may underfill. For a small trial, also configure all three `trial` fields: `starts_at` and `expires_at` as explicit RFC3339 timestamps, plus `max_requests` (for example 100). Choose new dates; do not reuse the historical September 20 trial window. The cap counts lifetime dispatch reservations in this sidecar, including failed/uncertain attempts; restart and retention do not reset it. A trial excludes old or undated episodes and earlier context. See the complete [bounded-trial configuration](docs/MEMORY_OPS.md#shadow-assessment-operations).
+
+```sh
+scry memory status                       # extraction models, dormancy, worker and queue
+scry memory assess status --json         # effective config, key boolean, block, counts, errors
+scry memory assess list --limit 20 --json
+scry memory assess show ASSESSMENT_ID --json
+```
+
+`missing_credentials` requires fixing the daemon environment and restarting; then explicitly resume if still blocked. Provider 401/403/429 suspends dispatch; fix access/cooldown before `scry memory assess resume`. There are no automatic Jev retries. `trial_expired` and `trial_request_limit` are intentional stops that resume cannot bypass. Setting assessment mode `off` and restarting stops calls while preserving records. Inspecting `--include-context` explicitly exposes locally retained redacted evidence.
+
+For an isolated experiment, `scry memory assess --file docs/memory-assess/synthetic.json` previews locally; `--live` sends the selected fixture to TypeSafe. This file mode does not contact the daemon. The [evaluation guide](docs/memory-assess/README.md) also covers the real builder/worker synthetic harness. A fixture run uses the calling shell’s key; it does not prove that a background daemon has its key.
 
 Recall ranks facts (BM25 over fact text, entity names and episode summaries, boosted toward entities the query names) and returns twenty by default with a hard 24 KB cap, so an MCP host never truncates it. `scry memory orient` shows what happened in the current repository first, ranked by whether a fact came from a session that ran there. `scry doctor` has a Memory section that fails when the chain is dormant, the queue worker is down, or nothing has been queued for six hours.
 
@@ -222,7 +303,8 @@ scry refs SomeSymbolYouKnow  # expect: occurrences with file:line:col
 | Empty results for a symbol you can see | Vendor/external symbol, name collision, or repo not indexed. Try the qualified form (`Class::method`), check `scry status`, fall back to Grep. |
 | `"not indexed yet"` RPC error | The watcher is mid-reindex. Retry once — the swap takes ~12ms. |
 | TypeScript repo indexes zero symbols | Run `scry install typescript`, then `scry daemon restart` if the diagnostic says the daemon predates the install. |
-| Memory commands print "dormant" | No `SCRY_MEMORY_API_KEY` / `DEEPSEEK_API_KEY` in that shell. Note launchd/cron don't inherit your shell env. |
+| Memory commands print "dormant" | Check the store daemon’s model configuration and key lookup above. A key in your interactive shell does not prove the daemon has it; restart the correct service after fixing its environment. |
+| Jev is off, blocked or produces no jobs | Check `scry memory assess status --json`, then extraction health. Jev needs extracted candidates, its own `TYPESAFE_API_KEY`, valid shadow config, and an unexhausted trial window/cap. |
 | Stale daemon after a crash | `scry stop` then any command re-spawns it, or `scry doctor --fix`. |
 | Everything is weird | `scry stop && rm -rf ~/.scry/repos && scry init --all`. Indexes are disposable. |
 
@@ -242,6 +324,8 @@ The old binaries can be deleted — all functionality is now in `scry`.
 ## Setting scry up as an AI agent
 
 *If you are an AI coding agent installing scry on a user's machine, this section is the whole contract. It is non-interactive, idempotent, and verifiable.*
+
+**First identify the requested domains and which machine owns memory.** The sequence below installs code intelligence only. It does not provision AI accounts, configure extraction/Jev keys, install a persistent daemon service, create a shared-memory tunnel, or schedule sweeps. Complete the relevant [memory setup](#5-optional-enable-the-memory-domain) and [credential loading](#where-to-put-api-keys) steps when those features are requested.
 
 **Run this, in order:**
 
@@ -275,14 +359,14 @@ scry defs <a symbol you saw in the code>   # non-empty result set?
 - **Parse `scry doctor --json`, don't eyeball the pretty output.** Each check carries an `id`, `status` (`pass` / `warn` / `fail`), and a `remedy` string. Act on `fail`; report `warn` to the user only when it's relevant to their stack (a missing `scip-python` is noise in a Go repo).
 - **Try `scry doctor --fix` before asking the user for anything.** It resolves missing `~/.scry`, stale daemons, missing MCP registration/skill, and missing npm SCIP indexers. It may use the network and take several minutes. Re-run `scry doctor --json` afterward and only surface what's *still* failing.
 - **Never install language indexers silently.** `scry install` and a user-requested `scry doctor --fix` explicitly authorize the global npm installs. Outside those commands, propose the exact command instead of running it unasked. `scip-go` and `scip-php` use the existing auto-download / embedded paths.
-- **Never enable the memory domain on your own.** It costs money per token and reads every transcript on the machine. Explain it, hand the user the env var, let them decide. Absent a key it stays dormant and harmless.
+- **Honor the requested scope.** Memory extraction and Jev involve paid provider calls and source uploads. If the user has requested or already authorized them, complete their model/key/service setup and verification; do not repeatedly request the same approval. A code-indexing request alone does not authorize memory ingestion, historical backfill, or Jev. Preserve existing trial limits.
 - **Tell the user to restart Claude Code.** MCP servers and skills are loaded at session start; nothing you did in step 2 is visible in the *current* session.
 - **If the host isn't Claude Code**, `scry setup` has nothing to register — do the [per-host MCP config](#mcp-registration-per-host) instead (Codex, Cursor, Gemini CLI, Claude Desktop). Always write an absolute binary path; `~` isn't expanded in those config files.
 - **Don't hand-edit `~/.claude.json`.** `scry setup` shells out to `claude mcp add`, which is the supported path. Editing `settings.json` for MCP config is a known dead end — Claude Code doesn't read MCP servers from there.
 - **`scry init --all` is minutes, not seconds, on a large repo.** Run it in the background or warn the user before blocking on it.
 - **Indexes are disposable.** If anything is inconsistent, `rm -rf ~/.scry/repos` and re-init. There is no user data in there.
 
-**What "done" looks like:** `scry doctor` exits 0, `claude mcp get scry` reports `Status: ✓ Connected`, `scry status` lists the repo, and a real `scry refs <symbol>` query returns occurrences. Anything less, say so plainly — a half-installed scry that silently returns empty results is worse than no scry.
+**What "done" looks like:** the requested domain works end to end. For code intelligence, confirm the host MCP connection, indexed repo and a real symbol query; interpret intentionally dormant memory diagnostics separately. For memory, verify `dormant: false`, the intended `models`, `worker_running: true`, a working sweep/tunnel, and a successfully extracted authorized episode. For Jev, verify `configuration.mode: shadow`, `key_available: true`, the intended limits, and an inspectable completed assessment or a diagnosed typed failure. Report an exhausted/expired trial as stopped, not as a missing installation. `scry setup` alone proves none of the AI setup.
 
 Finally, add the routing block from [Global agent config files](#global-agent-config-files) to the user's global agent config file — without it, the tools exist but the agent won't reach for them.
 

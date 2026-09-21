@@ -1,0 +1,19 @@
+{
+  "starts_at": "2026-09-20T13:12:56Z",
+  "expires_at": "2026-09-21T13:12:56Z",
+  "max_requests": 100,
+  "concurrency": 1,
+  "graph_backup": "/Users/jclaw/.scry/backups/memory-20260920T131102Z.badger",
+  "graph_backup_bytes": 144403617,
+  "config_rollback": "/Users/jclaw/.scry/config.yaml.pre-jev-trial-20260920",
+  "credential_rollback": "/Users/jclaw/.hermes/.env.pre-jev-trial-20260920",
+  "credential_installed": true,
+  "version": "scry-6746cbd-jev-trial-20260920",
+  "binary_sha256": "72b6afbd251608b8826143005738ee7b788e2f9b8c83811bfcd91108969480fc",
+  "mini_binary": "/Users/jclaw/.local/bin/scry",
+  "mini_binary_rollback": "/Users/jclaw/.local/bin/scry.pre-jev-trial-20260920",
+  "laptop_binary_rollback": "/Users/jeff/go/bin/scry.pre-jev-trial-20260920",
+  "primary_queue_parked_before_trial": 632,
+  "git_head": "6746cbd",
+  "uncommitted_build": true
+}

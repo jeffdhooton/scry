@@ -1,0 +1,19 @@
+{
+  "version": "integration-v1",
+  "frozen_at": "2026-09-20T12:33:40.438002+00:00",
+  "new_provider_calls": 0,
+  "human_reviewed_cases": 0,
+  "synthetic_cases": 100,
+  "sealed_candidates": 30,
+  "model_requests_in_preview": 600,
+  "conservative_input_bound": 1683484,
+  "sha256": {
+    "corpus.json": "41306d47b5107ec2fee6c71e829a120819ff908dcf56f3c5f78046a7448fb5c1",
+    "REVIEW.md": "802631efc7ad4c5a316cb6d6bb9499d2214a6414fae8e4ab030a9879f7a5a167",
+    "PROTOCOL.md": "4465161a113a2b31d1fcc1e4d0f5964e849e8c43f250f26c24749d2fae7e2586",
+    "REPORT.md": "193f7037ae172f92c8414ca4280c25e1f94cf59b13b3a66b95b7df0bfb6fc9a9",
+    "preview.json": "cd86e80f3548b7e01003973085026d3d578a599062e9a869dfd510ebc57facf5",
+    "mock-report.json": "0e2074480cf87bb54d369844722a3df775b15f7960ffdf73d79e877125a49ecb",
+    "calibration.json": "ba5fcfb6d11c78c7fefdb9571155d1efd9e886e47aeee9f87932f011a9001d30"
+  }
+}

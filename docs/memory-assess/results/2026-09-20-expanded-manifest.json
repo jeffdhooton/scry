@@ -1,0 +1,13 @@
+{
+  "model": "jev-1.13.0",
+  "rubric_version": "memory-assess-v1",
+  "diagnostic_threshold": 0.5,
+  "request_limit": 76,
+  "label_review": "Independent agent review completed before inference; two wording corrections resolved scope ambiguities. Labels have not been human-adjudicated.",
+  "sha256": {
+    "docs/memory-assess/expanded-v1.json": "122bb570aaf09df9f00b4b53c4b182006372cf1aa15664f9505e057280802c5e",
+    "docs/memory-assess/repeatability-v1.json": "c98ffc8a398e5ccc170d1df6eb91c1b0bf1bf18729383fef359f23bb2f231c51",
+    "docs/memory-assess/synthetic.json": "230873b25a88fc30a3dbc9a8a9c2c2057f1eec2b959218391b27791f698f9e73",
+    "internal/memory/assess/client.go": "45c13ce26e492663081480ef6bb84f99c5b27e5eaea312bf65bfc046eb23603e"
+  }
+}

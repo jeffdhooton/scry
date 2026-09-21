@@ -78,6 +78,7 @@ type Daemon struct {
 	memStore     *memstore.Store
 	memErr       error
 	memExtractor extract.Extractor
+	assessment   assessmentRuntime
 	memQueueMu   sync.Mutex
 	memQueue     *queue.Worker
 	memQueueWG   sync.WaitGroup
@@ -173,6 +174,7 @@ func New(layout Layout) *Daemon {
 		memExtractor:   buildMemoryExtractor(layout.Home),
 	}
 	d.watcher = NewWatcher(layout.Home, d.registry)
+	d.configureAssessment()
 	d.watcher.SetPostReindex(d.rebuildGraphAsync)
 	d.registerMethods()
 	d.registerGitMethods()
@@ -313,6 +315,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	// Drain queued memory writes for as long as the daemon runs. Stopped by
 	// runCtx before closeMemory (deferred above) closes the store.
+	d.startAssessmentWorker(runCtx)
 	d.startMemoryWorker(runCtx)
 
 	serveErr := d.server.Serve(runCtx, ln)

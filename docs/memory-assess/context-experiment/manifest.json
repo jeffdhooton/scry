@@ -1,0 +1,19 @@
+{
+  "frozen_at": "2026-09-20T05:22:05.325382+00:00",
+  "model": "jev-1.13.0",
+  "rubric": "memory-assess-v1",
+  "calls": 192,
+  "review": "Independent reviewer verified labels and arm invariants before inference; limitations incorporated.",
+  "sha256": {
+    "docs/memory-assess/context-experiment/build.py": "ca9a5efb649edceb1a5b47fd804f57c5a79f9751672fbf9ee2aae00eee489ba3",
+    "docs/memory-assess/context-experiment/analyze.py": "be00cde7765bdd58812d6bb963419f1571f86fa6728e512e139aaa30d6d964e0",
+    "docs/memory-assess/context-experiment/sources.json": "d7f339d02061447d115d4fd249ef36fd93f0f9746c775ddfac9de9552e5541e9",
+    "docs/memory-assess/context-experiment/batch-1.json": "d8aa389bac92d6bc9e2f2c6d8489860f9734e6a1c530a0c99e009c656868586a",
+    "docs/memory-assess/context-experiment/batch-2.json": "16696dfd5ae0403d9dae2dee492153663f889e2b620f5bb6692b8bf4a74b1a11",
+    "docs/memory-assess/context-experiment/PROTOCOL.md": "dcf601661d9b1f87265a52b3ece49b166ccc3ba52a731314cbdbf29c3657e626",
+    "docs/memory-assess/synthetic.json": "230873b25a88fc30a3dbc9a8a9c2c2057f1eec2b959218391b27791f698f9e73",
+    "docs/memory-assess/expanded-v1.json": "122bb570aaf09df9f00b4b53c4b182006372cf1aa15664f9505e057280802c5e",
+    "internal/memory/assess/client.go": "45c13ce26e492663081480ef6bb84f99c5b27e5eaea312bf65bfc046eb23603e",
+    "internal/memory/assess/evaluate.go": "780cc209287b698db60ff778102acc8a709af271201e1e05cb913b57f2c83499"
+  }
+}

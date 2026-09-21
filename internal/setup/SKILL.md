@@ -1,25 +1,13 @@
 ---
 name: scry
 description: |
-  Route symbol lookups, git intelligence, schema queries, HTTP inspection, and
-  cross-domain graph traversal through scry (a local code-intelligence daemon)
-  instead of Grep, git commands, manual DB inspection, and log reading. scry is
-  a unified tool that answers code, schema, git, HTTP, and architectural
-  questions in <10ms via a single daemon and MCP server.
-
-  TRIGGER when: user asks "where is X called/used/defined/implemented", "who
-  calls X", "what does X call", "find every reference to X", "jump to X", "who
-  wrote this line", "what changed in this file recently", "which files change
-  together", "what are the hotspots", "who are the main contributors", "what
-  columns does this table have", "what are the foreign keys", "what enums
-  exist", "what was the last HTTP request", "show me the graph report", "what
-  connects X to Y"; or when you would otherwise reach for Grep to find a
-  function/class/method name, git blame/log for history context, or DB clients
-  for schema info.
-
-  DO NOT use for: string searches inside comments/docstrings, TODO hunting,
-  error message lookups, regex over content, file path patterns, or any
-  non-symbol query -- use Grep/Glob/Read for those. scry is narrow by design.
+  Use scry for semantic code lookups, git history/blame, database schema,
+  captured HTTP requests, cross-domain graph questions, and episodic memory.
+  Trigger for callers, references, definitions, implementations, co-change,
+  contributors, table columns/foreign keys, request details, and prior decisions;
+  also use when installing or troubleshooting scry, its daemon, model credentials,
+  or optional Jev shadow assessment. Use text/file search for comments, TODOs,
+  error strings, regex and file paths instead of scry symbol queries.
 allowed-tools:
   - Bash
   - Read
@@ -29,16 +17,108 @@ allowed-tools:
 
 # /scry -- Unified code intelligence through a local semantic index
 
-scry is a single static Go binary that maintains per-repo indexes across five
+scry is a single static Go binary that maintains indexes across six
 domains: code (SCIP symbols), git (blame/history/cochange), schema (database
-tables/FKs/enums), HTTP (captured request/response pairs), and a unified graph
-that connects all domains. Queries are served by a background daemon over a
-Unix socket at `~/.scry/scryd.sock`; auto-spawn on first call.
+tables/FKs/enums), HTTP (captured request/response pairs), a unified graph
+that connects domains, and global episodic memory. Queries are served by a
+background daemon over a Unix socket at `~/.scry/scryd.sock`; auto-spawn on first
+call.
 
 **Read the repo state first, then route.** Before answering any symbol-like
 question, decide which tool is actually best for this query. scry is a narrow
 precision instrument -- use it where it fits and fall back to Grep where it
 doesn't.
+
+## Setup and model dependencies
+
+For the full installation guide, use the
+[project README](https://github.com/jeffdhooton/scry#setup). Identify the requested
+features and the machine owning memory before changing an existing installation.
+
+| Feature | Required setup |
+|---|---|
+| Code/git/schema/HTTP | No AI API key. Relevant language toolchain/indexer and project dependencies; `git` for history, a reachable database DSN for schema. |
+| Memory extraction | A generative model with a Messages-compatible API, valid account/key, model access/credit and outbound HTTPS from the store daemon. No extraction model is bundled. |
+| Jev assessment | Working extraction plus separate TypeSafe access to `jev-1.13.0` and `TYPESAFE_API_KEY`; off by default. |
+| Memory storage/retrieval | Writable `~/.scry/` and sufficient disk; embedded Badger/local retrieval, no external vector service or GPU. |
+| Unattended ingestion | Readable supported transcripts and a separately configured sweep scheduler. |
+| Shared memory | Reachable store socket, usually an SSH tunnel; model config and keys live on the store machine. |
+
+**Exact model/key lookup:** without `memory.models` entries in
+`~/.scry/config.yaml`, extraction reads `SCRY_MEMORY_API_KEY`, falling back to
+`DEEPSEEK_API_KEY` when empty. Defaults are `deepseek-v4-flash` at
+`https://api.deepseek.com/anthropic`. `SCRY_MEMORY_MODEL` and
+`SCRY_MEMORY_BASE_URL` override these; an explicit base URL requires an explicit
+model. An endpoint supporting only OpenAI-style chat completions is insufficient.
+
+A nonempty `memory.models` chain replaces those model/base URL overrides. Each
+entry requires `model`; omitted `base_url` means DeepSeek. An explicit
+`api_key_env` reads only the named variable; otherwise the default key lookup
+applies. Missing primary or fallback keys leave extraction dormant.
+`ANTHROPIC_API_KEY` is not implicitly read: explicitly select the Anthropic
+endpoint/model and key variable to use it. Jev reads only `TYPESAFE_API_KEY` and
+calls `https://api.typesafe.ai/v1/systemone`; it cannot replace extraction.
+
+**Where keys belong:** the store daemon's process environment. Scry does not
+load API keys automatically from repository `.env`, shell profiles, a password
+manager or YAML. YAML contains variable names, never secret values. For a new
+installation, a private mode-600 `~/.config/scry/credentials.env` can hold the
+extraction key and optional `TYPESAFE_API_KEY`, plus all configured key variables.
+This is a launcher convention; load it explicitly:
+
+```sh
+set -a
+. "$HOME/.config/scry/credentials.env"
+set +a
+scry start --foreground
+```
+
+Preserve an existing service's credential convention. Use absolute paths in
+launchd/systemd and provide the daemon's toolchain PATH. Update its launcher and
+restart the correct daemon after configuration/key changes. An export in another
+terminal or a second `scry start` does not update a running daemon. Diagnose key
+availability without printing keys or dumping the environment.
+
+Memory routing prefers `SCRY_MEMORY_SOCKET`, then `memory.socket`, then the local
+socket. A remote socket suppresses local daemon extraction/assessment; configure
+models on the store machine and verify the tunnel. `scry setup` installs Claude
+Code MCP/skill/hook integration; it does not install a persistent daemon service,
+provision AI accounts/keys, create tunnels or schedule sweeps. Use per-host MCP
+configuration for other clients, with an absolute binary path.
+
+**Verify only the requested features:**
+
+```sh
+scry doctor --json
+scry status
+scry memory status
+scry memory sweep --dry-run
+scry memory assess status --json
+scry memory assess list --limit 20 --json
+```
+
+For code, verify a real symbol query and the host MCP connection. Intentionally
+dormant memory is not a code setup failure. For memory, check the intended
+`models`, `dormant: false`, `worker_running: true`, ingestion health and successful
+extraction of an authorized episode. For Jev, check `configuration.mode: shadow`,
+`key_available`, limits, blocked reason and a completed assessment. A nonempty
+key is not proof of provider acceptance. Check command availability against the
+installed binary; a release may lag the checkout's optional features.
+
+Jev is observational: it stores assessments separately in `~/.scry/memory-assess/`
+and does not govern memory admission or ranking. Setup uses `memory.assessment`
+in the store's config, a TypeSafe key and a daemon restart. For a small trial,
+configure all of `trial.starts_at`, `trial.expires_at` (RFC3339), and
+`trial.max_requests`; preserve authorized dates/caps. Dispatch counts are lifetime
+reservations, including failed/uncertain calls. Restart/retention do not reset
+them; `resume` cannot bypass expiry/cap stops. Follow the README's bounded-trial
+link for the complete config. Setting mode `off` and restarting stops calls.
+
+Honor prior authorization for memory/Jev work without repeated approval requests.
+A code-only setup does not authorize paid transcript ingestion, historical
+backfill or live assessments. `memory backfill` and assessment fixture `--live`
+use the calling process's credentials; fixture success does not prove daemon
+setup. Do not make paid calls to verify documentation edits.
 
 ## Routing table
 

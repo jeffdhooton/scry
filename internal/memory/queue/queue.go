@@ -104,6 +104,11 @@ func Backoff(attempts int) time.Duration {
 type Options struct {
 	Store     *store.Store
 	Extractor extract.Extractor
+	// OnExtracted observes an owned copy of the original extraction before
+	// resolver normalization, including candidates that will be rejected.
+	// It must perform bounded local writes only and account for its own
+	// failures: observers cannot request a retry or alter graph admission.
+	OnExtracted func(store.PendingEpisode, extract.Result)
 	// Glossary supplies the known-entity lines for extraction. It may be
 	// nil. It should be cheap: it runs on every item.
 	Glossary func() []string
@@ -386,7 +391,9 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 	defer cancel()
 
 	ep := distill.RawEpisode{ID: p.ID, Source: p.Source, SourceRef: p.SourceRef, Text: p.Text,
-		OccurredAt: p.OccurredAt, Cwd: p.Cwd, CwdIsRepo: p.CwdIsRepo}
+		OccurredAt: p.OccurredAt, Cwd: p.Cwd, CwdIsRepo: p.CwdIsRepo,
+		SourceNamespace: p.SourceNamespace, SourceSpanKnown: p.SourceSpanKnown,
+		SourceStart: p.SourceStart, SourceEnd: p.SourceEnd, SourceTurns: append([]distill.SourceTurn(nil), p.SourceTurns...)}
 	var glossary []string
 	if w.o.Glossary != nil {
 		glossary = w.o.Glossary()
@@ -402,6 +409,25 @@ func (w *Worker) process(ctx context.Context, p store.PendingEpisode) {
 		}
 		w.fail(p, err)
 		return
+	}
+
+	if w.o.OnExtracted != nil {
+		observed := res
+		observed.Entities = append([]extract.Ent(nil), res.Entities...)
+		for i := range observed.Entities {
+			observed.Entities[i].Aliases = append([]string(nil), res.Entities[i].Aliases...)
+		}
+		observed.Facts = append([]extract.Fct(nil), res.Facts...)
+		for i := range observed.Facts {
+			if res.Facts[i].Supersedes != nil {
+				ref := *res.Facts[i].Supersedes
+				observed.Facts[i].Supersedes = &ref
+			}
+		}
+		pendingCopy := p
+		pendingCopy.Hints = append([]string(nil), p.Hints...)
+		pendingCopy.SourceTurns = append([]distill.SourceTurn(nil), p.SourceTurns...)
+		w.o.OnExtracted(pendingCopy, observed)
 	}
 
 	summary := res.EpisodeSummary
@@ -532,6 +558,12 @@ func (w *Worker) splitPending(p store.PendingEpisode) (bool, error) {
 		child.ID = distill.MakeID(ref)
 		child.SourceRef = ref
 		child.Text = half
+		// The fallback split works on rendered text, not transcript byte
+		// offsets. Do not falsely attribute the complete parent's span to
+		// either half; context retrieval records this ordering gap.
+		child.SourceSpanKnown = false
+		child.SourceStart, child.SourceEnd = 0, 0
+		child.SourceTurns = nil
 		child.Attempts = 0
 		child.Parked = false
 		child.LastError = "split from " + p.ID + " after repeated timeouts"
