@@ -52,3 +52,20 @@ review completion, whether useful findings arrived before completion, human
 verdict (useful/false positive/inconclusive), time spent reading/interrupted,
 provider token usage, and billed or rate-estimated cost. A fixture result is
 not a production recall, precision, latency, or interruption-cost benchmark.
+
+## Installed state
+
+Installed `scry-862804e-background-review` on the laptop via its existing
+`com.jhoot.scryd` service. Rollback binary:
+`~/go/bin/scry.pre-background-review-20260921`; configuration backup:
+`~/.scry/config.yaml.pre-background-review-20260921`.
+The original memory configuration was preserved byte-for-byte before the new
+review section. Initial allowlist: `/Users/jeff/workspace/context-stack/scry`;
+quiet period 30 seconds; cap 10 requests per UTC day; input 48,000 bytes and
+output 4,096 tokens. Monetary cost remains unknown without applicable rates.
+
+Verified the installed CLI version/status/preview and all five review tools
+through a fresh local MCP connection. Status retains the real failed request
+and its usage reservation, reports `ready: false` with the provider 429 block,
+and performs no further inference. Existing MCP hosts need reconnection to
+advertise the new tools; the CLI works immediately.

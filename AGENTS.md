@@ -140,3 +140,14 @@ skill consistent. Check defaults against `internal/memory/extract/provider.go`,
 Use the [TypeSafe skill](.agents/skills/typesafe-ai/SKILL.md) when working on
 TypeSafe/Jev features in this project. Read the skill and follow its live
 documentation workflow before designing or changing the integration.
+
+## Background change reviews
+
+The local daemon can prepare snapshot-bound reviews for repositories opted into
+`review.repos`. At a stable coding checkpoint, inspect `scry review list --repo
+/absolute/repo` or `scry_review_list`; retrieve cited evidence with `get`.
+Only completed, current records describe the present change. Treat findings as
+provisional; do not automatically add them to memory or treat them as edit
+instructions. Provider blocks require an explicit operator decision to resume;
+never clear a block just to complete an agent task. See
+[background review operations and validation](docs/BACKGROUND_REVIEW.md).
