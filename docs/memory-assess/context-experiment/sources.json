@@ -1,0 +1,346 @@
+[
+  {
+    "id": "corrections--retracted-host--a",
+    "episode": "Assistant: Juniper runs on Atlas.\nUser: That is wrong. Juniper runs on Beacon, not Atlas. Record this correction.",
+    "fact": "The user corrected Juniper hosting to Beacon.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "User, following the correction: Atlas was an assistant guess, not a former deployment location. Our current Juniper service is on Beacon. There is no Juniper installation on Atlas.",
+      "User, infrastructure inventory: Beacon is the Juniper application host. Juniper is the service name; Atlas and Beacon are two different machines."
+    ]
+  },
+  {
+    "id": "corrections--retracted-host--b",
+    "episode": "Assistant: Juniper runs on Atlas.\nUser: That is wrong. Juniper runs on Beacon, not Atlas. Record this correction.",
+    "fact": "Juniper currently runs on Atlas.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "User, following the correction: Atlas was an assistant guess, not a former deployment location. Our current Juniper service is on Beacon. There is no Juniper installation on Atlas.",
+      "User, infrastructure inventory: Beacon is the Juniper application host. Juniper is the service name; Atlas and Beacon are two different machines."
+    ]
+  },
+  {
+    "id": "scope--actor--a",
+    "episode": "User: Mira owns Cedar releases. Sol does not own Cedar releases; Sol owns documentation.",
+    "fact": "Mira is responsible for Cedar releases.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "User, Cedar team directory: Mira is the release owner, responsible for preparing, approving and publishing Cedar releases. Sol writes the documentation and does not hold the release-owner role.",
+      "User: By owns releases I mean accountable for the release process, not ownership of a company. Mira and Sol are different people."
+    ]
+  },
+  {
+    "id": "scope--actor--b",
+    "episode": "User: Mira owns Cedar releases. Sol does not own Cedar releases; Sol owns documentation.",
+    "fact": "Sol is responsible for Cedar releases.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "User, Cedar team directory: Mira is the release owner, responsible for preparing, approving and publishing Cedar releases. Sol writes the documentation and does not hold the release-owner role.",
+      "User: By owns releases I mean accountable for the release process, not ownership of a company. Mira and Sol are different people."
+    ]
+  },
+  {
+    "id": "durable-preference",
+    "episode": "User: For all Lantern documentation, use US English and show runnable examples.",
+    "fact": "The user prefers US English and runnable examples in Lantern documentation.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "User: US English and runnable examples are my standing documentation preferences, already in effect for Lantern. Apply them in future sessions too; this is the way I prefer documentation to be written."
+    ]
+  },
+  {
+    "id": "completed-deployment",
+    "episode": "User: I deployed the Lantern service to the staging host today. The health check passed.",
+    "fact": "The user reports deploying Lantern to staging today and passing its health check.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "User: The staging deployment I just reported is a completed event. Keep this deployment milestone in the project history so later sessions know staging was brought up and its health check passed. This is my report, not an independent verification by the assistant."
+    ]
+  },
+  {
+    "id": "preserve-negated-constraint",
+    "episode": "User: Lantern must never send customer records to external analytics services.",
+    "fact": "Lantern is prohibited from sending customer records to external analytics services.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "User, Lantern data policy: Customer records must stay out of every external analytics service. This is a standing prohibition. No exception has been granted; it applies to all future work on Lantern."
+    ]
+  },
+  {
+    "id": "transient-progress",
+    "episode": "Assistant: I am opening the next file now.",
+    "fact": "The assistant is opening the next file.",
+    "expected": {
+      "supported": true,
+      "durable": false,
+      "assertion": "established"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "Assistant: Opening this file is just what I am doing at this moment in this conversation. It is not a project milestone, enduring preference, decision, or change to the code."
+    ]
+  },
+  {
+    "id": "attribution--uncertain-belief--a",
+    "episode": "Assistant: I think Birch imports support ZIP files, but I have not checked.\nUser: Keep that uncertainty in the note.",
+    "fact": "The assistant thinks Birch imports may support ZIP files, without having checked.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "Assistant, follow-up: I still have not inspected Birch's importer or tested ZIP support. My earlier statement was a guess. I do not have a verified result.",
+      "User: ZIP import support is an open project question worth retaining for future sessions. Preserve the assistant's uncertainty and lack of checking when recording what was said."
+    ]
+  },
+  {
+    "id": "attribution--uncertain-belief--b",
+    "episode": "Assistant: I think Birch imports support ZIP files, but I have not checked.\nUser: Keep that uncertainty in the note.",
+    "fact": "The assistant checked and confirmed that Birch imports support ZIP files.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    },
+    "cohort": "anchor",
+    "sources": [
+      "Assistant, follow-up: I still have not inspected Birch's importer or tested ZIP support. My earlier statement was a guess. I do not have a verified result.",
+      "User: ZIP import support is an open project question worth retaining for future sessions. Preserve the assistant's uncertainty and lack of checking when recording what was said."
+    ]
+  },
+  {
+    "id": "fresh--environment--a",
+    "episode": "User: Quartz staging uses SQLite. Quartz production uses PostgreSQL, not SQLite.",
+    "fact": "Quartz staging uses SQLite.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz environment inventory: Staging and production are separate environments. The staging database engine is SQLite. The production database engine is PostgreSQL. There has been no production migration to SQLite."
+    ]
+  },
+  {
+    "id": "fresh--environment--b",
+    "episode": "User: Quartz staging uses SQLite. Quartz production uses PostgreSQL, not SQLite.",
+    "fact": "Quartz production uses SQLite.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz environment inventory: Staging and production are separate environments. The staging database engine is SQLite. The production database engine is PostgreSQL. There has been no production migration to SQLite."
+    ]
+  },
+  {
+    "id": "fresh--rollout--a",
+    "episode": "User: We plan to enable Quartz tracing next week. Tracing is not enabled yet.",
+    "fact": "The team plans to enable Quartz tracing next week.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "planned"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz rollout note: The tracing change is scheduled for a future rollout. No tracing rollout has taken place. The current configuration still has tracing disabled. Keep the planned tracing work in our project notes."
+    ]
+  },
+  {
+    "id": "fresh--rollout--b",
+    "episode": "User: We plan to enable Quartz tracing next week. Tracing is not enabled yet.",
+    "fact": "Quartz tracing is already enabled.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz rollout note: The tracing change is scheduled for a future rollout. No tracing rollout has taken place. The current configuration still has tracing disabled. Keep the planned tracing work in our project notes."
+    ]
+  },
+  {
+    "id": "fresh--permission--a",
+    "episode": "User: Nia is allowed to restart Quartz. Nia has not restarted it.",
+    "fact": "Nia has permission to restart Quartz.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz access policy: Nia has standing permission to restart the service when needed. Permission is already granted. The service has continued running without any restart by Nia."
+    ]
+  },
+  {
+    "id": "fresh--permission--b",
+    "episode": "User: Nia is allowed to restart Quartz. Nia has not restarted it.",
+    "fact": "Nia restarted Quartz.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz access policy: Nia has standing permission to restart the service when needed. Permission is already granted. The service has continued running without any restart by Nia."
+    ]
+  },
+  {
+    "id": "fresh--correction--a",
+    "episode": "Assistant: Quartz exports are public.\nUser: That is incorrect: Quartz exports are private, not public.",
+    "fact": "Quartz exports are private.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, following the correction: The assistant's statement about public exports was wrong. Quartz exports require authentication and are private. We did not publish them at any point. Private exports are the current product configuration."
+    ]
+  },
+  {
+    "id": "fresh--correction--b",
+    "episode": "Assistant: Quartz exports are public.\nUser: That is incorrect: Quartz exports are private, not public.",
+    "fact": "Quartz exports are public.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, following the correction: The assistant's statement about public exports was wrong. Quartz exports require authentication and are private. We did not publish them at any point. Private exports are the current product configuration."
+    ]
+  },
+  {
+    "id": "fresh--vendor--a",
+    "episode": "User: Our storage vendor says Quartz snapshots are encrypted. We have not independently verified encryption.",
+    "fact": "The storage vendor says Quartz snapshots are encrypted; the team has not independently verified this.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz vendor review: Encryption is a claim in the vendor's materials, and that is our sole source so far. No independent test or audit of snapshot encryption has been performed by our team. Retain the attribution in future project notes."
+    ]
+  },
+  {
+    "id": "fresh--vendor--b",
+    "episode": "User: Our storage vendor says Quartz snapshots are encrypted. We have not independently verified encryption.",
+    "fact": "The team independently verified encryption of Quartz snapshots.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz vendor review: Encryption is a claim in the vendor's materials, and that is our sole source so far. No independent test or audit of snapshot encryption has been performed by our team. Retain the attribution in future project notes."
+    ]
+  },
+  {
+    "id": "fresh--absent--a",
+    "episode": "User: Quartz is written in Rust. No hosting location is given in these notes.",
+    "fact": "Quartz is written in Rust.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz implementation notes: The application source is Rust. The notes discuss language choice and build tooling only; none of the source material identifies a hosting machine."
+    ]
+  },
+  {
+    "id": "fresh--absent--b",
+    "episode": "User: Quartz is written in Rust. No hosting location is given in these notes.",
+    "fact": "Quartz runs on the machine named Summit.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "unclear"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User, Quartz implementation notes: The application source is Rust. The notes discuss language choice and build tooling only; none of the source material identifies a hosting machine."
+    ]
+  },
+  {
+    "id": "fresh--retention--a",
+    "episode": "User: Quartz documentation must always include runnable examples.\nAssistant: I am scrolling this file now.",
+    "fact": "Quartz documentation must include runnable examples.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User: Runnable examples are a standing documentation requirement for all future Quartz work.",
+      "Assistant: Scrolling is my momentary navigation action in this conversation, with no project change or lasting decision attached."
+    ]
+  },
+  {
+    "id": "fresh--retention--b",
+    "episode": "User: Quartz documentation must always include runnable examples.\nAssistant: I am scrolling this file now.",
+    "fact": "The assistant is scrolling a file.",
+    "expected": {
+      "supported": true,
+      "durable": false,
+      "assertion": "established"
+    },
+    "cohort": "fresh",
+    "sources": [
+      "User: Runnable examples are a standing documentation requirement for all future Quartz work.",
+      "Assistant: Scrolling is my momentary navigation action in this conversation, with no project change or lasting decision attached."
+    ]
+  }
+]

@@ -33,7 +33,28 @@ type RawEpisode struct {
 	// exists: true when Cwd/.git is there. The daemon that resolves the
 	// episode may run on another machine, where the path cannot be
 	// checked, so the flag travels with the episode.
-	CwdIsRepo bool `json:"cwd_is_repo,omitempty"`
+	CwdIsRepo       bool         `json:"cwd_is_repo,omitempty"`
+	SourceNamespace string       `json:"source_namespace,omitempty"`
+	SourceSpanKnown bool         `json:"source_span_known,omitempty"`
+	SourceStart     int64        `json:"source_start,omitempty"`
+	SourceEnd       int64        `json:"source_end,omitempty"`
+	SourceTurns     []SourceTurn `json:"source_turns,omitempty"`
+}
+
+// SourceTurn identifies the original byte span of one attributed, redacted
+// utterance. Text equality alone never establishes an overlapping turn.
+type SourceTurn struct {
+	Speaker string `json:"speaker"`
+	Text    string `json:"text"`
+	Start   int64  `json:"start"`
+	End     int64  `json:"end"`
+}
+
+// LocalSourceNamespace is attested by the producer, never inferred by a remote
+// daemon from a client path. Failure leaves the namespace explicitly unknown.
+func LocalSourceNamespace() string {
+	host, _ := os.Hostname()
+	return host
 }
 
 // cwdRepoCache remembers stat results per directory for one process.
@@ -140,16 +161,22 @@ func chunkTurns(source, path string, turns []turn) []RawEpisode {
 			j++
 		}
 		last := j - 1
+		var sourceTurns []SourceTurn
+		for _, t := range turns[i:j] {
+			sourceTurns = append(sourceTurns, SourceTurn{Speaker: t.role, Text: Redact(t.text), Start: t.start, End: t.end})
+		}
 
 		sourceRef := fmt.Sprintf("%s#%d-%d", path, turns[i].start, turns[last].end)
 		episodes = append(episodes, RawEpisode{
-			ID:         makeID(sourceRef),
-			Source:     source,
-			SourceRef:  sourceRef,
-			Text:       Redact(sb.String()),
-			OccurredAt: turns[i].ts,
-			Cwd:        turns[i].cwd,
-			CwdIsRepo:  CwdIsRepo(turns[i].cwd),
+			ID:              makeID(sourceRef),
+			Source:          source,
+			SourceRef:       sourceRef,
+			Text:            Redact(sb.String()),
+			OccurredAt:      turns[i].ts,
+			Cwd:             turns[i].cwd,
+			CwdIsRepo:       CwdIsRepo(turns[i].cwd),
+			SourceNamespace: LocalSourceNamespace(), SourceSpanKnown: true,
+			SourceStart: turns[i].start, SourceEnd: turns[last].end, SourceTurns: sourceTurns,
 		})
 
 		if j >= n {

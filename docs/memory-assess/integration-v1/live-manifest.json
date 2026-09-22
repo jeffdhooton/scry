@@ -1,0 +1,18 @@
+{
+  "version": "integration-v1-live",
+  "model": "jev-1.13.0",
+  "created_at": "2026-09-20T12:53:28.314266+00:00",
+  "corpus_sha256": "41306d47b5107ec2fee6c71e829a120819ff908dcf56f3c5f78046a7448fb5c1",
+  "preview_sha256": "cd86e80f3548b7e01003973085026d3d578a599062e9a869dfd510ebc57facf5",
+  "planned_requests": 600,
+  "completed": 592,
+  "failed": 8,
+  "all_request_hashes_match_preview": true,
+  "sha256": {
+    "development-live.json": "652d4a99b575610368d3cf76d576796120a0746a6aa60dd4b0d33349c4fb0f0e",
+    "sealed-live.json": "d3b5cf6c2c85f5d15d510bbfef417f73c5349a6863be172317e990ccff863cd1",
+    "live-summary.json": "69c583aa0563bfa6c995273c2924169f67a805265838e4d1137e9f50492ed7e7",
+    "live-disagreements.csv": "7aa68bdced858b59dc817ff1d12205600a48b87c50539491af9f8d75a12987f4",
+    "LIVE_REPORT.md": "5edef4651064cbe046ac6286c5a13c1161d4b45c5b5103502b86db2da75938fb"
+  }
+}

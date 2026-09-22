@@ -1,0 +1,44 @@
+{
+  "configuration": {
+    "mode": "shadow",
+    "model": "jev-1.13.0",
+    "target_input_tokens": 20000,
+    "concurrency": 1,
+    "timeout": 15000000000,
+    "trial": {
+      "starts_at": "2026-09-20T13:12:56Z",
+      "expires_at": "2026-09-21T13:12:56Z",
+      "max_requests": 100
+    }
+  },
+  "key_available": true,
+  "store": {
+    "revision": 1,
+    "counts": {
+      "completed": 15,
+      "pending": 0,
+      "running": 0
+    },
+    "pending_bytes": 0,
+    "payload_bytes": 135250,
+    "metadata_bytes": 26167,
+    "coverage_gaps": {},
+    "retry_after": "0001-01-01T00:00:00Z",
+    "replay_sequence": 0,
+    "dispatches": 15
+  },
+  "process_coverage_gaps": {},
+  "source_available": 15,
+  "source_unavailable": 0,
+  "truncated": 0,
+  "input_tokens": 16789,
+  "daily_input_tokens": 16789,
+  "estimated_cost_usd": 0.000705138,
+  "http_p50_ms": 177.515,
+  "http_p95_ms": 385.577,
+  "end_to_end_p50_ms": 1694.311,
+  "end_to_end_p95_ms": 3129.379,
+  "oldest_queue_age_seconds": 0,
+  "metrics_truncated": false,
+  "error_counts": {}
+}

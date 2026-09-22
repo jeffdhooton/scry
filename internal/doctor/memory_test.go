@@ -89,6 +89,26 @@ func TestMemorySocketResolutionOrder(t *testing.T) {
 	}
 }
 
+func TestEvalAssessmentStatusSeparateFromExtraction(t *testing.T) {
+	for _, tc := range []struct {
+		mode, blocked string
+		key           bool
+		want          Status
+	}{
+		{"off", "", false, StatusPass},
+		{"shadow", "missing_credentials", false, StatusWarn},
+		{"shadow", "provider_refusal", true, StatusWarn},
+		{"shadow", "", true, StatusPass},
+	} {
+		res := &daemon.AssessmentStatusResult{KeyAvailable: tc.key, BlockedReason: tc.blocked}
+		res.Configuration.Mode = tc.mode
+		got := evalAssessmentStatus(res)
+		if got.ID != "memory.assessment" || got.Status != tc.want {
+			t.Fatalf("%+v: %+v", tc, got)
+		}
+	}
+}
+
 func TestCheckMemoryUnreachableIsOneFailure(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("SCRY_MEMORY_SOCKET", filepath.Join(home, "missing.sock"))

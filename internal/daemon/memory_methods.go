@@ -27,6 +27,7 @@ const (
 )
 
 func (d *Daemon) registerMemoryMethods() {
+	d.registerAssessmentMethods()
 	d.server.Register("memory.commit", d.handleMemoryCommit)
 	d.server.Register("memory.glossary", d.handleMemoryGlossary)
 	d.server.Register("memory.recall", d.handleMemoryRecall)
@@ -74,6 +75,7 @@ func (d *Daemon) closeMemory() {
 		}
 	})
 	d.memQueueWG.Wait()
+	d.closeAssessment()
 	if d.memStore != nil {
 		_ = d.memStore.Close()
 	}
@@ -109,6 +111,7 @@ func (d *Daemon) handleMemoryCommit(_ context.Context, raw json.RawMessage) (any
 	if p.CwdIsRepo {
 		cwd = p.Cwd
 	}
+	d.observeCommittedAssessment(p.Episode, p.Result)
 	stats, err := resolve.Apply(st, p.Episode, cwd, p.Result, resolve.DefaultExclusive)
 	if err != nil {
 		return nil, err
@@ -535,6 +538,7 @@ func (d *Daemon) handleMemoryRemember(_ context.Context, raw json.RawMessage) (a
 		return nil, err
 	}
 	if queued {
+		d.captureAssessment(ep)
 		d.kickMemoryWorker()
 	}
 	ready, backoff, parked, err := st.PendingCounts(now)

@@ -21,10 +21,14 @@ const FileName = "config.yaml"
 // Config is the parsed ~/.scry/config.yaml.
 type Config struct {
 	Memory Memory `yaml:"memory"`
+	Review Review `yaml:"review"`
 }
 
 // Memory configures the memory domain's extraction.
 type Memory struct {
+	// Assessment is independently validated so a broken optional sidecar
+	// configuration never disables the extraction chain.
+	Assessment *Assessment `yaml:"assessment"`
 	// Models is the ordered extraction chain: the first entry is tried for
 	// every episode, and each later entry only when the one before it
 	// failed. When present it replaces SCRY_MEMORY_MODEL / SCRY_MEMORY_BASE_URL

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "repeat1--completed-deployment",
+    "episode": "User: I deployed the Lantern service to the staging host today. The health check passed.",
+    "fact": "The user reports deploying Lantern to staging today and passing its health check.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  },
+  {
+    "id": "repeat1--hypothetical-as-decision",
+    "episode": "User: As a hypothetical example, we could move Lantern to a dedicated host if traffic grew tenfold. We have made no hosting decision.",
+    "fact": "The team decided to move Lantern to a dedicated host.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    }
+  },
+  {
+    "id": "repeat1--durable-preference",
+    "episode": "User: For all Lantern documentation, use US English and show runnable examples.",
+    "fact": "The user prefers US English and runnable examples in Lantern documentation.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  },
+  {
+    "id": "repeat1--preserve-negated-constraint",
+    "episode": "User: Lantern must never send customer records to external analytics services.",
+    "fact": "Lantern is prohibited from sending customer records to external analytics services.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  },
+  {
+    "id": "repeat2--completed-deployment",
+    "episode": "User: I deployed the Lantern service to the staging host today. The health check passed.",
+    "fact": "The user reports deploying Lantern to staging today and passing its health check.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  },
+  {
+    "id": "repeat2--hypothetical-as-decision",
+    "episode": "User: As a hypothetical example, we could move Lantern to a dedicated host if traffic grew tenfold. We have made no hosting decision.",
+    "fact": "The team decided to move Lantern to a dedicated host.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    }
+  },
+  {
+    "id": "repeat2--durable-preference",
+    "episode": "User: For all Lantern documentation, use US English and show runnable examples.",
+    "fact": "The user prefers US English and runnable examples in Lantern documentation.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  },
+  {
+    "id": "repeat2--preserve-negated-constraint",
+    "episode": "User: Lantern must never send customer records to external analytics services.",
+    "fact": "Lantern is prohibited from sending customer records to external analytics services.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  },
+  {
+    "id": "repeat3--completed-deployment",
+    "episode": "User: I deployed the Lantern service to the staging host today. The health check passed.",
+    "fact": "The user reports deploying Lantern to staging today and passing its health check.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  },
+  {
+    "id": "repeat3--hypothetical-as-decision",
+    "episode": "User: As a hypothetical example, we could move Lantern to a dedicated host if traffic grew tenfold. We have made no hosting decision.",
+    "fact": "The team decided to move Lantern to a dedicated host.",
+    "expected": {
+      "supported": false,
+      "durable": true,
+      "assertion": "denied"
+    }
+  },
+  {
+    "id": "repeat3--durable-preference",
+    "episode": "User: For all Lantern documentation, use US English and show runnable examples.",
+    "fact": "The user prefers US English and runnable examples in Lantern documentation.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  },
+  {
+    "id": "repeat3--preserve-negated-constraint",
+    "episode": "User: Lantern must never send customer records to external analytics services.",
+    "fact": "Lantern is prohibited from sending customer records to external analytics services.",
+    "expected": {
+      "supported": true,
+      "durable": true,
+      "assertion": "established"
+    }
+  }
+]

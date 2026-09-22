@@ -1,0 +1,578 @@
+{
+  "model": "jev-1.13.0",
+  "rubric_version": "memory-assess-v1",
+  "requested": 14,
+  "completed": 14,
+  "diagnostic_threshold": 0.5,
+  "metrics": {
+    "supported": {
+      "correct": 13,
+      "false_positive": 0,
+      "false_negative": 1,
+      "brier_score": 0.038400000000000004
+    },
+    "durable": {
+      "correct": 13,
+      "false_positive": 0,
+      "false_negative": 1,
+      "brier_score": 0.08383571428571428
+    },
+    "assertion_correct": 12
+  },
+  "usage": {
+    "input_tokens": 9822,
+    "output_tokens": 1401
+  },
+  "input_usd_per_million": 0.042,
+  "estimated_usd": 0.000412524,
+  "p50_latency_ms": 159.838,
+  "p95_latency_ms": 376.918,
+  "results": [
+    {
+      "id": "completed-deployment",
+      "input_sha256": "b6d82b5762741c33834f37e855e4f2c251e120e6a5a7c2e1ef421d2662704ffa",
+      "expected": {
+        "supported": true,
+        "durable": true,
+        "assertion": "established"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "established",
+            "probabilities": {
+              "denied": 0,
+              "established": 1,
+              "hypothetical": 0,
+              "planned": 0,
+              "unclear": 0
+            },
+            "confidence": 1
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.39
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.92
+          }
+        },
+        "usage": {
+          "input_tokens": 704,
+          "output_tokens": 101
+        },
+        "latency_ms": 376.918
+      }
+    },
+    {
+      "id": "plan-is-not-completion",
+      "input_sha256": "12f26368d2fbf930d6401437da7969fbc4db3c6152851af46547cf7c67d15f3a",
+      "expected": {
+        "supported": false,
+        "durable": true,
+        "assertion": "denied"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "denied",
+            "probabilities": {
+              "denied": 0.76,
+              "established": 0,
+              "hypothetical": 0,
+              "planned": 0.24,
+              "unclear": 0
+            },
+            "confidence": 0.69
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.71
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.01
+          }
+        },
+        "usage": {
+          "input_tokens": 697,
+          "output_tokens": 99
+        },
+        "latency_ms": 138.085
+      }
+    },
+    {
+      "id": "preserve-explicit-plan",
+      "input_sha256": "4acaefa0670006faf10f655a0a0188bb32d2d091395159b1f961df59b1bfa3b4",
+      "expected": {
+        "supported": true,
+        "durable": true,
+        "assertion": "planned"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "planned",
+            "probabilities": {
+              "denied": 0,
+              "established": 0.01,
+              "hypothetical": 0,
+              "planned": 0.99,
+              "unclear": 0
+            },
+            "confidence": 0.99
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.8
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.76
+          }
+        },
+        "usage": {
+          "input_tokens": 699,
+          "output_tokens": 100
+        },
+        "latency_ms": 190.004
+      }
+    },
+    {
+      "id": "proposal-as-completion",
+      "input_sha256": "f124c71834f5f4b2083f7633b013d6b56eccf6e02003e5d81fa0026ce2ba339f",
+      "expected": {
+        "supported": false,
+        "durable": true,
+        "assertion": "planned"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "planned",
+            "probabilities": {
+              "denied": 0,
+              "established": 0,
+              "hypothetical": 0,
+              "planned": 1,
+              "unclear": 0
+            },
+            "confidence": 1
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.67
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        },
+        "usage": {
+          "input_tokens": 695,
+          "output_tokens": 100
+        },
+        "latency_ms": 150.013
+      }
+    },
+    {
+      "id": "hypothetical-as-decision",
+      "input_sha256": "cbe8a1524827552b0aeaaf22d1d714755bb478cb79069c73262102c4755a3b10",
+      "expected": {
+        "supported": false,
+        "durable": true,
+        "assertion": "denied"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "hypothetical",
+            "probabilities": {
+              "denied": 0.34,
+              "established": 0,
+              "hypothetical": 0.66,
+              "planned": 0,
+              "unclear": 0
+            },
+            "confidence": 0.57
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.82
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.01
+          }
+        },
+        "usage": {
+          "input_tokens": 711,
+          "output_tokens": 101
+        },
+        "latency_ms": 131.051
+      }
+    },
+    {
+      "id": "preserve-hypothetical",
+      "input_sha256": "b57b2fd91c5781022f74faca89849a380f21b3bce33b38b86ea105119353e906",
+      "expected": {
+        "supported": true,
+        "durable": true,
+        "assertion": "hypothetical"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "hypothetical",
+            "probabilities": {
+              "denied": 0,
+              "established": 0.01,
+              "hypothetical": 0.99,
+              "planned": 0,
+              "unclear": 0
+            },
+            "confidence": 0.99
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.63
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.91
+          }
+        },
+        "usage": {
+          "input_tokens": 707,
+          "output_tokens": 101
+        },
+        "latency_ms": 203.699
+      }
+    },
+    {
+      "id": "durable-preference",
+      "input_sha256": "2bcf0c9510868da01dec26ebaef9bc82ca3db8d73cf244257d65217a136dfa3d",
+      "expected": {
+        "supported": true,
+        "durable": true,
+        "assertion": "established"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "planned",
+            "probabilities": {
+              "denied": 0,
+              "established": 0.07,
+              "hypothetical": 0,
+              "planned": 0.93,
+              "unclear": 0
+            },
+            "confidence": 0.92
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.89
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.75
+          }
+        },
+        "usage": {
+          "input_tokens": 699,
+          "output_tokens": 100
+        },
+        "latency_ms": 138.929
+      }
+    },
+    {
+      "id": "transient-progress",
+      "input_sha256": "66e7908085d4748aeb5045ed41ae8dc095d40a3404a97a623e1f58818723ac43",
+      "expected": {
+        "supported": true,
+        "durable": false,
+        "assertion": "established"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "established",
+            "probabilities": {
+              "denied": 0,
+              "established": 0.79,
+              "hypothetical": 0,
+              "planned": 0.21,
+              "unclear": 0
+            },
+            "confidence": 0.73
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.08
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.81
+          }
+        },
+        "usage": {
+          "input_tokens": 690,
+          "output_tokens": 101
+        },
+        "latency_ms": 186.319
+      }
+    },
+    {
+      "id": "unsupported-host",
+      "input_sha256": "f5e6c7a4e4f009902afbadacc53a04fa3cdf3812d1b551883be6a56f3a1e6d78",
+      "expected": {
+        "supported": false,
+        "durable": true,
+        "assertion": "unclear"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "unclear",
+            "probabilities": {
+              "denied": 0,
+              "established": 0.01,
+              "hypothetical": 0,
+              "planned": 0,
+              "unclear": 0.99
+            },
+            "confidence": 0.99
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.73
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 695,
+          "output_tokens": 99
+        },
+        "latency_ms": 215.654
+      }
+    },
+    {
+      "id": "retracted-success",
+      "input_sha256": "9afcf9e9c3fd101b19ecb350f446486b642760087991df0df5be9744f96368c2",
+      "expected": {
+        "supported": false,
+        "durable": true,
+        "assertion": "denied"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "denied",
+            "probabilities": {
+              "denied": 0.75,
+              "established": 0.1,
+              "hypothetical": 0,
+              "planned": 0,
+              "unclear": 0.15
+            },
+            "confidence": 0.69
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.71
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.32
+          }
+        },
+        "usage": {
+          "input_tokens": 703,
+          "output_tokens": 99
+        },
+        "latency_ms": 152.259
+      }
+    },
+    {
+      "id": "attributed-report",
+      "input_sha256": "a72914faba0111ec0fecefaffd92a146c871efa6c209e6f7c60de8dc8f2e30ee",
+      "expected": {
+        "supported": true,
+        "durable": false,
+        "assertion": "established"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "established",
+            "probabilities": {
+              "denied": 0,
+              "established": 1,
+              "hypothetical": 0,
+              "planned": 0,
+              "unclear": 0
+            },
+            "confidence": 1
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.17
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.97
+          }
+        },
+        "usage": {
+          "input_tokens": 703,
+          "output_tokens": 101
+        },
+        "latency_ms": 150.714
+      }
+    },
+    {
+      "id": "unverified-report-as-proof",
+      "input_sha256": "b2e64a9e575ebd63ee8b0b026ee85767d121ae33a2d8320dddce7669cbe8e4e8",
+      "expected": {
+        "supported": false,
+        "durable": false,
+        "assertion": "denied"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "denied",
+            "probabilities": {
+              "denied": 0.71,
+              "established": 0.02,
+              "hypothetical": 0,
+              "planned": 0.01,
+              "unclear": 0.26
+            },
+            "confidence": 0.64
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.34
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 701,
+          "output_tokens": 99
+        },
+        "latency_ms": 191.93
+      }
+    },
+    {
+      "id": "embedded-instructions",
+      "input_sha256": "cb1ea1b0b78e3f45353a461a296c35d6050365248662e8c9ae0543645e65cd47",
+      "expected": {
+        "supported": false,
+        "durable": true,
+        "assertion": "unclear"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "unclear",
+            "probabilities": {
+              "denied": 0,
+              "established": 0.07,
+              "hypothetical": 0.01,
+              "planned": 0.01,
+              "unclear": 0.91
+            },
+            "confidence": 0.88
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.73
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.04
+          }
+        },
+        "usage": {
+          "input_tokens": 720,
+          "output_tokens": 99
+        },
+        "latency_ms": 159.838
+      }
+    },
+    {
+      "id": "preserve-negated-constraint",
+      "input_sha256": "4e053e56a0a4f68817913ece826f00d1bf03559a556f0941dc8e3a5b3e462782",
+      "expected": {
+        "supported": true,
+        "durable": true,
+        "assertion": "established"
+      },
+      "assessment": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "assertion": {
+            "type": "choice",
+            "choice": "established",
+            "probabilities": {
+              "denied": 0,
+              "established": 0.58,
+              "hypothetical": 0,
+              "planned": 0.41,
+              "unclear": 0.01
+            },
+            "confidence": 0.47
+          },
+          "durable": {
+            "type": "noul",
+            "noul": 0.92
+          },
+          "supported": {
+            "type": "noul",
+            "noul": 0.49
+          }
+        },
+        "usage": {
+          "input_tokens": 698,
+          "output_tokens": 101
+        },
+        "latency_ms": 246.51
+      }
+    }
+  ]
+}

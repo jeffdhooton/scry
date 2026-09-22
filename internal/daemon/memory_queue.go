@@ -147,9 +147,10 @@ func (d *Daemon) startMemoryWorker(ctx context.Context) {
 			log.Printf("memory: index warm-up: %v", err)
 		}
 		w := queue.New(queue.Options{
-			Store:     st,
-			Extractor: d.memExtractor,
-			Glossary:  d.glossaryLines,
+			Store:       st,
+			Extractor:   d.memExtractor,
+			Glossary:    d.glossaryLines,
+			OnExtracted: d.observeAssessment,
 		})
 		d.memQueueMu.Lock()
 		d.memQueue = w
@@ -286,6 +287,7 @@ func (d *Daemon) handleMemoryEnqueue(_ context.Context, raw json.RawMessage) (an
 			return nil, err
 		}
 		if queued {
+			d.captureAssessment(ep)
 			res.Queued++
 		} else {
 			res.Known++
@@ -324,9 +326,17 @@ func enqueueEpisode(st *memstore.Store, ep distill.RawEpisode, hints []string, n
 	if occurred.IsZero() {
 		occurred = now
 	}
+	sourceTurns := append([]distill.SourceTurn(nil), ep.SourceTurns...)
+	for i := range sourceTurns {
+		sourceTurns[i].Text = distill.Redact(sourceTurns[i].Text)
+		sourceTurns[i].Speaker = distill.Redact(sourceTurns[i].Speaker)
+	}
 	return true, st.PutPending(memstore.PendingEpisode{
 		ID: ep.ID, Source: ep.Source, SourceRef: ep.SourceRef, Text: distill.Redact(ep.Text), Cwd: ep.Cwd, CwdIsRepo: ep.CwdIsRepo, Force: force,
 		OccurredAt: occurred, EnqueuedAt: now, NextAttempt: now, Hints: hints,
+		SourceTimeUnknown: ep.OccurredAt.IsZero(),
+		SourceNamespace:   ep.SourceNamespace, SourceSpanKnown: ep.SourceSpanKnown,
+		SourceStart: ep.SourceStart, SourceEnd: ep.SourceEnd, SourceTurns: sourceTurns,
 	})
 }
 

@@ -1,0 +1,19 @@
+{
+  "episodes": 11806,
+  "entities": 44066,
+  "facts": 112871,
+  "dormant": false,
+  "cursors": 3592,
+  "models": [
+    "glm-5.3-flash",
+    "deepseek-v4-flash"
+  ],
+  "queue_limit": 6,
+  "queue_ready": 1,
+  "queue_backoff": 0,
+  "queue_parked": 632,
+  "worker_running": true,
+  "last_ingest_at": "2026-09-20T12:47:57.936284Z",
+  "last_sweep_at": "2026-09-20T13:05:16.710929Z",
+  "last_extract_ok_at": "2026-09-20T13:06:31.332291Z"
+}

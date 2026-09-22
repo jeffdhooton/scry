@@ -80,7 +80,7 @@ The daemon also permanently serves a live, always-fresh version of the
 running. Set SCRY_MEMORY_UI_ADDR to change the address, or "off" to disable
 it.`,
 	}
-	cmd.AddCommand(memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
+	cmd.AddCommand(memoryAssessCmd(), memoryIngestCmd(), memorySweepCmd(), memoryBackfillCmd(),
 		memoryOrientCmd(), memoryRecallCmd(), memoryRememberCmd(), memoryEntitiesCmd(),
 		memoryFactsCmd(), memoryInvalidateCmd(), memoryStatusCmd(), memoryBrowseCmd(),
 		memoryHygieneCmd(), memoryDescribeCmd(), memoryQueueCmd(), memoryBackupCmd(), memoryRestoreCmd(), memoryMigrateCmd(), memoryBenchCmd(), memoryRepairReposCmd(), memoryReattachCmd(), memoryUnaliasCmd(), memoryMergeEntitiesCmd(), memoryRetireEntitiesCmd())

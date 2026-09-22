@@ -29,6 +29,7 @@ import (
 	"github.com/jeffdhooton/scry/internal/memory/queue"
 	"github.com/jeffdhooton/scry/internal/memory/search"
 	memstore "github.com/jeffdhooton/scry/internal/memory/store"
+	"github.com/jeffdhooton/scry/internal/review"
 	roomstore "github.com/jeffdhooton/scry/internal/room/store"
 	"github.com/jeffdhooton/scry/internal/rpc"
 )
@@ -78,6 +79,7 @@ type Daemon struct {
 	memStore     *memstore.Store
 	memErr       error
 	memExtractor extract.Extractor
+	assessment   assessmentRuntime
 	memQueueMu   sync.Mutex
 	memQueue     *queue.Worker
 	memQueueWG   sync.WaitGroup
@@ -100,6 +102,8 @@ type Daemon struct {
 	frictionMu     sync.Mutex
 	frictionSt     *friction.Store
 	frictionClosed bool
+	reviewService  *review.Service
+	reviewError    string
 }
 
 // memoryStore lazily opens the global memory store on first use, guarded by
@@ -173,6 +177,7 @@ func New(layout Layout) *Daemon {
 		memExtractor:   buildMemoryExtractor(layout.Home),
 	}
 	d.watcher = NewWatcher(layout.Home, d.registry)
+	d.configureAssessment()
 	d.watcher.SetPostReindex(d.rebuildGraphAsync)
 	d.registerMethods()
 	d.registerGitMethods()
@@ -181,6 +186,7 @@ func New(layout Layout) *Daemon {
 	d.registerGraphMethods()
 	d.registerRoomMethods()
 	d.registerFrictionMethods()
+	d.registerReviewMethods()
 	return d
 }
 
@@ -217,6 +223,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 		return err
 	}
 	defer own.Release()
+	// Review recovery writes its journal. Only the process holding daemon
+	// ownership may mark interrupted work or reserve model requests.
+	d.configureReview()
 
 	// Stale socket from a previous crash. We hold the lock and no healthy
 	// daemon answered, so nothing live is behind this pathname.
@@ -313,7 +322,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	// Drain queued memory writes for as long as the daemon runs. Stopped by
 	// runCtx before closeMemory (deferred above) closes the store.
+	d.startAssessmentWorker(runCtx)
 	d.startMemoryWorker(runCtx)
+	// Cancel and join review inference before the registries it reads close.
+	if d.reviewService != nil {
+		done := make(chan struct{})
+		go func() { defer close(done); d.reviewService.Serve(runCtx) }()
+		defer func() { cancel(); <-done }()
+	}
 
 	serveErr := d.server.Serve(runCtx, ln)
 	if serveErr != nil && !errors.Is(serveErr, net.ErrClosed) {

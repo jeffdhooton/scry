@@ -1,0 +1,96 @@
+{
+  "id": "ce602e4af7dc7f39369b28ae29f119d8848e63fac664b6aa0a485f33c9cbae9f",
+  "snapshot": {
+    "id": "3765253017441b421dbf5e19f3398f9a28055cb67fb01a5cbb1e374ff338dc43",
+    "repository": "/private/tmp/scry-review-accept-2498597798/permission-project",
+    "head": "016740c4b6658702eefe26aca5f8a293fcdd2de9",
+    "captured_at": "2026-09-22T00:12:54.610943Z",
+    "files": [
+      {
+        "path": "admin.go",
+        "sha256": "e894a5eff28a5c908c6e1ce7b8b4c8e71767a3c63fb20e341762db86b0432c07",
+        "mode": "100644"
+      },
+      {
+        "path": "emergency.go",
+        "sha256": "2297ec9fb35a4c532c092a033a57605cf1cce0c7da2f94c3af7f2c73ac9e61fc",
+        "mode": "100644"
+      },
+      {
+        "path": "member.go",
+        "sha256": "adcb29f2e1b78bd1246dacb11cdae714d96a7b7dd11829da50fc900deff78284",
+        "mode": "100644"
+      },
+      {
+        "path": "permission.go",
+        "sha256": "7ae1d987c774cced4e4b523fb20b3ad8e66f8f1043b3c321e1ee85138a3bf1a5",
+        "mode": "100644"
+      }
+    ],
+    "changed_files": [
+      "permission.go"
+    ],
+    "evidence": [
+      {
+        "id": "e1",
+        "kind": "diff",
+        "path": "permission.go",
+        "content": "working tree compared with HEAD\n--- a/permission.go (mode 100644)\n+++ b/permission.go (mode 100644)\n-package fixture\n-type User struct { Member, Admin, EmergencyService bool }\n-func Allowed(u User) bool { return u.Member || u.Admin || u.EmergencyService }\n+package fixture\n+type User struct { Member, Admin, EmergencyService bool }\n+func Allowed(u User) bool { return u.Member || u.Admin }\n"
+      },
+      {
+        "id": "structural:e8d46f4548a3c246",
+        "kind": "structural",
+        "path": "",
+        "content": "{\"coverage\":\"indexed references; may be incomplete or stale; confirm against captured source\",\"references\":[{\"symbol\":\"scip-go gomod fixture . Allowed.\",\"file\":\"member.go\",\"line\":2,\"column\":36,\"end_line\":0,\"end_column\":0},{\"symbol\":\"scip-go gomod fixture . Allowed.\",\"file\":\"admin.go\",\"line\":2,\"column\":36,\"end_line\":0,\"end_column\":0},{\"symbol\":\"scip-go gomod fixture . Allowed.\",\"file\":\"emergency.go\",\"line\":2,\"column\":36,\"end_line\":0,\"end_column\":0}],\"symbol\":\"Allowed\"}"
+      },
+      {
+        "id": "caller:cb488ad8239edeaa",
+        "kind": "caller",
+        "path": "admin.go",
+        "content": "package fixture\nfunc AdminRequest() bool { return Allowed(User{Admin: true}) }\n"
+      },
+      {
+        "id": "caller:25890a36b0e1a20d",
+        "kind": "caller",
+        "path": "emergency.go",
+        "content": "package fixture\nfunc EmergencyServiceRequest() bool { return Allowed(User{EmergencyService: true}) }\n"
+      },
+      {
+        "id": "caller:49db86e55ea5d9b5",
+        "kind": "caller",
+        "path": "member.go",
+        "content": "package fixture\nfunc MemberRequest() bool { return Allowed(User{Member: true}) }\n"
+      },
+      {
+        "id": "memory:aa26a10152eff231",
+        "kind": "memory",
+        "path": "",
+        "content": "{\"src\":\"permission-project\",\"relation\":\"decision\",\"value\":\"Keep the emergency-service exception: incident response must remain available when neither member nor admin credentials are present.\",\"fact\":\"Keep the emergency-service exception: incident response must remain available when neither member nor admin credentials are present.\",\"valid_from\":\"2026-09-01T12:00:00Z\",\"confidence\":1,\"episodes\":[\"episode-emergency-access-decision\"],\"episode_count\":1,\"score\":0}"
+      },
+      {
+        "id": "coverage",
+        "kind": "coverage",
+        "path": "",
+        "content": "Coverage limitations:\nindex freshness unverified; structural locations are retrieval hints\n"
+      }
+    ],
+    "warnings": [
+      "index freshness unverified; structural locations are retrieval hints"
+    ]
+  },
+  "context_id": "d5287cad5bbc480ba0eb428480b77f36dc7baa2c9f0d709fbfe86355132db8fe",
+  "state": "failed",
+  "provisional": true,
+  "freshness": "unchecked",
+  "started_at": "2026-09-22T00:12:54.729306Z",
+  "completed_at": "2026-09-22T00:12:55.443731Z",
+  "elapsed_ms": 714,
+  "provider": "anthropic",
+  "model": "glm-5.3-flash",
+  "error": "review provider returned HTTP 429",
+  "usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "known": false
+  }
+}

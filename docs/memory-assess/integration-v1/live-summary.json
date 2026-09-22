@@ -1,0 +1,651 @@
+{
+  "date": "2026-09-20",
+  "model": "jev-1.13.0",
+  "planned": 600,
+  "completed": 592,
+  "failed": 8,
+  "packet_hash_matches": 600,
+  "returned_input_tokens": 617509,
+  "returned_output_tokens": 59319,
+  "estimated_input_usd": 0.025935378000000002,
+  "http_p50_ms": 169.687,
+  "http_p95_ms": 232.76,
+  "end_to_end_p50_ms": 2362.393,
+  "end_to_end_p95_ms": 5858.512,
+  "elapsed_ms": 54759.755708,
+  "completed_per_second": 10.810859039561295,
+  "daily_returned_input_tokens": {
+    "2026-09-20": 617509
+  },
+  "terminal_failure_rate": 0.013333333333333334,
+  "groups": {
+    "memory-assess-v1/compact/development": {
+      "n": 69,
+      "supported": {
+        "fp": 0,
+        "fn": 18,
+        "brier": 0.23577536231884058
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 5,
+        "brier": 0.09467971014492753
+      },
+      "assertion_correct": 50,
+      "assertion_confusion": {
+        "established": {
+          "established": 29,
+          "planned": 3,
+          "unclear": 8
+        },
+        "denied": {
+          "denied": 12,
+          "planned": 2,
+          "hypothetical": 1,
+          "established": 2,
+          "unclear": 2
+        },
+        "planned": {
+          "planned": 4,
+          "established": 1
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 3
+        }
+      }
+    },
+    "memory-assess-v1/relevant/development": {
+      "n": 70,
+      "supported": {
+        "fp": 0,
+        "fn": 17,
+        "brier": 0.15058571428571427
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 8,
+        "brier": 0.10356
+      },
+      "assertion_correct": 60,
+      "assertion_confusion": {
+        "established": {
+          "established": 35,
+          "planned": 3,
+          "unclear": 2
+        },
+        "denied": {
+          "denied": 16,
+          "planned": 2,
+          "hypothetical": 1,
+          "established": 1
+        },
+        "planned": {
+          "planned": 4,
+          "established": 1
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 3
+        }
+      }
+    },
+    "memory-assess-v1/target20k/development": {
+      "n": 67,
+      "supported": {
+        "fp": 0,
+        "fn": 15,
+        "brier": 0.14128358208955222
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 7,
+        "brier": 0.1032731343283582
+      },
+      "assertion_correct": 56,
+      "assertion_confusion": {
+        "established": {
+          "established": 33,
+          "planned": 3,
+          "unclear": 3
+        },
+        "denied": {
+          "denied": 15,
+          "planned": 2,
+          "hypothetical": 1,
+          "established": 1
+        },
+        "planned": {
+          "planned": 3,
+          "established": 1
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 3
+        }
+      }
+    },
+    "memory-assess-v2/compact/development": {
+      "n": 69,
+      "supported": {
+        "fp": 0,
+        "fn": 19,
+        "brier": 0.19027391304347827
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 15,
+        "brier": 0.1645246376811594
+      },
+      "assertion_correct": 53,
+      "assertion_confusion": {
+        "established": {
+          "established": 28,
+          "planned": 3,
+          "unclear": 8
+        },
+        "denied": {
+          "denied": 16,
+          "planned": 1,
+          "hypothetical": 1,
+          "unclear": 1,
+          "established": 1
+        },
+        "planned": {
+          "planned": 5
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 2,
+          "denied": 1
+        }
+      }
+    },
+    "memory-assess-v2/relevant/development": {
+      "n": 70,
+      "supported": {
+        "fp": 0,
+        "fn": 8,
+        "brier": 0.09111285714285715
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 20,
+        "brier": 0.17111
+      },
+      "assertion_correct": 65,
+      "assertion_confusion": {
+        "established": {
+          "established": 37,
+          "planned": 2,
+          "unclear": 1
+        },
+        "denied": {
+          "denied": 19,
+          "hypothetical": 1
+        },
+        "planned": {
+          "planned": 5
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 2,
+          "denied": 1
+        }
+      }
+    },
+    "memory-assess-v2/target20k/development": {
+      "n": 70,
+      "supported": {
+        "fp": 0,
+        "fn": 8,
+        "brier": 0.09362428571428572
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 23,
+        "brier": 0.17650714285714286
+      },
+      "assertion_correct": 64,
+      "assertion_confusion": {
+        "established": {
+          "established": 37,
+          "planned": 2,
+          "unclear": 1
+        },
+        "denied": {
+          "denied": 18,
+          "hypothetical": 1,
+          "unclear": 1
+        },
+        "planned": {
+          "planned": 5
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 2,
+          "denied": 1
+        }
+      }
+    },
+    "memory-assess-v1/compact/sealed": {
+      "n": 29,
+      "supported": {
+        "fp": 0,
+        "fn": 6,
+        "brier": 0.17025862068965517
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 3,
+        "brier": 0.09733793103448275
+      },
+      "assertion_correct": 22,
+      "assertion_confusion": {
+        "established": {
+          "unclear": 3,
+          "established": 13,
+          "planned": 1
+        },
+        "denied": {
+          "denied": 5,
+          "planned": 1,
+          "unclear": 1,
+          "established": 1
+        },
+        "planned": {
+          "planned": 2
+        },
+        "unclear": {
+          "unclear": 2
+        }
+      }
+    },
+    "memory-assess-v1/relevant/sealed": {
+      "n": 30,
+      "supported": {
+        "fp": 0,
+        "fn": 5,
+        "brier": 0.13559666666666667
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 3,
+        "brier": 0.10455333333333333
+      },
+      "assertion_correct": 28,
+      "assertion_confusion": {
+        "established": {
+          "established": 17,
+          "planned": 1
+        },
+        "denied": {
+          "denied": 7,
+          "planned": 1
+        },
+        "planned": {
+          "planned": 2
+        },
+        "unclear": {
+          "unclear": 2
+        }
+      }
+    },
+    "memory-assess-v1/target20k/sealed": {
+      "n": 30,
+      "supported": {
+        "fp": 0,
+        "fn": 5,
+        "brier": 0.1404166666666667
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 3,
+        "brier": 0.10762999999999999
+      },
+      "assertion_correct": 28,
+      "assertion_confusion": {
+        "established": {
+          "established": 17,
+          "planned": 1
+        },
+        "denied": {
+          "denied": 7,
+          "planned": 1
+        },
+        "planned": {
+          "planned": 2
+        },
+        "unclear": {
+          "unclear": 2
+        }
+      }
+    },
+    "memory-assess-v2/compact/sealed": {
+      "n": 30,
+      "supported": {
+        "fp": 0,
+        "fn": 7,
+        "brier": 0.16987
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 8,
+        "brier": 0.162
+      },
+      "assertion_correct": 25,
+      "assertion_confusion": {
+        "established": {
+          "unclear": 1,
+          "established": 15,
+          "planned": 1,
+          "denied": 1
+        },
+        "denied": {
+          "denied": 7,
+          "unclear": 1
+        },
+        "planned": {
+          "planned": 2
+        },
+        "unclear": {
+          "denied": 1,
+          "unclear": 1
+        }
+      }
+    },
+    "memory-assess-v2/relevant/sealed": {
+      "n": 29,
+      "supported": {
+        "fp": 0,
+        "fn": 3,
+        "brier": 0.09252068965517242
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 7,
+        "brier": 0.17020344827586206
+      },
+      "assertion_correct": 28,
+      "assertion_confusion": {
+        "established": {
+          "established": 17
+        },
+        "denied": {
+          "denied": 8
+        },
+        "planned": {
+          "planned": 2
+        },
+        "unclear": {
+          "denied": 1,
+          "unclear": 1
+        }
+      }
+    },
+    "memory-assess-v2/target20k/sealed": {
+      "n": 29,
+      "supported": {
+        "fp": 0,
+        "fn": 2,
+        "brier": 0.08824827586206897
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 6,
+        "brier": 0.16200344827586208
+      },
+      "assertion_correct": 27,
+      "assertion_confusion": {
+        "established": {
+          "established": 16,
+          "planned": 1
+        },
+        "denied": {
+          "denied": 8
+        },
+        "planned": {
+          "planned": 2
+        },
+        "unclear": {
+          "denied": 1,
+          "unclear": 1
+        }
+      }
+    },
+    "memory-assess-v1/compact/all": {
+      "n": 98,
+      "supported": {
+        "fp": 0,
+        "fn": 24,
+        "brier": 0.2163877551020408
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 8,
+        "brier": 0.09546632653061225
+      },
+      "assertion_correct": 72,
+      "assertion_confusion": {
+        "established": {
+          "established": 42,
+          "planned": 4,
+          "unclear": 11
+        },
+        "denied": {
+          "denied": 17,
+          "planned": 3,
+          "hypothetical": 1,
+          "established": 3,
+          "unclear": 3
+        },
+        "planned": {
+          "planned": 6,
+          "established": 1
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 5
+        }
+      }
+    },
+    "memory-assess-v1/relevant/all": {
+      "n": 100,
+      "supported": {
+        "fp": 0,
+        "fn": 22,
+        "brier": 0.146089
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 11,
+        "brier": 0.10385799999999999
+      },
+      "assertion_correct": 88,
+      "assertion_confusion": {
+        "established": {
+          "established": 52,
+          "planned": 4,
+          "unclear": 2
+        },
+        "denied": {
+          "denied": 23,
+          "planned": 3,
+          "hypothetical": 1,
+          "established": 1
+        },
+        "planned": {
+          "planned": 6,
+          "established": 1
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 5
+        }
+      }
+    },
+    "memory-assess-v1/target20k/all": {
+      "n": 97,
+      "supported": {
+        "fp": 0,
+        "fn": 20,
+        "brier": 0.14101546391752576
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 10,
+        "brier": 0.10462061855670102
+      },
+      "assertion_correct": 84,
+      "assertion_confusion": {
+        "established": {
+          "established": 50,
+          "planned": 4,
+          "unclear": 3
+        },
+        "denied": {
+          "denied": 22,
+          "planned": 3,
+          "hypothetical": 1,
+          "established": 1
+        },
+        "planned": {
+          "planned": 5,
+          "established": 1
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 5
+        }
+      }
+    },
+    "memory-assess-v2/compact/all": {
+      "n": 99,
+      "supported": {
+        "fp": 0,
+        "fn": 26,
+        "brier": 0.18409090909090908
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 23,
+        "brier": 0.16375959595959597
+      },
+      "assertion_correct": 78,
+      "assertion_confusion": {
+        "established": {
+          "established": 43,
+          "planned": 4,
+          "unclear": 9,
+          "denied": 1
+        },
+        "denied": {
+          "denied": 23,
+          "planned": 1,
+          "hypothetical": 1,
+          "unclear": 2,
+          "established": 1
+        },
+        "planned": {
+          "planned": 7
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 3,
+          "denied": 2
+        }
+      }
+    },
+    "memory-assess-v2/relevant/all": {
+      "n": 99,
+      "supported": {
+        "fp": 0,
+        "fn": 11,
+        "brier": 0.09152525252525252
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 27,
+        "brier": 0.17084444444444447
+      },
+      "assertion_correct": 93,
+      "assertion_confusion": {
+        "established": {
+          "established": 54,
+          "planned": 2,
+          "unclear": 1
+        },
+        "denied": {
+          "denied": 27,
+          "hypothetical": 1
+        },
+        "planned": {
+          "planned": 7
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 3,
+          "denied": 2
+        }
+      }
+    },
+    "memory-assess-v2/target20k/all": {
+      "n": 99,
+      "supported": {
+        "fp": 0,
+        "fn": 10,
+        "brier": 0.09204949494949495
+      },
+      "durable": {
+        "fp": 0,
+        "fn": 29,
+        "brier": 0.17225858585858586
+      },
+      "assertion_correct": 91,
+      "assertion_confusion": {
+        "established": {
+          "established": 53,
+          "planned": 3,
+          "unclear": 1
+        },
+        "denied": {
+          "denied": 26,
+          "hypothetical": 1,
+          "unclear": 1
+        },
+        "planned": {
+          "planned": 7
+        },
+        "hypothetical": {
+          "hypothetical": 2
+        },
+        "unclear": {
+          "unclear": 3,
+          "denied": 2
+        }
+      }
+    }
+  }
+}

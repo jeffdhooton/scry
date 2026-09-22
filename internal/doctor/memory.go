@@ -78,7 +78,44 @@ func checkMemory(scryHome string, timeout time.Duration) []Check {
 		ID: "memory.daemon", Category: CategoryMemory, Name: "memory daemon reachable",
 		Status: StatusPass, Detail: fmt.Sprintf("%s (%s): %d entities, %d facts, %d episodes", socket, source, res.Entities, res.Facts, res.Episodes),
 	}}
-	return append(checks, evalMemoryStatus(&res, time.Now())...)
+	checks = append(checks, evalMemoryStatus(&res, time.Now())...)
+	var assessment daemon.AssessmentStatusResult
+	if err := client.Call(ctx, "memory.assess.status", nil, &assessment); err != nil {
+		checks = append(checks, Check{ID: "memory.assessment", Category: CategoryMemory, Name: "shadow assessment", Status: StatusWarn,
+			Detail: fmt.Sprintf("assessment status unavailable: %v", err), Remedy: "deploy a daemon with memory assessment RPC support"})
+	} else {
+		checks = append(checks, evalAssessmentStatus(&assessment))
+	}
+	return checks
+}
+
+func evalAssessmentStatus(res *daemon.AssessmentStatusResult) Check {
+	c := Check{ID: "memory.assessment", Category: CategoryMemory, Name: "shadow assessment", Status: StatusPass}
+	if res.Configuration.Mode == "off" && res.ConfigurationError == "" {
+		c.Detail = "off (healthy)"
+		return c
+	}
+	if res.ConfigurationError != "" {
+		c.Status, c.Detail = StatusWarn, res.ConfigurationError
+		c.Remedy = "fix memory.assessment in the store daemon's config.yaml and restart the daemon"
+		return c
+	}
+	if res.BlockedReason != "" {
+		c.Status = StatusWarn
+		c.Detail = "shadow dispatch blocked: " + res.BlockedReason
+		c.Remedy = "run `scry memory assess status --json`, fix the cause on the store daemon, restart if credentials changed, then run `scry memory assess resume`"
+		return c
+	}
+	if !res.KeyAvailable {
+		c.Status, c.Detail = StatusWarn, "shadow mode: TYPESAFE_API_KEY unavailable in daemon environment"
+		c.Remedy = "set TYPESAFE_API_KEY in the store daemon's launchd environment and restart it"
+		return c
+	}
+	c.Detail = "shadow mode active"
+	if res.Store != nil {
+		c.Detail = fmt.Sprintf("shadow mode active, queue %v", res.Store.Counts)
+	}
+	return c
 }
 
 // evalMemoryStatus turns a memory.status payload into the four ingestion

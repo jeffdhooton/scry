@@ -56,6 +56,7 @@ Read+Grep+Glob loop that eats most of an agent's time and tokens.`,
 	root.AddCommand(graphCmd())
 	root.AddCommand(memoryCmd())
 	root.AddCommand(frictionCmd())
+	root.AddCommand(reviewCmd())
 	root.AddCommand(statusCmd())
 	root.AddCommand(daemonCmd())
 	root.AddCommand(startCmd())
