@@ -21,6 +21,7 @@ const FileName = "config.yaml"
 // Config is the parsed ~/.scry/config.yaml.
 type Config struct {
 	Memory Memory `yaml:"memory"`
+	Review Review `yaml:"review"`
 }
 
 // Memory configures the memory domain's extraction.

@@ -849,3 +849,10 @@ Four separate tools (scry, tome, flume, lore) shared 90% of their infrastructure
 ## Author
 
 Built by [Jeff Hooton](https://hooton.codes) · [GitHub](https://github.com/jeffdhooton)
+
+## Background change review
+
+Optional snapshot-bound reviews combine changed code, indexed callers, and
+recalled decisions while your coding agent works. Results remain provisional,
+carry freshness and usage, and are shared across CLI/MCP clients. See
+[configuration, operation, and acceptance testing](docs/BACKGROUND_REVIEW.md).

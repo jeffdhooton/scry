@@ -307,3 +307,14 @@ first-class Claude Code tools:
 
 When the MCP server is registered, these 23 tools appear alongside Grep/Glob/Read
 and you can route to them directly without reading this skill.
+
+## Background change review
+
+For repositories opted into `review.repos`, read `scry_review_list` (or
+`scry review list --repo /absolute/repo`) at a stable work checkpoint. Use
+`scry_review_get` for cited evidence. Only current, completed records describe
+the present change; stale/unknown records are historical. Findings are
+provisional suggestions, never established facts or permission to edit code.
+Never automatically promote a review into memory. `scry_review_run` queues
+inference within the configured limits; status/list/get/preview do not run a
+model. These tools belong to the local Scry daemon, not the memory profile.
