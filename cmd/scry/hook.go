@@ -33,15 +33,14 @@ type hookInput struct {
 	Cwd       string          `json:"cwd"`
 }
 
-// hookOutput is the JSON we return to Claude Code on stdout.
+// hookOutput adds context without overriding the host's permission policy.
 type hookOutput struct {
 	HookSpecificOutput hookSpecific `json:"hookSpecificOutput"`
 }
 
 type hookSpecific struct {
-	HookEventName  string `json:"hookEventName"`
-	Decision       string `json:"permissionDecision"`
-	Context        string `json:"additionalContext,omitempty"`
+	HookEventName string `json:"hookEventName"`
+	Context       string `json:"additionalContext,omitempty"`
 }
 
 func hookPreSearchCmd() *cobra.Command {
@@ -314,10 +313,8 @@ func writeHookAllow(additionalContext string) error {
 	out := hookOutput{
 		HookSpecificOutput: hookSpecific{
 			HookEventName: "PreToolUse",
-			Decision:      "allow",
 			Context:       additionalContext,
 		},
 	}
 	return json.NewEncoder(os.Stdout).Encode(out)
 }
-
